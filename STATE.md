@@ -10,35 +10,39 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
-- 能力路線圖 S1–S5 皆未開始。
+- **S3 mesh 生成器：最小原型 + 評估器已完成,合成資料 6 條 AC 全過**
+  (見 `tools/mesh_gen/`、`knowledge/s3-mesh-generator.md`)。
+- S1 / S2(其他能力評估器)/ S4 / S5 尚未開始。
 
 ## 下一步動作 (next action)
 
-> 建議第一個動手的能力：**S3 mesh 生成器**(純 CPU、收益最大、能立即拆掉「新建 mesh 需 Spine editor」限制)。
-> 但其自主迭代需要評估器(S2)，所以第一個 bounded chunk 先做「S3 的評估器 + 拓樸原型」的最小版本。
+> S3 已有可跑的 unweighted 原型 + 評估器。下一個 bounded chunk 二選一(建議 (a)):
 
-1. **定 AC**：為 S3 mesh 生成器寫可量測的驗收目標
-   (例：對 `curtain_left` 的來源區域重建 mesh，在極端 deform 幀 0 自交、輪廓 IoU ≥ 門檻、頂點數 ≤ 預算)。
-2. **最小原型**：用 `cv2.findContours` → Douglas-Peucker → (多通道 Canny 內部邊界放點) → Delaunay，
-   對一張遮罩產出三角網格;先不做 BBW 權重(unweighted 即可，對應 main_draw 全為 unweighted)。
-3. **接評估器**:三角形重心在 mask 內過濾、自交檢查、輪廓比對。寫成可重跑腳本。
-4. **驗證**:把生成的 mesh 寫進 Spine JSON 格式,用 `spine_inspector.html` 的 `setMeshVertices`/
-   `getMeshBounds`/`screenshot` 自我驗收。
-5. 結果寫進 `knowledge/`,更新本檔與 `log/`。
+**(a) S3 真實資產驗證 + deform 穩健性**(需使用者提供 `main_draw.png` 或任一張去背 PNG)
+1. 對真實貼圖區域生成 mesh,評估器驗 IoU / 重心 / 格式。
+2. 新增「極端 deform 幀」AC:沿 hull 施加位移,檢查 0 自交、0 撕裂。
+3. 在 `spine_inspector.html` 用 `setMeshVertices`/`getMeshBounds`/`screenshot` 做 round-trip 實機驗證。
 
-> ⚠️ 環境前置:需確認排程 session 能否安裝/使用 `opencv-python`、`triangle`、`numpy` 等
-> (純 CPU 套件)。第一次執行先做環境探測,若無法安裝則記錄為 BLOCKED 並回報。
+**(b) S2 評估器套件擴展**(不需新資產,純 CPU 可自走)
+- 把 S3 評估器模式推廣,為「切圖重建測試」與「補圖破洞掃描」各寫一個評估器骨架。
+
+> 若 (a) 因缺 `main_draw.png` 卡住 → 標記該子項 BLOCKED,改做 (b)。
+
+## 環境前置(已驗證可用)
+
+- 排程容器為臨時,CPU 套件需每次重裝。**已確認可裝**:numpy 2.4.6 / opencv-python-headless 4.13.0 /
+  triangle / scipy 1.17.1(見 `requirements.txt`)。
+- 每次排程執行前先 `pip install -r requirements.txt`。
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
 - ❓ 排程頻率未定(使用者尚未決定)。
-- ❓ 貼圖/PMA 完整視覺驗證需 `main_draw.png`(目前僅在使用者端,未進 repo)。
+- ❓ 真實貼圖驗證需 `main_draw.png`(目前僅在使用者端,未進 repo)。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
-- ⛔(待第一次執行確認)排程環境的 Python CPU 套件可用性。
+- ℹ️ spine_inspector 實機 round-trip 需瀏覽器自動化(headless),尚未設置。
 
 ## 進度摘要 (progress log)
 
 - 2026-06-24：建立自驅研究框架骨架(RULES/PLAN/STATE/knowledge/log/prompts)。
-- 2026-06-24：匯入「Spine mesh system analysis」完整交接 — `spine_inspector.html`、`CLAUDE.md`、
-  `handoff_brief.md`、`自主Spine工作流_SOP.md`、`Spine能力鍛鍊計畫.md`、`main_draw_解析報告.md`;
-  PLAN/RULES/STATE 依實際研究內容填妥,狀態轉 `ACTIVE`。
+- 2026-06-24：匯入「Spine mesh system analysis」完整交接;PLAN/RULES/STATE 依實際研究內容填妥,狀態轉 `ACTIVE`。
+- 2026-06-24：**S3 第一輪** — 探測並安裝 CPU 套件;完成 mesh 生成器 + 評估器 + 合成測試;6 條 AC 全過(IoU 0.99)。

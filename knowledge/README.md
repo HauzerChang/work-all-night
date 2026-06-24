@@ -21,4 +21,6 @@
 
 ## 索引(本次執行起新增的發現)
 
-> 尚無。每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
+- [S3 mesh 生成器](s3-mesh-generator.md) — 純 CPU PNG→Spine mesh 原型 + 評估器,合成資料 6 條 AC 全過(IoU 0.99)。
+
+> 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
