@@ -14,19 +14,26 @@
   (見 `tools/mesh_gen/`、`knowledge/s3-mesh-generator.md`)。
 - S1 / S2(其他能力評估器)/ S4 / S5 尚未開始。
 
-## 下一步動作 (next action)
+## 真實資產(已收進 `assets/`)
 
-> S3 已有可跑的 unweighted 原型 + 評估器。下一個 bounded chunk 二選一(建議 (a)):
+- `assets/main_draw.json`(真實骨架:28 bones / 40 slots / 9 anims / 4 unweighted mesh)。
+- `assets/main_draw.atlas`(region 矩形;sheet `main_draw.png` 2023×1896)。
+- ⚠️ **`main_draw.png` 像素檔尚缺**(只在對話中顯示,未存成檔)。像素級工作(裁切貼圖、
+  texture IoU、實機截圖)在拿到該 PNG 前 BLOCKED;但 **deform 幾何分析不需要 PNG**。
 
-**(a) S3 真實資產驗證 + deform 穩健性**(需使用者提供 `main_draw.png` 或任一張去背 PNG)
-1. 對真實貼圖區域生成 mesh,評估器驗 IoU / 重心 / 格式。
-2. 新增「極端 deform 幀」AC:沿 hull 施加位移,檢查 0 自交、0 撕裂。
-3. 在 `spine_inspector.html` 用 `setMeshVertices`/`getMeshBounds`/`screenshot` 做 round-trip 實機驗證。
+## 下一步動作 (next action) — 下一個課題
 
-**(b) S2 評估器套件擴展**(不需新資產,純 CPU 可自走)
-- 把 S3 評估器模式推廣,為「切圖重建測試」與「補圖破洞掃描」各寫一個評估器骨架。
+**課題:deform-aware mesh 評估器 + 用真實 main_draw 當 benchmark**(純 CPU,不需 PNG)
 
-> 若 (a) 因缺 `main_draw.png` 卡住 → 標記該子項 BLOCKED,改做 (b)。
+1. **用 Python 實作 Spine deform**:setup `vertices` + 每幀 `deform.offset/vertices` → 該幀 mesh 形狀
+   (unweighted 直接逐頂點加 offset;對照 CLAUDE.md 雷點 #4 的同步 re-pose 數學)。
+2. **真實 mesh 的 deform 行為量化**:對 9 支動畫逐幀計算 `curtain_left/right`、`shadow/shadow2` 的
+   變形後幾何,檢查 **自交(邊交叉)/ 三角翻面(winding 變號=撕裂)/ 面積比 / 包圍盒**。
+   → 這建立「藝術家手做 mesh 在 deform 下長怎樣」的 benchmark(鍛鍊五件套的 benchmark + 評估器)。
+3. **把它變成 S3 生成器的閘**:生成的 mesh 必須在等效 deform 壓力下 0 自交 / 0 翻面。
+4. 結果寫進 `knowledge/`,更新 STATE / log。
+
+> 後續(待 `main_draw.png`):texture IoU 對真實貼圖、`spine_inspector` 實機 round-trip 截圖。
 
 ## 環境前置(已驗證可用)
 
@@ -37,7 +44,7 @@
 ## 未解問題 / 阻塞 (open questions / blockers)
 
 - ❓ 排程頻率未定(使用者尚未決定)。
-- ❓ 真實貼圖驗證需 `main_draw.png`(目前僅在使用者端,未進 repo)。
+- ❓ `main_draw.png` 像素檔尚缺(對話顯示過但未存成檔)→ texture/IoU/實機截圖 BLOCKED;deform 幾何不受影響。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
 - ℹ️ spine_inspector 實機 round-trip 需瀏覽器自動化(headless),尚未設置。
 
@@ -46,3 +53,5 @@
 - 2026-06-24：建立自驅研究框架骨架(RULES/PLAN/STATE/knowledge/log/prompts)。
 - 2026-06-24：匯入「Spine mesh system analysis」完整交接;PLAN/RULES/STATE 依實際研究內容填妥,狀態轉 `ACTIVE`。
 - 2026-06-24：**S3 第一輪** — 探測並安裝 CPU 套件;完成 mesh 生成器 + 評估器 + 合成測試;6 條 AC 全過(IoU 0.99)。
+- 2026-06-24:收到真實 `main_draw.json` + `.atlas`(存入 `assets/`);解析確認 4 mesh + 9 anim deform;
+  下一課題定為 deform-aware 評估器(純 CPU,不需 PNG)。
