@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spine Inspector — 3.8</title>
+<style>
+  :root { --bg:#1a1d21; --panel:#23272e; --panel2:#2b3038; --line:#3a4049; --txt:#dfe3e8; --muted:#8b93a0; --accent:#6fb3ff; --mesh:#ff8c42; --bone:#ffd24a; --ok:#5fd38a; --err:#ff6b6b; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--txt); font:13px/1.5 -apple-system,"Segoe UI",Roboto,"PingFang TC","Microsoft JhengHei",sans-serif; overflow:hidden; }
+  #app { display:grid; grid-template-columns:268px 1fr 320px; grid-template-rows:38px 1fr 150px; height:100vh; }
+  #toolbar { grid-column:1/4; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  #toolbar .sp { flex:1; }
+  #left  { grid-column:1; grid-row:2/4; background:var(--panel); border-right:1px solid var(--line); overflow:auto; }
+  #center{ grid-column:2; grid-row:2; position:relative; background:#15171a; overflow:hidden; min-width:0; }
+  #cv{ display:block; position:absolute; inset:0; width:100%; height:100%; }
+  #vlabels{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  .vl{ position:absolute; transform:translate(-50%,-50%); min-width:15px; height:15px; padding:0 2px; box-sizing:border-box; font:9px/15px ui-monospace,monospace; color:#dfe3e8; background:rgba(20,22,26,.82); border:1px solid var(--accent); border-radius:9px; text-align:center; white-space:nowrap; }
+  #right { grid-column:3; grid-row:2/4; background:var(--panel); border-left:1px solid var(--line); overflow:auto; display:flex; flex-direction:column; }
+  #timeline { grid-column:2; grid-row:3; background:var(--panel2); border-top:1px solid var(--line); padding:8px 12px; overflow:auto; }
+  h4 { margin:10px 10px 4px; font-size:11px; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); }
+  button, select, input[type=text]{ background:var(--panel2); color:var(--txt); border:1px solid var(--line); border-radius:5px; padding:4px 8px; font-size:12px; cursor:pointer; }
+  button:hover{ border-color:var(--accent); }
+  button.on{ background:var(--accent); color:#10131a; border-color:var(--accent); }
+  label.chk{ display:inline-flex; align-items:center; gap:4px; cursor:pointer; user-select:none; padding:2px 4px; }
+  .tree, .list { padding:0 6px 8px; }
+  .node { padding:2px 6px; border-radius:4px; cursor:pointer; white-space:nowrap; }
+  .node:hover{ background:var(--panel2); }
+  .node.sel{ background:#33405a; }
+  .tag{ font-size:10px; padding:0 5px; border-radius:8px; margin-left:6px; vertical-align:middle; }
+  .tag.mesh{ background:var(--mesh); color:#1a1d21; }
+  .tag.clip{ background:#c08cff; color:#1a1d21; }
+  .tag.region{ background:#3a4049; color:var(--muted); }
+  #inspector{ padding:8px 10px; flex:1; }
+  #inspector .row{ display:flex; justify-content:space-between; gap:8px; padding:2px 0; border-bottom:1px solid #2c313a; }
+  #inspector .row b{ color:var(--muted); font-weight:500; }
+  .editbox{ border-top:1px solid var(--line); padding:8px 10px; }
+  textarea{ width:100%; height:120px; background:#15171a; color:#cfe3ff; border:1px solid var(--line); border-radius:5px; font:11px/1.45 ui-monospace,Menlo,Consolas,monospace; padding:6px; resize:vertical; }
+  #log{ position:absolute; left:8px; bottom:8px; right:8px; max-height:34%; overflow:auto; background:rgba(10,12,15,.86); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:11px/1.4 ui-monospace,monospace; display:none; z-index:5; }
+  #log .e{ color:var(--err); } #log .o{ color:var(--ok); } #log .i{ color:var(--muted); }
+  #drop{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; color:var(--muted); pointer-events:none; text-align:center; }
+  #drop.hide{ display:none; }
+  #drop .big{ font-size:15px; color:var(--txt); }
+  #overlayImg{ position:absolute; inset:0; margin:auto; max-width:100%; max-height:100%; pointer-events:none; display:none; opacity:.5; object-fit:contain; }
+  .seg{ display:flex; gap:2px; }
+  .timecells{ display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+  .timecell{ font-size:11px; padding:2px 7px; border-radius:4px; background:var(--panel); border:1px solid var(--line); cursor:pointer; }
+  .timecell.on{ background:var(--accent); color:#10131a; }
+  input[type=range]{ vertical-align:middle; }
+  .hint{ color:var(--muted); font-size:11px; }
+  a{ color:var(--accent); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <strong style="color:var(--accent)">Spine Inspector</strong>
+    <span class="hint" id="verBadge">runtime: loading…</span>
+    <button id="btnOpen">開啟檔案</button>
+    <input type="file" id="fileInput" multiple accept=".json,.atlas,.png" style="display:none">
+    <button id="btnSample">載入 main_draw 範例</button>
+    <span class="sp"></span>
+    <div class="seg" id="dbgToggles"></div>
+    <label class="chk"><input type="checkbox" id="chkTex" checked> 貼圖</label>
+    <label class="chk"><input type="checkbox" id="chkPma" checked> PMA</label>
+    <label class="chk"><input type="checkbox" id="chkVerts"> 頂點</label>
+    <button id="btnFit">置中</button>
+    <button id="btnLog">日誌</button>
+  </div>
+
+  <div id="left">
+    <h4>Bones 階層</h4><div class="tree" id="boneTree"></div>
+    <h4>Slots / Attachments</h4><div class="list" id="slotList"></div>
+  </div>
+
+  <div id="center">
+    <canvas id="cv"></canvas>
+    <div id="vlabels"></div>
+    <img id="overlayImg">
+    <div id="drop">
+      <div class="big">把 spine 檔拖進來</div>
+      <div>需要 <b>.json</b> + <b>.atlas</b>（+ <b>.png</b> 才有貼圖）<br>沒有 png 也能看 mesh／骨架／動畫線框</div>
+    </div>
+    <div id="log"></div>
+  </div>
+
+  <div id="right">
+    <h4>Inspector</h4>
+    <div id="inspector"><div class="hint">點左側的 bone 或 attachment 檢視細節</div></div>
+    <div class="editbox">
+      <h4 style="margin:0 0 4px">編輯 JSON（選取節點 / 全骨架）</h4>
+      <div class="seg" style="margin-bottom:5px">
+        <button id="btnEditSel" class="on">選取節點</button>
+        <button id="btnEditAll">全骨架</button>
+      </div>
+      <textarea id="jsonEdit" spellcheck="false" placeholder="選取一個節點後在此編輯…"></textarea>
+      <div style="display:flex; gap:6px; margin-top:5px">
+        <button id="btnApply">套用並重繪</button>
+        <button id="btnExport">匯出 JSON</button>
+        <button id="btnRef">參考圖疊圖</button>
+        <input type="file" id="refInput" accept="image/*" style="display:none">
+      </div>
+      <div style="margin-top:5px" class="hint">參考圖透明度 <input type="range" id="refOp" min="0" max="100" value="50" style="width:90px"></div>
+    </div>
+  </div>
+
+  <div id="timeline">
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+      <button id="btnPlay">▶ 播放</button>
+      <select id="animSel"><option>—</option></select>
+      <span class="hint">速度</span><input type="range" id="speed" min="10" max="200" value="100" style="width:90px"><span id="speedV" class="hint">1.0x</span>
+      <span class="sp" style="flex:1"></span>
+      <span id="timeLbl" class="hint">0.000s / 0.000s</span>
+    </div>
+    <input type="range" id="scrub" min="0" max="1000" value="0" style="width:100%; margin-top:8px">
+    <div class="timecells" id="animCells"></div>
+    <div id="deformInfo" class="hint" style="margin-top:6px"></div>
+  </div>
+</div>
+
+<script>
+/* Spine Inspector (Spine 3.8). Render: official spine-webgl (spine.webgl.*). Panels: local JSON parse. Phase-2 API: window.spineTool.* */
+const SPINE_CDNS = [
+  "https://cdn.jsdelivr.net/gh/EsotericSoftware/spine-runtimes@3.8/spine-ts/build/spine-webgl.js",
+  "https://cdn.jsdelivr.net/gh/EsotericSoftware/spine-runtimes@3.8/spine-ts/build/spine-player.js",
+  "https://esotericsoftware.com/files/spine-ts/3.8/spine-webgl.js",
+  "https://esotericsoftware.com/files/spine-ts/3.8/spine-player.js"
+];
+const LOG = document.getElementById('log');
+function log(msg, cls){ const d=document.createElement('div'); d.className=cls||'i'; d.textContent=msg; LOG.appendChild(d); LOG.scrollTop=LOG.scrollHeight; console.log('[spine]',msg); }
+function showLog(on){ LOG.style.display = (on??(LOG.style.display==='none'))?'block':'none'; }
+document.getElementById('btnLog').onclick=()=>showLog();
+
+function loadRuntime(i){
+  i=i||0;
+  if(i>=SPINE_CDNS.length){ log('所有 CDN 載入失敗，請檢查網路或改用其他來源','e'); showLog(true); return; }
+  const s=document.createElement('script'); s.src=SPINE_CDNS[i];
+  s.onload=()=>{ if(window.spine && spine.webgl && spine.webgl.SceneRenderer){ log('runtime 載入成功: '+SPINE_CDNS[i].split('/').slice(-3).join('/'),'o'); document.getElementById('verBadge').textContent='runtime: spine-ts 3.8 ✓'; boot(); } else { log('已載入但缺 SceneRenderer，試下一個…','i'); loadRuntime(i+1); } };
+  s.onerror=()=>{ log('載入失敗: '+SPINE_CDNS[i],'i'); loadRuntime(i+1); };
+  document.head.appendChild(s);
+}
+loadRuntime();
+
+let gl, renderer, canvas, lastFrame=0;
+let skeleton=null, skeletonData=null, rawJson=null, atlasText=null, pngImage=null;
+let curAnim=null, animTime=0, animDur=0, playing=false, speed=1;
+let selected=null;       // {kind:'bone'|'att', name, slot}
+let editMode='sel';
+const dbg = { drawBones:true, drawMeshTriangles:true, drawMeshHull:true, drawRegionAttachments:false, drawBoundingBoxes:false, drawPaths:false, drawClipping:true };
+let showTex=true, pma=true, view={scale:1, x:0, y:0};   // pma matches Cocos 'Premultiplied Alpha'
+let showVerts=false, vlabelsEl=null;                    // R1: vertex overlay (HTML labels)
+
+function boot(){
+  canvas=document.getElementById('cv');
+  vlabelsEl=document.getElementById('vlabels');
+  gl=canvas.getContext('webgl',{alpha:true, premultipliedAlpha:false, preserveDrawingBuffer:true})
+     || canvas.getContext('experimental-webgl',{preserveDrawingBuffer:true});
+  if(!gl){ log('此瀏覽器無法建立 WebGL context','e'); showLog(true); return; }
+  try { renderer=new spine.webgl.SceneRenderer(canvas, gl); }
+  catch(e){ log('SceneRenderer 建立失敗: '+e.message,'e'); showLog(true); return; }
+  buildDebugToggles();
+  resize(); window.addEventListener('resize', resize);
+  setupCanvasControls();
+  requestAnimationFrame(frame);
+  log('就緒。拖檔或按「載入 main_draw 範例」。','o');
+  tryFetchSample(true);
+}
+
+function buildDebugToggles(){
+  const map=[['drawBones','骨頭'],['drawMeshTriangles','三角'],['drawMeshHull','外框'],['drawRegionAttachments','區塊框'],['drawClipping','裁切']];
+  const box=document.getElementById('dbgToggles'); box.innerHTML='';
+  map.forEach(([k,label])=>{ const b=document.createElement('button'); b.textContent=label; b.className=dbg[k]?'on':''; b.onclick=()=>{ dbg[k]=!dbg[k]; b.className=dbg[k]?'on':''; }; box.appendChild(b); });
+}
+
+function resize(){ const r=canvas.getBoundingClientRect(); canvas.width=Math.max(2,r.width|0); canvas.height=Math.max(2,r.height|0); }
+function fitView(){
+  if(!skeleton) return;
+  resize();
+  skeleton.setToSetupPose(); skeleton.updateWorldTransform();
+  const off=new spine.Vector2(), size=new spine.Vector2();
+  try{ skeleton.getBounds(off,size,[]); }catch(e){}
+  let sw=Number(size.x), sh=Number(size.y), ox=Number(off.x), oy=Number(off.y);
+  if(!(sw>0)||!isFinite(sw)){ sw=600; ox=-300; }
+  if(!(sh>0)||!isFinite(sh)){ sh=600; oy=-300; }
+  const cw=canvas.width||300, ch=canvas.height||150, m=1.15;
+  const sc=Math.max((sw*m)/cw,(sh*m)/ch);
+  view.scale=(sc>0&&isFinite(sc))?sc:1;
+  view.x=isFinite(ox+sw/2)?(ox+sw/2):0;
+  view.y=isFinite(oy+sh/2)?(oy+sh/2):0;
+}
+function applyCamera(){
+  if(!(view.scale>0)||!isFinite(view.scale)){ fitView(); }
+  const c=renderer.camera;
+  c.viewportWidth = (canvas.width||300)*(view.scale||1);
+  c.viewportHeight= (canvas.height||150)*(view.scale||1);
+  c.position.x=view.x||0; c.position.y=view.y||0;
+}
+function setupCanvasControls(){
+  let drag=false, lx=0, ly=0;
+  canvas.addEventListener('mousedown',e=>{drag=true; lx=e.clientX; ly=e.clientY;});
+  window.addEventListener('mouseup',()=>drag=false);
+  window.addEventListener('mousemove',e=>{ if(!drag)return; view.x-=(e.clientX-lx)*view.scale; view.y+=(e.clientY-ly)*view.scale; lx=e.clientX; ly=e.clientY; });
+  canvas.addEventListener('wheel',e=>{ e.preventDefault(); view.scale*=(e.deltaY>0?1.1:0.9); },{passive:false});
+}
+
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=(now-lastFrame)/1000||0; lastFrame=now;
+  gl.viewport(0,0,canvas.width,canvas.height);
+  gl.clearColor(0.082,0.09,0.102,1); gl.clear(gl.COLOR_BUFFER_BIT);
+  if(!skeleton) return;
+  if(playing && curAnim){ animTime+=dt*speed; if(animDur>0 && animTime>animDur) animTime%=animDur; syncScrub(); }
+  skeleton.setToSetupPose();
+  forceShowSelected();
+  if(curAnim){ try{ curAnim.apply(skeleton, 0, animTime, true, [], 1, spine.MixBlend.setup, spine.MixDirection.mixIn); }catch(e){} }
+  forceShowSelected();
+  skeleton.updateWorldTransform();
+  applyCamera();
+  try{
+    renderer.begin();
+    if(showTex && pngImage) renderer.drawSkeleton(skeleton, pma);
+    const dr=renderer.skeletonDebugRenderer; if(dr){ for(const k in dbg) dr[k]=dbg[k]; dr.drawSkeletonXY=false; }
+    renderer.drawSkeletonDebug(skeleton, pma, []);
+    renderer.end();
+  }catch(e){ log('render error: '+e.message,'e'); }
+  drawVertexOverlay();
+}
+
+/* ---------- R1: world-vertex computation + HTML label overlay ---------- */
+function worldToFrac(wx, wy){
+  const cam=renderer.camera;
+  const nx=(wx-cam.position.x)/cam.viewportWidth + 0.5;
+  const ny=(wy-cam.position.y)/cam.viewportHeight + 0.5;
+  return [nx, 1-ny];
+}
+function poseAtCurrentTime(){   // synchronous pose so reads reflect current animTime
+  skeleton.setToSetupPose();
+  if(curAnim){ try{ curAnim.apply(skeleton,0,animTime,true,[],1,spine.MixBlend.setup,spine.MixDirection.mixIn); }catch(e){} }
+  skeleton.updateWorldTransform();
+}
+function getWorldVerts(slotName, attName){
+  if(!skeleton) return null;
+  poseAtCurrentTime();
+  const slot=skeleton.findSlot(slotName); if(!slot) return null;
+  let att = (typeof slot.getAttachment==='function') ? slot.getAttachment() : slot.attachment;
+  if(!att && slot.data){ try{ att = skeleton.getAttachment(slot.data.index, attName || slot.data.attachmentName); }catch(e){} }
+  if(!att || typeof att.computeWorldVertices!=='function') return null;
+  const n=att.worldVerticesLength || (att.uvs?att.uvs.length:0);
+  const wv=new Float32Array(n);
+  att.computeWorldVertices(slot, 0, n, wv, 0, 2);
+  return wv; // [x,y,...] world space, deform applied
+}
+function forceShowSelected(){   // R2: keep the inspected mesh visible + deformed
+  if(!(showVerts && selected && selected.kind==='att' && skeleton)) return;
+  try{ const s=skeleton.findSlot(selected.slot); const a=skeleton.getAttachment(s.data.index, selected.name); if(s&&a) s.setAttachment(a); }catch(e){}
+}
+function drawVertexOverlay(){
+  if(!vlabelsEl) return;
+  if(!showVerts || !selected || selected.kind!=='att'){ vlabelsEl.style.display='none'; return; }
+  const wv=getWorldVerts(selected.slot, selected.name);
+  if(!wv){ vlabelsEl.style.display='none'; return; }
+  vlabelsEl.style.display='block';
+  const n=wv.length/2;
+  while(vlabelsEl.children.length<n){ const s=document.createElement('div'); s.className='vl'; vlabelsEl.appendChild(s); }
+  for(let i=0;i<vlabelsEl.children.length;i++){ vlabelsEl.children[i].style.display=(i<n)?'block':'none'; }
+  for(let i=0;i<n;i++){ const f=worldToFrac(wv[i*2], wv[i*2+1]); const el=vlabelsEl.children[i];
+    el.textContent=i; el.style.left=(f[0]*100)+'%'; el.style.top=(f[1]*100)+'%'; }
+}
+
+/* ---------- loading ---------- */
+function makePlaceholderTexture(){
+  const c=document.createElement('canvas'); c.width=c.height=16; const x=c.getContext('2d');
+  x.fillStyle='#444b55'; x.fillRect(0,0,16,16); x.fillStyle='#5a6470'; x.fillRect(0,0,8,8); x.fillRect(8,8,8,8);
+  return new spine.webgl.GLTexture(gl, c);
+}
+function buildFromTexts(jsonText, atlasTxt, pngImg){
+  try{ rawJson = (typeof jsonText==='string') ? JSON.parse(jsonText) : jsonText; }
+  catch(e){ log('JSON 解析失敗: '+e.message,'e'); showLog(true); return false; }
+  atlasText = atlasTxt; pngImage = pngImg||null;
+  const placeholder = makePlaceholderTexture();
+  let realTex=null; if(pngImg){ try{ gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, pma); realTex=new spine.webgl.GLTexture(gl, pngImg); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); }catch(e){ log('貼圖建立失敗: '+e.message,'e'); } }
+  let atlas;
+  try{ atlas=new spine.TextureAtlas(atlasText, ()=> realTex||placeholder); }
+  catch(e){ log('atlas 解析失敗: '+e.message,'e'); showLog(true); return false; }
+  try{
+    const loader=new spine.AtlasAttachmentLoader(atlas);
+    const sj=new spine.SkeletonJson(loader); sj.scale=1;
+    skeletonData=sj.readSkeletonData(rawJson);
+    skeleton=new spine.Skeleton(skeletonData);
+    skeleton.setToSetupPose(); skeleton.updateWorldTransform();
+  }catch(e){ log('建立 skeleton 失敗: '+e.message,'e'); showLog(true); return false; }
+  document.getElementById('drop').classList.add('hide');
+  populatePanels(); populateAnims(); fitView();
+  const v=rawJson.skeleton?rawJson.skeleton.spine:'?';
+  log(`載入完成 ✓ spine=${v} bones=${rawJson.bones.length} slots=${rawJson.slots.length} anims=${Object.keys(rawJson.animations||{}).length} ${pngImg?'(含貼圖)':'(無貼圖, debug 模式)'}`,'o');
+  return true;
+}
+function loadFiles(fileList){
+  let jsonF,atlasF,pngF;
+  for(const f of fileList){ const n=f.name.toLowerCase();
+    if(n.endsWith('.json')) jsonF=f; else if(n.endsWith('.atlas')) atlasF=f; else if(n.endsWith('.png')) pngF=f; }
+  if(!jsonF || !atlasF){ log('需要同時有 .json 與 .atlas（可選 .png）','e'); showLog(true); return; }
+  const rd=(f,how)=>new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r[how](f); });
+  Promise.all([rd(jsonF,'readAsText'), rd(atlasF,'readAsText'), pngF?rd(pngF,'readAsDataURL'):Promise.resolve(null)])
+   .then(([j,a,p])=>{ if(p){ const im=new Image(); im.onload=()=>buildFromTexts(j,a,im); im.onerror=()=>{ log('png 載入失敗, 改 debug 模式','i'); buildFromTexts(j,a,null);} ; im.src=p; } else buildFromTexts(j,a,null); });
+}
+function tryFetchSample(silent){
+  Promise.all([fetch('main_draw.json').then(r=>{if(!r.ok)throw 0;return r.text();}),
+               fetch('main_draw.atlas').then(r=>{if(!r.ok)throw 0;return r.text();}),
+               fetch('main_draw.png').then(r=>r.ok?r.blob():null).catch(()=>null)])
+   .then(([j,a,blob])=>{ if(blob){ const im=new Image(); im.onload=()=>buildFromTexts(j,a,im); im.src=URL.createObjectURL(blob);} else buildFromTexts(j,a,null); })
+   .catch(()=>{ if(!silent) log('找不到同目錄範例檔，請拖檔或用「開啟檔案」','i'); });
+}
+
+/* ---------- panels (from raw JSON) ---------- */
+function el(tag,cls,txt){ const e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
+function attType(att){ return att.type||'region'; }
+function populatePanels(){
+  const tree=document.getElementById('boneTree'); tree.innerHTML='';
+  const bones=rawJson.bones, children={};
+  bones.forEach(b=>{ (children[b.parent||'']=children[b.parent||'']||[]).push(b); });
+  function walk(name,depth){ (children[name]||[]).forEach(b=>{
+    const n=el('div','node','　'.repeat(depth)+'• '+b.name); n.onclick=()=>selectBone(b.name);
+    n.dataset.bone=b.name; tree.appendChild(n); walk(b.name,depth+1); }); }
+  walk('',0);
+  const list=document.getElementById('slotList'); list.innerHTML='';
+  const skin=rawJson.skins[0]; const atts=skin.attachments||{};
+  rawJson.slots.forEach(s=>{
+    const slotAtts=atts[s.name]||{}; const keys=Object.keys(slotAtts);
+    const sn=el('div','node','▸ '+s.name); sn.style.color='#aeb6c2'; list.appendChild(sn);
+    keys.forEach(k=>{ const t=attType(slotAtts[k]);
+      const n=el('div','node','　'+k); const tag=el('span','tag '+(t==='mesh'?'mesh':t==='clipping'?'clip':'region'), t); n.appendChild(tag);
+      n.onclick=()=>selectAtt(s.name,k); n.dataset.att=s.name+'::'+k; list.appendChild(n); });
+  });
+}
+function clearSel(){ document.querySelectorAll('.node.sel').forEach(n=>n.classList.remove('sel')); }
+function selectBone(name){ clearSel(); selected={kind:'bone',name}; const n=document.querySelector(`[data-bone="${name}"]`); if(n)n.classList.add('sel'); showBone(name); fillEdit(); }
+function selectAtt(slot,name){ clearSel(); selected={kind:'att',slot,name}; const n=document.querySelector(`[data-att="${slot}::${name}"]`); if(n)n.classList.add('sel'); showAtt(slot,name); fillEdit(); }
+function row(k,v){ const r=el('div','row'); r.appendChild(el('b',null,k)); r.appendChild(el('span',null,v)); return r; }
+function showBone(name){
+  const b=rawJson.bones.find(x=>x.name===name); const ins=document.getElementById('inspector'); ins.innerHTML='';
+  ins.appendChild(el('div','',`Bone: ${name}`)); ins.lastChild.style.cssText='font-weight:600;margin-bottom:6px;color:var(--bone)';
+  ['parent','x','y','rotation','scaleX','scaleY','shearX','shearY','length','transform'].forEach(k=>{ if(b[k]!=null) ins.appendChild(row(k,b[k])); });
+  if(b.x==null&&b.y==null) ins.appendChild(row('x,y','0,0 (setup)'));
+}
+function showAtt(slot,name){
+  const att=rawJson.skins[0].attachments[slot][name]; const t=attType(att);
+  const slotObj=rawJson.slots.find(s=>s.name===slot);
+  const ins=document.getElementById('inspector'); ins.innerHTML='';
+  ins.appendChild(el('div','',`${t.toUpperCase()}: ${name}`)); ins.lastChild.style.cssText=`font-weight:600;margin-bottom:6px;color:${t==='mesh'?'var(--mesh)':'var(--accent)'}`;
+  ins.appendChild(row('slot',slot));
+  ins.appendChild(row('掛在 bone', slotObj?slotObj.bone:'?'));
+  ins.appendChild(row('atlas region', att.name||name));
+  if(t==='mesh'){
+    const uv=att.uvs||[], v=att.vertices||[], tri=att.triangles||[];
+    const nv=uv.length/2, weighted=v.length!==2*nv;
+    ins.appendChild(row('頂點數', nv));
+    ins.appendChild(row('三角形', tri.length/3+' 個'));
+    ins.appendChild(row('hull', att.hull||0));
+    ins.appendChild(row('edges', (att.edges?att.edges.length/2:0)+' 條'));
+    ins.appendChild(row('width×height', (att.width||'?')+' × '+(att.height||'?')));
+    ins.appendChild(row('綁骨頭 (weighted)', weighted?'是':'否'));
+    const tip=el('div','hint','勾「頂點」可在畫布看編號；下方「編輯 JSON」可改頂點/三角形後套用重繪'); tip.style.marginTop='6px'; ins.appendChild(tip);
+  } else if(t==='region'){
+    ['x','y','rotation','scaleX','scaleY','width','height'].forEach(k=>{ if(att[k]!=null) ins.appendChild(row(k,att[k])); });
+  } else if(t==='clipping'){
+    ins.appendChild(row('end', att.end));
+    ins.appendChild(row('vertexCount', att.vertexCount));
+  }
+}
+
+/* ---------- animations / timeline ---------- */
+function animMaxTime(a){ let mt=0; (function s(o){ if(o&&typeof o==='object'){ if(typeof o.time==='number')mt=Math.max(mt,o.time); for(const k in o)s(o[k]);} })(a); return mt; }
+function populateAnims(){
+  const sel=document.getElementById('animSel'); sel.innerHTML='';
+  const cells=document.getElementById('animCells'); cells.innerHTML='';
+  const names=Object.keys(rawJson.animations||{});
+  names.forEach(n=>{ const o=el('option',null,n); o.value=n; sel.appendChild(o);
+    const c=el('div','timecell',n); c.onclick=()=>setAnim(n); c.dataset.an=n; cells.appendChild(c); });
+  sel.onchange=()=>setAnim(sel.value);
+  if(names.length) setAnim(names[0]);
+}
+function setAnim(name){
+  curAnim = skeletonData.findAnimation(name); if(!curAnim){ log('找不到動畫 '+name,'e'); return; }
+  curAnim._name=name; animDur=curAnim.duration||animMaxTime(rawJson.animations[name]); animTime=0;
+  document.getElementById('animSel').value=name;
+  document.querySelectorAll('.timecell').forEach(c=>c.classList.toggle('on',c.dataset.an===name));
+  const an=rawJson.animations[name]; let dinfo='deform: —';
+  if(an.deform){ const t=[]; for(const sk in an.deform) for(const sl in an.deform[sk]) for(const at in an.deform[sk][sl]) t.push(`${sl}/${at}(${an.deform[sk][sl][at].length}f)`); dinfo='deform → '+t.join(', '); }
+  document.getElementById('deformInfo').textContent=dinfo;
+  syncScrub();
+}
+function syncScrub(){ const s=document.getElementById('scrub'); if(animDur>0)s.value=Math.round(animTime/animDur*1000); document.getElementById('timeLbl').textContent=animTime.toFixed(3)+'s / '+animDur.toFixed(3)+'s'; }
+document.getElementById('scrub').oninput=e=>{ if(animDur>0){ animTime=e.target.value/1000*animDur; playing=false; document.getElementById('btnPlay').textContent='▶ 播放'; syncScrub(); } };
+document.getElementById('btnPlay').onclick=()=>{ playing=!playing; document.getElementById('btnPlay').textContent=playing?'⏸ 暫停':'▶ 播放'; };
+document.getElementById('speed').oninput=e=>{ speed=e.target.value/100; document.getElementById('speedV').textContent=speed.toFixed(1)+'x'; };
+
+/* ---------- edit / export / reference ---------- */
+document.getElementById('btnEditSel').onclick=()=>{editMode='sel'; tog(); fillEdit();};
+document.getElementById('btnEditAll').onclick=()=>{editMode='all'; tog(); fillEdit();};
+function tog(){ document.getElementById('btnEditSel').className=editMode==='sel'?'on':''; document.getElementById('btnEditAll').className=editMode==='all'?'on':''; }
+function selObj(){ if(!selected)return null; if(selected.kind==='bone')return rawJson.bones.find(b=>b.name===selected.name); return rawJson.skins[0].attachments[selected.slot][selected.name]; }
+function fillEdit(){ const ta=document.getElementById('jsonEdit'); if(editMode==='all'){ ta.value=JSON.stringify(rawJson,null,1);} else { const o=selObj(); ta.value=o?JSON.stringify(o,null,1):''; } }
+document.getElementById('btnApply').onclick=()=>{
+  const ta=document.getElementById('jsonEdit'); let parsed;
+  try{ parsed=JSON.parse(ta.value); }catch(e){ log('編輯內容 JSON 無效: '+e.message,'e'); showLog(true); return; }
+  if(editMode==='all'){ rawJson=parsed; }
+  else { if(!selected){ log('未選取節點','e'); return; }
+    if(selected.kind==='bone'){ const i=rawJson.bones.findIndex(b=>b.name===selected.name); rawJson.bones[i]=parsed; }
+    else { rawJson.skins[0].attachments[selected.slot][selected.name]=parsed; } }
+  rebuild();
+};
+function rebuild(){
+  const an=curAnim?curAnim._name:null;
+  if(buildFromTexts(rawJson, atlasText, pngImage)){ if(an && rawJson.animations[an]) setAnim(an); log('已套用編輯並重建 skeleton ✓','o'); }
+}
+document.getElementById('btnExport').onclick=()=>{
+  const blob=new Blob([JSON.stringify(rawJson)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='edited_'+(Date.now())+'.json'; a.click();
+  log('已匯出 JSON','o');
+};
+document.getElementById('btnRef').onclick=()=>document.getElementById('refInput').click();
+document.getElementById('refInput').onchange=e=>{ const f=e.target.files[0]; if(!f)return; const im=document.getElementById('overlayImg'); im.src=URL.createObjectURL(f); im.style.display='block'; log('已載入參考圖疊圖','o'); };
+document.getElementById('refOp').oninput=e=>{ document.getElementById('overlayImg').style.opacity=e.target.value/100; };
+
+/* ---------- toolbar ---------- */
+document.getElementById('btnOpen').onclick=()=>document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange=e=>loadFiles(e.target.files);
+document.getElementById('btnSample').onclick=()=>tryFetchSample(false);
+document.getElementById('btnFit').onclick=fitView;
+document.getElementById('chkTex').onchange=e=>showTex=e.target.checked;
+document.getElementById('chkPma').onchange=e=>{ pma=e.target.checked; if(skeleton) rebuild(); };
+document.getElementById('chkVerts').onchange=e=>showVerts=e.target.checked;
+
+/* ---------- drag & drop ---------- */
+const center=document.getElementById('center');
+['dragover','dragenter'].forEach(ev=>center.addEventListener(ev,e=>{e.preventDefault();}));
+center.addEventListener('drop',e=>{ e.preventDefault(); if(e.dataTransfer.files.length) loadFiles(e.dataTransfer.files); });
+
+/* ---------- Phase-2 API ---------- */
+window.spineTool = {
+  ready:()=>!!skeleton,
+  loadFromText:(jsonText,atlasTxt,pngDataURL)=>{ if(pngDataURL){ const im=new Image(); im.onload=()=>buildFromTexts(jsonText,atlasTxt,im); im.src=pngDataURL; } else buildFromTexts(jsonText,atlasTxt,null); },
+  listAnimations:()=>Object.keys(rawJson?rawJson.animations:{}),
+  setAnimation:(n)=>setAnim(n),
+  play:()=>{playing=true;}, pause:()=>{playing=false;},
+  setTime:(t)=>{ animTime=t; playing=false; syncScrub(); },
+  setSpeed:(s)=>{ speed=s; },
+  getState:()=>({ ready:!!skeleton, spine:rawJson&&rawJson.skeleton.spine, bones:rawJson?rawJson.bones.length:0, slots:rawJson?rawJson.slots.length:0,
+                  animations:Object.keys(rawJson?rawJson.animations:{}), current:curAnim?curAnim._name:null, time:animTime, duration:animDur,
+                  meshes:meshSummary(), debug:Object.assign({},dbg), hasTexture:!!pngImage }),
+  getMeshData:(slot,name)=>{ try{ const a=rawJson.skins[0].attachments[slot][name]; const nv=a.uvs.length/2; return {vertices:a.vertices,uvs:a.uvs,triangles:a.triangles,hull:a.hull,verts:nv,weighted:a.vertices.length!==2*nv}; }catch(e){ return null; } },
+  getSkeletonJSON:()=>rawJson,
+  applySkeletonJSON:(obj)=>{ rawJson=obj; rebuild(); },
+  getWorldVertices:(slot,name)=>{ const wv=getWorldVerts(slot,name); return wv?Array.from(wv):null; },
+  getMeshBounds:(slot,name)=>{ const wv=getWorldVerts(slot,name); if(!wv)return null; let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9; for(let i=0;i<wv.length;i+=2){ mnx=Math.min(mnx,wv[i]);mxx=Math.max(mxx,wv[i]);mny=Math.min(mny,wv[i+1]);mxy=Math.max(mxy,wv[i+1]); } return {minX:mnx,minY:mny,maxX:mxx,maxY:mxy,w:mxx-mnx,h:mxy-mny}; },
+  setMeshVertices:(slot,name,arr)=>{ try{ rawJson.skins[0].attachments[slot][name].vertices=arr; rebuild(); return true; }catch(e){ return false; } },
+  showVertices:(b)=>{ showVerts=b; document.getElementById('chkVerts').checked=b; },
+  setDebug:(o)=>{ Object.assign(dbg,o); buildDebugToggles(); },
+  setShowTexture:(b)=>{ showTex=b; document.getElementById('chkTex').checked=b; },
+  setPremultipliedAlpha:(b)=>{ pma=b; document.getElementById('chkPma').checked=b; if(skeleton) rebuild(); },
+  selectAttachment:(slot,name)=>selectAtt(slot,name),
+  fit:()=>fitView(),
+  screenshot:()=>canvas.toDataURL('image/png'),
+  loadReference:(dataURL)=>{ const im=document.getElementById('overlayImg'); im.src=dataURL; im.style.display='block'; },
+  setReferenceOpacity:(a)=>{ document.getElementById('overlayImg').style.opacity=a; }
+};
+function meshSummary(){ if(!rawJson)return[]; const out=[]; const atts=rawJson.skins[0].attachments;
+  for(const sl in atts) for(const k in atts[sl]){ const a=atts[sl][k]; if((a.type||'')==='mesh'){ const nv=a.uvs.length/2; out.push({slot:sl,name:k,verts:nv,tris:a.triangles.length/3,hull:a.hull,weighted:a.vertices.length!==2*nv}); } } return out; }
+</script>
+</body>
+</html>

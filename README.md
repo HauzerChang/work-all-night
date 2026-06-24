@@ -40,6 +40,13 @@
 
 ## 目前狀態
 
-> ⚠️ **待填入**:本專案來自 cowork 對話「Spine mesh system analysis」,
-> 實際的研究目標、階段、遞迴規則與既有發現尚未匯入。
-> 請把那段對話的交接摘要提供進來,會被整理進 `PLAN.md` / `RULES.md` / `knowledge/`。
+來自 cowork 對話「Spine mesh system analysis」的交接已匯入並歸位:
+
+- **研究主題**:把 Spine 2D 角色變成可程式化編輯/可視覺化驗證的資產,最終做到「影片 → 逼近的 Spine 動畫」。
+- **專案階段**:第 1 階段(可視化工具 `spine_inspector.html`)✅ 完成;目前在第 2 階段(鍛鍊四能力),能力路線圖 S1–S5。
+- **下一步**:S3 mesh 生成器的最小原型 + 評估器(見 `STATE.md`)。
+
+核心知識文件(根目錄):`CLAUDE.md`、`handoff_brief.md`、`自主Spine工作流_SOP.md`、
+`Spine能力鍛鍊計畫.md`、`main_draw_解析報告.md`、`spine_inspector.html`。
+
+> 待辦:① 在 web 介面建立排程 trigger(prompt 指向 `prompts/run.md`);② 決定排程頻率。
