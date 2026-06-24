@@ -21,17 +21,18 @@
 - ⚠️ **`main_draw.png` 像素檔尚缺**(只在對話中顯示,未存成檔)。像素級工作(裁切貼圖、
   texture IoU、實機截圖)在拿到該 PNG 前 BLOCKED;但 **deform 幾何分析不需要 PNG**。
 
-## 下一步動作 (next action) — 下一個課題
+## 下一步動作 (next action) — S3 v2:deform-aware 生成器
 
-S3 生成器 + deform 評估器(含真實 benchmark)皆完成。下一個 bounded chunk 候選:
+**里程碑發現**(見 `knowledge/s3-real-asset-finding.md`):生成 mesh 在真實 curtain_left 靜態 IoU 0.98 過,
+但耐變形@315px 失敗(13 自交/2 翻面);藝術家手做(直條、邊界為主)乾淨。靜態品質 ≠ 變形穩健。
 
-**(a) 把 deform 耐受納入 S3 正式 AC + 參數掃描**(純 CPU,不需 PNG)— 建議
-  - 將「stress_field @ ~315px 下 0 自交/0 翻面」寫入 generate+evaluate 的整合 AC。
-  - 掃描內部點密度 / min-dist,找「最少頂點 × 仍通過耐變形」的甜蜜點。
+下一個 bounded chunk:**把生成器改成 deform-aware,通過耐變形 AC**
+1. hull 解析度:降 epsilon / 長邊強制最小邊界點密度。
+2. 內部佈局:結構化格點(對齊拉伸軸);對高瘦大拉伸件偵測為 strip 型 → 直條拓樸。
+3. 把『耐變形@315px 0 自交/0 翻面』納入 generate+evaluate 的正式 AC。
+4. 目標:對 curtain_left 生成的 mesh 同時通過 IoU≥0.95 + 耐變形,且頂點數接近藝術家(~21)。
 
-**(b) 真實貼圖驗證**(待 `main_draw.png` 檔)— 裁 curtain_left 區域 → 生成 mesh → texture IoU + UV 撕裂。
-
-**(c) spine_inspector 實機 round-trip**(需 headless 瀏覽器)— `setMeshVertices`/`getMeshBounds`/`screenshot`。
+後續:對 4 個 mesh 全跑;spine_inspector 實機 round-trip(需 headless 瀏覽器)。
 
 ## 環境前置(已驗證可用)
 
@@ -42,7 +43,7 @@ S3 生成器 + deform 評估器(含真實 benchmark)皆完成。下一個 bounde
 ## 未解問題 / 阻塞 (open questions / blockers)
 
 - ❓ 排程頻率未定(使用者尚未決定)。
-- ❓ `main_draw.png` 像素檔尚缺(對話顯示過但未存成檔)→ texture/IoU/實機截圖 BLOCKED;deform 幾何不受影響。
+- ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
 - ℹ️ spine_inspector 實機 round-trip 需瀏覽器自動化(headless),尚未設置。
 
@@ -55,3 +56,5 @@ S3 生成器 + deform 評估器(含真實 benchmark)皆完成。下一個 bounde
   下一課題定為 deform-aware 評估器(純 CPU,不需 PNG)。
 - 2026-06-24:**deform 評估器課題完成** — Python 重現 Spine deform;真實 4mesh×9anim benchmark 全乾淨
   (_checker_validated);負對照可抓自交/翻面;生成 mesh 耐變形 ≈ 藝術家手做(撐過 315px)。
+- 2026-06-24:**真實資產驗證(里程碑)** — 收到 main_draw.png;atlas_crop 切真實貼圖;生成 mesh 靜態 IoU 0.98 過
+  但耐變形失敗 → 發現「靜態≠變形穩健」,藝術家直條拓樸更耐變形。下一步定為 S3 v2 deform-aware 生成器。
