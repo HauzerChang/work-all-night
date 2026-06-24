@@ -182,15 +182,55 @@ def max_deform_magnitude(path):
 
 
 def stress_field(verts, mag):
-    """空間位移場(可施於任一拓樸):底部橫向拉開 + 漣漪。用於 S3 生成器耐變形閘。"""
+    """⚠️ 合成位移場 — 僅供「最壞情況裕度探測」,**不可當 pass/fail 閘**。
+    教訓(2026-06-24):mag=315 時面積比達 2.0,遠超真實 deform 的 1.13,造成假性失敗。
+    正式閘請用 transfer_deform_check()(真實位移場轉移)。"""
     mn = verts.min(0); mx = verts.max(0); h = max(mx[1] - mn[1], 1e-6); w = max(mx[0] - mn[0], 1e-6)
     out = verts.copy()
     for i, (x, y) in enumerate(verts):
-        fy = (mx[1] - y) / h               # 0 頂部 → 1 底部
+        fy = (mx[1] - y) / h
         fx = (x - mn[0]) / w - 0.5
         out[i, 0] = x + mag * fy * (1.6 * fx)
         out[i, 1] = y + mag * 0.25 * math.sin(fx * math.pi * 3) * fy
     return out
+
+
+# ---------- 真實位移場轉移(正式 deform 閘)----------
+def real_deform_field(skeleton, slot, name):
+    """回傳 (uvs Nx2, field Nx2):該 mesh 在所有動畫中『總位移最大幀』的逐頂點位移(local,y-up)。
+    以 UV 為座標,讓位移場可轉移到任一拓樸的 mesh。"""
+    skin = skeleton["skins"]; skin = skin[0] if isinstance(skin, list) else skin
+    a = skin.get("attachments", skin)[slot][name]
+    uvs = np.array(a["uvs"], dtype=np.float64).reshape(-1, 2)
+    setup = np.array(a["vertices"], dtype=np.float64).reshape(-1, 2)
+    best = None
+    for anim in skeleton.get("animations", {}):
+        for (t, off, dv) in deform_frames(skeleton, anim, slot, name):
+            d = apply_deform(setup, off, dv)
+            tot = float(np.abs(d - setup).sum())
+            if best is None or tot > best[0]:
+                best = (tot, anim, d)
+    field = (best[2] - setup) if best else np.zeros_like(setup)
+    return uvs, field, (best[1] if best else None)
+
+
+def transfer_deform_check(mesh, uvs_src, field):
+    """把真實位移場(uvs_src 座標、y-up)內插到 mesh 的頂點並套用,檢查幾何。
+    sign 約定:mesh.vertices 已 y-up,field 為 y-up local → 直接相加(經自一致性驗證)。"""
+    from scipy.interpolate import griddata
+    v = mesh["vertices"]
+    s = np.column_stack([v[0::2], v[1::2]])
+    mu = np.array(mesh["uvs"], dtype=np.float64).reshape(-1, 2)
+    dx = griddata(uvs_src, field[:, 0], mu, "linear")
+    dy = griddata(uvs_src, field[:, 1], mu, "linear")
+    nx = griddata(uvs_src, field[:, 0], mu, "nearest")
+    ny = griddata(uvs_src, field[:, 1], mu, "nearest")
+    dx = np.where(np.isnan(dx), nx, dx); dy = np.where(np.isnan(dy), ny, dy)
+    sd = s + np.column_stack([dx, dy])
+    t = np.array(mesh["triangles"], dtype=np.int32).reshape(-1, 3)
+    signs = [signed_area(s, x) > 0 for x in t]
+    area = sum(abs(signed_area(s, x)) for x in t)
+    return eval_pose(sd, t, signs, area)
 
 
 if __name__ == "__main__":

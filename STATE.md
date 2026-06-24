@@ -21,18 +21,18 @@
 - ⚠️ **`main_draw.png` 像素檔尚缺**(只在對話中顯示,未存成檔)。像素級工作(裁切貼圖、
   texture IoU、實機截圖)在拿到該 PNG 前 BLOCKED;但 **deform 幾何分析不需要 PNG**。
 
-## 下一步動作 (next action) — S3 v2:deform-aware 生成器
+## 下一步動作 (next action)
 
-**里程碑發現**(見 `knowledge/s3-real-asset-finding.md`):生成 mesh 在真實 curtain_left 靜態 IoU 0.98 過,
-但耐變形@315px 失敗(13 自交/2 翻面);藝術家手做(直條、邊界為主)乾淨。靜態品質 ≠ 變形穩健。
+**S3 對 curtain_left 已達標(校正後)**:v1 IoU 0.980 > 藝術家 0.918,真實 deform 轉移後乾淨 → 整合 AC 通過。
+評估器經藝術家真值自一致性 + 負對照雙向驗證。合成 stress 已降級(未校準,僅裕度參考)。
 
-下一個 bounded chunk:**把生成器改成 deform-aware,通過耐變形 AC**
-1. hull 解析度:降 epsilon / 長邊強制最小邊界點密度。
-2. 內部佈局:結構化格點(對齊拉伸軸);對高瘦大拉伸件偵測為 strip 型 → 直條拓樸。
-3. 把『耐變形@315px 0 自交/0 翻面』納入 generate+evaluate 的正式 AC。
-4. 目標:對 curtain_left 生成的 mesh 同時通過 IoU≥0.95 + 耐變形,且頂點數接近藝術家(~21)。
+下一個 bounded chunk 候選:
+1. **推廣到全部 4 個 mesh**:對 curtain_right / shadow / shadow2 跑 `validate_against_real.py`,確認 v1 通用。
+2. **v2 strip 經濟性**:若要逼近藝術家頂點數(21),調 rows/cols 讓 IoU≥0.918 且 deform 乾淨(10×3≈0.934 已可)。
+3. **spine_inspector 實機 round-trip**(需 headless 瀏覽器):把生成 mesh 載入工具截圖,視覺確認。
+4. **S1 反推分析器 / S4 切圖**(往 pipeline 上游推進)。
 
-後續:對 4 個 mesh 全跑;spine_inspector 實機 round-trip(需 headless 瀏覽器)。
+> 排程接手後,(1) 是最適合自動跑的下一步(機械式、可自評)。
 
 ## 環境前置(已驗證可用)
 
@@ -58,3 +58,5 @@
   (_checker_validated);負對照可抓自交/翻面;生成 mesh 耐變形 ≈ 藝術家手做(撐過 315px)。
 - 2026-06-24:**真實資產驗證(里程碑)** — 收到 main_draw.png;atlas_crop 切真實貼圖;生成 mesh 靜態 IoU 0.98 過
   但耐變形失敗 → 發現「靜態≠變形穩健」,藝術家直條拓樸更耐變形。下一步定為 S3 v2 deform-aware 生成器。
+- 2026-06-24:**S3 驗證 + 自我更正** — 真實位移場轉移評估器(自一致性驗證);推翻先前『耐變形失敗』
+  (合成壓力 miscalibration);更正後 v1 對 curtain_left 整合 AC 通過(IoU 0.98、真實變形乾淨)。

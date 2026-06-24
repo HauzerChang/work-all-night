@@ -25,6 +25,6 @@
 
 - [deform-aware 評估器](s3-deform-evaluator.md) — Spine deform 重現 + 自交/翻面閘;真實 4mesh×9anim benchmark 全乾淨,負對照可抓壞網格。
 
-- [真實資產發現:靜態≠變形穩健](s3-real-asset-finding.md) — 生成 mesh 真實貼圖 IoU 0.98 過,但耐變形失敗;藝術家直條拓樸乾淨。**里程碑**。
+- [真實資產驗證【含更正】](s3-real-asset-finding.md) — 先前「耐變形失敗」是合成壓力 miscalibration;**更正後 v1 真實變形下乾淨、IoU 0.98 通過**。教訓:評估器需校準+自驗。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
