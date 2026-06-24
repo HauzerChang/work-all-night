@@ -23,17 +23,15 @@
 
 ## 下一步動作 (next action) — 下一個課題
 
-**課題:deform-aware mesh 評估器 + 用真實 main_draw 當 benchmark**(純 CPU,不需 PNG)
+S3 生成器 + deform 評估器(含真實 benchmark)皆完成。下一個 bounded chunk 候選:
 
-1. **用 Python 實作 Spine deform**:setup `vertices` + 每幀 `deform.offset/vertices` → 該幀 mesh 形狀
-   (unweighted 直接逐頂點加 offset;對照 CLAUDE.md 雷點 #4 的同步 re-pose 數學)。
-2. **真實 mesh 的 deform 行為量化**:對 9 支動畫逐幀計算 `curtain_left/right`、`shadow/shadow2` 的
-   變形後幾何,檢查 **自交(邊交叉)/ 三角翻面(winding 變號=撕裂)/ 面積比 / 包圍盒**。
-   → 這建立「藝術家手做 mesh 在 deform 下長怎樣」的 benchmark(鍛鍊五件套的 benchmark + 評估器)。
-3. **把它變成 S3 生成器的閘**:生成的 mesh 必須在等效 deform 壓力下 0 自交 / 0 翻面。
-4. 結果寫進 `knowledge/`,更新 STATE / log。
+**(a) 把 deform 耐受納入 S3 正式 AC + 參數掃描**(純 CPU,不需 PNG)— 建議
+  - 將「stress_field @ ~315px 下 0 自交/0 翻面」寫入 generate+evaluate 的整合 AC。
+  - 掃描內部點密度 / min-dist,找「最少頂點 × 仍通過耐變形」的甜蜜點。
 
-> 後續(待 `main_draw.png`):texture IoU 對真實貼圖、`spine_inspector` 實機 round-trip 截圖。
+**(b) 真實貼圖驗證**(待 `main_draw.png` 檔)— 裁 curtain_left 區域 → 生成 mesh → texture IoU + UV 撕裂。
+
+**(c) spine_inspector 實機 round-trip**(需 headless 瀏覽器)— `setMeshVertices`/`getMeshBounds`/`screenshot`。
 
 ## 環境前置(已驗證可用)
 
@@ -55,3 +53,5 @@
 - 2026-06-24：**S3 第一輪** — 探測並安裝 CPU 套件;完成 mesh 生成器 + 評估器 + 合成測試;6 條 AC 全過(IoU 0.99)。
 - 2026-06-24:收到真實 `main_draw.json` + `.atlas`(存入 `assets/`);解析確認 4 mesh + 9 anim deform;
   下一課題定為 deform-aware 評估器(純 CPU,不需 PNG)。
+- 2026-06-24:**deform 評估器課題完成** — Python 重現 Spine deform;真實 4mesh×9anim benchmark 全乾淨
+  (_checker_validated);負對照可抓自交/翻面;生成 mesh 耐變形 ≈ 藝術家手做(撐過 315px)。
