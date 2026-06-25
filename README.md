@@ -49,4 +49,4 @@
 核心知識文件(根目錄):`CLAUDE.md`、`handoff_brief.md`、`自主Spine工作流_SOP.md`、
 `Spine能力鍛鍊計畫.md`、`main_draw_解析報告.md`、`spine_inspector.html`。
 
-> 待辦:① 在 web 介面建立排程 trigger(prompt 指向 `prompts/run.md`);② 決定排程頻率。
+> **排程設定**:見 `SCHEDULE.md`(turnkey 步驟)。SessionStart hook(`.claude/`)已就緒,新 session 自動裝 CPU 套件。
