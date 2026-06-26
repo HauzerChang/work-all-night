@@ -73,3 +73,5 @@
   評估器先以藝術家真值自一致性(4 mesh si=0)確認可信再下判定。開 PR #1(zealous→hopeful default,a 方案)。
 - 2026-06-26:**S2 切圖閘完成** — `evaluate_slicing.py` 端到端重組驗證;main_draw 45/45 region MAE=0/0孤兒/0重疊;
   雙向負對照確認鑑別力(rotate 對稱 region 不可區分為已知局限)。發現 spine_inspector round-trip 被 CDN 政策擋(blocker)。
+- 2026-06-24:產出**通用自驅排程引導手冊** `docs/自驅排程引導手冊.md` + skill `setup-autonomous-schedule`
+  (教他人從零設定自己的排程;含架構、前置、Routine 建立、驗證、疑難排解、範本)。

@@ -49,4 +49,6 @@
 核心知識文件(根目錄):`CLAUDE.md`、`handoff_brief.md`、`自主Spine工作流_SOP.md`、
 `Spine能力鍛鍊計畫.md`、`main_draw_解析報告.md`、`spine_inspector.html`。
 
-> **排程設定**:見 `SCHEDULE.md`(turnkey 步驟)。SessionStart hook(`.claude/`)已就緒,新 session 自動裝 CPU 套件。
+> **排程設定**:本專案速查見 `SCHEDULE.md`;**通用教學手冊**見 `docs/自驅排程引導手冊.md`
+> (可教任何人把自己的 repo 變成自驅排程,亦包成 skill `setup-autonomous-schedule`)。
+> SessionStart hook(`.claude/`)已就緒,新 session 自動裝 CPU 套件。
