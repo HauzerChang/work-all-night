@@ -34,7 +34,7 @@ def repack(sub, region):
     x, y = [int(t) for t in region["xy"].split(",")]
     rot = region.get("rotate", "false") == "true"
     if rot:
-        packed = cv2.rotate(sub, cv2.ROTATE_90_CLOCKWISE)  # extract 用 CCW,這裡逆轉
+        packed = cv2.rotate(sub, cv2.ROTATE_90_COUNTERCLOCKWISE)  # extract 用 CW,repack 逆轉(CCW)
     else:
         packed = sub
     ph, pw = packed.shape[:2]

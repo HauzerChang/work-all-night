@@ -45,15 +45,40 @@
 負對照(漏件)premult_rgb 11–20(仍抓到)→ 校正未過頭。
 **教訓(第三次)**:評估器要先校準/負對照才可信(前有 stress_field、composite 白底)。
 
+## texture 級驗證(收到 Award.png 後)+ 兩個真實工具發現
+
+使用者以 zip 提供整份 spine(`Award.png` 2040² / `Award2.png` 1780×1376 雙頁 + json/atlas)。
+
+**① atlas 貼圖被縮小打包(~0.70)**:機器人件 atlas region size 全約為 PSD/spine 原始尺寸的 0.70
+(右手 atlas 418×340 vs orig 597×486)。**attachment 的 width/height 記原始邏輯尺寸,atlas 存縮小版**
+(省記憶體,runtime 放大)→ texture 比對需先 resize 對齊 scale。
+
+**② derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**:`atlas_crop` 原用 CCW 還原旋轉件。
+用 PSD 切件當**外部真值**:rotate 件 CCW alpha-IoU 僅 0.40–0.57、**CW 0.92–0.98** → CW 才對。
+`evaluate_slicing` 的 extract↔repack round-trip 是**自洽**的(方向一起反仍 MAE=0),故 main_draw 45/45
+從未抓到此 bug。**教訓:round-trip 自洽 ≠ 絕對方向正確,需外部真值校驗。**
+已修 `atlas_crop`(CW + 多頁)+ `evaluate_slicing.repack`(逆轉為 CCW);main_draw 4 mesh 全 `rotate=false`
+故 S3 結論不受影響(重驗 4 mesh + slicing round-trip 全過)。
+
+**texture 驗收(PSD 切件 ↔ Award atlas 切件,resize 對齊後 alpha-IoU)**:
+
+| 件 | 光暈 | 右手 | 頭 | 身體 | 左手 |
+|---|---|---|---|---|---|
+| alpha-IoU | 0.933 | 0.985 | 0.964 | 0.923 | 0.991 |
+
+→ **PSD 切件 = spine 生產貼圖素材(同一份)**;殘差來自 0.70 縮放插值 + 邊緣 anti-alias。
+PSD↔spine↔atlas 三者閉環確認。
+
 ## 可重現
 
 ```
-python3 tools/mesh_gen/psd_slice.py assets/Symbol_Ww.psd --eval     # PASS
+python3 tools/mesh_gen/psd_slice.py assets/Symbol_Ww.psd  --eval    # PASS
 python3 tools/mesh_gen/psd_slice.py assets/robot_parts.psd --eval   # PASS
+python3 tools/mesh_gen/atlas_crop.py assets/Award.atlas assets/Award.png '機器人拆件/右手' /tmp/r.png  # 多頁+CW
 ```
 
 ## 下一步
 
-- 用機器人 5 件當輸入,跑 S3 `generate_mesh_v2` 生成 mesh,**對照 Award 真實 mesh**(光暈/身體/左手)
-  做 IoU/deform 比較 → 端到端「PSD→件→mesh」對真實標的驗收。
-- 把對應慣例(`PSD名/圖層名`、mesh/region 分配)固化進切圖→Spine JSON 組裝工具。
+- 用機器人 mesh 件(光暈/身體/左手)的真實 alpha 跑 S3 `generate_mesh_v2`,**對照 Award 真實 mesh**
+  做 IoU/deform → 端到端「PSD→件→mesh」對真實標的驗收(Award mesh uvs 為 atlas UV,需先轉 region 局部)。
+- 把對應慣例(`PSD名/圖層名`、mesh/region 分配、+2px padding、atlas 0.70 縮放)固化進切圖→Spine JSON 組裝工具。

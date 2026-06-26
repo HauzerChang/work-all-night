@@ -24,11 +24,15 @@
   MAE=0 → **該 region 本身不可區分方向**,非評估器缺陷(已知局限,記之)。
 - **負對照 B(xy 平移)**:把最大 region 平移 60px → orphan_ratio 0.147(抓到)。
 
-## 已知 quirk(留給下個 session)
+## 已知 quirk / 更新
 
-- `atlas_crop.parse_atlas()` 會把 atlas **page 行**(`main_draw.png`,無 xy/size)也收成一筆 region。
-  `extract()` 用具名查詢不受影響;但遍歷全部 region 時需過濾 → `evaluate_slicing.real_regions()`
-  已以「需有 xy+size」規避。未修改 `atlas_crop` 本體以免影響現有 `validate_against_real` 流程。
+- ✅ **(2026-06-26 已修)** `atlas_crop.parse_atlas()` 升級為多頁感知(每 region 記 page),
+  不再誤收 page 行為 region;同時修正 derotate 方向 CCW→CW(見下)。
+- ⚠️ **round-trip 自洽 ≠ 絕對方向正確**:本評估器的 extract↔repack 是自洽迴圈,即使 derotate 方向反了
+  也會 MAE=0 全過 → 它**驗證不了旋轉的絕對方向**。實際 `atlas_crop` 的 CCW 方向 bug 是靠**外部真值**
+  (Award 機器人件對照 PSD 切件)才抓到的(詳見 `s4-psd-to-spine-real.md`)。
+  main_draw 4 mesh 全 rotate=false,故 S3 結論不受此 bug 影響。
+  **教訓:自洽性測試要搭配外部真值,否則會對「成對的錯」免疫。**
 
 ## 可重現
 
