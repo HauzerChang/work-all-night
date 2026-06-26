@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真實 mesh](s3-psd-to-award-e2e.md) — 機器人 3 mesh 件(光暈/身體/左手)生成 mesh IoU 0.988–0.993 ≥ 藝術家基準 0.968–0.980,全 overall_pass(`validate_against_award.py`)。確認 Award uvs 為 region-local/v-down(再證 atlas_crop CW 去旋轉)。用真實標的揪出並修好 v1 兩 bug:孤兒內部頂點(prune_orphans)、大平滑輪廓取樣過疏(hull epsilon 加絕對像素偏差上限)。這 5 件無 deform timeline → 不做 deform 閘。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

@@ -35,13 +35,17 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
-def boundary_points(mask, epsilon_frac):
+def boundary_points(mask, epsilon_frac, max_dev_px=2.0):
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
     peri = cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
+    # 用「絕對像素偏差上限」封頂 epsilon:純比例(epsilon_frac*peri)會讓大型平滑輪廓
+    # (如光暈這種大圓 blob)取樣過疏 → 多邊形內縮、IoU 低。改用每點最大弦偏差 max_dev_px,
+    # 邊界保真度與件大小無關(2026-06-26 對 Award 光暈校正:frac-only IoU 0.929 → 封頂後 ~0.98)。
+    eps = min(epsilon_frac * peri, max_dev_px)
+    approx = cv2.approxPolyDP(cnt, eps, True)
     return approx.reshape(-1, 2).astype(np.float64)
 
 
@@ -95,6 +99,25 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def prune_orphans(pts, tris, n_hull):
+    """移除三角化/過濾後沒有被任何三角形參考的「孤兒」頂點並重新索引。
+
+    `filter_triangles` 以重心是否落在 mask 內剔除凹形外的三角,凹件(如光暈)可能把某內部
+    頂點的所有相鄰三角全剔掉 → 該頂點變孤兒(留在 vertices/uvs 卻無三角引用),違反 mesh
+    合法性(evaluate_mesh AC2c)。hull 頂點(前 n_hull 個,邊界 loop)一律保留以維持
+    Spine 的 hull-first 約定與外周完整;只修剪 index >= n_hull 的未引用內部點。"""
+    if len(tris) == 0:
+        return pts, tris, n_hull
+    used = set(int(i) for i in np.asarray(tris).flatten())
+    keep = [i for i in range(len(pts)) if i < n_hull or i in used]
+    if len(keep) == len(pts):
+        return pts, tris, n_hull
+    remap = {old: new for new, old in enumerate(keep)}
+    new_pts = pts[keep]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32)
+    return new_pts, new_tris, n_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -118,6 +141,7 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = prune_orphans(pts, tris, n_hull)
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
