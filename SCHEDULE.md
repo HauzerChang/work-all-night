@@ -10,8 +10,9 @@
 - ✅ `prompts/run.md` — 每次執行要做什麼。
 - ✅ `RULES.md` / `PLAN.md` / `STATE.md` — 守則、路線圖、續跑狀態。
 
-> ⚠️ **重要**:SessionStart hook 要生效於「新開的排程 session」,通常需要這些設定**已在該分支上**
-> (已 push ✅)。若排程是從 default 分支開,請把本分支合併進 default,hook 才會對所有 session 生效。
+> ✅ **分支策略(2026-06-26 定案)**:排程 trigger **直接指向開發分支 `claude/zealous-noether-y2ecwu`**,
+> 不再走「合併進 default」流程。每次排程從此分支開、推進、push 回此分支,下次接續 —— 零 merge 摩擦。
+> SessionStart hook 與所有設定都在此分支上(✅ 已 push),故 hook 對排程 session 生效。
 
 ## 建立排程(web 介面)
 
@@ -19,7 +20,7 @@
 2. 找 **Scheduled sessions / Triggers**(排程)功能,新建一個。
 3. 填入:
    - **Repository**:`HauzerChang/work-all-night`
-   - **Branch**:`claude/hopeful-thompson-n6pk3c`(或合併後的 default)
+   - **Branch**:`claude/zealous-noether-y2ecwu` ← **務必選這條開發分支**(非 default)。
    - **Schedule / 頻率**:每天一次(例:每天 09:00;時區依你)。
    - **Prompt**:貼這一句 ——
      ```

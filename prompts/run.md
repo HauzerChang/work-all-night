@@ -18,16 +18,20 @@
    評估器本身也要可信(對照藝術家真值 / 負對照)。
 5. **記錄**:新發現寫進 `knowledge/`(更新索引);更新 `STATE.md`(進度/下一步/未解);
    在 `log/YYYY-MM-DD-NNN.md` 新增一筆。
-6. **收尾**:用清楚訊息 commit & **push 回你啟動時所在的那條分支(= 本 repo 的 default 分支,
-   目前為 `claude/hopeful-thompson-n6pk3c`)**,讓下次排程 clone default 時能讀到更新後的 `STATE.md`。
-   然後結束。**不要嘗試無限長跑。**
+6. **收尾**:用清楚訊息 commit & **push 回你啟動時所在的那條分支(排程 trigger 直接指向
+   `claude/zealous-noether-y2ecwu`,不再走 PR/merge 流程)**,讓下次排程從同分支接手時能讀到
+   更新後的 `STATE.md`。然後結束。**不要嘗試無限長跑。**
 
 遇到需人類決策(A 類岔路)、連續無進展、或目標達成,依 `RULES.md` 停止條件標記狀態並停止。
 
-## 目前進度快照(2026-06-24)
+## 目前進度
 
-- 工具齊備:`generate_mesh`(v1 Delaunay)/ `generate_mesh_v2`(strip)/ `evaluate_mesh`(靜態)/
-  `deform_eval`(真實 deform 轉移閘,已自一致性驗證)/ `atlas_crop` / `validate_against_real`(整合 AC)。
-- 真實資產 `assets/main_draw.{json,atlas,png}` 已在 repo。
-- S3 對 `curtain_left` 已通過整合 AC(v1 IoU 0.98 > 藝術家 0.918、真實變形乾淨)。
-- **建議下一步**:把 `validate_against_real.py` 推廣到其餘 3 個 mesh(curtain_right / shadow / shadow2)。
+> ⚠️ 進度與「下一步」**一律以 `STATE.md` 為準**(本檔不再重複,以免過時誤導)。
+> 讀完 RULES/PLAN/STATE 後,從 `STATE.md` 的「下一步動作」挑一個有界塊推進即可。
+
+工具索引(細節見各 `knowledge/*.md`):
+- S3 mesh:`generate_mesh`(v1)/ `generate_mesh_v2`(strip,預設)/ `evaluate_mesh`(靜態)/
+  `deform_eval`(真實 deform 閘)/ `validate_against_real`(整合 AC)。
+- S2 切圖閘:`evaluate_slicing`(atlas 重組保真)。
+- S4 PSD:`make_test_psd`(合成 fixture)/ `psd_slice`(PSD→件+manifest+自驗閘)。
+- 資產:`assets/main_draw.{json,atlas,png}` 已在 repo;真實分層 PSD 待補。
