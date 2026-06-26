@@ -23,16 +23,19 @@
 
 ## 下一步動作 (next action)
 
-**S3 對 curtain_left 已達標(校正後)**:v1 IoU 0.980 > 藝術家 0.918,真實 deform 轉移後乾淨 → 整合 AC 通過。
-評估器經藝術家真值自一致性 + 負對照雙向驗證。合成 stress 已降級(未校準,僅裕度參考)。
+**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+- **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
+- **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
+- 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
+- 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **推廣到全部 4 個 mesh**:對 curtain_right / shadow / shadow2 跑 `validate_against_real.py`,確認 v1 通用。
-2. **v2 strip 經濟性**:若要逼近藝術家頂點數(21),調 rows/cols 讓 IoU≥0.918 且 deform 乾淨(10×3≈0.934 已可)。
-3. **spine_inspector 實機 round-trip**(需 headless 瀏覽器):把生成 mesh 載入工具截圖,視覺確認。
-4. **S1 反推分析器 / S4 切圖**(往 pipeline 上游推進)。
+1. **spine_inspector 實機 round-trip**(需 headless 瀏覽器):把 v2 生成 mesh 載入工具截圖,視覺確認(目前只有幾何/IoU 自評,缺實機渲染確認)。
+2. **v2 auto 模式收尾**:目前 `mode=auto` 已用新預設 rows=10;可考慮依 mask 高度自適應 rows(高瘦件多取樣)取代固定值。
+3. **S1 反推分析器 / S4 切圖**(往 pipeline 上游推進,槓桿最大)。
+4. **S2 其他三能力評估器**(切圖/補圖/骨架的自我品質閘)。
 
-> 排程接手後,(1) 是最適合自動跑的下一步(機械式、可自評)。
+> S3「生成 deform-robust mesh + 自評閘」對 4 mesh 已收斂達標。建議下一步往上游(S1/S4)或補實機 round-trip。
 
 ## 環境前置(已驗證可用)
 
@@ -62,3 +65,6 @@
   (合成壓力 miscalibration);更正後 v1 對 curtain_left 整合 AC 通過(IoU 0.98、真實變形乾淨)。
 - 2026-06-24:**排程就緒(B)** — 建 SessionStart hook(.claude/,自動裝 CPU 套件+PYTHONPATH,已驗證)、
   硬化 prompts/run.md、寫 SCHEDULE.md turnkey 指南。剩使用者在 web 建每日 trigger。
+- 2026-06-26:**S3 推廣到全部 4 mesh(里程碑)** — v1 不通用(curtain_right/shadow 真實 deform 自交);
+  v2 strip 通用(4 mesh 全乾淨)。發現 IoU 由 rows 決定、cols 不影響;v2 預設 rows 8→10,4 mesh 全 overall_pass。
+  評估器先以藝術家真值自一致性(4 mesh si=0)確認可信再下判定。
