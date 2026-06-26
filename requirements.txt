@@ -3,3 +3,6 @@ numpy
 opencv-python-headless
 triangle
 scipy
+# S4 PSD-first 切圖(psd-tools 純 CPU;Pillow 為其影像後端)。
+psd-tools
+Pillow

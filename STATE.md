@@ -13,7 +13,10 @@
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
-- S1 / S4 / S5 尚未開始。
+- **S4 PSD-first 切圖:pipeline 已打通(使用者拍板走 PSD 契約)** — `psd_slice.py`(PSD→各部位件+manifest)
+  + 自驗閘 + 合成 fixture;4 層 PSD 重組 MAE=0.01/0孤兒,漏層負對照抓到。**待真實 PSD 驗收**
+  (見 `knowledge/s4-psd-contract.md`,含給美術的交檔規範)。
+- S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
 
@@ -31,14 +34,17 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **S2 補圖閘 / 骨架閘**(承切圖閘,補齊 S2 樞紐;純 CPU 可做)。
-2. **S4 切圖能力本體**:已有切圖閘(`evaluate_slicing.py`)當收斂目標;最大關卡仍是「能否要到分層 PSD」(❗使用者層級決策,未定)。
-3. **S1 反推分析器**:需一支 benchmark 影片當輸入(目前 repo 無影片資產)。
-4. **v2 auto 自適應 rows**:依 mask 高度自動選 rows 取代固定 10(S3 微優化收尾)。
-5. ~~spine_inspector 實機 round-trip~~:**⛔ 排程環境網路政策擋 jsDelivr CDN(403),spine-webgl runtime 載不進來;
-   vendor 進 repo 亦因下載被擋而不可行。需使用者改網路政策或提供離線 spine-webgl 才能解。**
+1. **❗最高優先:取得一份真實分層 PSD**(依 `knowledge/s4-psd-contract.md` 的交檔規範),對它跑
+   `psd_slice.py --eval` 做真實驗收。這是 S4 從「合成驗證」走向「真實可用」的關鍵,屬使用者層級(要檔)。
+2. **S4 下游接線**:切件 PNG → S3 `generate_mesh_v2`(已備)→ 組 Spine JSON(SkelToJson 讀寫)。
+   可先用合成 PSD 的切件端到端打通「PSD→件→mesh→Spine attachment」。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+5. **v2 auto 自適應 rows**(S3 微優化收尾)。
+6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S3 已收斂達標;S2 切圖閘完成。建議下一步:補 S2 其餘評估器(1),或等使用者對「分層 PSD」(2)拍板後攻 S4。
+> 已拍板走 PSD 契約且 pipeline 打通。建議下一步:(2) 用合成切件把「PSD→mesh→Spine JSON」下游接通(純 CPU 可自驅),
+> 同時等使用者提供真實 PSD 做 (1) 真實驗收。
 
 ## 環境前置(已驗證可用)
 
@@ -73,3 +79,6 @@
   評估器先以藝術家真值自一致性(4 mesh si=0)確認可信再下判定。開 PR #1(zealous→hopeful default,a 方案)。
 - 2026-06-26:**S2 切圖閘完成** — `evaluate_slicing.py` 端到端重組驗證;main_draw 45/45 region MAE=0/0孤兒/0重疊;
   雙向負對照確認鑑別力(rotate 對稱 region 不可區分為已知局限)。發現 spine_inspector round-trip 被 CDN 政策擋(blocker)。
+- 2026-06-26:**S4 PSD 契約 pipeline 打通(使用者拍板)** — psd-tools 可裝;`make_test_psd.py`(合成 fixture)+
+  `psd_slice.py`(PSD→各部位件+manifest+自驗閘);4 層 PSD 重組 MAE=0.01/0孤兒,漏層負對照抓到。
+  寫 `knowledge/s4-psd-contract.md`(給美術的交檔規範)。待真實 PSD 驗收。
