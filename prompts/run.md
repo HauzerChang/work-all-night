@@ -18,7 +18,9 @@
    評估器本身也要可信(對照藝術家真值 / 負對照)。
 5. **記錄**:新發現寫進 `knowledge/`(更新索引);更新 `STATE.md`(進度/下一步/未解);
    在 `log/YYYY-MM-DD-NNN.md` 新增一筆。
-6. **收尾**:用清楚訊息 commit & push 到開發分支,然後結束。**不要嘗試無限長跑。**
+6. **收尾**:用清楚訊息 commit & **push 回你啟動時所在的那條分支(= 本 repo 的 default 分支,
+   目前為 `claude/hopeful-thompson-n6pk3c`)**,讓下次排程 clone default 時能讀到更新後的 `STATE.md`。
+   然後結束。**不要嘗試無限長跑。**
 
 遇到需人類決策(A 類岔路)、連續無進展、或目標達成,依 `RULES.md` 停止條件標記狀態並停止。
 
