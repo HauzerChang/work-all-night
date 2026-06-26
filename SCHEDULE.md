@@ -10,23 +10,46 @@
 - ✅ `prompts/run.md` — 每次執行要做什麼。
 - ✅ `RULES.md` / `PLAN.md` / `STATE.md` — 守則、路線圖、續跑狀態。
 
-> ✅ **分支策略(2026-06-26 定案)**:排程 trigger **直接指向開發分支 `claude/zealous-noether-y2ecwu`**,
-> 不再走「合併進 default」流程。每次排程從此分支開、推進、push 回此分支,下次接續 —— 零 merge 摩擦。
-> SessionStart hook 與所有設定都在此分支上(✅ 已 push),故 hook 對排程 session 生效。
+> ⚠️ **分支機制(2026-06-26 更正,依官方文件 /en/routines)**:Claude Code **Routines 沒有「選 branch」欄位**,
+> 每次執行**一律從 repo 的 default branch clone**(文件原文:"cloned ... starting from the default branch ...
+> unless your prompt specifies otherwise")。預設只能 push 到 `claude/` 開頭的分支。
+> 因此要讓排程跑在開發分支 `claude/zealous-noether-y2ecwu` 上,二選一(見下)。
 
-## 建立排程(web 介面)
+## 建立 / 設定排程(Routines)
 
-1. 開 Claude Code on the web,進到 `HauzerChang/work-all-night` 的環境。
-2. 找 **Scheduled sessions / Triggers**(排程)功能,新建一個。
-3. 填入:
-   - **Repository**:`HauzerChang/work-all-night`
-   - **Branch**:`claude/zealous-noether-y2ecwu` ← **務必選這條開發分支**(非 default)。
-   - **Schedule / 頻率**:每天一次(例:每天 09:00;時區依你)。
-   - **Prompt**:貼這一句 ——
-     ```
-     請依照 prompts/run.md 的指示推進這個研究專案。
-     ```
-4. 儲存。完成後,平台每天到點會自動開一個新 session,讀狀態 → 推進一個工作塊 → commit 回來。
+排程功能 = **Routines**,在 [claude.ai/code/routines](https://claude.ai/code/routines) 管理(或 CLI `/schedule`)。
+
+### 讓排程接續開發分支 `claude/zealous-noether-y2ecwu` — 二選一
+
+**方案 B(推薦,最省事):把 GitHub repo 的 default branch 改成 `claude/zealous-noether-y2ecwu`。**
+- GitHub → `HauzerChang/work-all-night` → **Settings → General**(或 **Branches**)→ "Default branch" → 點切換圖示 →
+  選 `claude/zealous-noether-y2ecwu` → **Update**。
+- 之後 Routine 自動從它 clone,Prompt 維持簡單一句即可。
+- 一次設定永久生效;符合 routine「從 default clone」的機制。
+
+**方案 A(不碰 GitHub 設定):在 Routine 的 Instructions/Prompt 開頭加切分支指令。**
+- 位置:[claude.ai/code/routines](https://claude.ai/code/routines) → 點該 routine → **鉛筆圖示 (Edit routine)** → 改 **Instructions**;或 CLI `/schedule update`。
+- Prompt 用這段(routine 從 default clone 後,自己切到開發分支):
+  ```
+  請先切到開發分支再開始:
+  git fetch origin claude/zealous-noether-y2ecwu
+  git checkout claude/zealous-noether-y2ecwu
+  git pull origin claude/zealous-noether-y2ecwu
+  然後依照 prompts/run.md 的指示推進這個研究專案,完成後 commit 並 push 回 claude/zealous-noether-y2ecwu。
+  ```
+- `claude/zealous-noether-y2ecwu` 是 `claude/` 開頭 → routine 預設就能 push,**不需**開啟 "Allow unrestricted branch pushes"。
+
+### 建立步驟(Routines 表單)
+
+1. 到 [claude.ai/code/routines](https://claude.ai/code/routines) → **New routine**。
+2. **Name**:取個名(如 "Spine 研究每日推進")。**Prompt/Instructions**:用上面方案 A 的那段(或方案 B 時用簡單一句
+   `請依照 prompts/run.md 的指示推進這個研究專案。`)。
+3. **Repositories**:加 `HauzerChang/work-all-night`。
+4. **Environment**:選有網路/套件的環境(Default 即可;hook 會自動裝 CPU 套件)。
+5. **Trigger**:選 **Schedule** → 每天一次(時區自動換算)。最短間隔 1 小時。
+6. **Create**。可按 **Run now** 立即試跑一次,開該 run 的 session 看 transcript 確認。
+
+> 注意:run 列表顯示綠燈只代表 session 正常啟動結束,**不代表任務成功**;要開 run 看 transcript / 看 `log/` 確認。
 
 ## 它每天會做什麼
 
