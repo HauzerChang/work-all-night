@@ -10,9 +10,10 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
-- **S3 mesh 生成器：最小原型 + 評估器已完成,合成資料 6 條 AC 全過**
-  (見 `tools/mesh_gen/`、`knowledge/s3-mesh-generator.md`)。
-- S1 / S2(其他能力評估器)/ S4 / S5 尚未開始。
+- **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
+- **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
+  雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
+- S1 / S4 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
 
@@ -30,12 +31,14 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **spine_inspector 實機 round-trip**(需 headless 瀏覽器):把 v2 生成 mesh 載入工具截圖,視覺確認(目前只有幾何/IoU 自評,缺實機渲染確認)。
-2. **v2 auto 模式收尾**:目前 `mode=auto` 已用新預設 rows=10;可考慮依 mask 高度自適應 rows(高瘦件多取樣)取代固定值。
-3. **S1 反推分析器 / S4 切圖**(往 pipeline 上游推進,槓桿最大)。
-4. **S2 其他三能力評估器**(切圖/補圖/骨架的自我品質閘)。
+1. **S2 補圖閘 / 骨架閘**(承切圖閘,補齊 S2 樞紐;純 CPU 可做)。
+2. **S4 切圖能力本體**:已有切圖閘(`evaluate_slicing.py`)當收斂目標;最大關卡仍是「能否要到分層 PSD」(❗使用者層級決策,未定)。
+3. **S1 反推分析器**:需一支 benchmark 影片當輸入(目前 repo 無影片資產)。
+4. **v2 auto 自適應 rows**:依 mask 高度自動選 rows 取代固定 10(S3 微優化收尾)。
+5. ~~spine_inspector 實機 round-trip~~:**⛔ 排程環境網路政策擋 jsDelivr CDN(403),spine-webgl runtime 載不進來;
+   vendor 進 repo 亦因下載被擋而不可行。需使用者改網路政策或提供離線 spine-webgl 才能解。**
 
-> S3「生成 deform-robust mesh + 自評閘」對 4 mesh 已收斂達標。建議下一步往上游(S1/S4)或補實機 round-trip。
+> S3 已收斂達標;S2 切圖閘完成。建議下一步:補 S2 其餘評估器(1),或等使用者對「分層 PSD」(2)拍板後攻 S4。
 
 ## 環境前置(已驗證可用)
 
@@ -67,4 +70,6 @@
   硬化 prompts/run.md、寫 SCHEDULE.md turnkey 指南。剩使用者在 web 建每日 trigger。
 - 2026-06-26:**S3 推廣到全部 4 mesh(里程碑)** — v1 不通用(curtain_right/shadow 真實 deform 自交);
   v2 strip 通用(4 mesh 全乾淨)。發現 IoU 由 rows 決定、cols 不影響;v2 預設 rows 8→10,4 mesh 全 overall_pass。
-  評估器先以藝術家真值自一致性(4 mesh si=0)確認可信再下判定。
+  評估器先以藝術家真值自一致性(4 mesh si=0)確認可信再下判定。開 PR #1(zealous→hopeful default,a 方案)。
+- 2026-06-26:**S2 切圖閘完成** — `evaluate_slicing.py` 端到端重組驗證;main_draw 45/45 region MAE=0/0孤兒/0重疊;
+  雙向負對照確認鑑別力(rotate 對稱 region 不可區分為已知局限)。發現 spine_inspector round-trip 被 CDN 政策擋(blocker)。
