@@ -13,15 +13,18 @@
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
-- **S4 PSD-first 切圖:pipeline 已打通(使用者拍板走 PSD 契約)** — `psd_slice.py`(PSD→各部位件+manifest)
-  + 自驗閘 + 合成 fixture;4 層 PSD 重組 MAE=0.01/0孤兒,漏層負對照抓到。**待真實 PSD 驗收**
-  (見 `knowledge/s4-psd-contract.md`,含給美術的交檔規範)。
+- **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
+  (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
+  slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
+  見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
 
 - `assets/main_draw.json`(真實骨架:28 bones / 40 slots / 9 anims / 4 unweighted mesh)。
 - `assets/main_draw.atlas`(region 矩形;sheet `main_draw.png` 2023×1896)。
+- **`assets/Symbol_Ww.psd`**(symbol,180×180,18 圖層)、**`assets/robot_parts.psd`**(機器人拆件 big win,713×693,5 圖層)。
+- **`assets/Award.json` + `assets/Award.atlas`**(機器人對應的生產 spine,77 bones/47 slots/12 anims;Award.png 在使用者端未提供)。
 - ⚠️ **`main_draw.png` 像素檔尚缺**(只在對話中顯示,未存成檔)。像素級工作(裁切貼圖、
   texture IoU、實機截圖)在拿到該 PNG 前 BLOCKED;但 **deform 幾何分析不需要 PNG**。
 
@@ -34,17 +37,17 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先:取得一份真實分層 PSD**(依 `knowledge/s4-psd-contract.md` 的交檔規範),對它跑
-   `psd_slice.py --eval` 做真實驗收。這是 S4 從「合成驗證」走向「真實可用」的關鍵,屬使用者層級(要檔)。
-2. **S4 下游接線**:切件 PNG → S3 `generate_mesh_v2`(已備)→ 組 Spine JSON(SkelToJson 讀寫)。
-   可先用合成 PSD 的切件端到端打通「PSD→件→mesh→Spine attachment」。
+1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
+   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
+   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
+2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
+   寫出工具(SkelToJson),端到端產 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-5. **v2 auto 自適應 rows**(S3 微優化收尾)。
-6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> 已拍板走 PSD 契約且 pipeline 打通。建議下一步:(2) 用合成切件把「PSD→mesh→Spine JSON」下游接通(純 CPU 可自驅),
-> 同時等使用者提供真實 PSD 做 (1) 真實驗收。
+> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
+> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
 
 ## 環境前置(已驗證可用)
 
@@ -85,3 +88,7 @@
 - 2026-06-26:**分支策略定案** — 排程 trigger 改**直接指向開發分支 `claude/zealous-noether-y2ecwu`**,
   不再走 PR/merge(零摩擦)。更新 `prompts/run.md`(分支說明 + 移除過時快照,改以 STATE 為準)、`SCHEDULE.md`。
   PR #1 已 merge;PR #2 關閉(改用分支直讀)。
+- 2026-06-26:**S4 真實驗收(里程碑)** — 使用者提供 2 份生產 PSD + 機器人對應 spine(Award)。
+  psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
+  抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
+  收 Award.json/atlas + 2 PSD 進 assets;校準契約。

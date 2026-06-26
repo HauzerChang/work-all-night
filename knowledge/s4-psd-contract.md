@@ -11,31 +11,40 @@
 平面圖自動拆件+補繪在無 GPU 下基本做不到;若美術直接交**分層 PSD**,切圖與補圖兩大難題大半消失。
 故把難題上移成「對美術的交檔規範(契約)」,工具只負責正確讀取與驗證。
 
-## 給美術的 PSD 交檔契約(規範)
+## 給美術的 PSD 交檔契約(規範;★ = 已對真實生產檔驗證)
 
-1. **檔案**:單一 `.psd`,RGBA、8-bit、單一畫布尺寸(= 動畫舞台座標系)。
-2. **一圖層 = 一可動部位**:每個會被骨架/動畫單獨驅動的部位,獨立成一個**可見 leaf 圖層**。
-   隱藏圖層會被工具忽略(可用於放參考/草稿)。
-3. **命名**:`部位` 或 `群組/部位`,對應未來 Spine slot/attachment。可用 PSD 群組表階層
-   (工具以 `descendants` 展平,群組僅作歸類)。避免重名。
-4. **共用座標系**:所有圖層對齊同一畫布;圖層 offset(left/top)即該部位在整圖的擺位 → 直接對應擺位。
-5. **被遮擋處要畫全(補圖需求)**:會在動畫中露出的被遮部位,圖層在**被遮區仍需有完整像素**,
-   否則動起來露破洞。此即「補圖」在契約端的解法(把補圖責任前移給美術一次畫好)。
-6. **不要**:合併圖層 / 裁切畫布 / 點陣化群組效果 / 把多部位併成一層(會破壞分件)。
-7. **pivot(留待 S5)**:旋轉中心仍需人微調;可選在圖層名加後綴標記,規格待 S5 定。
+1. **檔案**:單一 `.psd`,8-bit。RGB / RGBA 皆可(真實檔為 RGB;工具一律轉 RGBA 處理)。
+2. ★**一圖層 = 一可動部位**:每個會被骨架/動畫單獨驅動的部位,獨立成一個**可見 leaf 圖層**。
+   隱藏圖層會被工具忽略。真實檔為**扁平結構(無群組)**、圖層名中文 OK。
+3. ★**命名 → slot**:真實慣例 = **`<PSD檔名>/<圖層名>`**(見 `s4-psd-to-spine-real.md`:
+   機器人拆件 PSD 的「右手」→ spine slot `機器人拆件/右手`)。同一 spine 混多來源 PSD 時靠此前綴分 namespace。
+   也可用 PSD 群組表階層(工具以 `descendants` 展平)。避免同檔內重名。
+4. ★**共用座標系**:所有圖層對齊同一畫布;圖層 offset(left/top)即部位擺位。
+   切件 size 與最終 spine attachment size 吻合(差 +2px = atlas 各邊 1px padding)。
+5. **被遮擋處要畫全(補圖需求)**:會露出的被遮部位,圖層在被遮區仍需完整像素,否則動起來露破洞。
+   把補圖責任前移給美術一次畫好。
+6. **不要**:合併圖層 / 裁切畫布 / 把多部位併成一層。
+7. ★**opacity / blend**:圖層 opacity<255 可接受(工具記錄並在驗證時還原;真實 Symbol 有 153 的陰影層)。
+   建議 blend 用 **NORMAL**(非 NORMAL 的重組保真不保證)。
+8. **mesh vs region 留給特效/美術**:會 warp 的件(如光暈/身體/手臂)做 mesh、剛體件(頭)用 region+旋轉
+   —— 此分配在 spine 階段決定,切圖階段一律輸出件 PNG;S3 可對需 mesh 的件自動生成拓樸。
+9. **pivot(留待 S5)**:旋轉中心仍需人微調;規格待 S5 定。
 
 ## 驗收(自評閘)
 
 ```
-python3 tools/mesh_gen/make_test_psd.py          # 生成合成 fixture(repo 不存二進位)
-python3 tools/mesh_gen/psd_slice.py assets/test_layered.psd --eval   # overall_pass, exit 0
-python3 tools/mesh_gen/psd_slice.py <檔.psd> -o psd_parts            # 實際切件 + manifest
+python3 tools/mesh_gen/psd_slice.py assets/Symbol_Ww.psd  --eval    # 真實檔 PASS
+python3 tools/mesh_gen/psd_slice.py assets/robot_parts.psd --eval   # 真實檔 PASS
+python3 tools/mesh_gen/psd_slice.py <檔.psd> -o psd_parts           # 實際切件 + manifest
+# 合成 fixture(可選):python3 tools/mesh_gen/make_test_psd.py 再對 assets/test_layered.psd --eval
 ```
 
 - **AC1 解析**:可見 leaf 圖層全數切出。
-- **AC2 重組無損**:各件依 offset 由下而上 alpha-over 重組 == PSD composite(MAE < 1)。
+- **AC2 重組無損**:各件套 opacity 由下而上 alpha-over 重組 ≈ PSD composite,以
+  **premultiplied-alpha** 比對(premult_rgb_mae 與 alpha_mae 皆 < 2)。
+  ⚠️ 不可直接比 RGBA:composite 透明區填白、重組填黑,會假性失敗(見 s4-psd-to-spine-real.md 校正記)。
 - **AC3 0 孤兒**:composite 內容像素皆被某件覆蓋。
-- 互補性:漏「中間層」靠 AC2(MAE)抓;漏「唯一覆蓋層」才觸發 AC3 孤兒。
+- 互補性:漏「中間層」靠 AC2 抓;漏「唯一覆蓋層」才觸發 AC3 孤兒。
 
 ## 技術備忘
 

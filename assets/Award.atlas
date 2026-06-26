@@ -1,0 +1,1048 @@
+
+Award.png
+size: 2040,2040
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+FB光暈 2_00
+  rotate: false
+  xy: 941, 1936
+  size: 294, 70
+  orig: 294, 70
+  offset: 0, 0
+  index: -1
+OMG_英文
+  rotate: false
+  xy: 441, 238
+  size: 374, 215
+  orig: 374, 215
+  offset: 0, 0
+  index: -1
+OMG角色
+  rotate: true
+  xy: 674, 1
+  size: 235, 262
+  orig: 235, 262
+  offset: 0, 0
+  index: -1
+legendwin_英文
+  rotate: false
+  xy: 816, 237
+  size: 464, 216
+  orig: 464, 216
+  offset: 0, 0
+  index: -1
+megawin_英文
+  rotate: false
+  xy: 1281, 237
+  size: 446, 216
+  orig: 446, 216
+  offset: 0, 0
+  index: -1
+光暈04
+  rotate: false
+  xy: 865, 1971
+  size: 75, 35
+  orig: 75, 35
+  offset: 0, 0
+  index: -1
+光暈11
+  rotate: true
+  xy: 681, 1841
+  size: 129, 189
+  orig: 129, 189
+  offset: 0, 0
+  index: -1
+光暈_03
+  rotate: false
+  xy: 871, 1795
+  size: 140, 140
+  orig: 140, 140
+  offset: 0, 0
+  index: -1
+光暈_06
+  rotate: false
+  xy: 493, 1715
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+光暈_08
+  rotate: false
+  xy: 338, 736
+  size: 210, 210
+  orig: 210, 210
+  offset: 0, 0
+  index: -1
+光暈_15
+  rotate: false
+  xy: 596, 1891
+  size: 84, 82
+  orig: 84, 82
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_00
+  rotate: false
+  xy: 23, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_01
+  rotate: false
+  xy: 119, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_02
+  rotate: false
+  xy: 215, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_03
+  rotate: false
+  xy: 311, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_04
+  rotate: false
+  xy: 407, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_05
+  rotate: false
+  xy: 503, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_06
+  rotate: false
+  xy: 599, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_07
+  rotate: false
+  xy: 695, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_08
+  rotate: false
+  xy: 791, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_09
+  rotate: false
+  xy: 887, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_10
+  rotate: false
+  xy: 983, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_11
+  rotate: false
+  xy: 1079, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_12
+  rotate: false
+  xy: 1175, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_13
+  rotate: false
+  xy: 1271, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_14
+  rotate: false
+  xy: 1367, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_15
+  rotate: false
+  xy: 1463, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_16
+  rotate: false
+  xy: 1559, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_17
+  rotate: false
+  xy: 1655, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_18
+  rotate: false
+  xy: 1751, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_19
+  rotate: false
+  xy: 1847, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_20
+  rotate: false
+  xy: 1943, 2007
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_21
+  rotate: false
+  xy: 1, 1974
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_22
+  rotate: false
+  xy: 97, 1974
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_23
+  rotate: false
+  xy: 193, 1974
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_24
+  rotate: false
+  xy: 289, 1974
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_25
+  rotate: false
+  xy: 385, 1974
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_26
+  rotate: false
+  xy: 481, 1974
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_27
+  rotate: false
+  xy: 577, 1974
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_28
+  rotate: false
+  xy: 673, 1974
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍粒子/劍粒子循環 3_29
+  rotate: false
+  xy: 769, 1974
+  size: 95, 32
+  orig: 95, 32
+  offset: 0, 0
+  index: -1
+劍電流/劍電流 2_01
+  rotate: false
+  xy: 1012, 1795
+  size: 154, 140
+  orig: 154, 140
+  offset: 0, 0
+  index: -1
+劍電流/劍電流 2_02
+  rotate: false
+  xy: 1012, 1795
+  size: 154, 140
+  orig: 154, 140
+  offset: 0, 0
+  index: -1
+劍電流/劍電流 2_03
+  rotate: false
+  xy: 1167, 1791
+  size: 154, 140
+  orig: 154, 140
+  offset: 0, 0
+  index: -1
+劍電流/劍電流 2_04
+  rotate: false
+  xy: 1322, 1784
+  size: 154, 140
+  orig: 154, 140
+  offset: 0, 0
+  index: -1
+劍電流/劍電流 2_05
+  rotate: false
+  xy: 1477, 1784
+  size: 154, 140
+  orig: 154, 140
+  offset: 0, 0
+  index: -1
+劍電流/劍電流 2_06
+  rotate: false
+  xy: 1632, 1784
+  size: 154, 140
+  orig: 154, 140
+  offset: 0, 0
+  index: -1
+劍電流/劍電流 2_07
+  rotate: false
+  xy: 1787, 1784
+  size: 154, 140
+  orig: 154, 140
+  offset: 0, 0
+  index: -1
+劍電流/劍電流 2_12
+  rotate: false
+  xy: 1, 1751
+  size: 154, 140
+  orig: 154, 140
+  offset: 0, 0
+  index: -1
+劍電流/劍電流 2_13
+  rotate: false
+  xy: 1, 1751
+  size: 154, 140
+  orig: 154, 140
+  offset: 0, 0
+  index: -1
+劍電流/劍電流 2_14
+  rotate: false
+  xy: 156, 1751
+  size: 154, 140
+  orig: 154, 140
+  offset: 0, 0
+  index: -1
+劍電流/劍電流 2_15
+  rotate: false
+  xy: 156, 1751
+  size: 154, 140
+  orig: 154, 140
+  offset: 0, 0
+  index: -1
+小燈
+  rotate: false
+  xy: 1, 2018
+  size: 21, 21
+  orig: 21, 21
+  offset: 0, 0
+  index: -1
+巨獎_英文
+  rotate: false
+  xy: 221, 21
+  size: 452, 216
+  orig: 452, 216
+  offset: 0, 0
+  index: -1
+機器人拆件/左手
+  rotate: false
+  xy: 311, 1739
+  size: 181, 152
+  orig: 181, 152
+  offset: 0, 0
+  index: -1
+機器人拆件/頭
+  rotate: false
+  xy: 1236, 1932
+  size: 85, 74
+  orig: 85, 74
+  offset: 0, 0
+  index: -1
+機器人閃電特效/機器人閃電特效 2_01
+  rotate: false
+  xy: 881, 1066
+  size: 336, 189
+  orig: 336, 189
+  offset: 0, 0
+  index: -1
+機器人閃電特效/機器人閃電特效 2_02
+  rotate: false
+  xy: 1218, 1066
+  size: 336, 189
+  orig: 336, 189
+  offset: 0, 0
+  index: -1
+機器人閃電特效/機器人閃電特效 2_03
+  rotate: false
+  xy: 1555, 1066
+  size: 336, 189
+  orig: 336, 189
+  offset: 0, 0
+  index: -1
+機器人閃電特效/機器人閃電特效 2_04
+  rotate: false
+  xy: 1, 1021
+  size: 336, 189
+  orig: 336, 189
+  offset: 0, 0
+  index: -1
+機器人閃電特效/機器人閃電特效 2_05
+  rotate: false
+  xy: 338, 947
+  size: 336, 189
+  orig: 336, 189
+  offset: 0, 0
+  index: -1
+機器人閃電特效/機器人閃電特效 2_06
+  rotate: false
+  xy: 675, 876
+  size: 336, 189
+  orig: 336, 189
+  offset: 0, 0
+  index: -1
+機器人閃電特效/機器人閃電特效 2_07
+  rotate: false
+  xy: 1012, 876
+  size: 336, 189
+  orig: 336, 189
+  offset: 0, 0
+  index: -1
+機器人閃電特效/機器人閃電特效 2_08
+  rotate: false
+  xy: 1349, 876
+  size: 336, 189
+  orig: 336, 189
+  offset: 0, 0
+  index: -1
+機器人閃電特效/機器人閃電特效 2_09
+  rotate: false
+  xy: 1686, 876
+  size: 336, 189
+  orig: 336, 189
+  offset: 0, 0
+  index: -1
+機器人閃電特效/機器人閃電特效 2_10
+  rotate: false
+  xy: 1, 831
+  size: 336, 189
+  orig: 336, 189
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_02
+  rotate: false
+  xy: 1322, 1925
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_03
+  rotate: false
+  xy: 1407, 1925
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_04
+  rotate: false
+  xy: 1492, 1925
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_05
+  rotate: false
+  xy: 1577, 1925
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_06
+  rotate: false
+  xy: 1662, 1925
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_07
+  rotate: false
+  xy: 1747, 1925
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_08
+  rotate: false
+  xy: 1832, 1925
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_09
+  rotate: false
+  xy: 1917, 1925
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_10
+  rotate: false
+  xy: 1, 1892
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_11
+  rotate: false
+  xy: 86, 1892
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_12
+  rotate: false
+  xy: 171, 1892
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_13
+  rotate: false
+  xy: 256, 1892
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_14
+  rotate: false
+  xy: 341, 1892
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_15
+  rotate: false
+  xy: 426, 1892
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+炸開粒子2/炸開粒子B 2_16
+  rotate: false
+  xy: 511, 1892
+  size: 84, 81
+  orig: 84, 81
+  offset: 0, 0
+  index: -1
+電流01_橘
+  rotate: true
+  xy: 1, 378
+  size: 241, 219
+  orig: 241, 219
+  offset: 0, 0
+  index: -1
+電流01_紫
+  rotate: true
+  xy: 221, 283
+  size: 241, 219
+  orig: 241, 219
+  offset: 0, 0
+  index: -1
+電流01_綠
+  rotate: false
+  xy: 1728, 234
+  size: 241, 219
+  orig: 241, 219
+  offset: 0, 0
+  index: -1
+電流01_藍
+  rotate: true
+  xy: 1, 136
+  size: 241, 219
+  orig: 241, 219
+  offset: 0, 0
+  index: -1
+電流02_橘
+  rotate: false
+  xy: 669, 1665
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流02_紫
+  rotate: false
+  xy: 845, 1619
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流02_綠
+  rotate: false
+  xy: 1021, 1615
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流02_藍
+  rotate: false
+  xy: 1197, 1608
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_00
+  rotate: false
+  xy: 1373, 1608
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_02
+  rotate: false
+  xy: 1549, 1608
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_04
+  rotate: false
+  xy: 1725, 1608
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_06
+  rotate: false
+  xy: 1, 1575
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_08
+  rotate: false
+  xy: 177, 1563
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_10
+  rotate: false
+  xy: 353, 1539
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_12
+  rotate: false
+  xy: 529, 1489
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_14
+  rotate: false
+  xy: 705, 1443
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_16
+  rotate: false
+  xy: 881, 1439
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_18
+  rotate: false
+  xy: 1057, 1432
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_20
+  rotate: false
+  xy: 1233, 1432
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_22
+  rotate: false
+  xy: 1409, 1432
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_24
+  rotate: false
+  xy: 1585, 1432
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_26
+  rotate: false
+  xy: 1761, 1432
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_橘/電流循環A_橘 2_28
+  rotate: false
+  xy: 1, 1399
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_00
+  rotate: false
+  xy: 177, 1387
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_02
+  rotate: false
+  xy: 353, 1363
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_04
+  rotate: false
+  xy: 529, 1313
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_06
+  rotate: false
+  xy: 705, 1267
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_08
+  rotate: false
+  xy: 881, 1263
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_10
+  rotate: false
+  xy: 1057, 1256
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_12
+  rotate: false
+  xy: 1233, 1256
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_14
+  rotate: false
+  xy: 1409, 1256
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_16
+  rotate: false
+  xy: 1585, 1256
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_18
+  rotate: false
+  xy: 1761, 1256
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_20
+  rotate: false
+  xy: 1, 1223
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_22
+  rotate: false
+  xy: 177, 1211
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_24
+  rotate: false
+  xy: 353, 1187
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_26
+  rotate: false
+  xy: 529, 1137
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環A_綠/電流循環A_綠 2_28
+  rotate: false
+  xy: 705, 1091
+  size: 175, 175
+  orig: 175, 175
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_00
+  rotate: true
+  xy: 549, 665
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_02
+  rotate: true
+  xy: 770, 665
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_04
+  rotate: true
+  xy: 991, 665
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_06
+  rotate: true
+  xy: 1212, 665
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_08
+  rotate: true
+  xy: 1433, 665
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_10
+  rotate: true
+  xy: 1654, 665
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_12
+  rotate: true
+  xy: 1, 620
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_14
+  rotate: true
+  xy: 222, 525
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_16
+  rotate: true
+  xy: 443, 454
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_18
+  rotate: true
+  xy: 664, 454
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_20
+  rotate: true
+  xy: 885, 454
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_22
+  rotate: true
+  xy: 1106, 454
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_24
+  rotate: true
+  xy: 1327, 454
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_26
+  rotate: true
+  xy: 1548, 454
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+電流循環/電流循環B/電流循環B 2_28
+  rotate: true
+  xy: 1769, 454
+  size: 210, 220
+  orig: 210, 220
+  offset: 0, 0
+  index: -1
+
+Award2.png
+size: 1780,1376
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+BG光效_1
+  rotate: false
+  xy: 562, 458
+  size: 420, 420
+  orig: 420, 420
+  offset: 0, 0
+  index: -1
+BG光效_2
+  rotate: false
+  xy: 618, 37
+  size: 420, 420
+  orig: 420, 420
+  offset: 0, 0
+  index: -1
+BG擴散光暈
+  rotate: false
+  xy: 1404, 611
+  size: 350, 350
+  orig: 350, 350
+  offset: 0, 0
+  index: -1
+megawin角色1
+  rotate: true
+  xy: 349, 8
+  size: 245, 268
+  orig: 245, 268
+  offset: 0, 0
+  index: -1
+megawin角色2
+  rotate: false
+  xy: 1, 1
+  size: 347, 252
+  orig: 347, 252
+  offset: 0, 0
+  index: -1
+superwin_角色
+  rotate: true
+  xy: 1404, 962
+  size: 413, 375
+  orig: 413, 375
+  offset: 0, 0
+  index: -1
+機器人拆件/光暈
+  rotate: true
+  xy: 562, 879
+  size: 496, 480
+  orig: 496, 480
+  offset: 0, 0
+  index: -1
+機器人拆件/右手
+  rotate: true
+  xy: 1043, 957
+  size: 418, 340
+  orig: 418, 340
+  offset: 0, 0
+  index: -1
+機器人拆件/身體
+  rotate: true
+  xy: 1460, 343
+  size: 267, 299
+  orig: 267, 299
+  offset: 0, 0
+  index: -1
+粒子少01
+  rotate: false
+  xy: 1, 815
+  size: 560, 560
+  orig: 560, 560
+  offset: 0, 0
+  index: -1
+粒子少02
+  rotate: false
+  xy: 1, 254
+  size: 560, 560
+  orig: 560, 560
+  offset: 0, 0
+  index: -1
+粒子拼01
+  rotate: false
+  xy: 983, 458
+  size: 420, 420
+  orig: 420, 420
+  offset: 0, 0
+  index: -1
+粒子拼02
+  rotate: false
+  xy: 1039, 37
+  size: 420, 420
+  orig: 420, 420
+  offset: 0, 0
+  index: -1
+點點
+  rotate: true
+  xy: 1460, 79
+  size: 263, 277
+  orig: 263, 277
+  offset: 0, 0
+  index: -1
