@@ -11,6 +11,10 @@
 - hull(外周)排在 vertices 最前(Spine 格式)。
 
 mode=auto:長寬比高且 row-convex → strip;否則回退 v1(Delaunay,見 generate_mesh.py)。
+
+參數調校發現(2026-06-26,4mesh 全驗):**IoU 由 rows(邊界取樣密度)決定,cols 只加內部
+頂點不影響覆蓋率**。rows=8 對窗簾覆蓋率略低於藝術家基準(0.911 < ~0.916);**rows=10
+(cols=3,30 頂點)對全部 4 mesh 都過 IoU 基準且真實 deform 乾淨** → 設為預設。
 """
 import argparse, json
 import numpy as np
@@ -106,7 +110,7 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=8, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto"):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
@@ -125,7 +129,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
-    ap.add_argument("--rows", type=int, default=8)
+    ap.add_argument("--rows", type=int, default=10)
     ap.add_argument("--cols", type=int, default=3)
     ap.add_argument("--mode", choices=["auto", "strip", "delaunay"], default="auto")
     a = ap.parse_args()
