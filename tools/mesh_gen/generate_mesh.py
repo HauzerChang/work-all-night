@@ -112,13 +112,55 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def _coverage_iou(mesh, mask):
+    """mesh 三角填滿 vs mask 的 IoU(覆蓋率)。"""
+    W, H = mesh["width"], mesh["height"]
+    v = mesh["vertices"]
+    pts = np.array([[v[i] + W / 2.0, H / 2.0 - v[i + 1]] for i in range(0, len(v), 2)])
+    recon = np.zeros((H, W), np.uint8)
+    for t in np.array(mesh["triangles"]).reshape(-1, 3):
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    u = np.logical_or(recon, mask).sum()
+    return float(np.logical_and(recon, mask).sum() / u) if u else 0.0
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_iou=None, vertex_budget=64,
+             eps_ladder=(0.008, 0.004, 0.002, 0.001, 0.0005)):
+    """target_iou=None(預設)→ 行為不變,用給定 epsilon_frac 一次生成。
+
+    target_iou 給值時 → **自適應覆蓋**:沿 eps_ladder 由粗到細加密輪廓,取「達到 target_iou
+    且頂點數 ≤ vertex_budget」的最粗(最省點)解;若預算內都達不到,回退到「預算內 IoU 最高」
+    的解並標 `_budget_capped=True`。發現依據:覆蓋率由 hull 密度(epsilon)決定,內部點不影響
+    (2026-06-27 對 Award 3 件驗證,見 knowledge/s3-award-real-mesh.md)。"""
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
-    inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
-    pts, tris, n_hull = triangulate(hull, inter)
-    tris = filter_triangles(pts, tris, mask)
-    return to_spine(pts, tris, n_hull, W, H), mask
+
+    def build(eps):
+        hull = boundary_points(mask, eps)
+        inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+        pts, tris, n_hull = triangulate(hull, inter)
+        tris = filter_triangles(pts, tris, mask)
+        return to_spine(pts, tris, n_hull, W, H)
+
+    if target_iou is None:
+        return build(epsilon_frac), mask
+
+    bm = (mask > 0).astype(np.uint8)
+    best = None  # (iou, mesh) 預算內最高
+    for eps in eps_ladder:
+        mesh = build(eps)
+        nv = len(mesh["uvs"]) // 2
+        iou = _coverage_iou(mesh, bm)
+        if nv <= vertex_budget and (best is None or iou > best[0]):
+            best = (iou, mesh)
+        if iou >= target_iou and nv <= vertex_budget:
+            mesh["_eps"] = eps
+            return mesh, mask
+    # 預算內未達標 → 回退最高覆蓋解(標記)
+    if best is not None:
+        best[1]["_budget_capped"] = True
+        return best[1], mask
+    return build(eps_ladder[0]), mask
 
 
 def main():

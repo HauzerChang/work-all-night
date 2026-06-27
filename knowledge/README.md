@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對 Award 真實 mesh 驗收 + 自適應覆蓋](s3-award-real-mesh.md) — 對 3 個 weighted blobby 生產 mesh(光暈/身體/左手):預設過粗全低於藝術家覆蓋;**自適應覆蓋(opt-in)在 budget≈100 時 3/3 達或超過藝術家、且用更少頂點**。確認「覆蓋=hull 密度」對 blobby 件亦成立;量化 64 預算 vs 藝術家密度(78–98)的張力。`compare_to_award.py` 為可續跑 gate;main_draw v2 零回歸。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
