@@ -11,10 +11,14 @@
 
 AC(可機讀):
   AC1 解析完整 :過濾 page 行後,N region 全部成功切出非空。
-  AC2 重組保真 :每 region 重組回原位 == sheet 對應區(rotate round-trip 正確);
-                量化「完全一致 region 數」與「平均像素 MAE」。
-  AC3 0 孤兒   :sheet alpha>0 像素被 region 覆蓋率 ≥ thresh(未覆蓋=孤兒)。
-  AC4 0 重疊   :被 >1 region 寫入的像素數(atlas packer 不應重疊)。
+  AC2 重組保真 :每 region 重組回原位 == sheet 對應區;量化「完全一致 region 數」與「平均 MAE」。
+                ⚠️【review 2026-06-26】此項基本為**恆等(tautological)**:repack 是 extract 的
+                精確逆運算(CCW↔CW),且比對對象 region_sheet 用同一組 xy/size,故只要切片在界內,
+                MAE≈0 必成立——**不論 xy/size/rotate 語意是否正確**。它只驗「extract↔repack 一致 + 界內」,
+                **不**驗座標語意。真正有鑑別力的是 AC3/AC4;旋轉方向正確性需靠外部視覺檢查
+                (見 review:切出 rotate 區目視正立)。
+  AC3 0 孤兒   :sheet alpha>0 像素被 region 覆蓋率 ≥ thresh(未覆蓋=孤兒)。← 真實驗證:區塊覆蓋全內容。
+  AC4 0 重疊   :被 >1 region 寫入的像素數(atlas packer 不應重疊)。← 真實驗證:區塊不互疊。
 """
 import argparse, json, os, sys
 import numpy as np

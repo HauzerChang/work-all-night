@@ -31,4 +31,6 @@
 
 - [S2 切圖評估器](s2-slicing-evaluator.md) — 端到端「切圖→重組」保真閘;main_draw 45/45 region MAE=0/0孤兒/0重疊全過,證明 atlas_crop 對 12 rotate region 全正確。雙向負對照確認鑑別力(rotate 對稱 region 不可區分為已知局限)。
 
+- [品質 Review:S3+S2](review-2026-06-26-s2-s3.md) — 排程產出獨立重現驗證(全過);發現 S2 的 AC2 為恆等檢查(已標註),真實驗證靠 AC3/AC4+視覺。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
