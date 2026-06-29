@@ -75,3 +75,5 @@
   雙向負對照確認鑑別力(rotate 對稱 region 不可區分為已知局限)。發現 spine_inspector round-trip 被 CDN 政策擋(blocker)。
 - 2026-06-24:產出**通用自驅排程引導手冊** `docs/自驅排程引導手冊.md` + skill `setup-autonomous-schedule`
   (教他人從零設定自己的排程;含架構、前置、Routine 建立、驗證、疑難排解、範本)。
+- 2026-06-29:**review 優化 a 完成** — v2 自適應 rows(shadow 30→18v 省頂點)+ 軟邊件 alpha 加權 IoU
+  (解決軟陰影硬 IoU 失真);4 mesh 全過、deform si=0。接著做 (b) spine_inspector CDN blocker。

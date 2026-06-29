@@ -110,7 +110,29 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def _iou_vs_mask(pts, tris, mask):
+    H, W = mask.shape
+    recon = np.zeros((H, W), np.uint8)
+    P = np.array(pts)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(P[t]).astype(np.int32), 1)
+    return float(np.logical_and(recon, mask).sum() / max(int(np.logical_or(recon, mask).sum()), 1))
+
+
+def adaptive_rows(mask, W, H, cols, target_iou, rows_range=(6, 8, 10, 12, 14)):
+    """挑「達到 target_iou 的最少 rows」以省頂點(strip 拓樸對 rows 一律 deform-clean,
+    故只影響覆蓋率/頂點數,不影響變形穩健)。都達不到就取最大。"""
+    chosen = rows_range[-1]
+    for r in rows_range:
+        pts, tris, _ = gen_strip(mask, W, H, r, cols)
+        if _iou_vs_mask(pts, tris, mask) >= target_iou:
+            chosen = r
+            break
+    return chosen
+
+
+def generate(path, rows=10, cols=3, mode="auto", target_iou=None):
+    """rows=int 固定;rows="auto" 時依 target_iou(預設 0.92)自適應挑最少 rows。"""
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
@@ -119,9 +141,12 @@ def generate(path, rows=10, cols=3, mode="auto"):
         m, _ = gen_v1(path)
         m["_mode"] = "delaunay-v1"
         return m
+    if rows == "auto":
+        rows = adaptive_rows(mask, W, H, cols, target_iou if target_iou is not None else 0.92)
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)
     m["_mode"] = "strip"
+    m["_rows"] = int(rows)
     return m
 
 
@@ -129,11 +154,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
-    ap.add_argument("--rows", type=int, default=10)
+    ap.add_argument("--rows", default="10", help='整數或 "auto"(依 --target-iou 自適應)')
     ap.add_argument("--cols", type=int, default=3)
     ap.add_argument("--mode", choices=["auto", "strip", "delaunay"], default="auto")
+    ap.add_argument("--target-iou", type=float, default=None, help='rows=auto 時的覆蓋目標(預設 0.92)')
     a = ap.parse_args()
-    m = generate(a.image, a.rows, a.cols, a.mode)
+    rows = "auto" if a.rows == "auto" else int(a.rows)
+    m = generate(a.image, rows, a.cols, a.mode, a.target_iou)
     out = a.out or (a.image.rsplit(".", 1)[0] + "_mesh_v2.json")
     json.dump(m, open(out, "w"), ensure_ascii=False)
     print(f"[{m.get('_mode')}] {out}: 頂點 {len(m['uvs'])//2} (hull {m['hull']}), 三角 {len(m['triangles'])//3}")
