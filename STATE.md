@@ -11,6 +11,12 @@
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
+- **S3 端到端對照 Award 真實 blob mesh:3 件全 PASS(里程碑,2026-06-29)** — `compare_to_award.py`
+  把 `robot_parts.psd` 的光暈/身體/左手切件→`generate_mesh_v2`(blob aspect<1.2 → auto 回退 v1 Delaunay)
+  →對照 Award 生產 mesh:生成用更少頂點達相當/更佳輪廓 IoU(光暈0.933/身體0.966/左手0.964 vs
+  藝術家0.949/0.948/0.977)。先驗 Award uvs 為 region-local。發現:① 藝術家對非變形末端刻意不滿覆蓋
+  (IoU 對齊但非充分判準);② **v1 對凹形件(光暈)hull 跨接凹缺→溢出**(結構性弱點,strip 救不了)。
+  見 `knowledge/s3-award-blob-mesh.md`。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
 - **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
@@ -38,17 +44,19 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
-3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+1. **凹形 blob 的 hull 保真(直接承上)**:光暈(凹形)v1 hull 只簡到 16 點、跨接深凹 → 溢出。
+   對 IoU 溢出大的凹形件改用自適應 `epsilon` / concave-hull(alpha shape)/ 加大 hull 取樣密度,
+   再對光暈重測溢出收斂(有藝術家 78-hull 真值可比)。純 CPU 可自驅。
+2. **weighted mesh 變形級對照**:Award 這 3 件靠骨權變形(無 deform timeline)。目前只比 setup-pose
+   輪廓拓樸;要完整需把 weighted mesh 的骨權重也納入比對(讀 Award 的 weighted vertices + bones)。
+3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
+   atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產 Spine JSON。
+4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> ✅ #1(PSD件→S3→對照 Award)已完成(2026-06-29,3 件全 PASS,見 `s3-award-blob-mesh.md`)。
+> 建議下一步:承上做凹形 hull 保真(候選 1,有真值、純 CPU),或把 S3+S4 接成 SkelToJson(候選 3)。
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +101,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-06-29:**S3 端到端對照 Award blob mesh(里程碑)** — `compare_to_award.py`:robot_parts.psd 3 件
+  (光暈/身體/左手)切件→generate_mesh_v2(blob→v1 Delaunay)→對照 Award 生產 mesh,**3 件全 PASS**
+  (生成更少頂點達相當/更佳 IoU)。先驗 Award uvs region-local。發現藝術家對非變形末端刻意不滿覆蓋、
+  v1 對凹形件(光暈)hull 跨接凹缺溢出(strip 救不了)。見 `knowledge/s3-award-blob-mesh.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

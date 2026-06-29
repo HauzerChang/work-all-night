@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award blob mesh](s3-award-blob-mesh.md) — **PSD 件→S3 生成→對照 Award 真實生產 mesh,3 件(光暈/身體/左手)全 PASS**:生成 v1 Delaunay 用更少頂點達相當/更佳輪廓 IoU。先驗 Award uvs 為 region-local。發現:藝術家對非變形末端刻意不滿覆蓋(IoU 對齊但非充分);v1 對凹形件(光暈)hull 跨接凹缺→溢出(結構性弱點)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
