@@ -33,4 +33,6 @@
 
 - [品質 Review:S3+S2](review-2026-06-26-s2-s3.md) — 排程產出獨立重現驗證(全過);發現 S2 的 AC2 為恆等檢查(已標註),真實驗證靠 AC3/AC4+視覺。
 
+- [CDN blocker 解法:純 CPU 渲染器](render-cdn-blocker-resolved.md) — spine-webgl CDN 被擋 → 寫 render_mesh.py 離線貼圖渲染;setup round-trip MAE≈0、deform 無撕裂。互動式 HTML 仍需使用者提供 3.8 JS 或放寬網路。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

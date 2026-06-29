@@ -35,8 +35,8 @@
 2. **S4 切圖能力本體**:已有切圖閘(`evaluate_slicing.py`)當收斂目標;最大關卡仍是「能否要到分層 PSD」(❗使用者層級決策,未定)。
 3. **S1 反推分析器**:需一支 benchmark 影片當輸入(目前 repo 無影片資產)。
 4. **v2 auto 自適應 rows**:依 mask 高度自動選 rows 取代固定 10(S3 微優化收尾)。
-5. ~~spine_inspector 實機 round-trip~~:**⛔ 排程環境網路政策擋 jsDelivr CDN(403),spine-webgl runtime 載不進來;
-   vendor 進 repo 亦因下載被擋而不可行。需使用者改網路政策或提供離線 spine-webgl 才能解。**
+5. ~~spine_inspector 實機 round-trip~~:**✅ 已解(2026-06-29)** — 改用純 CPU `render_mesh.py` 離線貼圖渲染
+   (setup round-trip MAE≈0、deform 無撕裂),不需 CDN/瀏覽器。互動式 HTML 若要離線另需使用者提供 3.8 JS 或放寬網路。
 
 > S3 已收斂達標;S2 切圖閘完成。建議下一步:補 S2 其餘評估器(1),或等使用者對「分層 PSD」(2)拍板後攻 S4。
 
@@ -51,7 +51,7 @@
 - ❓ 排程頻率未定(使用者尚未決定)。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
-- ℹ️ spine_inspector 實機 round-trip 需瀏覽器自動化(headless),尚未設置。
+- ✅ spine_inspector 實機 round-trip 已用純 CPU `render_mesh.py` 取代(離線、可自動化)。互動式 HTML 離線化屬使用者選配。
 
 ## 進度摘要 (progress log)
 
@@ -77,3 +77,6 @@
   (教他人從零設定自己的排程;含架構、前置、Routine 建立、驗證、疑難排解、範本)。
 - 2026-06-29:**review 優化 a 完成** — v2 自適應 rows(shadow 30→18v 省頂點)+ 軟邊件 alpha 加權 IoU
   (解決軟陰影硬 IoU 失真);4 mesh 全過、deform si=0。接著做 (b) spine_inspector CDN blocker。
+- 2026-06-29:**(b) CDN blocker 解決** — 查證 jsDelivr/esotericsoftware 403、npm 僅 4.x 不相容 3.8;
+  改寫純 CPU `render_mesh.py`(貼圖網格渲染,setup round-trip MAE 2.7/0.66、deform 無撕裂)取代 inspector 實機驗證。
+  **review 優化 a + blocker b 皆完成 → 後續交由排程接管。**
