@@ -30,15 +30,20 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
-下一個 bounded chunk 候選:
-1. **S2 補圖閘 / 骨架閘**(承切圖閘,補齊 S2 樞紐;純 CPU 可做)。
-2. **S4 切圖能力本體**:已有切圖閘(`evaluate_slicing.py`)當收斂目標;最大關卡仍是「能否要到分層 PSD」(❗使用者層級決策,未定)。
-3. **S1 反推分析器**:需一支 benchmark 影片當輸入(目前 repo 無影片資產)。
-4. **v2 auto 自適應 rows**:依 mask 高度自動選 rows 取代固定 10(S3 微優化收尾)。
-5. ~~spine_inspector 實機 round-trip~~:**✅ 已解(2026-06-29)** — 改用純 CPU `render_mesh.py` 離線貼圖渲染
-   (setup round-trip MAE≈0、deform 無撕裂),不需 CDN/瀏覽器。互動式 HTML 若要離線另需使用者提供 3.8 JS 或放寬網路。
+**已完成(2026-06-29,使用者指派後由主線 session 做掉)**:
+- ✅ review 優化 a:v2 自適應 rows(`rows="auto"`,shadow 30→18v 省頂點)+ 軟邊件 alpha 加權 IoU。
+- ✅ blocker b:純 CPU `render_mesh.py` 取代 inspector 實機 round-trip(setup MAE≈0、deform 無撕裂)。
 
-> S3 已收斂達標;S2 切圖閘完成。建議下一步:補 S2 其餘評估器(1),或等使用者對「分層 PSD」(2)拍板後攻 S4。
+**→ 後續交由排程接管。** 排程下一個 bounded chunk(依槓桿,優先做不需使用者輸入的純 CPU 項):
+
+1. **【建議先做】S2 補圖閘(inpaint evaluator)** — 承切圖閘,補齊 S2 評估器套件樞紐。純 CPU、不需新資產:
+   可對 main_draw region 合成遮擋(挖洞)→ 用分級補圖(cv2.inpaint Telea/NS)→ 評估還原度(極端姿態露出區 0 破洞)。
+2. **S2 骨架閘** — 對每根骨單獨旋轉、驗 pivot 是否合理(可用 main_draw 既有骨架當真值)。
+3. **S4 切圖能力本體** — 已有 `evaluate_slicing.py` 當收斂目標;❗最大關卡「能否要到分層 PSD」屬**使用者層級決策**(未定,排程遇此標 BLOCKED 待人)。
+4. **S1 反推分析器** — 需一支 benchmark 影片當輸入;repo 目前**無影片資產**(排程遇此標 BLOCKED 待人提供)。
+
+> 心法提醒(寫給排程的你):每塊都先定 AC、評估器先自驗(藝術家真值/負對照)再下判定、誠實記錄、
+> push 回 default。需使用者決策的(3 PSD / 4 影片)直接標 BLOCKED 並停,不要硬做。
 
 ## 環境前置(已驗證可用)
 
