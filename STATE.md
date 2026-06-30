@@ -23,7 +23,11 @@
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
   見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
-- S1 / S5 尚未開始。
+- **SkelToJson 件→可載入 Spine 資產集:完成(里程碑,2026-06-30)** — `skel_to_json.py` 把切件 manifest
+  組裝成 `<name>.json+.atlas+.png` 整組,固化 Award 慣例(命名/一件一 bone 置中/draw order/`--mesh` 走 S3/
+  shelf atlas +2px padding 無損)。2 份真實 PSD(robot 5件/symbol 18件)端到端 **5 條 AC 全過**,
+  切回 alpha-IoU=1.0。產出為**中性骨架**(unweighted/無動畫);配權與 pivot 屬 S5。見 `knowledge/s4-skel-to-json.md`。
+- S1 / S5 尚未開始。S3+S4 已串成端到端「PSD→件→(mesh)→Spine JSON」。
 
 ## 真實資產(已收進 `assets/`)
 
@@ -44,19 +48,19 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 完成(2026-06-30,見上里程碑)**。
-2. **❗最高優先:SkelToJson(件→Spine JSON 組裝)**。把已驗證的真實慣例固化成寫出工具:
-   `<PSD名>/<圖層名>` slot 命名、size+2px padding、atlas ~0.70 縮放、mesh/region 依件分配、
-   把 S3 生成的 mesh attachment 寫進 skin。端到端產一份可載入的 Spine JSON;自驗:重解析回來
-   slot/attachment/size 與輸入件吻合(對照 Award 結構)。純 CPU 可自驅。
-3. **自動配權(BBW / bone-distance)**:讓生成的 unweighted mesh 可被骨骼驅動(S3→S5 銜接;
-   目前生成 mesh 皆 unweighted,Award 真實件為 weighted)。
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 完成(2026-06-30)**。
+2. ~~SkelToJson(件→Spine JSON 組裝)~~ **✅ 完成(2026-06-30,見上里程碑)**。
+3. **❗最高優先:自動配權(bone-distance / heat / BBW)**。目前 SkelToJson 產的是中性骨架
+   (每件一根置中 bone、mesh 為 unweighted)。下一步讓生成 mesh 可被**多骨**驅動:先做骨架草案
+   (或人給骨線)→ 依骨距/heat 配權 → 寫成 weighted mesh 格式(`[骨數,boneIdx,bindX,bindY,weight,...]`,
+   hull 排最前、每頂點權重和=1,見 CLAUDE.md 雷點6)。自驗:配權後在已知骨骼旋轉下 mesh 變形平滑、
+   0 自交(可借 deform_eval 的自交/翻面閘);對照 Award weighted 件的權重分佈合理性。純 CPU 可自驅。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S3 已對 main_draw(strip)與 Award(blob)兩種拓樸的真實 mesh 通用化驗收通過。
-> 建議下一步:把 S3+S4 串成 **SkelToJson** 端到端寫出工具(候選 2)。
+> S3+S4 已串成端到端「PSD→件→(S3 mesh)→可載入 Spine JSON」(2 份真實 PSD 5 AC 全過)。
+> 建議下一步:**自動配權**(候選 3),把中性骨架推進到「骨骼可驅動」,銜接 S5。
 
 ## 環境前置(已驗證可用)
 
@@ -101,6 +105,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-06-30:**SkelToJson 完成(里程碑)** — `skel_to_json.py` 件→可載入 Spine 整組(json+atlas+png);
+  固化 Award 慣例(命名/一件一 bone 置中/draw order/`--mesh` 走 S3/shelf atlas +2px 無損)。
+  2 份真實 PSD(robot 5件/symbol 18件)端到端 5 AC 全過,切回 alpha-IoU=1.0。產出為中性骨架
+  (unweighted/無動畫),配權與 pivot 屬 S5。S3+S4 至此串成端到端。下一步:自動配權。
 - 2026-06-30:**S3 推廣到 blob 型真實 mesh(里程碑)** — 端到端 PSD→件→S3→對照 Award 生產 mesh;
   光暈/身體/左手 3 件 v2-auto→v1 Delaunay 全過藝術家覆蓋率基準(頂點數 ≤ 藝術家)。發現邊界密度
   `epsilon_frac` 是 blob 的 IoU 槓桿(對應 strip rows);v1 預設 0.008→0.002。負對照+真值自一致性確認

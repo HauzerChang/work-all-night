@@ -37,4 +37,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [SkelToJson 件→可載入 Spine 資產集](s4-skel-to-json.md) — `skel_to_json.py`:psd_slice manifest → `<name>.json+.atlas+.png` 整組。固化 Award 慣例(`<PSD名>/<圖層名>`、一件一 bone 置中、draw order=z、`--mesh` 件走 S3、shelf atlas +2px padding 無損)。2 份真實 PSD(robot 5件/symbol 18件)5 條 AC 全過,端到端切回 alpha-IoU=1.0。產出為中性骨架(unweighted/無動畫),配權與 pivot 屬 S5。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
