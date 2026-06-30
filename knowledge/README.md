@@ -29,6 +29,8 @@
 
 - [推廣到全部 4 mesh](s3-four-mesh-generalization.md) — **v1 不通用**(curtain_right/shadow 真實 deform 自交);**v2 strip 通用**(4 mesh 全乾淨)。IoU 由 rows 決定、cols 不影響;rows=10 設為 v2 預設,4 mesh 全過。
 
+- [推廣到 blob 型真實 mesh(Award)](s3-blob-generalization-award.md) — 端到端 **PSD→件→S3 mesh→對照 Award 生產 mesh**;3 個 blob 件(光暈/身體/左手)v2-auto 走 v1 Delaunay。**邊界密度(`epsilon_frac`)= blob 的 IoU 槓桿**(對應 strip 的 rows);預設 0.008→0.002 後 3 件全過藝術家基準且頂點數 ≤ 藝術家。負對照+真值自一致性確認閘可信。Award mesh 無 deform timeline(骨權變形)→ 只測靜態覆蓋率(deform 屬 S5)。
+
 - [S2 切圖評估器](s2-slicing-evaluator.md) — 端到端「切圖→重組」保真閘;main_draw 45/45 region MAE=0/0孤兒/0重疊全過,證明 atlas_crop 對 12 rotate region 全正確。雙向負對照確認鑑別力(rotate 對稱 region 不可區分為已知局限)。
 
 - [S4 PSD-first 切圖契約](s4-psd-contract.md) — 使用者拍板走 PSD 契約。完成 psd_slice.py(PSD→各部位件+manifest)+ 自驗閘 + 合成 fixture;含給美術的交檔規範(已用真實檔校準)。

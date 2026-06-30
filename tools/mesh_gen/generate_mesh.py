@@ -112,7 +112,11 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+# epsilon_frac 預設 0.002(2026-06-30 對 Award 3 個真實 blob mesh 校準):
+#   0.008 對真實藝術家 mesh 覆蓋率不足(光暈 IoU 0.93<0.98);hull 取樣密度 = blob 的 IoU 槓桿
+#   (對應 v2 strip 的 rows)。0.002 使 3 件全過藝術家基準且頂點數仍 ≤ 藝術家預算。
+#   詳見 knowledge/s3-blob-generalization-award.md。
+def generate(path, max_interior=40, epsilon_frac=0.002, min_dist=14, margin=6):
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
@@ -126,7 +130,7 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", type=float, default=0.002)
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
     mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)
