@@ -39,4 +39,6 @@
 
 - [SkelToJson 件→可載入 Spine 資產集](s4-skel-to-json.md) — `skel_to_json.py`:psd_slice manifest → `<name>.json+.atlas+.png` 整組。固化 Award 慣例(`<PSD名>/<圖層名>`、一件一 bone 置中、draw order=z、`--mesh` 件走 S3、shelf atlas +2px padding 無損)。2 份真實 PSD(robot 5件/symbol 18件)5 條 AC 全過,端到端切回 alpha-IoU=1.0。產出為中性骨架(unweighted/無動畫),配權與 pivot 屬 S5。
 
+- [自動配權 bone-distance heat](s5-auto-weight.md) — `auto_weight.py`:unweighted mesh + 沿主軸自動骨鏈 → weighted mesh(inverse-distance + top-K + 沿邊 Laplacian 平滑)。2 真實衍生 mesh(curtain strip/robot blob)彎折 60° 掃描 0 自交/0 翻面;真值自一致性(Award 7 件權重和=1)+ 負對照(k=1 硬指派下 AC3 失敗)確認閘有鑑別力。確定性純 CPU(非 BBW)。S3→S5 銜接。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
