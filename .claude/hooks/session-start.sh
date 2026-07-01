@@ -15,7 +15,7 @@ if [ -f requirements.txt ]; then
   python3 -m pip install --quiet --disable-pip-version-check -r requirements.txt
 fi
 
-# 讓 tools/mesh_gen 可直接 import。
-echo 'export PYTHONPATH="'"$CLAUDE_PROJECT_DIR"'/tools/mesh_gen:${PYTHONPATH:-}"' >> "$CLAUDE_ENV_FILE"
+# 讓 tools/mesh_gen 與 tools/s1(影片反推分析)可直接 import。
+echo 'export PYTHONPATH="'"$CLAUDE_PROJECT_DIR"'/tools/mesh_gen:'"$CLAUDE_PROJECT_DIR"'/tools/s1:${PYTHONPATH:-}"' >> "$CLAUDE_ENV_FILE"
 
 echo "[session-start] research env ready: $(python3 -c 'import numpy,cv2,triangle,scipy;print("numpy",numpy.__version__,"cv2",cv2.__version__,"scipy",scipy.__version__)')"

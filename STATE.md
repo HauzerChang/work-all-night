@@ -32,7 +32,10 @@
   + 關節 pivot 草案,世界版面保真,過 `evaluate_skeleton`。待人:root 確認 / pivot 微調 / mesh 權重綁定(BBW)。
   見 `knowledge/s5-rig-draft.md`。
 - **auto-epsilon 已沉澱進 `generate_mesh.generate_auto`**(單一真相來源;skel_to_json/validate_award_mesh 共用)。
-- S1 尚未開始(需 benchmark 影片,repo 無影片資產)。
+- **S1 反推分析器:啟動(2026-07-01,使用者提供影片)** — benchmark 影片 `assets/robot_dance.mp4`
+  (chibi 機器人舞蹈,864×496/24fps/97幀)。塊1 `tools/s1/motion_field.py`(Farneback 光流)定位動態前景
+  + 偵測律動(3 AC 全過):背景靜(corner/center 0.0001)、手臂/拳頭主動、頭中等、軀幹/腿穩;
+  誠實發現垂直幅度(21.9px)>水平(5.9px)。見 `knowledge/s1-motion-field.md`。tools/s1 已入 PYTHONPATH(hook)。
 
 ## 真實資產(已收進 `assets/`)
 

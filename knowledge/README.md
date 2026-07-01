@@ -43,4 +43,6 @@
 
 - [S5 骨架階層草案(rig_draft.py)](s5-rig-draft.md) — 由件 alpha 重疊自動推骨架階層(重疊圖→生成樹→父子鏈)+ 關節 pivot 草案,世界版面保真、過 evaluate_skeleton。自動 root 誤選背景件光暈=「root 需人確認」案例;`--root 身體` 得合理階層。誠實界定:自動=連接/生成樹/關節質心;待人=root 確認/pivot 微調/mesh 權重綁定(PLAN 明示 pivot 唯一卡死)。
 
+- [S1 塊1 運動場提取](s1-motion-field.md) — `tools/s1/motion_field.py`:Farneback 稠密光流對真實舞蹈影片(`assets/robot_dance.mp4`)定位動態前景 + 偵測律動(3 AC 全過)。熱圖揭示手臂/拳頭是主要動作源、頭中等、軀幹/腿穩定、背景靜態;誠實發現垂直幅度(21.9px)> 水平(5.9px)。方向與現有 robot_parts/rig_draft 一致,可作真值對照。下一步:運動分群成件 → 需求規格。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
