@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3×S4 端到端(對真實生產 mesh)](s3-award-mesh-endtoend.md) — S3 生成器對 Award 機器人 3 mesh(光暈/左手/身體)**覆蓋率達到/超過藝術家真值且頂點更少**(3 件 overall_pass)。釐清兩種 regime:weighted+無 deform → 覆蓋率保真閘(v1 Delaunay + auto-epsilon,UV 拓樸);vs unweighted+有 deform → 位移場轉移閘(v2 strip)。通則:覆蓋率由邊界 epsilon 決定,內部頂點不影響。評估器自我校驗+雙向負對照確認鑑別力。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
