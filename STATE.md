@@ -28,9 +28,11 @@
   組裝成可載入的完整 Spine 3.8 skeleton JSON。對真實 `robot_parts.psd` 產出**結構與 Award 逐 slot 吻合**
   (4 AC 全過:schema / loader-roundtrip / layout / Award-parity,exit 0)。**pipeline 三段串通**:
   psd_slice → generate_mesh → skel_to_json。尚缺骨架權重/綁定(=S5)、動畫。見 `knowledge/s4-skel-to-json.md`。
-- **S5 骨架半自動:可自動部分落地(2026-07-01)** — `rig_draft.py` 由件 alpha 重疊自動推合法骨架階層
-  + 關節 pivot 草案,世界版面保真,過 `evaluate_skeleton`。待人:root 確認 / pivot 微調 / mesh 權重綁定(BBW)。
-  見 `knowledge/s5-rig-draft.md`。
+- **S5 骨架半自動:可自動部分全數完成(2026-07-01)** — `rig_draft.py`(骨架階層 + 功能性 pivot +
+  人為 `--rig-config` 覆寫;使用者決策 root=身體 固化於 `assets/robot_parts.rig.json`)+ `bind_weights.py`
+  (unweighted mesh → Spine weighted mesh)。端到端產出 **`assets/robot_parts_rigged.json`= 可變形完整 rig**;
+  變形測試(繞 pivot 旋轉/其他件不動/rest 保真)全 0.0px,過 `evaluate_skeleton`。
+  **只剩待人:pivot 微調**(改 rig.json,A 類)。見 `knowledge/s5-rig-draft.md`、`s5-weight-binding.md`。
 - **auto-epsilon 已沉澱進 `generate_mesh.generate_auto`**(單一真相來源;skel_to_json/validate_award_mesh 共用)。
 - **S1 反推分析器:啟動(2026-07-01,使用者提供影片)** — benchmark 影片 `assets/robot_dance.mp4`
   (chibi 機器人舞蹈,864×496/24fps/97幀)。塊1 `tools/s1/motion_field.py`(Farneback 光流)定位動態前景
