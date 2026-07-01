@@ -11,8 +11,10 @@
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
-- **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
-  雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
+- **S2 評估器套件:四評估器全到位(里程碑,2026-07-01)** — 切圖 `evaluate_slicing.py`、
+  mesh `evaluate_mesh`+`deform_eval`、**骨架 `evaluate_skeleton.py`**、**補圖 `evaluate_inpaint.py`**。
+  骨架閘正對照 main_draw+Award+gen 全過(先驗揪出並修 clipping 誤判);補圖閘補圖能力梯三態可分(作升級決策)。
+  「每能力必配評估器」的自主收斂樞紐完成。見 `knowledge/s2-skeleton-inpaint-gates.md`、`s2-slicing-evaluator.md`。
 - **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
@@ -26,7 +28,11 @@
   組裝成可載入的完整 Spine 3.8 skeleton JSON。對真實 `robot_parts.psd` 產出**結構與 Award 逐 slot 吻合**
   (4 AC 全過:schema / loader-roundtrip / layout / Award-parity,exit 0)。**pipeline 三段串通**:
   psd_slice → generate_mesh → skel_to_json。尚缺骨架權重/綁定(=S5)、動畫。見 `knowledge/s4-skel-to-json.md`。
-- S1 / S5 尚未開始。
+- **S5 骨架半自動:可自動部分落地(2026-07-01)** — `rig_draft.py` 由件 alpha 重疊自動推合法骨架階層
+  + 關節 pivot 草案,世界版面保真,過 `evaluate_skeleton`。待人:root 確認 / pivot 微調 / mesh 權重綁定(BBW)。
+  見 `knowledge/s5-rig-draft.md`。
+- **auto-epsilon 已沉澱進 `generate_mesh.generate_auto`**(單一真相來源;skel_to_json/validate_award_mesh 共用)。
+- S1 尚未開始(需 benchmark 影片,repo 無影片資產)。
 
 ## 真實資產(已收進 `assets/`)
 
@@ -47,21 +53,25 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 完成(2026-07-01)** — `validate_award_mesh.py`,3 件覆蓋率勝/平藝術家。
-2. ~~切圖→Spine JSON 組裝(SkelToJson)~~ **✅ 完成(2026-07-01)** — `skel_to_json.py`,對 robot_parts 產出結構與 Award 逐 slot 吻合(4 AC 全過)。
-3. **S5 骨架半自動(下一個最大解鎖點)**:目前 skel_to_json 每件一根骨(平面擺放)、mesh unweighted、
-   無父子鏈/權重/動畫。需:件→關節草案(人形 RTMPose/MediaPipe;非人形 Farneback 光流+分群)+
-   weighted mesh 綁定(BBW)。**pivot 是唯一卡死處(需人微調)** → 屬 A 類岔路,先做「可自動的部分 +
-   pivot 待人拍板」的半自動草案。需先有骨架評估器(S2 樞紐)。
-4. **auto-epsilon 沉澱進 `generate_mesh` 本體**:覆蓋率驅動 epsilon 搜尋目前在 validate_award_mesh
-   與 skel_to_json 各有一份;抽成生成器能力(小塊,純重構+加測)。
-5. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。骨架閘是 (3) 的前置。
-6. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 完成** — `validate_award_mesh.py`。
+2. ~~切圖→Spine JSON 組裝(SkelToJson)~~ **✅ 完成** — `skel_to_json.py`。
+3. ~~auto-epsilon 沉澱進 generate_mesh~~ **✅ 完成** — `generate_auto`。
+4. ~~S2 骨架閘 / 補圖閘~~ **✅ 完成** — `evaluate_skeleton.py` / `evaluate_inpaint.py`(S2 四評估器全到位)。
+5. ~~S5 骨架階層草案(可自動部分)~~ **✅ 完成** — `rig_draft.py`(pivot/root/權重待人)。
 
-> pipeline 三段(切件→生 mesh→組裝 skeleton JSON)已串通並對真實生產標的(robot_parts↔Award)驗收。
-> 缺的是「rig(骨架權重/綁定/動畫)」=S5,且 pivot 需人拍板(A 類)。建議先做 (5) 骨架評估器
-> 或 (4) 小重構,把 S5 的自主收斂前提(可機讀骨架品質閘)備妥,再攻 (3) 骨架半自動的可自動部分。
+新的下一步候選:
+A. **S5 weighted mesh 綁定(BBW)**:把 unweighted mesh + rig_draft 骨架接成 weighted mesh
+   (bone×頂點權重,和=1)。純 CPU(BBW/heat 權重);用 `evaluate_skeleton` AC3 驗權重合法 →
+   S5 剩餘可自動部分。之後 pivot 微調待人(A 類)。
+B. **🅰 里程碑審查(建議找使用者)**:pipeline 已從「PSD → 件 → mesh → 完整 skeleton JSON → 骨架階層草案」
+   全串通並對真實 Award 驗收;S2 四評估器到位。**S5 的 root/pivot 是 A 類岔路,需使用者拍板**;
+   S1 需影片資產。→ 適合做一次里程碑審查 + 要 S1 的 benchmark 影片。
+C. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)→ 需使用者提供。
+D. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被政策擋;需使用者改政策或離線 spine-webgl。**
+
+> 第 2 階段(四能力鍛鍊 + 評估器)大致收斂:S3 mesh ✅、S4 切圖+組裝 ✅、S2 四閘 ✅、S5 自動部分 ✅。
+> 續跑可做 (A) BBW 權重綁定(最後的純自動塊);之後卡在需人拍板的 pivot(A 類)與需影片的 S1。
+> **建議下次或本輪末做一次里程碑審查(B),把 A 類決策與 S1 影片需求一次批次化給使用者。**
 
 ## 環境前置(已驗證可用)
 

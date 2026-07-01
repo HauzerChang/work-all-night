@@ -39,4 +39,8 @@
 
 - [S4 SkelToJson(件→完整 skeleton JSON)](s4-skel-to-json.md) — 新 `skel_to_json.py` 把「切件+生 mesh」組裝成完整 Spine 3.8 skeleton JSON,補齊 pipeline 最後一環。對真實 robot_parts.psd 產出結構與 Award 逐 slot 吻合(4 AC 全過:schema/loader-roundtrip/layout/Award-parity)。固化慣例:`<prefix>/<層>` 命名(prefix 是 authoring 選擇、可覆寫,發現 Award 前綴=中文群名≠檔名)、draw order=z、每件一根骨、+2px=atlas padding。尚缺權重/綁定=S5。
 
+- [S2 骨架閘 + 補圖閘(S2 四評估器補齊)](s2-skeleton-inpaint-gates.md) — 新 `evaluate_skeleton.py`(結構/attachment/rig 權重;正對照 main_draw+Award+gen 全過,先驗揪出 clipping 誤判 bug)+ `evaluate_inpaint.py`(完整度/接縫/對真值 MAE;補圖能力梯三態可分、作升級決策)。**S2 四評估器(切圖/mesh/骨架/補圖)全到位** → 自主收斂樞紐完成。
+
+- [S5 骨架階層草案(rig_draft.py)](s5-rig-draft.md) — 由件 alpha 重疊自動推骨架階層(重疊圖→生成樹→父子鏈)+ 關節 pivot 草案,世界版面保真、過 evaluate_skeleton。自動 root 誤選背景件光暈=「root 需人確認」案例;`--root 身體` 得合理階層。誠實界定:自動=連接/生成樹/關節質心;待人=root 確認/pivot 微調/mesh 權重綁定(PLAN 明示 pivot 唯一卡死)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
