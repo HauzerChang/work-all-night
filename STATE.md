@@ -42,6 +42,10 @@
   (合成召回 0.5~0.75)→ 改 affine 運動模型 EM,合成 GT 召回 1.0**(頭 0.999)。用剛綁 rig 產生已知件合成
   光流當精確真值閉環驗;真實影片產候選件(noisy,誠實標)。見 `knowledge/s1-motion-segment.md`。
   下一步 S1 塊3:組 Asset & Rig Requirement Spec(件+運動型態)。
+- **S1 塊3 需求規格(2026-07-01,S1 分析半段收官)** — `tools/s1/requirement_spec.py`:每件 affine 運動
+  模型抽運動型態(旋轉/平移、pivot、振幅)。合成注入已知運動(手臂±16°/頭±9°+已知pivot)反推
+  **振幅誤差<1°、pivot 誤差 0~1px**(精確真值閘 PASS)。真實影片產 `assets/robot_dance_spec.json`
+  (兩臂動作最大、軀幹最穩)。見 `knowledge/s1-requirement-spec.md`。**S1 三塊完成。**
 
 ## 真實資產(已收進 `assets/`)
 

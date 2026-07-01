@@ -83,7 +83,28 @@ def clusters_to_regions(lab, min_area=30):
 
 
 # ---------------- 合成 GT(用 rig 驗召回) ----------------
-def synth_flow_from_parts(masks_z, pivots, W, H, scale, T=12):
+# 合成 GT 注入的每件運動參數(度 / 相位);requirement_spec 據此驗「反推 vs 真值」。
+SYNTH_AMP = {"左手": 16, "右手": 16, "頭": 9, "身體": 5, "光暈": 4}
+SYNTH_PHASE = {"左手": 0.0, "右手": math.pi, "頭": 0.5, "身體": 0.0, "光暈": 0.0}
+SYNTH_T = 12
+
+
+def synth_known_params(masks_z, pivots, W, H, scale):
+    """回傳 {name: {amp_deg, phase, pivot_px_scaled}} — 合成注入真值(供 spec 驗證)。"""
+    h, w = int(H * scale), int(W * scale)
+    out = {}
+    for name, (m, z) in masks_z:
+        if name in pivots:
+            pv = (pivots[name][0] * scale, pivots[name][1] * scale)
+        else:
+            ys, xs = np.where(cv2.resize(m, (w, h), interpolation=cv2.INTER_NEAREST) > 0)
+            pv = (float(xs.mean()), float(ys.mean()))
+        out[name] = {"amp_deg": SYNTH_AMP.get(name, 6), "phase": SYNTH_PHASE.get(name, 0),
+                     "pivot_px": [round(pv[0], 1), round(pv[1], 1)]}
+    return out
+
+
+def synth_flow_from_parts(masks_z, pivots, W, H, scale, T=SYNTH_T):
     """每件繞自身 pivot 獨立擺動,生成合成剛體光流 (T-1,h,w,2) + GT 標籤圖(件→id)。"""
     h, w = int(H * scale), int(W * scale)
     # GT 標籤:每像素指派給「最上層(z 大)」覆蓋它的件
@@ -95,9 +116,7 @@ def synth_flow_from_parts(masks_z, pivots, W, H, scale, T=12):
         if name not in names:
             names.append(name)
         gt[ms] = names.index(name)
-    # 每件角速度排程(度):手臂大、頭中、身體/光暈小
-    amp = {"左手": 16, "右手": 16, "頭": 9, "身體": 5, "光暈": 4}
-    ph = {"左手": 0.0, "右手": math.pi, "頭": 0.5, "身體": 0.0, "光暈": 0.0}
+    amp, ph = SYNTH_AMP, SYNTH_PHASE
     def theta(name, t):
         A = amp.get(name, 6); return math.radians(A * math.sin(2 * math.pi * t / T + ph.get(name, 0)))
     # 每件 pivot(px→scale);身體/無 pivot 用件質心

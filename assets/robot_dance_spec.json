@@ -1,0 +1,88 @@
+{
+  "source": "robot_dance.mp4",
+  "scale": 0.35,
+  "n_parts": 5,
+  "parts": [
+    {
+      "cluster": 4,
+      "area_px": 5342,
+      "centroid_px": [
+        125.5,
+        122.5
+      ],
+      "motion_type": "translation",
+      "rot_amp_deg": 0.75,
+      "pivot_px": [
+        100.4,
+        141.9
+      ],
+      "trans_amp_px": 1.76,
+      "mean_radius_px": 53.2
+    },
+    {
+      "cluster": 2,
+      "area_px": 4964,
+      "centroid_px": [
+        222.2,
+        105.5
+      ],
+      "motion_type": "rotation",
+      "rot_amp_deg": 0.77,
+      "pivot_px": [
+        219.9,
+        141.5
+      ],
+      "trans_amp_px": 0.63,
+      "mean_radius_px": 49.8
+    },
+    {
+      "cluster": 0,
+      "area_px": 3223,
+      "centroid_px": [
+        142.1,
+        40.6
+      ],
+      "motion_type": "translation",
+      "rot_amp_deg": 2.7,
+      "pivot_px": [
+        126.5,
+        36.7
+      ],
+      "trans_amp_px": 2.18,
+      "mean_radius_px": 43.3
+    },
+    {
+      "cluster": 1,
+      "area_px": 2939,
+      "centroid_px": [
+        99.2,
+        78.1
+      ],
+      "motion_type": "translation",
+      "rot_amp_deg": 6.5,
+      "pivot_px": [
+        113.4,
+        93.5
+      ],
+      "trans_amp_px": 8.29,
+      "mean_radius_px": 28.7
+    },
+    {
+      "cluster": 3,
+      "area_px": 2509,
+      "centroid_px": [
+        201.7,
+        80.6
+      ],
+      "motion_type": "translation",
+      "rot_amp_deg": 11.0,
+      "pivot_px": [
+        197.0,
+        124.1
+      ],
+      "trans_amp_px": 9.23,
+      "mean_radius_px": 45.9
+    }
+  ],
+  "note": "候選可動件 + 運動型態;pivot/amp 於合成 GT 驗證(見 synthetic_eval)"
+}

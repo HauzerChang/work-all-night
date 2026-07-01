@@ -45,6 +45,8 @@
 
 - [S1 塊1 運動場提取](s1-motion-field.md) — `tools/s1/motion_field.py`:Farneback 稠密光流對真實舞蹈影片(`assets/robot_dance.mp4`)定位動態前景 + 偵測律動(3 AC 全過)。熱圖揭示手臂/拳頭是主要動作源、頭中等、軀幹/腿穩定、背景靜態;誠實發現垂直幅度(21.9px)> 水平(5.9px)。方向與現有 robot_parts/rig_draft 一致,可作真值對照。下一步:運動分群成件 → 需求規格。
 
+- [S1 塊3 需求規格](s1-requirement-spec.md) — 每件 affine 運動模型抽出運動型態(旋轉/平移、pivot、振幅);合成注入已知運動反推誤差 <1°/<2px(精確真值閘 PASS);真實影片產 Requirement Spec(兩臂動作最大、軀幹最穩)。北極星 pipeline 分析半段收官。
+
 - [S1 塊2 運動分群成件](s1-motion-segment.md) — `tools/s1/motion_segment.py`:**樸素 flow-kmeans 把旋轉件拆碎(召回 0.5~0.75)→ 改用 affine 運動模型 EM(合成 GT 召回 1.0、頭 0.999)**。用剛綁 rig 產生已知件合成光流當精確真值閉環驗證;再套真實影片產候選件(較 noisy,誠實標註)。發現:剛體件每幀光流在像素座標是 affine,故 EM 依殘差指派才對。
 
 - [S5 mesh 權重綁定](s5-weight-binding.md) — `bind_weights.py`:unweighted mesh → Spine weighted mesh 綁到 rig 骨架。誠實判斷:part-based rig 用 rigid(每頂點權重1給自身件骨)正確,完整 BBW 僅適用單一連續 mesh(附 inverse-distance blend 近似為選用)。端到端產出 `assets/robot_parts_rigged.json`;變形測試(繞 pivot 旋轉/其他件不動/rest 保真)全 0.0px。pipeline 五段串通,機器人成可變形 rig。
