@@ -38,6 +38,10 @@
   (chibi 機器人舞蹈,864×496/24fps/97幀)。塊1 `tools/s1/motion_field.py`(Farneback 光流)定位動態前景
   + 偵測律動(3 AC 全過):背景靜(corner/center 0.0001)、手臂/拳頭主動、頭中等、軀幹/腿穩;
   誠實發現垂直幅度(21.9px)>水平(5.9px)。見 `knowledge/s1-motion-field.md`。tools/s1 已入 PYTHONPATH(hook)。
+- **S1 塊2 運動分群成件(2026-07-01)** — `tools/s1/motion_segment.py`:發現**樸素 flow-kmeans 把旋轉件拆碎
+  (合成召回 0.5~0.75)→ 改 affine 運動模型 EM,合成 GT 召回 1.0**(頭 0.999)。用剛綁 rig 產生已知件合成
+  光流當精確真值閉環驗;真實影片產候選件(noisy,誠實標)。見 `knowledge/s1-motion-segment.md`。
+  下一步 S1 塊3:組 Asset & Rig Requirement Spec(件+運動型態)。
 
 ## 真實資產(已收進 `assets/`)
 
