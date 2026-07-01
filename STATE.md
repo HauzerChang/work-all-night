@@ -22,6 +22,10 @@
   達到/超過藝術家且頂點更少**(3 件 overall_pass,exit 0)。釐清兩種 regime(weighted+無 deform
   →覆蓋率保真/v1 Delaunay/UV 拓樸;unweighted+有 deform→位移場轉移/v2 strip)。
   通則:覆蓋率由邊界 epsilon 決定、內部頂點不影響(呼應 strip 的 rows)。見 `knowledge/s3-award-mesh-endtoend.md`。
+- **S4 SkelToJson(里程碑,2026-07-01):件→完整 skeleton JSON 打通** — `skel_to_json.py` 把「切件+生 mesh」
+  組裝成可載入的完整 Spine 3.8 skeleton JSON。對真實 `robot_parts.psd` 產出**結構與 Award 逐 slot 吻合**
+  (4 AC 全過:schema / loader-roundtrip / layout / Award-parity,exit 0)。**pipeline 三段串通**:
+  psd_slice → generate_mesh → skel_to_json。尚缺骨架權重/綁定(=S5)、動畫。見 `knowledge/s4-skel-to-json.md`。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -44,17 +48,20 @@
 
 下一個 bounded chunk 候選:
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 完成(2026-07-01)** — `validate_award_mesh.py`,3 件覆蓋率勝/平藝術家。
-2. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
-   mesh/region 分配 + atlas 0.70 縮放,固化成「件→Spine attachment」寫出工具,端到端產 Spine JSON。
-   ← 承 (1) 後最自然的下一步(已有全部慣例真值)。
-3. **auto-epsilon 沉澱進 `generate_mesh` 本體**:目前覆蓋率驅動的 epsilon 搜尋在 validator 內;
-   做成「給目標覆蓋率+頂點預算→自動選 epsilon」的生成器能力(小塊,純重構+加測)。
-4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+2. ~~切圖→Spine JSON 組裝(SkelToJson)~~ **✅ 完成(2026-07-01)** — `skel_to_json.py`,對 robot_parts 產出結構與 Award 逐 slot 吻合(4 AC 全過)。
+3. **S5 骨架半自動(下一個最大解鎖點)**:目前 skel_to_json 每件一根骨(平面擺放)、mesh unweighted、
+   無父子鏈/權重/動畫。需:件→關節草案(人形 RTMPose/MediaPipe;非人形 Farneback 光流+分群)+
+   weighted mesh 綁定(BBW)。**pivot 是唯一卡死處(需人微調)** → 屬 A 類岔路,先做「可自動的部分 +
+   pivot 待人拍板」的半自動草案。需先有骨架評估器(S2 樞紐)。
+4. **auto-epsilon 沉澱進 `generate_mesh` 本體**:覆蓋率驅動 epsilon 搜尋目前在 validate_award_mesh
+   與 skel_to_json 各有一份;抽成生成器能力(小塊,純重構+加測)。
+5. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。骨架閘是 (3) 的前置。
+6. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S3+S4 已串成端到端並對真實生產標的驗收。建議下一步 (2) SkelToJson 組裝,把「件→Spine attachment」
-> 的真實慣例固化成工具,補上 pipeline 缺的一環(mesh 已能生,尚缺自動寫成完整 skeleton JSON)。
+> pipeline 三段(切件→生 mesh→組裝 skeleton JSON)已串通並對真實生產標的(robot_parts↔Award)驗收。
+> 缺的是「rig(骨架權重/綁定/動畫)」=S5,且 pivot 需人拍板(A 類)。建議先做 (5) 骨架評估器
+> 或 (4) 小重構,把 S5 的自主收斂前提(可機讀骨架品質閘)備妥,再攻 (3) 骨架半自動的可自動部分。
 
 ## 環境前置(已驗證可用)
 
@@ -109,3 +116,8 @@
   釐清兩種 mesh regime(weighted+無 deform→覆蓋率/v1;unweighted+有 deform→位移場轉移/v2 strip);
   發現覆蓋率由邊界 epsilon 決定(內部頂點不影響),柔邊件需更細 epsilon → 內建 AC 驅動 auto-epsilon 搜尋。
   評估器自我校驗(藝術家拓樸乾淨)+ 負對照(縮15%→0.72、移8%→0.70、打亂拓樸→si 數千)確認鑑別力。
+- 2026-07-01:**S4 SkelToJson:件→完整 skeleton JSON 打通(里程碑)** — 新 `skel_to_json.py`:PSD→切件→
+  生 mesh/region→組裝完整 Spine 3.8 skeleton JSON。對 `robot_parts.psd` 產出結構**與 Award 逐 slot 吻合**
+  (5/5 slot:命名 `機器人拆件/<層>`、mesh/region 型別、尺寸 ±2px 全對),4 AC 全過(schema/loader-
+  roundtrip/layout/Award-parity),用讀真實資產同一 loader 重載確認。發現:namespace 前綴是 authoring
+  選擇(Award=中文群名 機器人拆件 ≠ 檔名 robot_parts)→ 做成可覆寫參數。pipeline 三段串通;缺 rig(=S5)。

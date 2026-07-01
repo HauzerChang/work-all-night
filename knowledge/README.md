@@ -37,4 +37,6 @@
 
 - [S3×S4 端到端(對真實生產 mesh)](s3-award-mesh-endtoend.md) — S3 生成器對 Award 機器人 3 mesh(光暈/左手/身體)**覆蓋率達到/超過藝術家真值且頂點更少**(3 件 overall_pass)。釐清兩種 regime:weighted+無 deform → 覆蓋率保真閘(v1 Delaunay + auto-epsilon,UV 拓樸);vs unweighted+有 deform → 位移場轉移閘(v2 strip)。通則:覆蓋率由邊界 epsilon 決定,內部頂點不影響。評估器自我校驗+雙向負對照確認鑑別力。
 
+- [S4 SkelToJson(件→完整 skeleton JSON)](s4-skel-to-json.md) — 新 `skel_to_json.py` 把「切件+生 mesh」組裝成完整 Spine 3.8 skeleton JSON,補齊 pipeline 最後一環。對真實 robot_parts.psd 產出結構與 Award 逐 slot 吻合(4 AC 全過:schema/loader-roundtrip/layout/Award-parity)。固化慣例:`<prefix>/<層>` 命名(prefix 是 authoring 選擇、可覆寫,發現 Award 前綴=中文群名≠檔名)、draw order=z、每件一根骨、+2px=atlas padding。尚缺權重/綁定=S5。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
