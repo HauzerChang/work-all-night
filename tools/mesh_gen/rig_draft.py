@@ -74,7 +74,8 @@ def spanning_tree(ov, root):
     return parent
 
 
-def build_rig(psd_path, mesh_layers, out_dir, prefix, root_layer=None, target_iou=0.97):
+def build_rig(psd_path, mesh_layers, out_dir, prefix, root_layer=None, target_iou=0.97,
+              pivot_overrides=None):
     skel, manifest, part_meta = assemble(psd_path, mesh_layers, out_dir, target_iou, prefix)
     stem = prefix or os.path.splitext(os.path.basename(psd_path))[0]
     W, H = manifest["size"]
@@ -101,32 +102,85 @@ def build_rig(psd_path, mesh_layers, out_dir, prefix, root_layer=None, target_io
         cy = e["offset"][1] + e["size"][1] / 2.0
         return (cx - W / 2.0, H / 2.0 - cy)
 
-    # 重寫 bones 成父子鏈;bone local = 世界位置 - parent 世界位置(世界位置不變 → 版面保真)
-    bones = [{"name": "root"}]
-    rig_report = []
-    for name in [n for n in masks]:                # 保持件順序
-        slot = f"{stem}/{name}"
-        bone = f"{slot}_bone"
-        p = parent[name]
-        cw = center_world(name)
-        if p is None:                              # rig root 件 → 掛骨架 root
-            pw = (0.0, 0.0); parent_bone = "root"; joint = None
+    def px_to_world(px, py):
+        return (float(px) - W / 2.0, H / 2.0 - float(py))
+
+    pivot_overrides = pivot_overrides or {}
+
+    # 每件的 pivot(世界):人為覆寫(圖素座標)> 重疊質心草案。root 無 pivot。
+    def pivot_world(name):
+        if name in pivot_overrides:
+            return px_to_world(*pivot_overrides[name]), "human"
+        jc = overlap_centroid(masks[name], masks[parent[name]])
+        if jc is None:
+            return center_world(name), "fallback_center"
+        return (jc[0] - W / 2.0, H / 2.0 - jc[1]), "draft_centroid"
+
+    # bone 原點(世界):**非 root 件 = pivot(旋轉中心)**;root 件 = 件中心。
+    origin_w, pivots, pivot_src = {}, {}, {}
+    for name in masks:
+        if parent[name] is None:
+            origin_w[name] = center_world(name); pivots[name] = None; pivot_src[name] = None
         else:
-            pw = center_world(p); parent_bone = f"{stem}/{p}_bone"
-            jc = overlap_centroid(masks[name], masks[p])
-            joint = None if jc is None else [round(jc[0] - W / 2.0, 2), round(H / 2.0 - jc[1], 2)]
-        bones.append({"name": bone, "parent": parent_bone,
-                      "x": round(cw[0] - pw[0], 2), "y": round(cw[1] - pw[1], 2),
-                      # pivot 草案:重疊質心(世界座標);精確值待人微調
-                      "_joint_pivot_draft": joint, "_needs_human_pivot": p is not None})
-        rig_report.append({"part": name, "parent": p, "joint_pivot_draft": joint,
+            pv, src = pivot_world(name)
+            origin_w[name] = pv; pivots[name] = pv; pivot_src[name] = src
+
+    # 重寫 bones:local = 自身原點 - parent 原點;attachment 幾何平移 (件中心 - 自身原點)
+    # → bone 旋轉繞 pivot,且 θ=0 時世界版面不變。
+    bones = [{"name": "root"}]
+    skin = skel["skins"][0]["attachments"]
+    rig_report = []
+    for name in masks:
+        slot = f"{stem}/{name}"; bone = f"{slot}_bone"; p = parent[name]
+        po = (0.0, 0.0) if p is None else origin_w[p]
+        pb = "root" if p is None else f"{stem}/{p}_bone"
+        bones.append({"name": bone, "parent": pb,
+                      "x": round(origin_w[name][0] - po[0], 2),
+                      "y": round(origin_w[name][1] - po[1], 2),
+                      "_pivot": None if pivots[name] is None else
+                                [round(pivots[name][0], 2), round(pivots[name][1], 2)],
+                      "_pivot_source": pivot_src[name]})
+        # attachment 幾何相對 bone 原點平移(保住世界位置)
+        sx = center_world(name)[0] - origin_w[name][0]
+        sy = center_world(name)[1] - origin_w[name][1]
+        att = skin[slot][slot]
+        if abs(sx) > 1e-6 or abs(sy) > 1e-6:
+            if att.get("type") == "mesh":
+                v = att["vertices"]
+                att["vertices"] = [round(v[i] + (sx if i % 2 == 0 else sy), 3) for i in range(len(v))]
+            else:  # region:x/y 為相對 bone 的位移
+                att["x"] = round(att.get("x", 0.0) + sx, 2)
+                att["y"] = round(att.get("y", 0.0) + sy, 2)
+        rig_report.append({"part": name, "parent": p,
+                           "pivot": bones[-1]["_pivot"], "pivot_source": pivot_src[name],
                            "isolated": name in isolated})
 
-    skel["bones"] = bones   # slots/skins 不動(仍指向同名 bone)
+    skel["bones"] = bones
     report = {"root": root, "root_auto_chosen": root_layer is None,
               "overlap_degree": degree, "hierarchy": rig_report, "isolated": isolated,
-              "needs_human": ["確認 root 件選擇", "每關節 pivot 微調", "mesh 權重綁定(目前 unweighted)"]}
+              "pivots_overridden": sorted(pivot_overrides), "canvas": [W, H],
+              "needs_human": ["pivot 微調(可用 --rig-config 覆寫)", "mesh 權重綁定(目前 unweighted)"]}
     return skel, manifest, part_meta, report
+
+
+def load_rig_config(path):
+    """rig-config(人為調整):{"root": 件名, "pivots": {件名: [px, py](圖素座標), ...}}。"""
+    if not path or not os.path.exists(path):
+        return None, {}
+    cfg = json.load(open(path))
+    return cfg.get("root"), (cfg.get("pivots") or {})
+
+
+def emit_config_template(report, out_path):
+    """輸出可人為編輯的 rig-config 範本(預填 root + 草案 pivot 的圖素座標)。"""
+    W, H = report["canvas"]
+    pivots = {}
+    for h in report["hierarchy"]:
+        if h["pivot"] is not None:   # world → 圖素(供人依圖調整)
+            pivots[h["part"]] = [round(h["pivot"][0] + W / 2.0, 1), round(H / 2.0 - h["pivot"][1], 1)]
+    tmpl = {"_note": "pivots 為圖素座標[px,py](原點左上);改數值即人為微調 pivot;root 可改件名",
+            "root": report["root"], "pivots": pivots}
+    json.dump(tmpl, open(out_path, "w"), ensure_ascii=False, indent=2)
 
 
 def main():
@@ -137,13 +191,22 @@ def main():
     ap.add_argument("--mesh", nargs="*", default=DEFAULT_MESH)
     ap.add_argument("--prefix", default=None)
     ap.add_argument("--root", default=None, help="指定 root 件(預設自動:重疊度最高)")
+    ap.add_argument("--rig-config", default=None,
+                    help="人為調整設定 JSON(root + pivots 圖素座標);覆蓋 --root")
+    ap.add_argument("--emit-config", default=None, help="輸出可編輯的 rig-config 範本到此路徑")
     a = ap.parse_args()
+    cfg_root, cfg_pivots = load_rig_config(a.rig_config)
+    root = cfg_root or a.root
     parts_dir = a.parts_dir or tempfile.mkdtemp(prefix="rig_parts_")
-    skel, manifest, part_meta, report = build_rig(a.psd, a.mesh, parts_dir, a.prefix, a.root)
+    skel, manifest, part_meta, report = build_rig(a.psd, a.mesh, parts_dir, a.prefix, root,
+                                                  pivot_overrides=cfg_pivots)
     out = a.out or (os.path.splitext(a.psd)[0] + "_rig_draft.json")
     json.dump(skel, open(out, "w"), ensure_ascii=False, indent=1)
+    if a.emit_config:
+        emit_config_template(report, a.emit_config)
+        print(f"寫出可編輯 rig-config 範本 → {a.emit_config}")
 
-    ev = evaluate_skeleton(skel)   # 驗證 rig 草案仍是合法骨架樹
+    ev = evaluate_skeleton(skel)   # 驗證 rig 仍是合法骨架樹
     print(json.dumps({"rig": report, "skeleton_valid": ev["overall_pass"],
                       "skeleton_summary": ev["summary"]}, ensure_ascii=False, indent=2))
     print(f"\n寫出 {out}")

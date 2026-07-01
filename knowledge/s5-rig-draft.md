@@ -37,7 +37,21 @@ PLAN 結論:**骨架 pivot 是唯一真正卡死、需人集中處理處**;別�
 python3 tools/mesh_gen/rig_draft.py assets/robot_parts.psd --prefix 機器人拆件 --root 身體 -o /tmp/rig.json
 ```
 
+## 使用者決策(2026-07-01)+ pivot 可人為調整(已實作)
+
+- **決策 1 root=身體(B 方案)** — 使用者確認(圖示 `knowledge/figures/s5_rig_decision.png`);已固化成
+  `assets/robot_parts.rig.json`。**決策 2**:pivot 先用草案當起點,並要求工具提供人為調整功能。
+- **pivot 升級為「功能性旋轉中心」**(非僅註記):`build_rig` 現把**非 root 件的 bone 原點設在 pivot**,
+  並將 attachment 幾何平移 `(件中心 − bone原點)` → **bone 繞 pivot 旋轉,且 θ=0 版面完全保真**
+  (rig 前後每頂點世界位置差 **0.006px**;pivot == bone 世界原點,經驗證)。
+- **人為調整介面**:
+  - `--emit-config <path>`:輸出可編輯 rig-config 範本(預填 root + 草案 pivot 的**圖素座標**,人依圖改數值即可)。
+  - `--rig-config <path>`:載入 `{"root":件名,"pivots":{件名:[px,py]}}`,覆寫 root 與逐關節 pivot(缺者用草案)。
+  - 產出仍過 `evaluate_skeleton`(合法骨架樹)。
+- 這實現 L2 自主的「客觀自動 + 主觀留人可調」:連接/生成樹/草案 pivot 自動;精確 pivot/root 由人透過 config 定。
+
 ## 下一步
 
-- weighted mesh 綁定(BBW)把 unweighted mesh + rig 骨架接起來(S5 剩餘自動部分)。
-- 人微調 pivot 後,配動畫 timeline → 逼近目標運動(S1 影片反推的下游)。
+- **weighted mesh 綁定(BBW)** 把 unweighted mesh + rig 骨架接起來(S5 剩餘可自動部分);用 `evaluate_skeleton`
+  AC3 驗權重合法。
+- 人微調 pivot(改 `robot_parts.rig.json`)後,配動畫 timeline → 逼近目標運動(S1 影片反推的下游)。
