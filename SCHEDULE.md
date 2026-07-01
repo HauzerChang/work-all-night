@@ -58,15 +58,34 @@
 
 ## 你如何掌握進度
 
-- **看 `log/`**:每天一個檔,摘要當天做了什麼。
+- **看 `log/`**:一次 run 一個檔,內含每個工作塊一個小節。
 - **看 `STATE.md`**:永遠是「目前到哪、下一步」。
-- **看 commit 歷史**:每天一筆。
+- **看 commit 歷史**:每個工作塊一筆(一次 run 6–8 筆)。
 - **被找**:只有三種情況它會停下等你(見 `RULES.md` 升級政策):不可自決岔路、超預算卡關、里程碑審查。
 
-## 調整
+## 單次 run 的工作量(2026-07-01 起)
 
-- **想更快**:把頻率改每 N 小時(較耗額度)。
-- **想暫停**:在 web 停用該 trigger。
+一次 run 推進 **6–8 個有界工作塊**(逐塊 commit,見 `RULES.md`「單次執行的工作量」)。
+即使維持每天 1 次,每天產出也 ≈ 6–8 塊。若要再放大,才需疊加下面的「調整頻率」。
+
+## 調整頻率(目前每天一次 → 改每 N 小時)
+
+排程 = **Routines**,在 [claude.ai/code/routines](https://claude.ai/code/routines) 管理(或 CLI `/schedule`)。
+
+1. 到 [claude.ai/code/routines](https://claude.ai/code/routines),找到這個 routine(如 "Spine 研究每日推進")。
+2. 點該 routine → **鉛筆圖示 (Edit routine)**(CLI 則 `/schedule update`)。
+3. 找 **Trigger** 區塊 → **Schedule**:把「每天一次 (Daily)」改成 **每 N 小時 (Every N hours)**。
+   - **最短間隔 = 1 小時**(平台限制)。
+   - 常用:每 6 小時 = 4 run/天(≈ 24–32 塊/天);每 4 小時 = 6 run/天;每 1 小時 = 24 run/天。
+4. **Save**。可按 **Run now** 立即試跑一次驗證。
+
+> ⚠️ token 成本 ≈ **run 次數 × 每 run 塊數**,大致線性。建議先用「每 run 6–8 塊 + 維持每日」觀察一天的
+> 帳號用量(claude.ai Usage/Billing),再決定要不要提高頻率——避免頻率與塊數同時拉高導致額度暴衝。
+
+## 其他調整
+
+- **想暫停**:在 [claude.ai/code/routines](https://claude.ai/code/routines) 停用該 trigger。
+- **改每 run 塊數**:編輯 `RULES.md`「單次執行的工作量」的「6–8 個」數字 + `prompts/run.md` 對應處。
 - **改方向**:直接編輯 `STATE.md` 的「下一步動作」或 `PLAN.md`,下次排程就會照新方向走。
 
 ## 路線圖(排程會依序推進,見 PLAN.md)

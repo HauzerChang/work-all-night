@@ -12,15 +12,17 @@
    若工具 import 失敗,先手動跑 `pip install -r requirements.txt`。
 1. **讀取脈絡**:完整讀 `RULES.md`、`PLAN.md`、`STATE.md`、`CLAUDE.md`,以及 `knowledge/` 索引與 `log/` 最近 1–2 筆。
 2. **遵守守則**:依 `RULES.md` 的標準流程與遞迴規則行事(AC-first、自我驗證、L2 自主、5 輪預算)。
-3. **定位並推進**:從 `STATE.md` 找出下一步,推進**一個有界工作塊**(一個階段裡的一個明確步驟)。
-4. **自我驗證**:用 `tools/mesh_gen/` 的評估器量化(靜態 `evaluate_mesh`、變形 `deform_eval` 真實位移場轉移、
-   整合 `validate_against_real`)。⚠️ 變形閘**用真實位移場轉移,不要用未校準的 `stress_field`**。
+3. **定位並推進(一次 run 做 6–8 塊)**:從 `STATE.md` 找出下一步,推進**一個有界工作塊**
+   (一個階段裡的一個明確步驟)。做完該塊後**回這步重讀 STATE 再挑下一塊,重複 6–8 塊**。
+   遇 BLOCKED / A 類岔路 / 連續 2 塊無進展 / 接近上下文上限 → 依 `RULES.md`「提前收尾條件」停,不強湊滿。
+4. **自我驗證(每塊都要)**:用 `tools/mesh_gen/` 的評估器量化(靜態 `evaluate_mesh`、變形 `deform_eval` 真實位移場轉移、
+   整合 `validate_against_real` / `validate_award_mesh`)。⚠️ 變形閘**用真實位移場轉移,不要用未校準的 `stress_field`**。
    評估器本身也要可信(對照藝術家真值 / 負對照)。
-5. **記錄**:新發現寫進 `knowledge/`(更新索引);更新 `STATE.md`(進度/下一步/未解);
-   在 `log/YYYY-MM-DD-NNN.md` 新增一筆。
-6. **收尾**:用清楚訊息 commit & **push 回你啟動時所在的那條分支(排程 trigger 直接指向
-   `claude/zealous-noether-y2ecwu`,不再走 PR/merge 流程)**,讓下次排程從同分支接手時能讀到
-   更新後的 `STATE.md`。然後結束。**不要嘗試無限長跑。**
+5. **記錄(每塊都要)**:新發現寫進 `knowledge/`(更新索引);更新 `STATE.md`(進度/下一步/未解);
+   在**該 run 的** `log/YYYY-MM-DD-NNN.md` 補一個「工作塊」小節(一次 run 一個 log 檔、每塊一小節)。
+6. **逐塊收尾**:**每塊做完就** commit & **push 回你啟動時所在的那條分支**(排程 trigger 直接指向
+   開發分支,不再走 PR/merge 流程),讓容器中途回收或下次排程接手時都讀得到最新 `STATE.md`。
+   一次 run 跑完 6–8 塊(或提前收尾)後結束。**不要嘗試無限長跑。**
 
 遇到需人類決策(A 類岔路)、連續無進展、或目標達成,依 `RULES.md` 停止條件標記狀態並停止。
 
