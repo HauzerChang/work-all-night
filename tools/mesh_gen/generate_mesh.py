@@ -121,6 +121,30 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
+# 覆蓋率由邊界取樣密度(epsilon)決定、內部頂點不影響(見 knowledge/s3-award-mesh-endtoend.md)。
+# 柔邊件(如光暈)預設 epsilon 太粗會覆蓋不足 → 由粗到細掃,取第一個達標的最省頂點解。
+EPS_SCHEDULE = [0.008, 0.005, 0.003, 0.002, 0.0015]
+
+
+def generate_auto(path, target_iou=0.97, vertex_budget=120, eps_schedule=None, **kw):
+    """覆蓋率驅動生成:由粗到細掃 epsilon,回傳第一個「IoU≥target 且 nv≤budget」的 mesh;
+    都不達標時回覆蓋率最佳者。回傳 (mesh, meta) meta={iou,epsilon,nv,hit_target}。
+    是 generate() 的自動化包裝,供 validator / skel_to_json 共用(單一真相來源)。"""
+    from evaluate_mesh import evaluate
+    mask, _, _, _ = load_mask(path)
+    m = (mask > 0).astype(np.uint8)
+    best = None
+    for eps in (eps_schedule or EPS_SCHEDULE):
+        mesh, _ = generate(path, epsilon_frac=eps, **kw)
+        nv = len(mesh["uvs"]) // 2
+        iou = evaluate(mesh, m, vertex_budget=max(vertex_budget, nv))["criteria"]["AC1_iou"]["value"]
+        if best is None or iou > best[1]["iou"]:
+            best = (mesh, {"iou": round(iou, 4), "epsilon": eps, "nv": nv, "hit_target": False})
+        if iou >= target_iou and nv <= vertex_budget:
+            return mesh, {"iou": round(iou, 4), "epsilon": eps, "nv": nv, "hit_target": True}
+    return best
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")

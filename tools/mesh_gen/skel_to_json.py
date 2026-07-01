@@ -22,27 +22,10 @@ import numpy as np
 import cv2
 sys.path.insert(0, os.path.dirname(__file__))
 from psd_slice import slice_psd
-from generate_mesh import generate as gen_v1
+from generate_mesh import generate_auto
 from evaluate_mesh import evaluate, load_mask
 
-# 覆蓋率驅動 auto-epsilon(承 knowledge/s3-award-mesh-endtoend.md:柔邊件需更細 epsilon)
-EPS_SCHEDULE = [0.008, 0.005, 0.003, 0.002, 0.0015]
 DEFAULT_MESH = ["光暈", "身體", "左手"]   # Award 機器人拆件的 mesh 分配(其餘為 region)
-
-
-def gen_mesh_for_part(png, target_iou=0.97, vertex_budget=120):
-    """由粗到細掃 epsilon,取第一個覆蓋率≥target 且頂點在預算內的 mesh(否則取覆蓋率最佳)。"""
-    mask = load_mask(png)
-    best = None
-    for eps in EPS_SCHEDULE:
-        mesh, _ = gen_v1(png, epsilon_frac=eps)
-        nv = len(mesh["uvs"]) // 2
-        iou = evaluate(mesh, mask, vertex_budget=vertex_budget)["criteria"]["AC1_iou"]["value"]
-        if best is None or iou > best[1]:
-            best = (mesh, iou, eps, nv)
-        if iou >= target_iou and nv <= vertex_budget:
-            return mesh, iou, eps, nv
-    return best  # 沒達 target:回覆蓋率最佳者
 
 
 def region_attachment(w, h):
@@ -75,10 +58,10 @@ def assemble(psd_path, mesh_layers, out_dir, target_iou=0.97, prefix=None):
 
         if layer in mesh_layers:
             png = os.path.join(out_dir, entry["file"])
-            mesh, iou, eps, nv = gen_mesh_for_part(png, target_iou)
+            mesh, meta = generate_auto(png, target_iou=target_iou)   # 覆蓋率驅動(單一真相來源)
             att = {k: mesh[k] for k in ("type", "uvs", "triangles", "vertices", "hull", "width", "height")}
             attachments[slot_name] = {slot_name: att}
-            part_meta[slot_name] = {"type": "mesh", "iou": round(iou, 4), "epsilon": eps, "nv": nv}
+            part_meta[slot_name] = {"type": "mesh", **meta}
         else:
             attachments[slot_name] = {slot_name: region_attachment(pw, ph)}
             part_meta[slot_name] = {"type": "region"}

@@ -27,10 +27,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import deform_eval as de
 from atlas_crop import extract
 from evaluate_mesh import evaluate, load_mask
-from generate_mesh import generate as gen_v1
-
-# 由粗到細(頂點多)的 epsilon 排程;≤5 輪對應 RULES 每 criterion 迭代預算。
-EPS_SCHEDULE = [0.008, 0.005, 0.003, 0.002, 0.0015]
+from generate_mesh import generate as gen_v1, EPS_SCHEDULE   # 排程單一真相來源(generate_mesh)
 
 ROBOT_MESH_SLOTS = ["機器人拆件/光暈", "機器人拆件/左手", "機器人拆件/身體"]
 
