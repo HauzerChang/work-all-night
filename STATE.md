@@ -25,6 +25,13 @@
   ②`epsilon_frac` 由外形複雜度決定,加入**覆蓋率驅動的 epsilon 細化**(≤4 輪)自動收斂到藝術家基準;
   ③修生成器**凹形件內部孤兒頂點 bug**(`generate_mesh.prune_orphans`,hull 順序不變)。
   見 `knowledge/s3-psd-to-award.md`。
+- **S4 下游組裝:PSD → 完整可載入 Spine 資產(里程碑,2026-07-03)** —
+  `skel_to_json.py`(件→Spine 3.8 JSON,setup pose=PSD 平面佈局)+ `pack_atlas.py`(件→.atlas+PNG sheet)。
+  對 robot_parts 端到端產出 `robot.json`+`robot.atlas`+`robot.png`,多重自驗全過:
+  位置解析式 round-trip **0px** / 結構有效 / mesh 格式閘 / **光柵重建 MAE 0.031(視覺完美還原機器人)**;
+  atlas 用真實-atlas 讀取碼(`atlas_crop.extract`)裁回 **MAE 0**;JSON↔atlas region/size 全一致。
+  ⚠️ 誠實邊界:**未在 Spine runtime 實載**(CDN 擋、無 headless loader);rotation=0 平面 setup(綁定屬 S5)。
+  見 `knowledge/s4-skel-to-json.md`。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -46,17 +53,19 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-07-03,見上)**。
-2. **❗最高優先:切圖→Spine JSON 組裝(SkelToJson)**。把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding
-   + 本次達標的 mesh(`validate_psd_to_mesh` 產出)固化成「件→Spine attachment」寫出工具,端到端產可載入 Spine JSON。
-   純 CPU 可自驅;驗收:寫出的 JSON 通過 `evaluate_mesh` 格式閘 + slot/attachment 命名對得上 Award 慣例。
-3. **weighted 變形穩健度**:需 BBW 權重(依賴骨架 S5)→ 才能對 Award 這類 weighted 件驗變形(目前只驗靜態)。
-4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-07-03)**。
+2. ~~切圖→Spine JSON 組裝(SkelToJson)+ atlas 打包~~ **✅ 已完成(2026-07-03):完整資產閉環**。
+3. **❗最高優先:完整資產 Spine runtime 實載驗**(補 s4-skel-to-json.md 誠實邊界①)。目前組裝只驗到
+   結構/幾何/光柵層級,未在真正 Spine 引擎載入。需**離線 spine-webgl** 或 **headless 瀏覽器**(二者皆待設置;
+   CDN 被網路政策擋)。→ 屬環境/使用者層級決策(A 類:提供離線 runtime 或放行 CDN)。
+4. **S5 骨架/綁定起步**:平面 setup(已完成)→ 加骨階層/pivot/posed rotation。唯一卡死環節,人力集中處。
+5. **weighted mesh + BBW 權重**:mesh 目前 unweighted;對 Award weighted 件驗變形需 BBW(依賴骨架)。
+6. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+7. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 
-> S3×S4 端到端已對真實 Award 驗收通過(靜態覆蓋率)。建議下一步:(2) 寫 SkelToJson 把「件→mesh」
-> 組裝成完整 Spine JSON attachment(有 Award 慣例當真值、純 CPU 可自驅);weighted 變形驗收待 BBW/骨架。
+> PSD→完整 Spine 資產(JSON+atlas+PNG)閉環已通,setup pose 光柵重建視覺完美。**下一個真正的關卡是
+> 「實載驗」與「S5 綁定」**;實載需離線 runtime(使用者/環境層級),綁定 pivot 是計畫早已標記的唯一卡死處。
+> 純 CPU 可自驅的剩餘項:S2 補圖/骨架閘、weighted mesh 的 BBW(但 BBW 要先有骨架)。
 
 ## 環境前置(已驗證可用)
 
@@ -105,6 +114,10 @@
   3 mesh 件→`generate_mesh_v2`→對 Award 真實 mesh,覆蓋率全 ≥ 藝術家、格式全過、overall_pass 全 True。
   發現 Award 件 weighted+無 deform → 變形閘 N/A(需 BBW);epsilon 由外形決定→加覆蓋率驅動細化;
   修生成器凹形孤兒頂點 bug(`prune_orphans`)。main_draw 3 deform mesh + slicing 回歸全過。
+- 2026-07-03:**PSD→完整 Spine 資產閉環(里程碑,一個工作天)** — `skel_to_json.py`(件→Spine 3.8 JSON,
+  setup=PSD 佈局;4 AC 全過:位置 0px/結構/mesh 格式/光柵重建 MAE 0.031 且視覺完美)+ `pack_atlas.py`
+  (件→.atlas+PNG,用真實-atlas 讀取碼裁回 MAE 0)。完整資產 robot.json+atlas+png 一致。
+  修位置 AC 初版誤用 mesh 頂點外接框(→改量影像框,0px)。誠實邊界:未 runtime 實載(CDN 擋)、rotation=0 平面 setup。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

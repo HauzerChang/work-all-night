@@ -37,4 +37,6 @@
 
 - [S3×S4 端到端:PSD→mesh→對照 Award](s3-psd-to-award.md) — PSD 件→生成 mesh→對真實生產 Award mesh(光暈/身體/左手)驗收全 PASS,生成覆蓋率 ≥ 藝術家。發現:①Award 件 weighted+無 deform → 變形閘 N/A(需 BBW,修正「都用 deform 場驗」假設);②epsilon 由外形複雜度決定→覆蓋率驅動細化;③修生成器凹形孤兒頂點 bug(`prune_orphans`)。
 
+- [S4 下游:切件→完整 Spine 資產](s4-skel-to-json.md) — `skel_to_json.py`(件→Spine JSON,setup pose=PSD 佈局,4 AC 全過:位置 0px/結構/mesh 格式/光柵重建 MAE 0.031 且視覺正確)+ `pack_atlas.py`(件→.atlas+PNG,用真實-atlas 讀取碼裁回 MAE 0)。完整資產 JSON+atlas+PNG 一致。誠實邊界:未在 Spine runtime 實載(CDN 擋);rotation=0 平面 setup(綁定屬 S5)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
