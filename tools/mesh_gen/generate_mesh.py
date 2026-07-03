@@ -95,6 +95,21 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def prune_orphans(pts, tris, n_hull):
+    """移除未被任何三角形使用的頂點並重新索引(凹形件過濾三角後常留內部孤兒)。
+    只會孤兒到內部點(index >= n_hull);hull 點被 segments 約束必連 → hull 順序與數量不變。"""
+    tris = np.asarray(tris, np.int32).reshape(-1, 3)
+    used = np.unique(tris)
+    if len(used) == len(pts):
+        return pts, tris, n_hull
+    keep = sorted(int(i) for i in used)
+    remap = {old: new for new, old in enumerate(keep)}
+    new_pts = pts[keep]
+    new_tris = np.vectorize(remap.__getitem__)(tris).astype(np.int32)
+    new_hull = sum(1 for i in keep if i < n_hull)  # hull 全保留時 == n_hull
+    return new_pts, new_tris, new_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -118,6 +133,7 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = prune_orphans(pts, tris, n_hull)
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
