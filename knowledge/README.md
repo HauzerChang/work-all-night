@@ -43,4 +43,6 @@
 
 - [S4 下游:切件→完整 Spine 資產](s4-skel-to-json.md) — `skel_to_json.py`(件→Spine JSON,setup pose=PSD 佈局,4 AC 全過:位置 0px/結構/mesh 格式/光柵重建 MAE 0.031 且視覺正確)+ `pack_atlas.py`(件→.atlas+PNG,用真實-atlas 讀取碼裁回 MAE 0)。完整資產 JSON+atlas+PNG 一致。誠實邊界:未在 Spine runtime 實載(CDN 擋);rotation=0 平面 setup(綁定屬 S5)。
 
+- [S5 骨架草案產生器](s5-skeleton-draft.md) — 件重疊分析 → 骨階層+pivot 草案(effect/trunk/limb 分類、**trunk 優先**防 z 交叉假邊、關節=重疊區質心)。對 Award 藝術家骨架:**拓樸全中、pivot 全在 6.9% 對角線內**(頭 4.3px)。skel_to_json --draft 組階層化 skeleton 佈局不變。光暈場景錨=A 類留人。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

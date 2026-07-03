@@ -38,28 +38,68 @@ def _piece_center_world(entry, W, H):
     return round(cx - W / 2.0, 2), round(H / 2.0 - cy, 2)
 
 
-def build_skeleton(manifest, meshes, namespace, tmp_pieces_dir=None):
-    """meshes: {layer_name: mesh_dict}(mesh 件);未列入者 → region。"""
+def build_skeleton(manifest, meshes, namespace, draft=None):
+    """meshes: {layer_name: mesh_dict}(mesh 件);未列入者 → region。
+    draft(skeleton_draft.py 產出)給定時:bone 依 tree 階層、放在 pivots_px;
+    attachment 以 local offset 補償,**世界佈局仍 == PSD**(bone rotation 全 0,
+    世界位置 = 沿父鏈累加平移)。未給 draft → 平面模式(全部掛 root、bone 在件中心)。"""
     W, H = manifest["size"]
+
+    def px_to_world(p):
+        return round(p[0] - W / 2.0, 2), round(H / 2.0 - p[1], 2)
+
+    entries = {e["name"]: e for e in manifest["parts"]}
+    bone_world = {}                     # piece -> bone 世界位置
+    parent_of = {}                      # piece -> parent piece(None = root)
+    if draft:
+        tree = draft["tree"]
+        for name in entries:
+            bone_world[name] = px_to_world(draft["pivots_px"][name])
+            parent_of[name] = tree.get(name)   # effect / trunk → None(掛 root)
+        # bone 定義序:parent 先於 child(root 層先、再依樹深)
+        order, seen = [], set()
+        def add(n):
+            if n in seen:
+                return
+            if parent_of[n] is not None:
+                add(parent_of[n])
+            order.append(n); seen.add(n)
+        for n in entries:
+            add(n)
+    else:
+        for name, e in entries.items():
+            bone_world[name] = _piece_center_world(e, W, H)
+            parent_of[name] = None
+        order = list(entries)
+
     bones = [{"name": "root"}]
+    for name in order:
+        p = parent_of[name]
+        pw = bone_world[p] if p else (0.0, 0.0)
+        bones.append({"name": f"b_{name}", "parent": f"b_{p}" if p else "root",
+                      "x": round(bone_world[name][0] - pw[0], 2),
+                      "y": round(bone_world[name][1] - pw[1], 2)})
+
     slots, atts = [], {}
-    for entry in manifest["parts"]:
+    for entry in manifest["parts"]:       # slot 序 = PSD z 序(繪製順序)
         name = entry["name"]
         w, h = entry["size"]
-        bx, by = _piece_center_world(entry, W, H)
-        bone_name = f"b_{name}"
+        cx, cy = _piece_center_world(entry, W, H)
+        bx, by = bone_world[name]
+        ox, oy = round(cx - bx, 3), round(cy - by, 3)   # 件中心相對 bone 的補償
         slot_name = f"{namespace}/{name}"
-        bones.append({"name": bone_name, "parent": "root", "x": bx, "y": by})
-        slots.append({"name": slot_name, "bone": bone_name, "attachment": slot_name})
+        slots.append({"name": slot_name, "bone": f"b_{name}", "attachment": slot_name})
         if name in meshes:
             m = meshes[name]
+            v = m["vertices"]
+            verts = [round(v[i] + (ox if i % 2 == 0 else oy), 3) for i in range(len(v))]
             atts[slot_name] = {slot_name: {
                 "type": "mesh", "uvs": m["uvs"], "triangles": m["triangles"],
-                "vertices": m["vertices"], "hull": m["hull"],
+                "vertices": verts, "hull": m["hull"],
                 "width": int(m["width"]), "height": int(m["height"])}}
-        else:  # region:置中於自身 bone,還原平面佈局 rotation=0
+        else:  # region:中心在 bone + (ox,oy),還原平面佈局 rotation=0
             atts[slot_name] = {slot_name: {
-                "x": 0, "y": 0, "rotation": 0, "width": int(w), "height": int(h)}}
+                "x": ox, "y": oy, "rotation": 0, "width": int(w), "height": int(h)}}
     return {
         "skeleton": {"spine": SPINE_VER, "width": W, "height": H, "images": "./images/"},
         "bones": bones, "slots": slots,
@@ -68,7 +108,7 @@ def build_skeleton(manifest, meshes, namespace, tmp_pieces_dir=None):
     }
 
 
-def assemble(psd_path, spec, namespace, tmp_dir):
+def assemble(psd_path, spec, namespace, tmp_dir, draft=None):
     """spec: {layer_name: 'mesh'|'region'}(未列 → region)。回傳 (skeleton, manifest)。"""
     _, manifest, sliced = slice_psd(psd_path, tmp_dir)
     meshes = {}
@@ -76,22 +116,35 @@ def assemble(psd_path, spec, namespace, tmp_dir):
         if spec.get(entry["name"]) == "mesh":
             png = os.path.join(tmp_dir, entry["file"])
             meshes[entry["name"]] = gen_v2(png, mode="auto")
-    return build_skeleton(manifest, meshes, namespace), manifest
+    return build_skeleton(manifest, meshes, namespace, draft=draft), manifest
 
 
 # ---------- 驗收:位置 round-trip(解析式,無 renderer) ----------
 
 def _bones_xy(skeleton):
-    return {b["name"]: (b.get("x", 0.0), b.get("y", 0.0)) for b in skeleton["bones"]}
+    """bone 世界位置(沿父鏈累加;本工具產出 rotation 全 0,平移可直接相加)。"""
+    out = {}
+    for b in skeleton["bones"]:          # 定義序保證 parent 先出現
+        px, py = out.get(b.get("parent"), (0.0, 0.0))
+        out[b["name"]] = (px + b.get("x", 0.0), py + b.get("y", 0.0))
+    return out
 
 
 def _attachment_world_bbox(att, bx, by):
     """回傳 attachment **影像框**(image frame)的 world (minX,minY,maxX,maxY)。
-    量的是「這件的來源影像被放回哪」— mesh 與 region 皆以 width/height 為影像框、置中於 bone
-    (mesh 頂點以影像中心置中、region x/y=0),故兩者一致:框 = 中心 ± (w/2,h/2)。
+    量的是「這件的來源影像被放回哪」— mesh 與 region 皆以 width/height 為影像框。
+    region:中心 = bone + (att.x,att.y)。mesh:中心偏移藏在頂點裡 —— 每頂點應滿足
+    v = 影像置中座標((u-0.5)W,(0.5-v)H) + offset,取平均反推 offset(剛性平移下全等)。
     ⚠️ 不用 mesh 頂點外接框:那是 alpha 輪廓形狀,本就 ≤ 矩形框,非組裝誤差。bone rotation 假設 0。"""
     w, h = att["width"], att["height"]
-    cx, cy = bx + att.get("x", 0), by + att.get("y", 0)
+    if att.get("type") == "mesh":
+        v = np.asarray(att["vertices"], float)
+        uv = np.asarray(att["uvs"], float)
+        ox = float(np.mean(v[0::2] - (uv[0::2] - 0.5) * w))
+        oy = float(np.mean(v[1::2] - (0.5 - uv[1::2]) * h))
+        cx, cy = bx + ox, by + oy
+    else:
+        cx, cy = bx + att.get("x", 0), by + att.get("y", 0)
     r = math.radians(att.get("rotation", 0))
     xs, ys = [], []
     for lx, ly in [(-w/2, -h/2), (w/2, -h/2), (w/2, h/2), (-w/2, h/2)]:
@@ -124,8 +177,8 @@ def evaluate(skeleton, manifest, pos_tol=1.5, size_tol=2.0,
         # 中心誤差
         rec_c = (rec_off[0] + rec_size[0]/2, rec_off[1] + rec_size[1]/2)
         exp_c = (exp_off[0] + exp_size[0]/2, exp_off[1] + exp_size[1]/2)
-        cerr = math.hypot(rec_c[0]-exp_c[0], rec_c[1]-exp_c[1])
-        serr = max(abs(rec_size[0]-exp_size[0]), abs(rec_size[1]-exp_size[1]))
+        cerr = float(math.hypot(rec_c[0]-exp_c[0], rec_c[1]-exp_c[1]))
+        serr = float(max(abs(rec_size[0]-exp_size[0]), abs(rec_size[1]-exp_size[1])))
         worst_center = max(worst_center, cerr); worst_size = max(worst_size, serr)
         pos_rows.append({"slot": slot, "type": att.get("type", "region"),
                          "center_err_px": round(cerr, 3), "size_err_px": round(serr, 3)})
@@ -215,9 +268,11 @@ def main():
     ap.add_argument("--tmp", default="/tmp/robot_parts")
     ap.add_argument("--eval", action="store_true")
     ap.add_argument("--render", default=None, help="輸出 setup-pose 重建 PNG 路徑(啟用光柵重建 AC)")
+    ap.add_argument("--draft", default=None, help="skeleton_draft.py 產出的階層/pivot 草案 JSON")
     a = ap.parse_args()
     spec = {p: "mesh" for p in a.mesh_parts}
-    skeleton, manifest = assemble(a.psd, spec, a.namespace, a.tmp)
+    draft = json.load(open(a.draft)) if a.draft else None
+    skeleton, manifest = assemble(a.psd, spec, a.namespace, a.tmp, draft=draft)
     if a.out:
         json.dump(skeleton, open(a.out, "w"), ensure_ascii=False)
     if a.eval:

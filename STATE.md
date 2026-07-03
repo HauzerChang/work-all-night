@@ -35,7 +35,12 @@
   atlas 用真實-atlas 讀取碼(`atlas_crop.extract`)裁回 **MAE 0**;JSON↔atlas region/size 全一致。
   ⚠️ 誠實邊界:**未在 Spine runtime 實載**(CDN 擋、無 headless loader);rotation=0 平面 setup(綁定屬 S5)。
   見 `knowledge/s4-skel-to-json.md`。
-- S1 / S5 尚未開始。
+- **S5 骨架草案:起步即對真值收斂(里程碑,2026-07-03)** — `skeleton_draft.py`(件重疊分析 →
+  effect/trunk/limb 角色 + trunk 優先階層 + 關節=重疊質心 pivot)+ `skel_to_json --draft`(階層化
+  組裝,佈局不變 0.001px/光柵 0.031)+ `validate_draft_vs_award.py`(對 Award 藝術家骨架:
+  **拓樸完全一致、可比 pivot 全在 6.9% 件對角線內**,頭 4.3px)。骨架閘全過。
+  A 類留人:effect 件(光暈)場景錨、pivot 手感微調。見 `knowledge/s5-skeleton-draft.md`。
+- S1 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
 
@@ -57,18 +62,21 @@
 
 下一個 bounded chunk 候選:
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-07-03)**。
-2. ~~切圖→Spine JSON 組裝(SkelToJson)+ atlas 打包~~ **✅ 已完成(2026-07-03):完整資產閉環**。
+2. ~~切圖→Spine JSON 組裝 + atlas 打包~~ **✅ 已完成(2026-07-03):完整資產閉環**。
 3. ~~S2 補圖閘 / 骨架閘~~ **✅ 已完成(2026-07-03):S2 四閘齊備**。
-4. **❗最高優先(純 CPU 可自驅):S5 骨架/綁定起步**。平面 setup(已完成)→ 產骨階層草案
-   (件鄰接/重疊分析 → 父子關係 + pivot 建議),用剛完成的骨架閘自驗;Award 真實骨架當風格參考。
-   pivot 精調仍留人審(計畫標記的卡死環節),但草案生成+過閘可先自主。
-5. **完整資產 Spine runtime 實載驗**:需**離線 spine-webgl** 或 headless 瀏覽器(CDN 被網路政策擋)
+4. ~~S5 骨架草案起步~~ **✅ 已完成(2026-07-03):拓樸全中、pivot ≤6.9% 對角線**。
+5. **❗最高優先(純 CPU 可自驅):weighted mesh + BBW 權重**。骨架草案已有 → 對草案骨架算
+   Bounded Biharmonic Weights(或 heat/inverse-distance 起步),把 unweighted mesh 升級 weighted,
+   使件能隨骨動 → 用 deform 幾何閘(自交/翻面)+ 對 Award weighted 真值(78/80/98v 權重分佈)驗。
+   這是 S3 最後一塊,也是「能動起來」的前置。
+6. **完整資產 Spine runtime 實載驗**:需**離線 spine-webgl** 或 headless 瀏覽器(CDN 被網路政策擋)
    → 屬環境/使用者層級決策(A 類:提供離線 runtime 或放行 CDN)。
-6. **weighted mesh + BBW 權重**:對 Award weighted 件驗變形需 BBW;S5 有骨架草案後即可接。
 7. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+8. **多資產推廣**:skeleton_draft 啟發式僅在 robot 一個 GT 校準;Symbol_Ww(18 層)可當第二測試
+   (無骨架 GT,但可過閘 + 人審)。
 
-> S2 四閘齊備後,S5 骨架草案第一次具備「可自主收斂」的前提(結構+pivot sanity 有閘可驗)。
-> 建議下一步走 4(S5 起步),或由使用者解鎖 5(離線 runtime)/ 7(benchmark 影片)。
+> S5 草案 + S2 四閘後,pipeline 只剩「權重(BBW)」就能從靜態資產走到「可動資產」。
+> 建議下一步走 5(BBW);6/7 待使用者解鎖。
 
 ## 環境前置(已驗證可用)
 
@@ -117,6 +125,10 @@
   3 mesh 件→`generate_mesh_v2`→對 Award 真實 mesh,覆蓋率全 ≥ 藝術家、格式全過、overall_pass 全 True。
   發現 Award 件 weighted+無 deform → 變形閘 N/A(需 BBW);epsilon 由外形決定→加覆蓋率驅動細化;
   修生成器凹形孤兒頂點 bug(`prune_orphans`)。main_draw 3 deform mesh + slicing 回歸全過。
+- 2026-07-03:**S5 骨架草案起步即收斂(里程碑)** — skeleton_draft(重疊分析→角色/階層/pivot)
+  對 Award 藝術家真值:拓樸完全一致、pivot 頭 4.3px(0.027)/全件 ≤0.069 對角線。兩個失敗驅動的
+  設計:trunk 優先規則(防 z 交叉假邊:劍從臉前過→頭誤掛手)、無序 pair key 要 sorted(左手被誤判孤島)。
+  skel_to_json 支援 --draft(階層化、佈局不變);修 eval 對 offset mesh 的影像框推定。全回歸 11 項 PASS。
 - 2026-07-03:**S2 四閘齊備(里程碑)** — 補圖閘:真實遮擋自監督 benchmark(robot_parts 圖層互遮+
   美術畫全層當真值)校準;兩次 miscalibration 當場被正對照抓出(AC3 下限誤殺平滑內容→僅上限;
   遠參考帶 seam 不穩→局部化,意外解鎖 GT-free 抓平色填充);Laplacian 分噪聲/細節(Sobel 分不開)。
