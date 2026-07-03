@@ -4,7 +4,7 @@
 
 ## 專案狀態
 
-`ACTIVE`(**里程碑審查中(C 類)**:使用者進行人為測試與階段驗收,見 `ACCEPTANCE.md`)  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
+`ACTIVE`(**排程開放全面研究**,2026-07-03 使用者拍板;頻率每 6 小時;能力二次驗證時使用者再調整)  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
 ## 目前階段
 
@@ -65,7 +65,21 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
-## ❗排程最優先研究軌:PSD 切圖能力(使用者拍板,2026-07-03 交叉比對後)
+## 排程研究軌(2026-07-03 使用者拍板:開放全面研究,每 6 小時一次)
+
+**下一個 bounded chunk 優先序**(排程 session 從 1 開始挑):
+1. **❗dj_cat 全 pipeline 端到端**:用 AI 切圖定版(27 件,acceptance/dj_cat_ai_final.psd)跑
+   切件→mesh→骨架草案→組裝→權重→pose 動圖。第二資產、更豐富 rig(臉部件/雙節手臂/道具),
+   直接檢驗 skeleton_draft/權重啟發式的泛化;所有閘現成。產出「DJ 貓動起來」動圖。
+2. **Symbol_Ww 多資產推廣**(18 層第三資產,無骨架 GT,以四閘+pose 渲染驗)。
+3. **S1 反推分析器起步**:用 pose 渲染器自造合成「目標影片」→ 影片幀↔pose 參數反推 bootstrap。
+4. **W1 評分器冗餘維度非對稱懲罰**(不足重罰、超過輕罰)+ 重驗 v12/v13。
+5. **補全品質升級**:被蓋處 cv2 塗抹 → patch-based/對稱先驗(有真值基線:頭 42%/軀幹 77.5%)。
+- ⛔ 待使用者:Spine runtime 實載(離線 spine-webgl / CDN 放行)、隱藏件方向(契約補件 vs 生成式)。
+
+---
+
+## 已完成:PSD 切圖能力研究軌(W1~W5,存檔)
 
 美術版真值已到(`assets/dj_cat_artist.psd` 40 層)。AI v4(13 層)交叉比對量化差距:
 粒度 3.1×、重疊冗餘 1.408 vs 1.179(美術被蓋處畫全,身體 hidden 96.5%)、
@@ -105,7 +119,7 @@
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
-- ❓ 排程頻率未定(使用者尚未決定)。
+- ✅ 排程:開放全面研究、每 6 小時(2026-07-03 拍板)。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
 - ℹ️ spine_inspector 實機 round-trip 需瀏覽器自動化(headless),尚未設置。
