@@ -40,6 +40,11 @@
   組裝,佈局不變 0.001px/光柵 0.031)+ `validate_draft_vs_award.py`(對 Award 藝術家骨架:
   **拓樸完全一致、可比 pivot 全在 6.9% 件對角線內**,頭 4.3px)。骨架閘全過。
   A 類留人:effect 件(光暈)場景錨、pivot 手感微調。見 `knowledge/s5-skeleton-draft.md`。
+- **權重 + 可動資產(里程碑,2026-07-03)** — `weights.py` envelope 綁定(own+parent,
+  wmax=0.85 錨自藝術家)+ `skel_to_json --weights` + `validate_weights.py`:格式(和=1)/
+  ±40° 變形掃描全乾淨/**錨定 AC**(位移比 0.395 vs 剛性負對照 1.0)。pose 渲染器完成,
+  **整隻機器人可動**(`knowledge/figures/robot_pose_strip.png`)→ pipeline 從靜態到可動。
+  範疇外:子件級變形骨(需運動資訊,S1)、光暈跨件綁定(A 類)。見 `knowledge/s5-weights.md`。
 - S1 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -61,22 +66,20 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-07-03)**。
-2. ~~切圖→Spine JSON 組裝 + atlas 打包~~ **✅ 已完成(2026-07-03):完整資產閉環**。
-3. ~~S2 補圖閘 / 骨架閘~~ **✅ 已完成(2026-07-03):S2 四閘齊備**。
-4. ~~S5 骨架草案起步~~ **✅ 已完成(2026-07-03):拓樸全中、pivot ≤6.9% 對角線**。
-5. **❗最高優先(純 CPU 可自驅):weighted mesh + BBW 權重**。骨架草案已有 → 對草案骨架算
-   Bounded Biharmonic Weights(或 heat/inverse-distance 起步),把 unweighted mesh 升級 weighted,
-   使件能隨骨動 → 用 deform 幾何閘(自交/翻面)+ 對 Award weighted 真值(78/80/98v 權重分佈)驗。
-   這是 S3 最後一塊,也是「能動起來」的前置。
-6. **完整資產 Spine runtime 實載驗**:需**離線 spine-webgl** 或 headless 瀏覽器(CDN 被網路政策擋)
-   → 屬環境/使用者層級決策(A 類:提供離線 runtime 或放行 CDN)。
-7. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-8. **多資產推廣**:skeleton_draft 啟發式僅在 robot 一個 GT 校準;Symbol_Ww(18 層)可當第二測試
-   (無骨架 GT,但可過閘 + 人審)。
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ ✅、~~組裝+atlas~~ ✅、~~S2 四閘~~ ✅、
+   ~~S5 骨架草案~~ ✅、~~權重+可動資產~~ **✅(全部 2026-07-03)**。
+2. **❗最高優先(純 CPU 可自驅):多資產推廣**。整條 pipeline(切件→mesh→骨架→權重→可動)
+   只在 robot_parts 一個資產上驗過;用 `Symbol_Ww.psd`(18 層,不同拓樸型態)全流程重跑,
+   看啟發式(effect/trunk 分類、trunk 優先、關節質心)在第二資產上撐不撐得住(無骨架 GT,
+   以四閘 + pose 渲染人審驗)。這直接檢驗「通用性」,是里程碑審查前最有價值的一步。
+3. **S1 反推分析器起步**:pose 渲染器已有(影片幀 ↔ 渲染幀可比對)→ 但需 benchmark 影片
+   (repo 無影片資產;使用者提供,或先用 pose 渲染器自造合成「目標影片」bootstrap)。
+4. **完整資產 Spine runtime 實載驗**:需離線 spine-webgl 或 headless 瀏覽器(A 類,使用者解鎖)。
+5. **子件級變形骨**(肩部輔助/前臂鏈):需運動資訊(依賴 3)或人指定。
 
-> S5 草案 + S2 四閘後,pipeline 只剩「權重(BBW)」就能從靜態資產走到「可動資產」。
-> 建議下一步走 5(BBW);6/7 待使用者解鎖。
+> **第 2 階段的四能力(切圖/補圖/mesh/骨架)至此全部有工具+有閘**,且已串成
+> 「PSD→可動 Spine 資產」端到端。建議:先做 2(通用性),然後觸發**里程碑審查(C 類)**
+> 給使用者看全貌;S1(3)可用合成影片 bootstrap 不必等外部資產。
 
 ## 環境前置(已驗證可用)
 
@@ -125,6 +128,11 @@
   3 mesh 件→`generate_mesh_v2`→對 Award 真實 mesh,覆蓋率全 ≥ 藝術家、格式全過、overall_pass 全 True。
   發現 Award 件 weighted+無 deform → 變形閘 N/A(需 BBW);epsilon 由外形決定→加覆蓋率驅動細化;
   修生成器凹形孤兒頂點 bug(`prune_orphans`)。main_draw 3 deform mesh + slicing 回歸全過。
+- 2026-07-03:**權重+可動資產(里程碑)** — envelope 綁定(wmax 錨自藝術家 0.84)+LBS;
+  左手 weighted:±40° 掃描 0 自交/翻面、錨定位移比 0.395(剛性負對照=1)。pose 渲染器
+  (逐三角 affine warp,旋轉沿骨階層傳遞)→ 整隻機器人三 pose 動圖,肩部不脫離。
+  真值發現:藝術家用子件級變形骨(肩 4_LEG7/8、前臂 4_LEG9)+光暈綁 4 部位骨 — 前者需
+  運動資訊(S1),後者 A 類。修 eval/evaluate_mesh 對 weighted 格式的處理。回歸 12 項 PASS。
 - 2026-07-03:**S5 骨架草案起步即收斂(里程碑)** — skeleton_draft(重疊分析→角色/階層/pivot)
   對 Award 藝術家真值:拓樸完全一致、pivot 頭 4.3px(0.027)/全件 ≤0.069 對角線。兩個失敗驅動的
   設計:trunk 優先規則(防 z 交叉假邊:劍從臉前過→頭誤掛手)、無序 pair key 要 sorted(左手被誤判孤島)。

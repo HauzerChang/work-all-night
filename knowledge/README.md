@@ -45,4 +45,6 @@
 
 - [S5 骨架草案產生器](s5-skeleton-draft.md) — 件重疊分析 → 骨階層+pivot 草案(effect/trunk/limb 分類、**trunk 優先**防 z 交叉假邊、關節=重疊區質心)。對 Award 藝術家骨架:**拓樸全中、pivot 全在 6.9% 對角線內**(頭 4.3px)。skel_to_json --draft 組階層化 skeleton 佈局不變。光暈場景錨=A 類留人。
 
+- [權重 + 可動資產](s5-weights.md) — envelope 綁定(own+parent 關節 smoothstep,wmax=0.85 錨自藝術家)+ LBS。±40° 掃描 0 自交/0 翻面;**錨定 AC** 位移比 0.395(剛性負對照=1.0)。pose 渲染證實整隻可動(figures/robot_pose_strip.png)→ 渲染器=未來影片逼近迴圈雛形。子件變形骨(需運動資訊)與光暈跨件綁定列範疇外。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

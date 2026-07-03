@@ -38,11 +38,12 @@ def _piece_center_world(entry, W, H):
     return round(cx - W / 2.0, 2), round(H / 2.0 - cy, 2)
 
 
-def build_skeleton(manifest, meshes, namespace, draft=None):
+def build_skeleton(manifest, meshes, namespace, draft=None, weighted=False):
     """meshes: {layer_name: mesh_dict}(mesh 件);未列入者 → region。
     draft(skeleton_draft.py 產出)給定時:bone 依 tree 階層、放在 pivots_px;
     attachment 以 local offset 補償,**世界佈局仍 == PSD**(bone rotation 全 0,
-    世界位置 = 沿父鏈累加平移)。未給 draft → 平面模式(全部掛 root、bone 在件中心)。"""
+    世界位置 = 沿父鏈累加平移)。未給 draft → 平面模式(全部掛 root、bone 在件中心)。
+    weighted=True(需 draft):有 parent 的 mesh 件升級 weighted(envelope 綁定,見 weights.py)。"""
     W, H = manifest["size"]
 
     def px_to_world(p):
@@ -80,6 +81,10 @@ def build_skeleton(manifest, meshes, namespace, draft=None):
                       "x": round(bone_world[name][0] - pw[0], 2),
                       "y": round(bone_world[name][1] - pw[1], 2)})
 
+    bone_index = {"root": 0}
+    for i, name in enumerate(order):
+        bone_index[f"b_{name}"] = i + 1
+
     slots, atts = [], {}
     for entry in manifest["parts"]:       # slot 序 = PSD z 序(繪製順序)
         name = entry["name"]
@@ -93,6 +98,15 @@ def build_skeleton(manifest, meshes, namespace, draft=None):
             m = meshes[name]
             v = m["vertices"]
             verts = [round(v[i] + (ox if i % 2 == 0 else oy), 3) for i in range(len(v))]
+            parent = parent_of.get(name)
+            if weighted and draft and parent:
+                from weights import weight_mesh, joint_radius
+                jx, jy = px_to_world(draft["pivots_px"][name])
+                diag = math.hypot(w, h)
+                R = joint_radius(draft.get("evidence", {}).get(name, {}), diag)
+                verts = weight_mesh(verts, bone_world[name], bone_world[parent],
+                                    (jx, jy), R,
+                                    bone_index[f"b_{name}"], bone_index[f"b_{parent}"])
             atts[slot_name] = {slot_name: {
                 "type": "mesh", "uvs": m["uvs"], "triangles": m["triangles"],
                 "vertices": verts, "hull": m["hull"],
@@ -108,7 +122,7 @@ def build_skeleton(manifest, meshes, namespace, draft=None):
     }
 
 
-def assemble(psd_path, spec, namespace, tmp_dir, draft=None):
+def assemble(psd_path, spec, namespace, tmp_dir, draft=None, weighted=False):
     """spec: {layer_name: 'mesh'|'region'}(未列 → region)。回傳 (skeleton, manifest)。"""
     _, manifest, sliced = slice_psd(psd_path, tmp_dir)
     meshes = {}
@@ -116,7 +130,7 @@ def assemble(psd_path, spec, namespace, tmp_dir, draft=None):
         if spec.get(entry["name"]) == "mesh":
             png = os.path.join(tmp_dir, entry["file"])
             meshes[entry["name"]] = gen_v2(png, mode="auto")
-    return build_skeleton(manifest, meshes, namespace, draft=draft), manifest
+    return build_skeleton(manifest, meshes, namespace, draft=draft, weighted=weighted), manifest
 
 
 # ---------- 驗收:位置 round-trip(解析式,無 renderer) ----------
@@ -130,7 +144,7 @@ def _bones_xy(skeleton):
     return out
 
 
-def _attachment_world_bbox(att, bx, by):
+def _attachment_world_bbox(att, bx, by, bones_by_idx=None):
     """回傳 attachment **影像框**(image frame)的 world (minX,minY,maxX,maxY)。
     量的是「這件的來源影像被放回哪」— mesh 與 region 皆以 width/height 為影像框。
     region:中心 = bone + (att.x,att.y)。mesh:中心偏移藏在頂點裡 —— 每頂點應滿足
@@ -138,11 +152,18 @@ def _attachment_world_bbox(att, bx, by):
     ⚠️ 不用 mesh 頂點外接框:那是 alpha 輪廓形狀,本就 ≤ 矩形框,非組裝誤差。bone rotation 假設 0。"""
     w, h = att["width"], att["height"]
     if att.get("type") == "mesh":
-        v = np.asarray(att["vertices"], float)
         uv = np.asarray(att["uvs"], float)
-        ox = float(np.mean(v[0::2] - (uv[0::2] - 0.5) * w))
-        oy = float(np.mean(v[1::2] - (0.5 - uv[1::2]) * h))
-        cx, cy = bx + ox, by + oy
+        if len(att["vertices"]) == len(att["uvs"]):        # unweighted:offset 藏在頂點
+            v = np.asarray(att["vertices"], float)
+            ox = float(np.mean(v[0::2] - (uv[0::2] - 0.5) * w))
+            oy = float(np.mean(v[1::2] - (0.5 - uv[1::2]) * h))
+            cx, cy = bx + ox, by + oy
+        else:                                               # weighted:LBS 世界頂點反推框
+            from weights import parse_weighted, lbs_world
+            world = lbs_world(parse_weighted(att["vertices"]),
+                              {i: p for i, p in enumerate(bones_by_idx)})
+            cx = float(np.mean(world[:, 0] - (uv[0::2] - 0.5) * w))
+            cy = float(np.mean(world[:, 1] - (0.5 - uv[1::2]) * h))
     else:
         cx, cy = bx + att.get("x", 0), by + att.get("y", 0)
     r = math.radians(att.get("rotation", 0))
@@ -159,6 +180,7 @@ def evaluate(skeleton, manifest, pos_tol=1.5, size_tol=2.0,
     W, H = manifest["size"]
     by_slot_bone = {s["name"]: s["bone"] for s in skeleton["slots"]}
     bones = _bones_xy(skeleton)
+    bones_by_idx = [bones[b["name"]] for b in skeleton["bones"]]
     atts = skeleton["skins"][0]["attachments"]
     ns = skeleton["slots"][0]["name"].rsplit("/", 1)[0] if skeleton["slots"] else ""
 
@@ -168,7 +190,7 @@ def evaluate(skeleton, manifest, pos_tol=1.5, size_tol=2.0,
         slot = f"{ns}/{entry['name']}"
         att = atts[slot][slot]
         bx, by = bones[by_slot_bone[slot]]
-        minx, miny, maxx, maxy = _attachment_world_bbox(att, bx, by)
+        minx, miny, maxx, maxy = _attachment_world_bbox(att, bx, by, bones_by_idx)
         # world → PSD px
         px_l, px_r = minx + W/2, maxx + W/2
         py_t, py_b = H/2 - maxy, H/2 - miny   # y 上翻
@@ -184,13 +206,29 @@ def evaluate(skeleton, manifest, pos_tol=1.5, size_tol=2.0,
                          "center_err_px": round(cerr, 3), "size_err_px": round(serr, 3)})
         if att.get("type") == "mesh":
             mesh_checked += 1
-            m = {"vertices": att["vertices"], "uvs": att["uvs"], "triangles": att["triangles"],
+            wgt = len(att["vertices"]) != len(att["uvs"])
+            if wgt:
+                # weighted:拓樸檢查(孤兒/退化)用 uv 重建座標;另查權重和=1
+                from weights import parse_weighted
+                uv = np.asarray(att["uvs"], float)
+                flat = []
+                for u, vv in zip(uv[0::2], uv[1::2]):
+                    flat += [(u - 0.5) * att["width"], (0.5 - vv) * att["height"]]
+                sums = [sum(w for _, _, _, w in infl) for infl in parse_weighted(att["vertices"])]
+                w_ok = all(abs(s - 1.0) < 1e-3 for s in sums)
+            else:
+                flat = att["vertices"]
+                w_ok = True
+            m = {"vertices": flat, "uvs": att["uvs"], "triangles": att["triangles"],
                  "hull": att["hull"], "width": att["width"], "height": att["height"]}
             mask = np.zeros((att["height"], att["width"]), np.uint8)  # 只查格式,不需真 mask
             r = eval_mesh(m, mask, vertex_budget=256)["criteria"]
-            ok = r["AC4_format"]["pass"] and r["AC2c_orphans"]["pass"] and r["AC2b_degenerate"]["pass"]
+            ok = (r["AC4_format"]["pass"] and r["AC2c_orphans"]["pass"]
+                  and r["AC2b_degenerate"]["pass"] and w_ok)
             mesh_fmt_pass = mesh_fmt_pass and ok
             pos_rows[-1]["mesh_fmt_ok"] = ok
+            if wgt:
+                pos_rows[-1]["weighted"] = True
 
     # 結構有效
     bone_names = {b["name"] for b in skeleton["bones"]}
@@ -239,6 +277,7 @@ def render_setup(skeleton, manifest, pieces_dir, out_png=None):
     W, H = manifest["size"]
     by_slot_bone = {s["name"]: s["bone"] for s in skeleton["slots"]}
     bones = _bones_xy(skeleton)
+    bones_by_idx = [bones[b["name"]] for b in skeleton["bones"]]
     atts = skeleton["skins"][0]["attachments"]
     ns = skeleton["slots"][0]["name"].rsplit("/", 1)[0] if skeleton["slots"] else ""
     fmap = {e["name"]: e for e in manifest["parts"]}          # z / file
@@ -247,7 +286,7 @@ def render_setup(skeleton, manifest, pieces_dir, out_png=None):
         slot = f"{ns}/{entry['name']}"
         att = atts[slot][slot]
         bx, by = bones[by_slot_bone[slot]]
-        minx, miny, maxx, maxy = _attachment_world_bbox(att, bx, by)
+        minx, miny, maxx, maxy = _attachment_world_bbox(att, bx, by, bones_by_idx)
         left = int(round(minx + W/2)); top = int(round(H/2 - maxy))  # world→px 左上
         im = Image.open(os.path.join(pieces_dir, entry["file"])).convert("RGBA")
         layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
@@ -269,10 +308,11 @@ def main():
     ap.add_argument("--eval", action="store_true")
     ap.add_argument("--render", default=None, help="輸出 setup-pose 重建 PNG 路徑(啟用光柵重建 AC)")
     ap.add_argument("--draft", default=None, help="skeleton_draft.py 產出的階層/pivot 草案 JSON")
+    ap.add_argument("--weights", action="store_true", help="有 parent 的 mesh 件升級 weighted(需 --draft)")
     a = ap.parse_args()
     spec = {p: "mesh" for p in a.mesh_parts}
     draft = json.load(open(a.draft)) if a.draft else None
-    skeleton, manifest = assemble(a.psd, spec, a.namespace, a.tmp, draft=draft)
+    skeleton, manifest = assemble(a.psd, spec, a.namespace, a.tmp, draft=draft, weighted=a.weights)
     if a.out:
         json.dump(skeleton, open(a.out, "w"), ensure_ascii=False)
     if a.eval:
