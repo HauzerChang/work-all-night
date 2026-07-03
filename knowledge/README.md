@@ -37,6 +37,10 @@
 
 - [S3×S4 端到端:PSD→mesh→對照 Award](s3-psd-to-award.md) — PSD 件→生成 mesh→對真實生產 Award mesh(光暈/身體/左手)驗收全 PASS,生成覆蓋率 ≥ 藝術家。發現:①Award 件 weighted+無 deform → 變形閘 N/A(需 BBW,修正「都用 deform 場驗」假設);②epsilon 由外形複雜度決定→覆蓋率驅動細化;③修生成器凹形孤兒頂點 bug(`prune_orphans`)。
 
+- [S2 補圖閘](s2-inpaint-evaluator.md) — GT-free 三準則(破洞/**局部化接縫**/**Laplacian** 紋理)+ GT MAE;以 robot_parts 真實圖層互遮(美術層畫全=真值)校準,正對照全過、黑洞/平色/噪聲全抓(平色**無真值也抓得到**)。量化證實降階鏈:cv2 只夠平滑件(光暈 10),細節件(20~31)需升級。
+
+- [S2 骨架閘](s2-skeleton-evaluator.md) — 結構閘 + pivot 空間關聯(d_norm≤0.5 ≥95%,以 main_draw/Award 分佈校準)。含 setup 世界變換(weighted mesh 支援)。**關鍵發現:負對照必須 rebind**(bone-relative 幾何下,單純移骨美術跟著跑,量不變;壞 rig = 畫面對、骨錯)。**S2 四閘至此齊備**。
+
 - [S4 下游:切件→完整 Spine 資產](s4-skel-to-json.md) — `skel_to_json.py`(件→Spine JSON,setup pose=PSD 佈局,4 AC 全過:位置 0px/結構/mesh 格式/光柵重建 MAE 0.031 且視覺正確)+ `pack_atlas.py`(件→.atlas+PNG,用真實-atlas 讀取碼裁回 MAE 0)。完整資產 JSON+atlas+PNG 一致。誠實邊界:未在 Spine runtime 實載(CDN 擋);rotation=0 平面 setup(綁定屬 S5)。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

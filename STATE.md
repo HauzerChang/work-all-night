@@ -11,8 +11,11 @@
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
-- **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
-  雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
+- **S2 評估器套件:四閘齊備(里程碑,2026-07-03)** — 切圖閘 `evaluate_slicing`、mesh 閘
+  `evaluate_mesh`+`deform_eval`、**補圖閘 `evaluate_inpaint`**(真實遮擋自監督 benchmark 校準,
+  正對照全過、黑洞/平色/噪聲全抓;cv2 級補繪實測只夠平滑件 → 量化證實降階鏈)、
+  **骨架閘 `evaluate_skeleton`**(結構+pivot 空間關聯,main_draw 98.6%/Award 100%/生成 robot 100% 過,
+  強負對照全抓)。見 `knowledge/s2-inpaint-evaluator.md`、`s2-skeleton-evaluator.md`。
 - **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
@@ -55,17 +58,17 @@
 下一個 bounded chunk 候選:
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-07-03)**。
 2. ~~切圖→Spine JSON 組裝(SkelToJson)+ atlas 打包~~ **✅ 已完成(2026-07-03):完整資產閉環**。
-3. **❗最高優先:完整資產 Spine runtime 實載驗**(補 s4-skel-to-json.md 誠實邊界①)。目前組裝只驗到
-   結構/幾何/光柵層級,未在真正 Spine 引擎載入。需**離線 spine-webgl** 或 **headless 瀏覽器**(二者皆待設置;
-   CDN 被網路政策擋)。→ 屬環境/使用者層級決策(A 類:提供離線 runtime 或放行 CDN)。
-4. **S5 骨架/綁定起步**:平面 setup(已完成)→ 加骨階層/pivot/posed rotation。唯一卡死環節,人力集中處。
-5. **weighted mesh + BBW 權重**:mesh 目前 unweighted;對 Award weighted 件驗變形需 BBW(依賴骨架)。
-6. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+3. ~~S2 補圖閘 / 骨架閘~~ **✅ 已完成(2026-07-03):S2 四閘齊備**。
+4. **❗最高優先(純 CPU 可自驅):S5 骨架/綁定起步**。平面 setup(已完成)→ 產骨階層草案
+   (件鄰接/重疊分析 → 父子關係 + pivot 建議),用剛完成的骨架閘自驗;Award 真實骨架當風格參考。
+   pivot 精調仍留人審(計畫標記的卡死環節),但草案生成+過閘可先自主。
+5. **完整資產 Spine runtime 實載驗**:需**離線 spine-webgl** 或 headless 瀏覽器(CDN 被網路政策擋)
+   → 屬環境/使用者層級決策(A 類:提供離線 runtime 或放行 CDN)。
+6. **weighted mesh + BBW 權重**:對 Award weighted 件驗變形需 BBW;S5 有骨架草案後即可接。
 7. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 
-> PSD→完整 Spine 資產(JSON+atlas+PNG)閉環已通,setup pose 光柵重建視覺完美。**下一個真正的關卡是
-> 「實載驗」與「S5 綁定」**;實載需離線 runtime(使用者/環境層級),綁定 pivot 是計畫早已標記的唯一卡死處。
-> 純 CPU 可自驅的剩餘項:S2 補圖/骨架閘、weighted mesh 的 BBW(但 BBW 要先有骨架)。
+> S2 四閘齊備後,S5 骨架草案第一次具備「可自主收斂」的前提(結構+pivot sanity 有閘可驗)。
+> 建議下一步走 4(S5 起步),或由使用者解鎖 5(離線 runtime)/ 7(benchmark 影片)。
 
 ## 環境前置(已驗證可用)
 
@@ -114,6 +117,11 @@
   3 mesh 件→`generate_mesh_v2`→對 Award 真實 mesh,覆蓋率全 ≥ 藝術家、格式全過、overall_pass 全 True。
   發現 Award 件 weighted+無 deform → 變形閘 N/A(需 BBW);epsilon 由外形決定→加覆蓋率驅動細化;
   修生成器凹形孤兒頂點 bug(`prune_orphans`)。main_draw 3 deform mesh + slicing 回歸全過。
+- 2026-07-03:**S2 四閘齊備(里程碑)** — 補圖閘:真實遮擋自監督 benchmark(robot_parts 圖層互遮+
+  美術畫全層當真值)校準;兩次 miscalibration 當場被正對照抓出(AC3 下限誤殺平滑內容→僅上限;
+  遠參考帶 seam 不穩→局部化,意外解鎖 GT-free 抓平色填充);Laplacian 分噪聲/細節(Sobel 分不開)。
+  骨架閘:setup 世界變換(含 weighted mesh)+ d_norm 空間關聯(0.5/95%,兩真實骨架分佈校準);
+  **關鍵發現:負對照必須 rebind**(bone-relative 幾何不變性)。三骨架 selftest 全 PASS,全套回歸 PASS。
 - 2026-07-03:**PSD→完整 Spine 資產閉環(里程碑,一個工作天)** — `skel_to_json.py`(件→Spine 3.8 JSON,
   setup=PSD 佈局;4 AC 全過:位置 0px/結構/mesh 格式/光柵重建 MAE 0.031 且視覺完美)+ `pack_atlas.py`
   (件→.atlas+PNG,用真實-atlas 讀取碼裁回 MAE 0)。完整資產 robot.json+atlas+png 一致。
