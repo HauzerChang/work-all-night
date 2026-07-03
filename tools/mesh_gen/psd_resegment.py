@@ -55,6 +55,56 @@ def region_mask(piece, off, W, H):
     return m.astype(bool)
 
 
+def edge_snap(mask, rgba, natural_alpha, band=8):
+    """W3:把宣告的 region 邊界吸附到影像的實際色界(GrabCut),位移上限 band px。
+    人工切線(多邊形目測 ±4~8px)→ 沿真實部件輪廓;天然 alpha 輪廓不受影響
+    (吸附結果與原 mask 都會被 natural_alpha 交集)。"""
+    m = mask.astype(np.uint8)
+    k = np.ones((band * 2 + 1,) * 2, np.uint8)
+    inner = cv2.erode(m, k).astype(bool)
+    outer = cv2.dilate(m, k).astype(bool)
+    if not inner.any():          # 件太小,band 內縮成空 → 不吸附
+        return mask
+    gc = np.full(mask.shape, cv2.GC_BGD, np.uint8)
+    gc[outer] = cv2.GC_PR_BGD
+    gc[mask] = cv2.GC_PR_FGD
+    gc[inner] = cv2.GC_FGD
+    pm = np.clip(rgba[..., :3].astype(np.float64) * rgba[..., 3:4] / 255.0, 0, 255).astype(np.uint8)
+    bgd = np.zeros((1, 65), np.float64)
+    fgd = np.zeros((1, 65), np.float64)
+    try:
+        cv2.grabCut(pm, gc, None, bgd, fgd, 3, cv2.GC_INIT_WITH_MASK)
+    except cv2.error:
+        return mask
+    snapped = (gc == cv2.GC_FGD) | (gc == cv2.GC_PR_FGD)
+    # 位移上限:不出 outer、不小於 inner(防 GrabCut 跑飛/吃光)
+    snapped = (snapped & outer) | inner
+    return snapped & natural_alpha
+
+
+def reassign_strays(owner, alpha, order_sorted, masks, max_px=400):
+    """catch_all 之外的散件處理:小的未宣告連通塊 → 歸給邊界接觸最多的鄰件
+    (帽頂小絮落到軀幹的視覺 bug 修正)。大塊仍回 catch_all(警告)。"""
+    unclaimed = (owner == -1) & alpha
+    if not unclaimed.any():
+        return owner
+    n, lab = cv2.connectedComponents(unclaimed.astype(np.uint8))
+    k = np.ones((11, 11), np.uint8)
+    for c in range(1, n):
+        comp = lab == c
+        if comp.sum() > max_px:
+            continue
+        ring = cv2.dilate(comp.astype(np.uint8), k).astype(bool) & ~comp
+        best, best_n = -1, 0
+        for i, p in enumerate(order_sorted):
+            t = (ring & masks[p["name"]]).sum()
+            if t > best_n:
+                best, best_n = i, t
+        if best >= 0:
+            owner[comp] = best
+    return owner
+
+
 def feather_cut_edges(rgba, cut_mask, natural_alpha, px=2):
     """只羽化「人工切割邊」:件邊界中,位於原始 alpha 內部的部分(非天然輪廓)。"""
     a = rgba[..., 3].astype(np.float32)
@@ -97,12 +147,20 @@ def resegment(src_psd_path, spec, out_psd_path):
         alpha = full[..., 3] > 8
         owners = [p for p in pieces if p.get("mode", "object") != "copy"]
         masks = {p["name"]: region_mask(p, off, W, H) & alpha for p in pieces}
+        # W3 邊緣吸附:宣告邊界 → 沿實際色界(catch_all 全幅件不吸)
+        if spec.get("edge_snap", False):
+            for p in pieces:
+                if p.get("catch_all") or p.get("snap", True) is False:
+                    continue
+                masks[p["name"]] = edge_snap(masks[p["name"]], full, alpha,
+                                             band=spec.get("snap_band", 8))
         # 可見像素歸屬:z 最高的宣告者(owner map;-1=未宣告)
         owner = np.full((H, W), -1, np.int32)
-        for idx, p in enumerate(sorted(owners, key=lambda p: p["z"])):
-            owner[masks[p["name"]]] = idx
         order_sorted = sorted(owners, key=lambda p: p["z"])
-        # catch_all 收未宣告像素
+        for idx, p in enumerate(order_sorted):
+            owner[masks[p["name"]]] = idx
+        # 小散件 → 歸邊界接觸最多的鄰件;剩餘 → catch_all
+        owner = reassign_strays(owner, alpha, order_sorted, masks)
         for p in order_sorted:
             if p.get("catch_all"):
                 i = order_sorted.index(p)
