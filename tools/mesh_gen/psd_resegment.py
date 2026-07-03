@@ -42,17 +42,38 @@ def layer_canvas_rgba(layer, W, H):
 
 
 def region_mask(piece, off, W, H):
-    m = np.zeros((H, W), np.uint8)
     ox, oy = off
-    regions = piece.get("regions") or [piece]     # 支援多區域組合件(如耳機=兩耳罩橢圓)
-    for r in regions:
-        if "polygon" in r:
-            pts = np.array([[p[0] + ox, p[1] + oy] for p in r["polygon"]], np.int32)
-            cv2.fillPoly(m, [pts], 1)
-        elif "ellipse" in r:
-            cx, cy, rx, ry = r["ellipse"]
-            cv2.ellipse(m, (int(cx + ox), int(cy + oy)), (int(rx), int(ry)), 0, 0, 360, 1, -1)
-    return m.astype(bool)
+
+    def fill(regions):
+        m = np.zeros((H, W), np.uint8)
+        for r in regions:
+            if "polygon" in r:
+                pts = np.array([[p[0] + ox, p[1] + oy] for p in r["polygon"]], np.int32)
+                cv2.fillPoly(m, [pts], 1)
+            elif "ellipse" in r:
+                cx, cy, rx, ry = r["ellipse"]
+                cv2.ellipse(m, (int(cx + ox), int(cy + oy)), (int(rx), int(ry)), 0, 0, 360, 1, -1)
+        return m.astype(bool)
+
+    m = fill(piece.get("regions") or [piece])     # 支援多區域組合件(如耳機=兩耳罩橢圓)
+    if piece.get("exclude"):                       # 環形件(如鏡框=外框−鏡片內區)
+        m &= ~fill(piece["exclude"])
+    return m
+
+
+def tighten_mask(m, rgba, tight):
+    """薄件緊縮:框內只留筆觸像素(細線件用矩形框會帶進大片底色,IoU 崩)。
+    stroke:G 通道 < g_max(洋紅/紅筆觸 on 淺色毛);bright:min(RGB) > thresh(白牙 on 暗口腔)。
+    после dilate 1px 收抗鋸齒邊。"""
+    rgb = rgba[..., :3].astype(int)
+    if tight.get("mode") == "stroke":
+        keep = rgb[..., 1] < tight.get("g_max", 110)
+    elif tight.get("mode") == "bright":
+        keep = rgb.min(axis=2) > tight.get("thresh", 190)
+    else:
+        return m
+    out = m & keep
+    return cv2.dilate(out.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool) & m
 
 
 def edge_snap(mask, rgba, natural_alpha, band=8):
@@ -147,6 +168,9 @@ def resegment(src_psd_path, spec, out_psd_path):
         alpha = full[..., 3] > 8
         owners = [p for p in pieces if p.get("mode", "object") != "copy"]
         masks = {p["name"]: region_mask(p, off, W, H) & alpha for p in pieces}
+        for p in pieces:                              # 薄件緊縮(鬍鬚/眉/牙等筆觸件)
+            if p.get("tight"):
+                masks[p["name"]] = tighten_mask(masks[p["name"]], full, p["tight"])
         # W3 邊緣吸附:宣告邊界 → 沿實際色界(catch_all 全幅件不吸)
         if spec.get("edge_snap", False):
             for p in pieces:
