@@ -87,7 +87,9 @@ def _premult_diff(recon, ref):
 def evaluate(psd_path, mae_thresh=2.0, orphan_thresh=0.005):
     psd, manifest, parts = slice_psd(psd_path)
     W, H = psd.width, psd.height
-    ref = psd.composite().convert("RGBA").resize((W, H))
+    # ignore_preview:比對「由圖層重算」的合成。存檔的扁平 preview 在 RGB 模式無 alpha
+    # (程式生成的 PSD 重開會變不透明底 → 假性失敗;藝術家檔兩者一致)。
+    ref = psd.composite(ignore_preview=True).convert("RGBA").resize((W, H))
     recon, cover = reassemble(parts, W, H)
     rgb_mae, alpha_mae = _premult_diff(recon, ref)  # premultiplied:透明區不誤判
     content = np.asarray(ref.split()[-1]) > 8

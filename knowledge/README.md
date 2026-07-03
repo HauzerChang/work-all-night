@@ -47,4 +47,6 @@
 
 - [權重 + 可動資產](s5-weights.md) — envelope 綁定(own+parent 關節 smoothstep,wmax=0.85 錨自藝術家)+ LBS。±40° 掃描 0 自交/0 翻面;**錨定 AC** 位移比 0.395(剛性負對照=1.0)。pose 渲染證實整隻可動(figures/robot_pose_strip.png)→ 渲染器=未來影片逼近迴圈雛形。子件變形骨(需運動資訊)與光暈跨件綁定列範疇外。
 
+- [AI 自主切圖規則](s4-ai-slicing-rules.md) — 動畫需求反推分件(運動決定拆件):DJ 貓 3 層→13 件,含重疊帶補繪/旋轉自覆蓋 copy/切邊羽化/像素優先權。psd_resegment.py + 規格 JSON。自驗 MAE 0.007 全過;**待美術版交叉比對**。修 psd-tools 中文層名與 preview 假性失敗兩 bug。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
