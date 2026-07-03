@@ -1,0 +1,63 @@
+{
+  "source": "robot_parts.psd",
+  "size": [
+    713,
+    693
+  ],
+  "roles": {
+    "光暈": "effect",
+    "右手": "part",
+    "頭": "part",
+    "身體": "trunk",
+    "左手": "part"
+  },
+  "trunk": "身體",
+  "tree": {
+    "右手": "身體",
+    "頭": "身體",
+    "左手": "身體"
+  },
+  "pivots_px": {
+    "光暈": [
+      381.0,
+      386.1
+    ],
+    "右手": [
+      279.7,
+      335.0
+    ],
+    "頭": [
+      362.1,
+      289.1
+    ],
+    "身體": [
+      347.9,
+      478.0
+    ],
+    "左手": [
+      455.7,
+      339.8
+    ]
+  },
+  "evidence": {
+    "光暈": {
+      "pivot_from": "self_centroid"
+    },
+    "右手": {
+      "pivot_from": "overlap_centroid(身體)",
+      "overlap_px": 3228
+    },
+    "頭": {
+      "pivot_from": "overlap_centroid(身體)",
+      "overlap_px": 1466
+    },
+    "身體": {
+      "pivot_from": "self_centroid"
+    },
+    "左手": {
+      "pivot_from": "overlap_centroid(身體)",
+      "overlap_px": 3515
+    }
+  },
+  "warnings": []
+}

@@ -1,0 +1,41 @@
+
+robot.png
+size: 980,1388
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+機器人拆件/光暈
+  rotate: false
+  xy: 2, 2
+  size: 706, 683
+  orig: 706, 683
+  offset: 0, 0
+  index: -1
+機器人拆件/右手
+  rotate: false
+  xy: 2, 687
+  size: 595, 484
+  orig: 595, 484
+  offset: 0, 0
+  index: -1
+機器人拆件/身體
+  rotate: false
+  xy: 599, 687
+  size: 379, 425
+  orig: 379, 425
+  offset: 0, 0
+  index: -1
+機器人拆件/左手
+  rotate: false
+  xy: 2, 1173
+  size: 257, 215
+  orig: 257, 215
+  offset: 0, 0
+  index: -1
+機器人拆件/頭
+  rotate: false
+  xy: 261, 1173
+  size: 120, 103
+  orig: 120, 103
+  offset: 0, 0
+  index: -1

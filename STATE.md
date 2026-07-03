@@ -4,7 +4,7 @@
 
 ## 專案狀態
 
-`ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
+`ACTIVE`(**里程碑審查中(C 類)**:使用者進行人為測試與階段驗收,見 `ACCEPTANCE.md`)  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
 ## 目前階段
 
