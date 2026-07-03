@@ -65,7 +65,22 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
-下一個 bounded chunk 候選:
+## ❗排程最優先研究軌:PSD 切圖能力(使用者拍板,2026-07-03 交叉比對後)
+
+美術版真值已到(`assets/dj_cat_artist.psd` 40 層)。AI v4(13 層)交叉比對量化差距:
+粒度 3.1×、重疊冗餘 1.408 vs 1.179(美術被蓋處畫全,身體 hidden 96.5%)、
+頭被互斥掏空(面積比 0.57)、chamfer 8~41px。**三點回饋:①部件認知/邊線 ②精準度
+③互斥切割是根本錯誤(要重疊+畫全)**。詳見 `knowledge/s4-slicing-gap-analysis.md`。
+
+工作板塊(每塊一個 bounded chunk,W1 先行):
+- **W1 切圖評分器**(最優先):美術版建 GT → `evaluate_reseg.py`(召回/IoU/chamfer/重疊完整性/粒度)。
+  AC:美術自比對滿分、AI v4 低分(負對照)。
+- **W2 重疊切圖架構**:廢互斥、件=完整物件、被遮區重疊補全。AC:頭完整度>0.95、冗餘≥1.35。
+- **W3 邊緣吸附**:GrabCut/edge-snap 沿實際邊線。AC:chamfer ≤3px、IoU ≥0.85。
+- **W4 部件認知粒度**:臉部套件模板/肢體雙節/次級動態/不切清單。AC:類別召回≥90%、過切≤2。
+- **W5 重切收斂**:W2+W3+W4 → W1 評分 → 5 輪內逼近美術版。
+
+其他 bounded chunk 候選(切圖軌之後):
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ ✅、~~組裝+atlas~~ ✅、~~S2 四閘~~ ✅、
    ~~S5 骨架草案~~ ✅、~~權重+可動資產~~ **✅(全部 2026-07-03)**。
 2. **❗最高優先(純 CPU 可自驅):多資產推廣**。整條 pipeline(切件→mesh→骨架→權重→可動)
