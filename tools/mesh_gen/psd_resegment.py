@@ -2,18 +2,20 @@
 """AI 自主切圖(S4 進階)— 粗分件 PSD → 依「動畫反推的分件規格」重切成細分件 PSD。
 
 輸入:來源 PSD + 切件規格 JSON(AI 的切圖決策:每件的來源圖層/多邊形或橢圓/模式/z 序)。
-流程:
-  1. 每個來源圖層攤到畫布座標;規格內的件依**列出順序**為像素歸屬優先權(先列先拿)。
-  2. mode:
-     - "cut" :取走多邊形內像素,來源留洞 → 洞區用 cv2 inpaint 補繪(補圖降階鏈 level-cv2;
-               被切走的件蓋回來時洞不可見,animate 分離時才露出 → 正是「補圖前移」)。
-     - "copy":複製像素、來源保留(**旋轉自覆蓋件**專用,如轉盤:圓盤繞心轉永遠蓋住自己,
-               不留洞最安全 — 對照 Award 生產慣例歸納)。
-  3. cut 件的切割邊(非原始輪廓的人工邊)做 2px 羽化,減少動起來的硬邊。
-  4. 依規格 z 序輸出新 PSD(由下而上)。
 
-自驗(--eval):新 PSD 依 z 重組 == 原 PSD composite(premult MAE;洞都被上層蓋住,
-重組應幾乎無差)+ 每件非空 + 洞區補繪後 0 殘洞。
+**v2 架構(W2,2026-07-03 美術版交叉比對後重寫)— 重疊切圖,廢互斥**:
+  美術真值揭示:件=**完整物件**、件間大量重疊、被蓋處畫全(身體 96.5% 被蓋仍畫全、
+  眼白 100% 藏在鏡片後仍完整)。互斥像素歸屬是架構級錯誤(頭被掏空 43%)。
+  1. 每件宣告自己的**完整物件範圍 region**(polygon/ellipse/regions);region 可互相重疊。
+  2. 可見像素歸屬:同來源圖層內,像素上「z 最高的宣告者」拿到**真實像素**
+     (畫面上看到的就是最前面那件的顏色)。
+  3. 其他宣告者在該處拿**補全像素**(cv2 inpaint「畫全」被蓋部分 — 補圖前移;
+     大面積補全品質受 cv2 級上限,屬補圖降階鏈課題)。
+  4. mode "copy":複製不參與歸屬(旋轉自覆蓋件:轉盤)。catch_all 件收該來源未被宣告的像素。
+  5. 切割邊(非天然輪廓)2px 羽化;依 z 序輸出 PSD。
+
+自驗(--eval):新 PSD 依 z 重組 == 原 PSD composite(premult MAE;補全區都被上層蓋住,
+重組應幾乎無差)+ 每件非空。品質評分用 evaluate_reseg.py(對美術真值)。
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -85,38 +87,48 @@ def resegment(src_psd_path, spec, out_psd_path):
     src_data = {n: layer_canvas_rgba(l, W, H) for n, l in layers.items()}
 
     outputs = []           # (z, name, canvas rgba)
-    taken = {n: np.zeros((H, W), bool) for n in layers}     # cut 已拿走
-    # pass 1:cut/copy 件(列出順序 = 優先權)
+    holes_left = {}
+    by_src = {}
     for piece in spec["pieces"]:
-        src = piece["source"]
+        by_src.setdefault(piece["source"], []).append(piece)
+
+    for src, pieces in by_src.items():
         full, off = src_data[src]
         alpha = full[..., 3] > 8
-        m = region_mask(piece, off, W, H) & alpha
-        if piece.get("mode", "cut") == "cut":
-            m = m & ~taken[src]
-            taken[src] |= m
-        out = np.zeros_like(full)
-        out[m] = full[m]
-        out = feather_cut_edges(out, m, alpha, spec.get("feather", 2))
-        outputs.append((piece["z"], piece["name"], out))
-    # pass 2:remainder(留在來源的),洞區 inpaint
-    # ⚠️ 只補「殘留輪廓周圍的重疊帶」:動畫分離只露出關節附近 10~15px,
-    #    把整個被切走的區域(如整顆頭)都填成軀幹是錯的(補繪無據、又浪費)。
-    margin = spec.get("overlap_margin", 14)
-    k = np.ones((margin * 2 + 1,) * 2, np.uint8)
-    holes_left = {}
-    for src, rem in spec.get("remainders", {}).items():
-        full, _ = src_data[src]
-        alpha = full[..., 3] > 8
-        keep = alpha & ~taken[src]
-        out = np.zeros_like(full)
-        out[keep] = full[keep]
-        band = taken[src] & cv2.dilate(keep.astype(np.uint8), k).astype(bool)
-        if band.any() and rem.get("inpaint", True):
-            out = inpaint_cv2(out, band)
-            out[~(keep | band)] = 0              # 只允許長在 keep ∪ 重疊帶
-        holes_left[rem["name"]] = int((band & (out[..., 3] <= 8)).sum()) if rem.get("inpaint", True) else 0
-        outputs.append((rem["z"], rem["name"], out))
+        owners = [p for p in pieces if p.get("mode", "object") != "copy"]
+        masks = {p["name"]: region_mask(p, off, W, H) & alpha for p in pieces}
+        # 可見像素歸屬:z 最高的宣告者(owner map;-1=未宣告)
+        owner = np.full((H, W), -1, np.int32)
+        for idx, p in enumerate(sorted(owners, key=lambda p: p["z"])):
+            owner[masks[p["name"]]] = idx
+        order_sorted = sorted(owners, key=lambda p: p["z"])
+        # catch_all 收未宣告像素
+        for p in order_sorted:
+            if p.get("catch_all"):
+                i = order_sorted.index(p)
+                owner[(owner == -1) & alpha] = i
+        unclaimed = int(((owner == -1) & alpha).sum())
+        if unclaimed:
+            holes_left[f"_unclaimed[{src}]"] = unclaimed
+        for i, p in enumerate(order_sorted):
+            m = masks[p["name"]]
+            visible = m & (owner == i)
+            hidden = m & (owner != i) & alpha        # 被更高 z 件蓋住 → 補全(畫全)
+            out = np.zeros_like(full)
+            out[visible] = full[visible]
+            if hidden.any() and p.get("complete", True):
+                out = inpaint_cv2(out, hidden)
+                out[~(visible | hidden)] = 0
+                holes_left[p["name"]] = int((hidden & (out[..., 3] <= 8)).sum())
+            out = feather_cut_edges(out, m, alpha, spec.get("feather", 2))
+            outputs.append((p["z"], p["name"], out))
+        for p in pieces:                              # copy 件:複製不歸屬
+            if p.get("mode") == "copy":
+                m = masks[p["name"]]
+                out = np.zeros_like(full)
+                out[m] = full[m]
+                out = feather_cut_edges(out, m, alpha, spec.get("feather", 2))
+                outputs.append((p["z"], p["name"], out))
 
     outputs.sort(key=lambda x: x[0])
     new = PSDImage.new("RGBA", (W, H))
