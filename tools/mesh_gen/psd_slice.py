@@ -62,11 +62,15 @@ def reassemble(parts, W, H, skip=None):
             a = a.point(lambda v: v * op // 255)
             im = Image.merge("RGBA", (r, g, b, a))
         full = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        full.paste(im, tuple(entry["offset"]))
+        full.paste(im, tuple(entry["offset"]))    # PIL 對負座標自動裁切
         canvas = Image.alpha_composite(canvas, full)
+        # 覆蓋累計:圖層可能超出畫布(真實 PSD 常見,如 DJ台 left=-1/bottom>H)→ 裁到畫布
         l, t = entry["offset"]; w, h = entry["size"]
-        a = np.array(im.split()[-1]) > 8
-        cover[t:t + h, l:l + w] += a.astype(np.int32)
+        x0, y0 = max(l, 0), max(t, 0)
+        x1, y1 = min(l + w, W), min(t + h, H)
+        if x1 > x0 and y1 > y0:
+            a = np.array(im.split()[-1]) > 8
+            cover[y0:y1, x0:x1] += a[y0 - t:y1 - t, x0 - l:x1 - l].astype(np.int32)
     return canvas, cover
 
 
