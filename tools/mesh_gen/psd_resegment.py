@@ -200,6 +200,9 @@ def resegment(src_psd_path, spec, out_psd_path):
             out[visible] = full[visible]
             if hidden.any() and p.get("complete", True):
                 out = inpaint_cv2(out, hidden)
+                # 被蓋處 alpha 直接繼承來源圖層(基底件幾乎全 hidden 時,cv2 由稀疏種子
+                # 補 alpha 會衰減到 <8 → 件變殘;實心基底本就不透明,只有 RGB 需要補繪)
+                out[..., 3][hidden] = full[..., 3][hidden]
                 out[~(visible | hidden)] = 0
                 holes_left[p["name"]] = int((hidden & (out[..., 3] <= 8)).sum())
             out = feather_cut_edges(out, m, alpha, spec.get("feather", 2))
