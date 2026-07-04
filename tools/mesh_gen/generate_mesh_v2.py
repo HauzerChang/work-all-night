@@ -110,11 +110,57 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def _coverage_orphans(mesh, mask):
+    """填 mesh 三角 → 覆蓋率(IoU-like recall)+ 未覆蓋孤島數。純幾何、不依賴 evaluate。"""
+    H, W = mask.shape
+    uv = np.array(mesh["uvs"], dtype=np.float64).reshape(-1, 2)
+    tris = np.array(mesh["triangles"], dtype=np.int32).reshape(-1, 3)
+    pts = np.column_stack([uv[:, 0] * W, uv[:, 1] * H])
+    cov = np.zeros((H, W), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(cov, np.round(pts[t]).astype(np.int32), 1)
+    m = mask > 0
+    inter = np.logical_and(cov, m).sum()
+    cover = float(inter / max(m.sum(), 1))
+    # 未覆蓋孤島:mask 內、mesh 未蓋到的連通塊(忽略羽化邊的極小塊)
+    uncov = np.logical_and(m, np.logical_not(cov > 0)).astype(np.uint8)
+    n, _, stats, _ = cv2.connectedComponentsWithStats(uncov, 8)
+    big = [i for i in range(1, n) if stats[i, cv2.CC_STAT_AREA] >= 0.005 * m.sum()]
+    return cover, len(big)
+
+
+def gen_v1_adaptive(path, cover_target=0.96, max_verts=80,
+                    eps_schedule=(0.008, 0.006, 0.004, 0.003, 0.002)):
+    """v1 Delaunay 自適應 epsilon:由粗到細,取「達覆蓋目標且 0 孤島」中最省頂點者。
+    高曲率輪廓(如放射光暈)靠此自動加密 hull;平滑件維持精簡。"""
+    from generate_mesh import generate as gen_v1, load_mask as v1_load
+    mask, _gray, _W, _H = v1_load(path)
+    best = None            # (verts, mesh) 達標中最省頂點
+    fallback = None        # 未達標時覆蓋率最高者(仍在 max_verts 內)
+    for eps in eps_schedule:
+        m, _ = gen_v1(path, epsilon_frac=eps)
+        nv = len(m["uvs"]) // 2
+        if nv > max_verts:
+            break          # 更細只會更多頂點
+        cover, orph = _coverage_orphans(m, mask)
+        m["_eps"], m["_cover"], m["_orphans"] = eps, round(cover, 4), orph
+        if fallback is None or cover > fallback[0]:
+            fallback = (cover, m)
+        if cover >= cover_target and orph == 0:
+            best = m
+            break          # 由粗到細,第一個達標即最省頂點
+    chosen = best if best is not None else (fallback[1] if fallback else gen_v1(path)[0])
+    chosen["_mode"] = "delaunay-v1-adaptive"
+    return chosen
+
+
+def generate(path, rows=10, cols=3, mode="auto", adaptive=True):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        if adaptive:
+            return gen_v1_adaptive(path)
         from generate_mesh import generate as gen_v1
         m, _ = gen_v1(path)
         m["_mode"] = "delaunay-v1"
