@@ -17,6 +17,11 @@
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
   見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
+- **S3 端到端對照 Award 真值(2026-07-05):PASS(靜態)** — `robot_parts.psd` 三個 mesh 件(光暈/左手/身體)
+  → `generate_mesh_v2`(blob→自動回退 v1 Delaunay)→ 對 Award 藝術家 mesh 靜態覆蓋對照:預設參數三件全過
+  絕對閘(IoU≥0.90)且頂點少 2.3×;`epsilon_frac=0.004` 時三件 **IoU 全 ≥ 藝術家、頂點仍 ≤ 藝術家**
+  → 差距純為可調預算。**關鍵發現:機器人 mesh 為 weighted 且 12 支動畫全無 deform timeline → S3 變形閘
+  N/A、只驗靜態;weighted/BBW 權重是 S3 未建缺口。** 見 `knowledge/s3-robot-award-validation.md`。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -38,17 +43,18 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
-3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 完成(2026-07-05,靜態 PASS)**,見上方 S3 條目 / knowledge。
+2. **❗最高優先:切圖→Spine JSON 組裝(SkelToJson)**。把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding
+   + 本輪參數(blob 用 `epsilon_frac≈0.004` 平衡點)固化成「件→Spine attachment/mesh」寫出工具,端到端產 Spine JSON。
+   對照 Award 現成 slot 結構驗證組裝正確性(純 CPU 可自驅)。
+3. **weighted mesh(BBW)缺口**:本輪揭示真實 mesh 多為 weighted;S3 只產 unweighted。屬較大工作 +
+   與骨架(S5)相關,建議先確認需求規格再開(可能是 A 類岔路)。
+4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3 已對 Award 真值端到端(靜態)驗收通過。建議下一步:#2 SkelToJson 把 S4(切件)+S3(生成 mesh)串成
+> 「PSD → Spine JSON」自動組裝,對照 Award slot 結構驗;weighted/BBW(#3)因牽涉骨架建議先確認需求。
 
 ## 環境前置(已驗證可用)
 

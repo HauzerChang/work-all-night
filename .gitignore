@@ -3,3 +3,5 @@ __pycache__/
 # 測試 fixture(可由 tools/mesh_gen/make_test_psd.py 重生)+ 切圖輸出
 assets/test_layered.psd
 psd_parts/
+# S3↔Award 對照抽出的件(可由 robot_parts.psd 重生;保留 compare.py)
+scratch_robot/*.png

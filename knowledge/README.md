@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真值](s3-robot-award-validation.md) — PSD件→generate_mesh→對 Award 藝術家 mesh 靜態覆蓋對照。3 機器人 mesh 件預設參數即以 2.3× 更少頂點全過絕對閘;eps=0.004 時 IoU 全 ≥ 藝術家且頂點更少 → 差距是可調預算非能力缺口。**發現機器人 mesh 為 weighted 且無 deform → 變形閘 N/A、weighted/BBW 是 S3 未建缺口**。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
