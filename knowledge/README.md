@@ -35,6 +35,8 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S4 補圖能力 + 補圖閘](s4-inpaint-evaluator.md) — 補圖自我品質閘(破洞 hole_fill≥0.999 + 接縫 seam_ratio≤1.5;保真 PSNR 僅校準用)。對 flat+textured 兩畫風校準 discriminates=True(telea/ns/extend 過、noop/flat/noise 各在對的軸 fail)。端到端 dj_cat「頭 蓋 軀幹」2543px 洞補通。工具 `inpaint.py`+`inpaint_eval.py`。發現 2 坑:seam 分母須用局部紋理+JND 下限;`psd.composite()` 全不透明 PSD 令 psd_slice AC3 假性失敗。
+
 - [S3 對照 Award 真實生產 mesh](s3-award-real-mesh.md) — 端到端「切件→generate_mesh_v2→量化」對 Award 機器人 3 件藝術家 mesh(真值)驗收:eps=0.002 下 3 件生成 IoU 全 ≥ 藝術家基準、0 孤兒。校準兩事實(mesh uvs 是 region 局部 0..1;這 5 件無 deform 故不跑 deform 閘)。修 v1 孤兒頂點 + eps 參數化。工具 `compare_award_mesh.py`。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

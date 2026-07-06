@@ -21,6 +21,10 @@
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
   見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
+- **S4 補圖閘完成 + 補圖能力基線(里程碑,2026-07-06)** — `inpaint_eval.py`(補圖閘:破洞 hole_fill
+  + 接縫 seam_ratio,保真 PSNR 僅校準)對 flat(dj 軀幹)+ textured(robot 身體)兩畫風 discriminates=True;
+  `inpaint.py`(telea/ns/extend + occlusion_mask 真洞偵測)。端到端 `dj_cat_ai_final.psd`「頭 蓋 軀幹」
+  2543px 破洞補通(閘 PASS)。見 `knowledge/s4-inpaint-evaluator.md`。S2 補圖閘 ✅(骨架閘仍缺)。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -28,6 +32,8 @@
 - `assets/main_draw.json`(真實骨架:28 bones / 40 slots / 9 anims / 4 unweighted mesh)。
 - `assets/main_draw.atlas`(region 矩形;sheet `main_draw.png` 2023×1896)。
 - **`assets/Symbol_Ww.psd`**(symbol,180×180,18 圖層)、**`assets/robot_parts.psd`**(機器人拆件 big win,713×693,5 圖層)。
+- **`assets/dj_cat_ai_final.psd`**(DJ 貓,772×427,27 扁平圖層,全 NORMAL;AI 生成)——**補圖(S4)訓練標的**;
+  真實遮擋熱點:頭→軀幹(2543px)、DJ台體→軀幹(2675)、鏡框→鏡片(2660)等。⚠️ 其 `composite()` 全不透明。
 - **`assets/Award.json` + `assets/Award.atlas` + `assets/Award.png`(2040²)+ `assets/Award2.png`(1780×1376)**
   (機器人對應的生產 spine,77 bones/47 slots/12 anims,雙頁 atlas;貼圖被縮小 ~0.70 打包)。
 - ⚠️ **`main_draw.png` 像素檔尚缺**(只在對話中顯示,未存成檔)。像素級工作(裁切貼圖、
@@ -44,7 +50,11 @@
 下一個 bounded chunk 候選:
 1. ~~**PSD件→S3 mesh→對照 Award 真實 mesh**~~ ✅ **完成(2026-07-06)**:`compare_award_mesh.py`
    對 3 件藝術家 mesh 真值 overall_pass(eps=0.002)。見 `knowledge/s3-award-real-mesh.md`。
-2. **❗最高優先:切圖→Spine JSON 組裝(SkelToJson)**。把已固化的對應慣例
+2b. **S4 補圖續推(使用者當前聚焦)**:(a) **硬化 psd_slice AC3** 對「全不透明 composite」PSD
+   (dj_cat 假性 56% 失敗;個別切圖是對的)—— 孤兒改由圖層 alpha 並集/非背景色界定。
+   (b) **grow 校準**:用 dj_cat 多對真實遮擋量「補多遠才夠(動畫最大位移下不露洞)」。
+   (c) 複雜紋理大缺口的補圖品質(telea 對高頻紋理 psnr 僅 ~13)→ 評估升 LaMa/GPU 的觸發點。
+2. **❗高優先:切圖→Spine JSON 組裝(SkelToJson)**。把已固化的對應慣例
    (`PSD名/圖層名` slot 命名、mesh/region 依需求分配、size +2px padding、atlas ~0.70 縮小打包、
    **mesh uvs 為 region 局部 0..1**)寫成「件 manifest → Spine JSON attachment」組裝工具,
    端到端輸出可被 spine_inspector 載入的 mesh attachment。這是把 S3(生成 mesh)+ S4(切件)
@@ -101,6 +111,11 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-06:**S4 補圖閘 + 補圖能力基線(里程碑)** — 使用者聚焦補圖;收 `dj_cat_ai_final.psd`。
+  `inpaint_eval.py`(破洞+接縫,PSNR 僅校準)+ `inpaint.py`(telea/ns/extend + occlusion_mask 真洞偵測)。
+  對 flat+textured 兩畫風校準 discriminates=True;端到端「頭 蓋 軀幹」2543px 補通。
+  兩坑:seam 分母須用局部紋理+JND 下限(全域會爆);`composite()` 全不透明令 psd_slice AC3 假性失敗。
+  發現使用者原例「耳機右罩→軀幹」實測僅 2px(AI PSD 已畫全)。見 `knowledge/s4-inpaint-evaluator.md`。
 - 2026-07-06:**S3 端到端對照 Award 真實生產 mesh(里程碑)** — 3 件藝術家 mesh(光暈/身體/左手)當外部真值;
   `compare_award_mesh.py` 切件→generate_mesh_v2→量化,eps=0.002 下生成 IoU 全 ≥ 藝術家基準、0 孤兒。
   校準:mesh uvs=region 局部 0..1(log-006 過度保守)、這 5 件無 deform 故不跑 deform 閘。
