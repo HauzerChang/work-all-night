@@ -25,6 +25,10 @@
   + 接縫 seam_ratio,保真 PSNR 僅校準)對 flat(dj 軀幹)+ textured(robot 身體)兩畫風 discriminates=True;
   `inpaint.py`(telea/ns/extend + occlusion_mask 真洞偵測)。端到端 `dj_cat_ai_final.psd`「頭 蓋 軀幹」
   2543px 破洞補通(閘 PASS)。見 `knowledge/s4-inpaint-evaluator.md`。S2 補圖閘 ✅(骨架閘仍缺)。
+- **📌 使用者拍板(2026-07-06,方向重定)**:**補圖能力訓練暫緩** — 理想補圖(語意完整性)超出
+  Claude 能力(理解型多模態、非生成型),CPU 補圖定版在「填滿區塊」v1(inpaint.py+閘)。
+  **切圖能力經美術人員評估為尚可** → 新最優先兩方向:①**強化切圖**(精準切割、圖片認知、
+  部位認知、分件精準度)②**生成式 AI 補圖合作研究**(ChatGPT/其他生成型 AI 的合作可行性與作法)。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -47,26 +51,39 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
-下一個 bounded chunk 候選:
-1. ~~**PSD件→S3 mesh→對照 Award 真實 mesh**~~ ✅ **完成(2026-07-06)**:`compare_award_mesh.py`
-   對 3 件藝術家 mesh 真值 overall_pass(eps=0.002)。見 `knowledge/s3-award-real-mesh.md`。
-2b. **S4 補圖續推(使用者當前聚焦)**:(a) **硬化 psd_slice AC3** 對「全不透明 composite」PSD
-   (dj_cat 假性 56% 失敗;個別切圖是對的)—— 孤兒改由圖層 alpha 並集/非背景色界定。
-   (b) **grow 校準**:用 dj_cat 多對真實遮擋量「補多遠才夠(動畫最大位移下不露洞)」。
-   (c) 複雜紋理大缺口的補圖品質(telea 對高頻紋理 psnr 僅 ~13)→ 評估升 LaMa/GPU 的觸發點。
-2. **❗高優先:切圖→Spine JSON 組裝(SkelToJson)**。把已固化的對應慣例
-   (`PSD名/圖層名` slot 命名、mesh/region 依需求分配、size +2px padding、atlas ~0.70 縮小打包、
-   **mesh uvs 為 region 局部 0..1**)寫成「件 manifest → Spine JSON attachment」組裝工具,
-   端到端輸出可被 spine_inspector 載入的 mesh attachment。這是把 S3(生成 mesh)+ S4(切件)
-   真正串成 pipeline 的收口。純 CPU 可自驅。
-3. **S3 頂點效率優化(可選)**:目前達同等 IoU 需 117~123v(藝術家 78~98v);
-   Delaunay 內部過採樣。可加「三角合併 / 依曲率放點」逼近藝術家精簡度(需以本 AC 當回歸)。
-4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+下一個 bounded chunk 候選(**P1 = 使用者拍板最優先,2026-07-06**):
 
-> S3+S4 已對真實生產標的端到端驗收通過(切件↔生成 mesh↔藝術家 mesh 三者閉環)。
-> 建議下一步:候選 #2 SkelToJson 組裝工具,把 pipeline 收口成可載入的 Spine JSON。
+**P1-A 強化切圖能力**(精準切割部件、圖片認知、部位認知、分件精準度):
+- **A1(建議先做)修 psd_slice AC3**:對「全不透明 composite」PSD(dj_cat 假性 56% 失敗;
+  個別切圖是對的)孤兒改由圖層 alpha 並集/非背景色界定 —— 切圖閘正確是精準度一切的前提。
+- **A2 切件邊緣精準度閘**:量化「殘留背景 / 邊緣鋸齒 / 羽化半透明邊 / 相鄰件重疊像素」
+  (目前閘只驗重組保真,沒驗單件邊緣品質)。先有閘,精準度才能自主收斂。
+- **A3 部位認知庫**:用 3 份真實 PSD(dj_cat 27 + Symbol_Ww 18 + robot 5 = 50 層)建
+  「圖層名 ⇄ 視覺內容 ⇄ 部位類別(頭/耳/手/軀幹/配件…)」認知資料集;
+  vision 對切件自動分類部位,以圖層名當真值量召回率 → 建立圖片/部位認知能力。
+- **A4 複雜 PSD 結構**:群組 / clipping mask / 非 NORMAL blend / 調整層的正確處理
+  (目前 3 份真實檔全扁平,尚未面對)。
+- **A5(遠期)平面圖拆件 fallback**:無分層時,認知導引(vision 提部位框)+ CPU 分割。
+
+**P1-B 生成式補圖合作研究**(補圖定版 v1「填滿區塊」;探討與 ChatGPT/其他生成型 AI 合作):
+- **B1 調研+設計文件**:盤點生成式 inpaint 選項(OpenAI gpt-image-1 遮罩編輯、Stability、
+  Gemini 影像、本地 SD/LaMa),設計 **adapter 契約**:我方產(件PNG+fill mask+風格參考)→
+  外部生成 → 回圖過 `inpaint_eval` 閘 + vision 自評 + 人審 → 收錄。
+  含成本/授權/網路政策可行性;產出 knowledge 文件供使用者拍板選型。
+- **B2(待 B1 拍板)**:實作 adapter stub,對 dj_cat「頭→軀幹」真洞做首次外部生成試點。
+
+P2(降序,先前候選保留):
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ ✅ 完成(2026-07-06,`compare_award_mesh.py`)。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把已固化慣例(`PSD名/圖層名`、mesh/region 分配、
+   +2px padding、atlas ~0.70 縮放、mesh uvs=region 局部 0..1)寫成組裝工具。
+3. S3 頂點效率優化(117~123v vs 藝術家 78~98v,Delaunay 內部過採樣)。
+4. S2 骨架閘(補圖閘已完成 2026-07-06)。
+5. S1 反推分析器(需 benchmark 影片)。
+6. ~~spine_inspector 實機 round-trip~~:⛔ CDN(jsDelivr)被網路政策擋(403)。
+
+> ⏸️ **補圖能力訓練暫緩**(使用者 2026-07-06 拍板):理想補圖=語意完整性,Claude 為理解型
+> 多模態、非生成型,無法達成;CPU 版定版當「填滿區塊」基線,升級走 P1-B 外部生成合作路線。
+> grow 校準 / LaMa 觸發點等先前補圖候選一併凍結,列入 P1-B 研究範圍。
 
 ## 環境前置(已驗證可用)
 
