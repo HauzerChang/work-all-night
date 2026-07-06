@@ -65,12 +65,17 @@
   (目前 3 份真實檔全扁平,尚未面對)。
 - **A5(遠期)平面圖拆件 fallback**:無分層時,認知導引(vision 提部位框)+ CPU 分割。
 
-**P1-B 生成式補圖合作研究**(補圖定版 v1「填滿區塊」;探討與 ChatGPT/其他生成型 AI 合作):
-- **B1 調研+設計文件**:盤點生成式 inpaint 選項(OpenAI gpt-image-1 遮罩編輯、Stability、
-  Gemini 影像、本地 SD/LaMa),設計 **adapter 契約**:我方產(件PNG+fill mask+風格參考)→
-  外部生成 → 回圖過 `inpaint_eval` 閘 + vision 自評 + 人審 → 收錄。
-  含成本/授權/網路政策可行性;產出 knowledge 文件供使用者拍板選型。
-- **B2(待 B1 拍板)**:實作 adapter stub,對 dj_cat「頭→軀幹」真洞做首次外部生成試點。
+**P1-B 生成式補圖合作研究**(補圖定版 v1「填滿區塊」;探討與 ChatGPT/其他生成型 AI 合作)。
+**使用者補充作法(2026-07-06)**:先用目前 CPU 粗補當底 → Claude 產**提示詞**給生成型 AI
+做「部位生成」完整化(例:耳機右罩→軀幹 = 生成耳機右罩下層的身體部件)。
+- **B0 ✅ 提示詞包工具(已完成 2026-07-06)**:`genai_inpaint_pack.py` — 一鍵產
+  base_cpu_fill(CPU 粗補底圖)+ mask + mask_alpha(OpenAI images.edit 慣例)+ context(紅框脈絡)
+  + prompt.txt(結構模板 + **Claude vision 看圖寫部位語意**)。首例「頭→軀幹」2977px 已交使用者
+  (可直接貼 ChatGPT 人工試)。
+- **B1 試點回饋迴圈**:使用者拿 pack 給 ChatGPT/gpt-image-1 生成 → 回圖跑 `inpaint_eval` 閘
+  + vision 語意自評 + 人審 → 記錄「哪類洞生成可用/提示詞怎麼寫最有效」→ 固化 prompt 模板。
+- **B2 調研+選型文件**:盤點選項(gpt-image-1 遮罩編輯、Stability、Gemini 影像、本地 SD/LaMa)
+  + 成本/授權/API 自動化可行性(網路政策),供使用者拍板是否接 API 全自動化。
 
 P2(降序,先前候選保留):
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ ✅ 完成(2026-07-06,`compare_award_mesh.py`)。
