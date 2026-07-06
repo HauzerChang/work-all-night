@@ -110,14 +110,49 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def _coverage(mesh, mask):
+    """填滿三角面 vs mask 的 IoU(沿用 evaluate_mesh 口徑)。"""
+    W, H = mesh["width"], mesh["height"]
+    v = mesh["vertices"]
+    pts = np.array([[v[i] + W / 2.0, H / 2.0 - v[i + 1]] for i in range(0, len(v), 2)])
+    tris = np.array(mesh["triangles"], dtype=np.int32).reshape(-1, 3)
+    recon = np.zeros((H, W), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0).astype(np.uint8)
+    u = int(np.logical_or(recon, m).sum())
+    return float(np.logical_and(recon, m).sum() / u) if u else 0.0
+
+
+def generate(path, rows=10, cols=3, mode="auto", target_cov=0.97, vertex_cap=80):
+    """target_cov/vertex_cap 僅作用於 blob(v1 Delaunay)路徑:覆蓋率驅動的 epsilon
+    精修 —— 由粗到細嘗試 hull 近似 epsilon,取「達標且頂點數 <= cap 的最粗解」。
+    發現(2026-07-06,對 Award 真實 mesh 件):覆蓋率由 hull epsilon 決定,內部點密度
+    無關;固定預設 epsilon(0.008)對大而軟的件(光暈)覆蓋不足。target_cov=None 關閉精修。"""
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        if target_cov is None:
+            m, _ = gen_v1(path)
+            m["_mode"] = "delaunay-v1"
+            return m
+        cands = []
+        for eps in (0.008, 0.004, 0.002, 0.001):
+            m, _ = gen_v1(path, epsilon_frac=eps)
+            nv = len(m["uvs"]) // 2
+            cov = _coverage(m, mask)
+            cands.append((m, cov, nv, eps))
+            if cov >= target_cov and nv <= vertex_cap:
+                break
+        ok = [c for c in cands if c[1] >= target_cov and c[2] <= vertex_cap]
+        within = [c for c in cands if c[2] <= vertex_cap]
+        chosen = ok[0] if ok else (max(within, key=lambda c: c[1]) if within else max(cands, key=lambda c: c[1]))
+        m, cov, nv, eps = chosen
         m["_mode"] = "delaunay-v1"
+        m["_cov"] = round(cov, 4)
+        m["_epsilon"] = eps
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)
@@ -132,8 +167,12 @@ def main():
     ap.add_argument("--rows", type=int, default=10)
     ap.add_argument("--cols", type=int, default=3)
     ap.add_argument("--mode", choices=["auto", "strip", "delaunay"], default="auto")
+    ap.add_argument("--target-cov", type=float, default=0.97,
+                    help="blob 路徑覆蓋率目標(epsilon 精修);設 <0 關閉")
+    ap.add_argument("--vertex-cap", type=int, default=80, help="blob 路徑頂點上限")
     a = ap.parse_args()
-    m = generate(a.image, a.rows, a.cols, a.mode)
+    tc = None if a.target_cov < 0 else a.target_cov
+    m = generate(a.image, a.rows, a.cols, a.mode, target_cov=tc, vertex_cap=a.vertex_cap)
     out = a.out or (a.image.rsplit(".", 1)[0] + "_mesh_v2.json")
     json.dump(m, open(out, "w"), ensure_ascii=False)
     print(f"[{m.get('_mode')}] {out}: 頂點 {len(m['uvs'])//2} (hull {m['hull']}), 三角 {len(m['triangles'])//3}")
