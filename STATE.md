@@ -37,18 +37,24 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
-下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
-3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+**S3+S4 端到端已通(里程碑,2026-07-06)**:`validate_psd_to_mesh.py` 對 `robot_parts.psd` 三件 mesh
+(光暈/身體/左手)跑 `generate_mesh_v2`,對照 Award 三件生產 mesh — 覆蓋率全達/優於藝術家基準
+(生成 0.96 vs 藝術家 0.98,頂點更省),`overall_pass=True`。見 `knowledge/s3-s4-end-to-end-award.md`。
+- 發現 **Award mesh uvs 是 region-local 且對應 de-rotated 方向**(第四次評估器校準):藝術家基準須用
+  `atlas_crop.crop_region`(CW derotate)當輪廓、uv 直接光柵化(免翻轉),三件基準 0.98 自洽。
+- 觸發生成器兩改進(向後相容):**自 tune 輪廓密度**(`generate(target_iou=...)`,v2 Delaunay 回退預設 0.96)
+  + **孤兒頂點修剪**(`prune_orphans`,保 hull-first)。main_draw 4 mesh 回歸全 `overall_pass`、deform si=0。
+- deform 閘對這 5 件 N/A(Award 無 deform timeline,靠骨骼權重變形)→ 本 AC 只做靜態幾何。
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+下一個 bounded chunk 候選:
+1. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding
+   + mesh/region 分配,把生成 mesh 寫回 Spine JSON,端到端產出可載入 skeleton(接續 S3+S4 端到端)。
+2. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+3. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+4. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+
+> S3+S4 已端到端對真實生產標的驗收通過。建議下一步:(1) SkelToJson 把生成 mesh 寫回 Spine JSON,
+> 收尾「PSD→件→mesh→skeleton」整條 pipeline。
 
 ## 環境前置(已驗證可用)
 
@@ -97,3 +103,7 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-07-06:**S3+S4 端到端對真實生產標的驗收(里程碑)** — 新 `validate_psd_to_mesh.py`:PSD 件→
+  `generate_mesh_v2`→對照 Award 三件生產 mesh(光暈/身體/左手),覆蓋率全達/優於藝術家基準
+  (生成 0.96 vs 藝術家 0.98,頂點更省),`overall_pass`。發現 Award mesh uvs 為 region-local + de-rotated 方向
+  (第四次評估器校準);觸發生成器自 tune 輪廓密度 + 孤兒頂點修剪(向後相容),main_draw 4 mesh 回歸全過。

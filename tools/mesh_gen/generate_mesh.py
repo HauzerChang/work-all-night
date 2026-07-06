@@ -95,6 +95,20 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def prune_orphans(pts, tris, n_hull):
+    """移除未被任一三角形引用的孤兒頂點,保住 hull-first 順序並重編索引。
+    filter_triangles 砍掉凹形外三角後,邊界頂點可能變孤兒(Spine 格式禁孤兒/破壞 hull)。"""
+    used = set(int(i) for t in tris for i in t)
+    order = [i for i in range(n_hull) if i in used] + \
+            [i for i in range(n_hull, len(pts)) if i in used]
+    remap = {old: new for new, old in enumerate(order)}
+    new_pts = pts[order] if len(order) else pts[:0]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32) \
+        if len(tris) else np.zeros((0, 3), np.int32)
+    new_hull = sum(1 for i in range(n_hull) if i in used)
+    return new_pts, new_tris, new_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,12 +126,44 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def _coverage_iou(pts, tris, mask):
+    """輕量:把三角形填滿 vs mask 的 IoU(自 tune 用,避免依賴 evaluate_mesh)。"""
+    h, w = mask.shape
+    recon = np.zeros((h, w), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    inter = int(np.logical_and(recon, mask).sum())
+    union = int(np.logical_or(recon, mask).sum())
+    return inter / union if union else 0.0
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_iou=None, vertex_budget=64):
+    """target_iou 設定時:自 tune 輪廓密度(epsilon 由粗到細),取第一個達標且不超頂點預算者。
+    這讓生成器用自身覆蓋率評估器決定 hull 取樣密度 —— 大/軟邊輪廓(如發光暈)不再被固定
+    epsilon 欠取樣(2026-07-06 由機器人光暈端到端對照發現)。target_iou=None 維持原行為。"""
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
-    inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
-    pts, tris, n_hull = triangulate(hull, inter)
-    tris = filter_triangles(pts, tris, mask)
+    if target_iou is None:
+        hull = boundary_points(mask, epsilon_frac)
+        inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+        pts, tris, n_hull = triangulate(hull, inter)
+        tris = filter_triangles(pts, tris, mask)
+        pts, tris, n_hull = prune_orphans(pts, tris, n_hull)
+        return to_spine(pts, tris, n_hull, W, H), mask
+    best = None
+    for eps in (0.008, 0.006, 0.004, 0.003, 0.002, 0.0015, 0.001):
+        hull = boundary_points(mask, eps)
+        inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+        pts, tris, n_hull = triangulate(hull, inter)
+        tris = filter_triangles(pts, tris, mask)
+        pts, tris, n_hull = prune_orphans(pts, tris, n_hull)
+        nv = len(pts)
+        iou = _coverage_iou(pts, tris, mask)
+        if nv <= vertex_budget:
+            best = (pts, tris, n_hull)          # 記住預算內最細的一組
+            if iou >= target_iou:
+                break
+    pts, tris, n_hull = best
     return to_spine(pts, tris, n_hull, W, H), mask
 
 

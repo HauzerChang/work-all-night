@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3+S4 端到端(對照 Award 生產 mesh)](s3-s4-end-to-end-award.md) — 真實 PSD 件→`generate_mesh_v2`→對照 Award 三件生產 mesh(光暈/身體/左手):覆蓋率全達/優於藝術家基準(生成 0.96 vs 藝術家 0.98,頂點更省),`overall_pass`。發現 Award mesh uvs 是 region-local 且對應 de-rotated 方向(第四次評估器校準);觸發生成器兩改進:自 tune 輪廓密度 + 孤兒頂點修剪。main_draw 4 mesh 回歸全過。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
