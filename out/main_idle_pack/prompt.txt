@@ -1,0 +1,21 @@
+【任務 / Task】
+這是 2D 遊戲角色的一個部位圖層(part layer)。圖層「身體」被上層「耳機右罩」遮住的區域
+已用演算法粗略填色(見 base_cpu_fill.png 中 mask 標示的區域),請只重繪該遮罩區域,
+把它完整化成自然延續的「身體」部位:延續既有輪廓線稿、色塊與明暗,不要改動遮罩外的任何像素。
+
+This is a body-part layer of a 2D game character. The area of layer "身體" hidden behind
+"耳機右罩" has been roughly color-filled by an algorithm (the masked area in base_cpu_fill.png).
+Repaint ONLY the masked area so it becomes a natural continuation of the "身體" part:
+continue the existing dark outlines, flat color regions and shading. Do not change any pixel
+outside the mask.
+
+【部位語意 / Part semantics】(由 Claude vision 看圖填寫)
+此區是 DJ 貓(白色毛皮、粉紅捲髮、紫紅色比基尼、白色外套)的【右側胸口與外套內緣】,原本被金色耳機右罩蓋住;請補成「移除耳罩後自然露出的畫面」:① 白色毛皮的胸部曲面,延續左方/上方既有的白毛與柔和灰紫陰影;② 紫紅色比基尼右罩杯的上緣弧線,延續左下方既有布料的高光與皺褶;③ 右側白色外套內緣輪廓與金色拉鍊帶上段,沿下方既有拉鍊自然向上延續;④ 上方粉紅捲髮髮尾可少量自然延伸(與周邊髮束一致)。灰紫色放射狀糊斑只是位置/色調提示,請重繪成有結構的內容。不要畫耳機(耳罩已切成獨立件)。
+
+【風格 / Style】
+- 賽璐璐平塗(flat cel-shading)、乾淨的深色輪廓線、無雜訊
+- 與 base_cpu_fill.png 遮罩外區域的線寬、色階完全一致
+- 背景保持透明(輸出含 alpha 的 PNG,尺寸與 base 相同:153x169)
+
+【參考 / Reference】
+- context.png:角色完整合成圖,紅框 = 需要生成的區域(該區在完整圖中被「耳機右罩」蓋住)

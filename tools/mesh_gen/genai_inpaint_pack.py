@@ -68,14 +68,25 @@ def composite_all(psd, W, H):
     return c
 
 
-def build_pack(psd_path, upper, lower, out_dir, grow=14, semantics="(待填:此區應是什麼部位結構、有哪些線稿/色塊要延續)"):
-    psd = PSDImage.open(psd_path)
-    W, H = psd.width, psd.height
-    U = full_rgba(psd, upper, W, H)
-    L = full_rgba(psd, lower, W, H)
-    fill = occlusion_mask(L[..., 3], U[..., 3], grow=grow)
+def write_pack(base, fill, ctx_rgb, upper, lower, out_dir, semantics, source,
+               grow=None, crop_margin=None):
+    """把(底圖/遮罩/脈絡圖)寫成提示詞包。crop_margin 非 None 時,所有輸出**限縮成
+    洞 bbox + margin 的小區塊**(生成 AI 只看/只畫小圖,目標不易錯亂;pack.json 記
+    crop 座標供回貼)。"""
+    H, W = fill.shape
     n_fill = int(fill.sum())
-    base = complete_layer(L, fill, "telea")
+    crop = None
+    if crop_margin is not None and n_fill:
+        ys, xs = np.where(fill > 0)
+        x0 = max(0, int(xs.min()) - crop_margin); y0 = max(0, int(ys.min()) - crop_margin)
+        x1 = min(W, int(xs.max()) + crop_margin + 1); y1 = min(H, int(ys.max()) + crop_margin + 1)
+        crop = [x0, y0, x1, y1]
+        base = base[y0:y1, x0:x1]
+        fill = fill[y0:y1, x0:x1]
+        ctx_box = ctx_rgb.copy()
+        cv2.rectangle(ctx_box, (x0, y0), (x1 - 1, y1 - 1), (255, 40, 40), 2)
+        ctx_rgb = ctx_box
+    outW, outH = base.shape[1], base.shape[0]
 
     os.makedirs(out_dir, exist_ok=True)
     cv2.imwrite(os.path.join(out_dir, "base_cpu_fill.png"), cv2.cvtColor(base, cv2.COLOR_RGBA2BGRA))
@@ -84,23 +95,38 @@ def build_pack(psd_path, upper, lower, out_dir, grow=14, semantics="(待填:此�
     mask_alpha = base.copy()
     mask_alpha[..., 3] = np.where(fill > 0, 0, 255).astype(np.uint8)
     cv2.imwrite(os.path.join(out_dir, "mask_alpha.png"), cv2.cvtColor(mask_alpha, cv2.COLOR_RGBA2BGRA))
+    if crop is None:
+        ys, xs = np.where(fill > 0)
+        if len(ys):
+            cv2.rectangle(ctx_rgb, (int(xs.min()) - 4, int(ys.min()) - 4),
+                          (int(xs.max()) + 4, int(ys.max()) + 4), (255, 40, 40), 2)
+    cv2.imwrite(os.path.join(out_dir, "context.png"), cv2.cvtColor(ctx_rgb, cv2.COLOR_RGB2BGR))
 
-    comp = composite_all(psd, W, H)
-    ctx = comp[..., :3].copy()
-    ys, xs = np.where(fill > 0)
-    if len(ys):
-        x0, y0, x1, y1 = xs.min(), ys.min(), xs.max(), ys.max()
-        cv2.rectangle(ctx, (int(x0) - 4, int(y0) - 4), (int(x1) + 4, int(y1) + 4), (255, 40, 40), 2)
-    cv2.imwrite(os.path.join(out_dir, "context.png"), cv2.cvtColor(ctx, cv2.COLOR_RGB2BGR))
-
-    prompt = PROMPT_TEMPLATE.format(upper=upper, lower=lower, W=W, H=H, semantics=semantics)
+    prompt = PROMPT_TEMPLATE.format(upper=upper, lower=lower, W=outW, H=outH, semantics=semantics)
     open(os.path.join(out_dir, "prompt.txt"), "w").write(prompt)
-    manifest = {"psd": os.path.basename(psd_path), "upper": upper, "lower": lower,
+    manifest = {"source": source, "upper": upper, "lower": lower,
                 "grow": grow, "fill_px": n_fill, "canvas": [W, H],
+                "crop": crop, "out_size": [outW, outH],
                 "files": ["base_cpu_fill.png", "mask.png", "mask_alpha.png", "context.png", "prompt.txt"],
+                "paste_back": (None if crop is None else
+                               f"生成結果為 {outW}x{outH} 小圖;回貼到全畫布 [{crop[0]},{crop[1]}]"),
                 "gate": "回圖後跑 inpaint_eval.evaluate(結果, mask, 原 alpha) + vision 語意自評 + 人審"}
     json.dump(manifest, open(os.path.join(out_dir, "pack.json"), "w"), ensure_ascii=False, indent=2)
     return manifest
+
+
+def build_pack(psd_path, upper, lower, out_dir, grow=14,
+               semantics="(待填:此區應是什麼部位結構、有哪些線稿/色塊要延續)",
+               crop_margin=None):
+    psd = PSDImage.open(psd_path)
+    W, H = psd.width, psd.height
+    U = full_rgba(psd, upper, W, H)
+    L = full_rgba(psd, lower, W, H)
+    fill = occlusion_mask(L[..., 3], U[..., 3], grow=grow)
+    base = complete_layer(L, fill, "telea")
+    ctx = composite_all(psd, W, H)[..., :3].copy()
+    return write_pack(base, fill, ctx, upper, lower, out_dir, semantics,
+                      source=os.path.basename(psd_path), grow=grow, crop_margin=crop_margin)
 
 
 def main():
@@ -111,9 +137,11 @@ def main():
     ap.add_argument("-o", "--out", default="genai_pack")
     ap.add_argument("--grow", type=int, default=14)
     ap.add_argument("--semantics", default=None, help="部位語意描述(Claude vision 看圖後填)")
+    ap.add_argument("--crop", type=int, default=None, metavar="MARGIN",
+                    help="限縮輸出成『洞 bbox + MARGIN px』小圖(建議 32~48;pack.json 記回貼座標)")
     a = ap.parse_args()
     kw = {"semantics": a.semantics} if a.semantics else {}
-    m = build_pack(a.psd, a.upper, a.lower, a.out, a.grow, **kw)
+    m = build_pack(a.psd, a.upper, a.lower, a.out, a.grow, crop_margin=a.crop, **kw)
     print(json.dumps(m, ensure_ascii=False, indent=2))
 
 

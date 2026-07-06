@@ -38,6 +38,10 @@
 - **`assets/Symbol_Ww.psd`**(symbol,180×180,18 圖層)、**`assets/robot_parts.psd`**(機器人拆件 big win,713×693,5 圖層)。
 - **`assets/dj_cat_ai_final.psd`**(DJ 貓,772×427,27 扁平圖層,全 NORMAL;AI 生成)——**補圖(S4)訓練標的**;
   真實遮擋熱點:頭→軀幹(2543px)、DJ台體→軀幹(2675)、鏡框→鏡片(2660)等。⚠️ 其 `composite()` 全不透明。
+  ⚠️ 使用者評:27 層**過度瑣碎化**,補圖目標易錯亂 → 後續以 Main_idle 合併層版為主。
+- **`assets/Main_idle_測試ai切圖.psd`**(同角色,772×427,**3 層:身體=整隻合併(含耳機)/DJ台範例圖/右手1**)
+  ——真實「從合併層切件→產生真洞→補圖」場景;與 dj_cat 像素對齊(耳罩區 MAE 2.45),
+  dj_cat 分層 alpha 可借用當切割遮罩真值。
 - **`assets/Award.json` + `assets/Award.atlas` + `assets/Award.png`(2040²)+ `assets/Award2.png`(1780×1376)**
   (機器人對應的生產 spine,77 bones/47 slots/12 anims,雙頁 atlas;貼圖被縮小 ~0.70 打包)。
 - ⚠️ **`main_draw.png` 像素檔尚缺**(只在對話中顯示,未存成檔)。像素級工作(裁切貼圖、

@@ -1,0 +1,30 @@
+{
+  "source": "Main_idle_測試ai切圖.psd",
+  "upper": "耳機右罩",
+  "lower": "身體",
+  "grow": null,
+  "fill_px": 3188,
+  "canvas": [
+    772,
+    427
+  ],
+  "crop": [
+    342,
+    163,
+    495,
+    332
+  ],
+  "out_size": [
+    153,
+    169
+  ],
+  "files": [
+    "base_cpu_fill.png",
+    "mask.png",
+    "mask_alpha.png",
+    "context.png",
+    "prompt.txt"
+  ],
+  "paste_back": "生成結果為 153x169 小圖;回貼到全畫布 [342,163]",
+  "gate": "回圖後跑 inpaint_eval.evaluate(結果, mask, 原 alpha) + vision 語意自評 + 人審"
+}
