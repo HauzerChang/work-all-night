@@ -31,7 +31,10 @@
 
 ## 真實結果(curtain_left)
 
-v1 Delaunay:IoU 0.980、真實 deform 乾淨 → **整合 AC 通過**。
-v2 strip:24v、IoU 0.911、deform 乾淨(經濟變體,IoU 略低於藝術家基準)。
+v2 strip(**生產路徑**):rows=10/cols=3,IoU ≥ 藝術家基準、真實 deform 乾淨 → **整合 AC 通過**。
+v1 Delaunay:2026-07-06 起預設細 hull(epsilon 0.004)→ IoU 高(0.99)但**單向大 deform 自交**
+(deform gate fail)。這是刻意取捨:**v1(細 hull)服務靜態/骨骼驅動的有機件**(覆蓋最佳,
+如機器人光暈/身體/左手,見 `knowledge/s3-award-mesh-compare.md`);**v2 strip 服務逐頂點 deform 件**
+(窗簾/陰影)。auto 模式依高寬比 + row-convex 自動分流,窗簾走 strip 不走 v1。
 
 > 主觀品質(變形手感)不在自評範圍,留待真實貼圖 + 使用者審查(SOP L2)。
