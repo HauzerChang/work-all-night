@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真實 mesh](s3-award-end-to-end.md) — **PSD 件→S3 topology→Award 生產 mesh** 首度端到端驗收:3 件(光暈/身體/左手)生成覆蓋 IoU **≥ 藝術家**且**更省頂點**(64/60/70 vs 78/98/80),全 PASS。發現 Award mesh 是 **weighted/骨骼驅動/無 deform**(另一 regime);mesh uvs 在邏輯 upright 空間(與 atlas rotate 無關)→ 用 PSD 件當真值。端到端缺口 = **BBW 權重**(下一能力)。工具 `validate_against_award.py`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
