@@ -31,7 +31,22 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3+S4 端到端對照真實生產標的達標(里程碑,2026-07-07)**:PSD 3 mesh 件(光暈/左手/身體)
+→ `generate_mesh_v2` → 對照 Award 真實生產 mesh。**3 件全過藝術家相對覆蓋率閘,頂點省 1.95–2.65×**
+(我方 33/41/37 v vs 藝術家 78/80/98 v;IoU 0.932/0.964/0.969,身體優於藝術家)。
+工具 `tools/mesh_gen/compare_award_mesh.py`(方位窮舉自校驗對應方向)。詳見
+`knowledge/s3-award-mesh-comparison.md`。關鍵發現:①Award uvs 為 **region 局部 [0,1]**(非頁 UV,
+更正舊假設);②3 件為 weighted/無 deform timeline → deform 閘 N/A;③絕對 IoU 0.95 對羽化件過嚴
+(光暈連藝術家都只 0.949)→ 一律用藝術家相對基準。
+
+下一個 bounded chunk 候選(更新):
+1. **件→Spine mesh attachment 組裝器(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名 +
+   size(+2px)+ **region-local uvs** 慣例固化,端到端由 PSD 件產可載入 Spine JSON(mesh)。
+2. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+3. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產)。
+
+---
+歷史下一步(已完成,存查):**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -93,6 +108,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-07:**S3+S4 端到端對照 Award 真實 mesh(里程碑)** — PSD 3 mesh 件 → generate_mesh_v2 →
+  對照 Award 生產 mesh:3 件全過藝術家相對覆蓋率閘,頂點省 1.95–2.65×(身體優於藝術家)。
+  新工具 `compare_award_mesh.py`(方位窮舉自校驗)。發現 Award uvs 為 region 局部 [0,1](更正舊假設);
+  當場抓修 bbox-正規化拉伸 bug(靠 sanity 雙 rasterizer 互證)。deform 閘 N/A(件為 weighted 無 deform timeline)。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
