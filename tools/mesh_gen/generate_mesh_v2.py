@@ -110,15 +110,44 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+# delaunay 回退用的 epsilon 階梯(由粗到細)。愈細 → hull 邊界取樣愈密。
+_EPS_LADDER = (0.008, 0.005, 0.003, 0.002, 0.0012)
+
+
+def gen_delaunay_adaptive(path, budget=64):
+    """boundary-adaptive delaunay:沿 epsilon 階梯由粗到細,取「nv<=budget 內 IoU 最高」的 mesh。
+
+    動機(2026-07-08,Award 光暈驗收):固定 epsilon=0.008 對「邊界主導的柔邊件」(如光暈/
+    halo,藝術家用 78 全 hull 點描邊)取樣過疏 → IoU 0.933 < 藝術家基準 0.980。邊界複雜度因件
+    而異,單一 epsilon 不通用;改用預算內自適應加密,讓覆蓋率貼近藝術家而不爆頂點預算。
+    """
+    from generate_mesh import generate as gen_v1
+    from evaluate_mesh import evaluate, load_mask as _lm
+    mask = _lm(path)
+    best = None
+    for eps in _EPS_LADDER:
+        m, _ = gen_v1(path, epsilon_frac=eps)
+        nv = len(m["uvs"]) // 2
+        if nv > budget:
+            break  # 再細只會更多頂點,停在預算邊界
+        iou = evaluate(m, mask)["criteria"]["AC1_iou"]["value"]
+        if best is None or iou > best[0]:
+            best = (iou, eps, m)
+    if best is None:  # 連最粗都超預算(件很碎),退回原始預設
+        m, _ = gen_v1(path)
+        m["_mode"] = "delaunay-v1"
+        return m
+    iou, eps, m = best
+    m["_mode"] = f"delaunay-v1(eps={eps})"
+    return m
+
+
+def generate(path, rows=10, cols=3, mode="auto", budget=64):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
-        from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
-        m["_mode"] = "delaunay-v1"
-        return m
+        return gen_delaunay_adaptive(path, budget=budget)
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)
     m["_mode"] = "strip"
