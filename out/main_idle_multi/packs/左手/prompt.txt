@@ -1,0 +1,21 @@
+【任務 / Task】
+這是 2D 遊戲角色的一個部位圖層(part layer)。圖層「身體」被上層「左手」遮住的區域
+已用演算法粗略填色(見 base_cpu_fill.png 中 mask 標示的區域),請只重繪該遮罩區域,
+把它完整化成自然延續的「身體」部位:延續既有輪廓線稿、色塊與明暗,不要改動遮罩外的任何像素。
+
+This is a body-part layer of a 2D game character. The area of layer "身體" hidden behind
+"左手" has been roughly color-filled by an algorithm (the masked area in base_cpu_fill.png).
+Repaint ONLY the masked area so it becomes a natural continuation of the "身體" part:
+continue the existing dark outlines, flat color regions and shading. Do not change any pixel
+outside the mask.
+
+【部位語意 / Part semantics】(由 Claude vision 看圖填寫)
+此區是高舉的左手臂(掌+臂)被移除後,身體輪廓上的窄帶。請把輪廓自然閉合:① 兜帽與粉紅捲髮的邊緣延續髮絲走向與高光收合;② 肩部白色外套邊緣閉合輪廓;③ 畫面右側漂浮髮束被手臂蓋住的小段補齊(延續該髮束)。遮罩外的透明區必須保持透明——不要新增手臂、背景或其他內容。
+
+【風格 / Style】
+- 賽璐璐平塗(flat cel-shading)、乾淨的深色輪廓線、無雜訊
+- 與 base_cpu_fill.png 遮罩外區域的線寬、色階完全一致
+- 背景保持透明(輸出含 alpha 的 PNG,尺寸與 base 相同:201x253)
+
+【參考 / Reference】
+- context.png:角色完整合成圖,紅框 = 需要生成的區域(該區在完整圖中被「左手」蓋住)

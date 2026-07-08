@@ -1,0 +1,21 @@
+【任務 / Task】
+這是 2D 遊戲角色的一個部位圖層(part layer)。圖層「身體」被上層「胸部」遮住的區域
+已用演算法粗略填色(見 base_cpu_fill.png 中 mask 標示的區域),請只重繪該遮罩區域,
+把它完整化成自然延續的「身體」部位:延續既有輪廓線稿、色塊與明暗,不要改動遮罩外的任何像素。
+
+This is a body-part layer of a 2D game character. The area of layer "身體" hidden behind
+"胸部" has been roughly color-filled by an algorithm (the masked area in base_cpu_fill.png).
+Repaint ONLY the masked area so it becomes a natural continuation of the "身體" part:
+continue the existing dark outlines, flat color regions and shading. Do not change any pixel
+outside the mask.
+
+【部位語意 / Part semantics】(由 Claude vision 看圖填寫)
+此區是被【胸部件(含紫紅色比基尼上衣)】蓋住的軀幹。請補成移除該件後露出的畫面:白色毛皮的軀幹/腹部曲面,延續周邊白毛與柔和灰紫陰影;左右延續白色外套內緣與金色拉鍊帶;下方自然銜接腰腹。不要畫比基尼(它屬於被切走的件)。注意:上方金色耳機仍在原位,金色糊斑是演算法滲染,毛皮區不要帶金色。
+
+【風格 / Style】
+- 賽璐璐平塗(flat cel-shading)、乾淨的深色輪廓線、無雜訊
+- 與 base_cpu_fill.png 遮罩外區域的線寬、色階完全一致
+- 背景保持透明(輸出含 alpha 的 PNG,尺寸與 base 相同:229x197)
+
+【參考 / Reference】
+- context.png:角色完整合成圖,紅框 = 需要生成的區域(該區在完整圖中被「胸部」蓋住)

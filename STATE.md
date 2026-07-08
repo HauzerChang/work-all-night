@@ -76,8 +76,11 @@
   base_cpu_fill(CPU 粗補底圖)+ mask + mask_alpha(OpenAI images.edit 慣例)+ context(紅框脈絡)
   + prompt.txt(結構模板 + **Claude vision 看圖寫部位語意**)。首例「頭→軀幹」2977px 已交使用者
   (可直接貼 ChatGPT 人工試)。
-- **B1 試點回饋迴圈**:使用者拿 pack 給 ChatGPT/gpt-image-1 生成 → 回圖跑 `inpaint_eval` 閘
-  + vision 語意自評 + 人審 → 記錄「哪類洞生成可用/提示詞怎麼寫最有效」→ 固化 prompt 模板。
+- **B1 試點 🏁 首例人審通過(2026-07-08)**:「耳機右罩」pack 經 ChatGPT 生成,人審判定可行
+  —— 路線閉環。已推進**複數區域**:Main_idle 切 4 件(耳機/胸部/眼鏡/左手=掌∪臂),
+  4 pack 已交使用者(補區兩型:內部件整洞填 / 貼輪廓件只補窄帶;語意新型別:生成雙眼、
+  輪廓閉合、防滲染)。待使用者 4 件生成結果回饋 → 固化 prompt 模板。
+  已知:網頁版放大重繪整塊 crop → 回貼需 resize+融合;深疊區需逐層遞迴補圖(未解)。
 - **B2 調研+選型文件**:盤點選項(gpt-image-1 遮罩編輯、Stability、Gemini 影像、本地 SD/LaMa)
   + 成本/授權/API 自動化可行性(網路政策),供使用者拍板是否接 API 全自動化。
 
