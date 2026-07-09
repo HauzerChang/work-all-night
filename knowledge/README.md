@@ -33,6 +33,8 @@
 
 - [S4 PSD-first 切圖契約](s4-psd-contract.md) — 使用者拍板走 PSD 契約。完成 psd_slice.py(PSD→各部位件+manifest)+ 自驗閘 + 合成 fixture;含給美術的交檔規範(已用真實檔校準)。
 
+- [S3 端到端:PSD 切件→生成 mesh→對照 Award 真實 mesh](s3-psd-to-award-mesh.md) — 機器人光暈/身體/左手 3 件全 `overall_pass`:我方 unweighted mesh 靜態覆蓋率追平/超過藝術家、頂點更精簡、幾何閘全過。★定論:Award JSON mesh uvs 是邏輯 region-local(8-方向窮舉全 `id` 勝出),atlas rotate/0.70 縮小不進 JSON uvs。範圍界定:靜態覆蓋率非 deform 穩健度(這批無 deform timeline)。
+
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
