@@ -17,6 +17,11 @@
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
   見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
+- **S3×S4 端到端(里程碑,2026-07-09)**:PSD 切件 → 生成 mesh → **對照 Award 真實 mesh**(3 件 weighted)。
+  `validate_robot_mesh.py`:光暈/身體/左手覆蓋率 IoU 0.93~0.97,與藝術家在 margin 內相當,**頂點少一半以上**。
+  發現塊狀件(aspect<1.2)正確回退 v1 Delaunay(strip 只給條狀件)。雙向負對照確認評估器鑑別力。
+  ⚠️ 限制:Award 這些件無 deform timeline,只驗靜態覆蓋;且我方 mesh 未帶權重(藝術家為 weighted)。
+  見 `knowledge/s3-robot-mesh-vs-award.md`。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -38,17 +43,20 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
-3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 完成(2026-07-09,里程碑)**,見上、`knowledge/s3-robot-mesh-vs-award.md`。
+2. **❗最高優先:切圖→Spine JSON 組裝(SkelToJson)**。把 `PSD名/圖層名` 命名慣例 + size+2px padding +
+   mesh/region 分派 + `generate_mesh_v2` 固化成「件→Spine skin attachment」工具,端到端吐出可載入的 Spine JSON。
+   有 Award 真值可比對輸出結構;純 CPU 可自驅。
+3. **權重生成(BBW)**:把 S3 從「只出拓樸」升到「出 weighted mesh」——才能真正替代生產 weighted mesh。
+   需骨架/骨骼輸入 → 與 S5 耦合;可先做「給定骨骼位置→BBW 權重」的離線版對 Award 真值驗。
+4. **塊狀件變形穩健驗證**:Award 有 12 anim,挑帶旋轉/縮放骨的幀,對 weighted mesh 造真實位移場 →
+   補上塊狀件缺的 deform 閘(本次里程碑的已知限制)。
+5. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+6. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3+S4 已串成端到端並對 Award 真實 mesh 驗收通過。建議下一步:(2) SkelToJson 把切件+生成 mesh 組裝成
+> 可載入的 Spine JSON(端到端 PSD→Spine),或 (3) BBW 權重把 S3 mesh 升成 weighted。
 
 ## 環境前置(已驗證可用)
 
