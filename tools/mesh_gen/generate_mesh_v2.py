@@ -110,13 +110,17 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", eps=0.002):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # 非 strip(blobby 剛體件,如機器人身體/光暈/手)走 Delaunay。
+        # eps=0.002:對真實生產件(Award 3 mesh)以「等於或少於藝術家頂點數」達覆蓋率基準;
+        # 舊值 0.008 為 main_draw 簡單形狀所調,對複雜/羽化輪廓欠取樣(見 knowledge/s3-award-rigid-mesh.md)。
+        # epsilon_frac 相對周長 → 尺度不變,跨件大小通用。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=eps)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
@@ -132,8 +136,9 @@ def main():
     ap.add_argument("--rows", type=int, default=10)
     ap.add_argument("--cols", type=int, default=3)
     ap.add_argument("--mode", choices=["auto", "strip", "delaunay"], default="auto")
+    ap.add_argument("--eps", type=float, default=0.002, help="delaunay 輪廓簡化 epsilon(相對周長)")
     a = ap.parse_args()
-    m = generate(a.image, a.rows, a.cols, a.mode)
+    m = generate(a.image, a.rows, a.cols, a.mode, a.eps)
     out = a.out or (a.image.rsplit(".", 1)[0] + "_mesh_v2.json")
     json.dump(m, open(out, "w"), ensure_ascii=False)
     print(f"[{m.get('_mode')}] {out}: 頂點 {len(m['uvs'])//2} (hull {m['hull']}), 三角 {len(m['triangles'])//3}")

@@ -31,9 +31,18 @@ def artist_iou(skeleton, slot, name, mask):
     return float(np.logical_and(recon, mask).sum() / np.logical_or(recon, mask).sum())
 
 
+def has_deform(skeleton, slot, name):
+    """該 slot/name 在任一動畫是否有 deform timeline(rigid/bone-driven mesh 沒有)。"""
+    for anim in skeleton.get("animations", {}):
+        if de.deform_frames(skeleton, anim, slot, name):
+            return True
+    return False
+
+
 def validate(skeleton_path, atlas_path, png_path, slot, name, gen_fn, tmp_dir,
              iou_margin=0.0):
     sk = json.load(open(skeleton_path))
+    # 多頁 atlas:extract 依 atlas 內 page 屬性自動選頁(png_path 僅單頁 fallback)
     sub = extract(atlas_path, png_path, name)
     crop = os.path.join(tmp_dir, "_region.png")
     cv2.imwrite(crop, sub)
@@ -46,18 +55,28 @@ def validate(skeleton_path, atlas_path, png_path, slot, name, gen_fn, tmp_dir,
 
     iou = evaluate(mesh, mask)["criteria"]["AC1_iou"]["value"]
     base = artist_iou(sk, slot, name, mask)
-    uvs_src, field, frame = de.real_deform_field(sk, slot, name)
-    dres = de.transfer_deform_check(mesh, uvs_src, field)
+    iou_pass = iou >= base - iou_margin
+
+    if has_deform(sk, slot, name):
+        uvs_src, field, frame = de.real_deform_field(sk, slot, name)
+        dres = de.transfer_deform_check(mesh, uvs_src, field)
+        deform_ac = {"frame": frame, "area_ratio": dres["area_ratio"],
+                     "self_intersections": dres["self_intersections"],
+                     "triangle_flips": dres["triangle_flips"], "pass": dres["clean"]}
+        deform_ok = dres["clean"]
+    else:
+        # rigid / bone-driven weighted mesh:無 deform timeline,變形閘不適用
+        deform_ac = {"status": "N/A", "reason": "no deform timeline (rigid/bone-driven)",
+                     "pass": True}
+        deform_ok = True
 
     return {
         "mesh": {"vertices": nv, "hull": mesh["hull"], "triangles": len(mesh["triangles"]) // 3,
                  "mode": mesh.get("_mode")},
         "AC_iou": {"value": round(iou, 4), "artist_baseline": round(base, 4),
-                   "pass": iou >= base - iou_margin},
-        "AC_real_deform": {"frame": frame, "area_ratio": dres["area_ratio"],
-                           "self_intersections": dres["self_intersections"],
-                           "triangle_flips": dres["triangle_flips"], "pass": dres["clean"]},
-        "overall_pass": (iou >= base - iou_margin) and dres["clean"],
+                   "pass": iou_pass},
+        "AC_real_deform": deform_ac,
+        "overall_pass": iou_pass and deform_ok,
     }
 
 

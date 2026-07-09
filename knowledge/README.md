@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對 Award 剛體 mesh 驗收](s3-award-rigid-mesh.md) — **S3 v2 推廣到第二個生產骨架 Award**(weighted、無 deform 的 blobby 剛體件)。v2 `auto` 正確選 delaunay;輪廓 `eps` 0.008→**0.002** 後 3 件 IoU 追平/勝過藝術家且頂點更少,整合 AC 全過。無 deform 件標 N/A(新增 `has_deform` 偵測)。PSD→件→mesh 端到端一致(self-IoU 0.98~0.99)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
