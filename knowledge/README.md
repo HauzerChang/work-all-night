@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端:機器人 PSD 件→mesh 對照 Award](s3-robot-psd-to-mesh-vs-award.md) — **S4→S3 串接對真實生產標的驗收**:光暈/身體/左手 3 件生成 mesh 覆蓋率 0.961/0.980/0.974,達/逼近藝術家(頂點數更少)。三大發現:①機器人件是 weighted+骨骼驅動、**無 deform**(deform 閘 N/A,缺 BBW 權重)②v2 auto 正確回退 delaunay(非 strip)③v1 eps 0.008 對高頻輪廓(光暈鋸齒)過疏 → v2 fallback 預設改 0.005;固定閾值(0.95/64頂點)是合成期預設,真標的是藝術家基準。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

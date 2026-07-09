@@ -110,13 +110,18 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", delaunay_eps=0.005):
+    # delaunay_eps：v1 fallback 的輪廓多邊形簡化容差(佔周長比)。
+    #   真實資產校準(2026-07-09,機器人拆件對照 Award 真實 mesh):v1 原預設 0.008 對
+    #   「高頻輪廓」(光暈的放射狀鋸齒)取樣過疏 → 光暈 IoU 0.933 < 藝術家覆蓋率 0.949。
+    #   改 0.005 後 光暈 0.961、身體 0.980、左手 0.974,皆達/近藝術家覆蓋率且頂點數仍少於藝術家。
+    #   只影響 delaunay fallback(strip 件不受影響);generate_mesh.py 自身預設維持 0.008。
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=delaunay_eps)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
