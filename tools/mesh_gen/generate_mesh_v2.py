@@ -110,11 +110,46 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+# 遞減 epsilon 排程(Douglas-Peucker):越小 → hull 越密 → 覆蓋率越高、頂點越多。
+# 覆蓋率單調受 hull 密度支配(2026-07-10,robot_parts 3 件對照 Award 藝術家 mesh 實測)。
+_EPS_SCHEDULE = (0.008, 0.005, 0.003, 0.002, 0.0015)
+
+
+def _refine_delaunay(path, coverage, max_verts, rounds=len(_EPS_SCHEDULE)):
+    """評估器驅動的自動精修(對應 RULES 5 輪迭代預算):沿排程遞減 epsilon,
+    取「首個覆蓋率達標且頂點在預算內」的 mesh(=達標中頂點最少者)。
+    都不達標則回傳達標最接近者中頂點<=預算的最佳覆蓋。"""
+    from generate_mesh import generate as gen_v1
+    from evaluate_mesh import evaluate as eval_mesh, load_mask as eval_mask
+    mask = eval_mask(path)
+    best = None  # (iou, -nv, mesh, eps)
+    for eps in _EPS_SCHEDULE[:rounds]:
+        m, _ = gen_v1(path, epsilon_frac=eps)
+        nv = len(m["uvs"]) // 2
+        iou = eval_mesh(m, mask)["criteria"]["AC1_iou"]["value"]
+        cand = (iou, -nv, m, eps)
+        if best is None or cand > best:
+            best = cand
+        if iou >= coverage and nv <= max_verts:
+            m["_mode"] = "delaunay-refined"
+            m["_refine"] = {"epsilon": eps, "iou": iou, "verts": nv, "target": coverage}
+            return m
+    # 未達標:回傳預算內覆蓋率最高者(退而求其次,仍記錄)
+    m = best[2]
+    m["_mode"] = "delaunay-refined"
+    m["_refine"] = {"epsilon": best[3], "iou": best[0], "verts": -best[1],
+                    "target": coverage, "met": False}
+    return m
+
+
+def generate(path, rows=10, cols=3, mode="auto", coverage=None, max_verts=100):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # 非 strip 件(如機器人光暈/身體/左手)走 Delaunay;給了 coverage 目標則評估器驅動自動精修
+        if coverage is not None:
+            return _refine_delaunay(path, coverage, max_verts)
         from generate_mesh import generate as gen_v1
         m, _ = gen_v1(path)
         m["_mode"] = "delaunay-v1"
