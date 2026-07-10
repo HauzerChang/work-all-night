@@ -35,12 +35,41 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
+def _hull_coverage(mask, poly):
+    """填滿的邊界多邊形 vs mask 的 IoU(量測簡化後輪廓對真實 silhouette 的貼合度)。"""
+    H, W = mask.shape
+    recon = np.zeros((H, W), np.uint8)
+    cv2.fillPoly(recon, [np.round(poly).astype(np.int32)], 1)
+    inter = np.logical_and(recon, mask).sum()
+    union = np.logical_or(recon, mask).sum()
+    return float(inter / union) if union else 0.0
+
+
 def boundary_points(mask, epsilon_frac):
+    """epsilon_frac 為數值 → 固定簡化;為 'auto' → 自適應加密邊界直到覆蓋率達標或觸及頂點上限。
+
+    自適應動機(2026-07-10,Award 光暈驗收發現):silhouette 主導的件(如發光/柔邊),
+    覆蓋率由**邊界取樣密度**決定(呼應 v2 strip「IoU 由 rows 決定」)。固定 0.008 對大柔邊件
+    過粗(光暈 hull 塌成 14 點,IoU 0.929 << 藝術家 0.980)。自適應以 mask 自身校準,不引入外部壓力。
+    """
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
     peri = cv2.arcLength(cnt, True)
+
+    if epsilon_frac == "auto":
+        # 由粗到細掃描 epsilon;達到覆蓋率目標或觸及 hull 上限即停(取第一個達標者,頂點最省)。
+        target_cov, max_hull = 0.985, 90
+        chosen = None
+        for eps in (0.008, 0.006, 0.004, 0.003, 0.002, 0.0015, 0.001):
+            approx = cv2.approxPolyDP(cnt, eps * peri, True).reshape(-1, 2).astype(np.float64)
+            cov = _hull_coverage(mask, approx)
+            chosen = approx
+            if cov >= target_cov or len(approx) >= max_hull:
+                break
+        return chosen
+
     approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
     return approx.reshape(-1, 2).astype(np.float64)
 
@@ -112,7 +141,7 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac="auto", min_dist=14, margin=6):
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
@@ -126,10 +155,12 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", default="auto",
+                    help="數值(如 0.008)固定簡化;'auto' 自適應加密邊界至覆蓋率達標")
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
-    mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)
+    eps = args.epsilon if args.epsilon == "auto" else float(args.epsilon)
+    mesh, _ = generate(args.image, args.max_interior, eps, args.min_dist)
     nv = len(mesh["uvs"]) // 2
     out = args.out or (args.image.rsplit(".", 1)[0] + "_mesh.json")
     with open(out, "w") as f:
