@@ -17,6 +17,10 @@
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
   見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
+- **S3×S4 端到端:PSD件→mesh→對照 Award 真實 mesh(里程碑,2026-07-10)** — `validate_psd_to_award.py`
+  對機器人光暈/身體/左手 3 個 mesh 件全 PASS:覆蓋率追平/超越藝術家(身體勝)、頂點更少(35–60v vs 78–98v)、
+  0 自交/退化/孤兒。校正:Award mesh uvs 實為 region-local(非 atlas-global)。負對照確認度量鑑別力。
+  見 `knowledge/s3-psd-to-award-e2e.md`。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -38,17 +42,17 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. ✅ **已完成(2026-07-10):PSD件→S3 mesh→對照 Award 真實 mesh** — 3 mesh 件全 PASS
+   (`validate_psd_to_award.py`)。見 `knowledge/s3-psd-to-award-e2e.md`。
+2. **❗最高優先:切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 +
+   size+2px padding + atlas ~0.70 縮放 + 本次已驗生成 mesh,固化成「PSD件→可載入 Spine JSON」工具,
+   端到端補上最後一段。純 CPU 可自驅(可用 Award.json 當輸出格式真值對照)。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3×S4 端到端已對真實生產 mesh 驗收通過。建議下一步:(2) SkelToJson 組裝工具,把「PSD→件→mesh」
+> 一路寫成可載入的 Spine JSON,對照 Award.json 格式;完成後 S3/S4 這條 CPU pipeline 即端到端閉環。
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +97,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-10:**S3×S4 端到端(里程碑)** — `validate_psd_to_award.py` 對機器人 3 mesh 件
+  (光暈/身體/左手)PSD切件→generate_mesh_v2→對照 Award 真實生產 mesh 全 PASS:覆蓋率追平/超越藝術家
+  (身體勝)、頂點更少(35–60 vs 78–98)、0 自交/退化/孤兒。校正 uv 為 region-local。負對照(mesh↔mesh
+  對角 0.92–0.96 vs 錯配 0.49–0.59)確認鑑別力。產 `figures/psd-to-award-mesh-overlay.png`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
