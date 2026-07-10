@@ -31,7 +31,27 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**✅ 端到端 PSD件→S3 mesh→對照 Award 真實 mesh 已完成(里程碑,2026-07-10)** — 見
+`knowledge/s3-psd-to-award-mesh.md`、`tools/mesh_gen/validate_against_award.py`。
+`robot_parts.psd` 的 3 mesh 件(光暈/身體/左手)經 `generate_mesh_v2` 生成,覆蓋率 IoU
+0.933/0.966/0.964 **達到或超越** Award 藝術家 weighted mesh(0.949/0.948/0.977),且用**更少頂點**
+(35/60/59 vs 78/98/80)。三件在 mode=auto 全落回 delaunay-v1(compact 件)。三重負對照
+(全 bbox 矩形=填充率 0.47–0.68、藝術家縮 15%=0.68–0.73)確認 IoU 有鑑別力。標準指令
+`python3 tools/mesh_gen/validate_against_award.py` → exit 0 = PASS。
+⚠️ 誠實界線:**只驗靜態覆蓋**;Award 件是 weighted(靠骨骼蒙皮),未驗 unweighted 少頂點蒙皮平滑度
+(需 S3 尚缺的 BBW 權重臂)。因無 deform timeline,真實變形閘在此不適用(刻意略過)。
+
+下一個 bounded chunk 候選(更新):
+1. **❗最高優先:切圖→Spine JSON 組裝(SkelToJson)**。端到端已到「件→mesh 覆蓋達標」;
+   下一步把「件→Spine attachment」慣例(`PSD名/圖層名`、mesh/region 分配、+2px padding、
+   region-local uvs、atlas 0.70 縮放)固化成工具,端到端產出可載入的 Spine JSON。純 CPU 可自驅。
+2. **S3 權重臂(BBW)+ 借 Award 骨架**:若要驗 weighted 蒙皮平滑度(補上本次未驗的界線)。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產)。
+
+---
+### 舊紀錄:S3 推廣到全部 4 個 mesh(里程碑,2026-06-26)
+整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -97,3 +117,8 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-07-10:**端到端 PSD件→S3 mesh→對照 Award 真實 mesh(里程碑)** — 新 `validate_against_award.py`:
+  robot_parts.psd 3 mesh 件經 generate_mesh_v2,覆蓋率 IoU 全達到/超越 Award 藝術家 weighted mesh
+  且頂點更少(35–60 vs 78–98),全 delaunay-v1。三重負對照證 IoU 有鑑別力;藝術家 uvs 落 PSD 遮罩
+  ~0.95 反證座標/朝向對齊(光暈/身體 atlas rotate=true 但 JSON uvs 為上直邏輯空間)。誠實界線:
+  只驗靜態覆蓋,未驗 weighted 蒙皮平滑度。見 `knowledge/s3-psd-to-award-mesh.md`。
