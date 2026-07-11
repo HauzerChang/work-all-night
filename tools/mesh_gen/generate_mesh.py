@@ -35,13 +35,18 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
-def boundary_points(mask, epsilon_frac):
+def boundary_points(mask, epsilon_px):
+    """Douglas-Peucker 輪廓簡化。epsilon 為**絕對像素**容差(尺度不變)。
+
+    2026-07-11:原用 `epsilon_frac × perimeter`(相對周長),對大件會過度簡化 ——
+    Award 光暈(480px 大 blob)周長大 → 容差大 → hull 抄捷徑 → IoU 0.93 掉到基準下、
+    且產生孤兒頂點。改成固定像素容差後,大小件邊界密度一致(Award 3 件 IoU 全 >0.988)。
+    """
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
-    peri = cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
+    approx = cv2.approxPolyDP(cnt, epsilon_px, True)
     return approx.reshape(-1, 2).astype(np.float64)
 
 
@@ -95,6 +100,22 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def drop_orphans(pts, tris, n_hull):
+    """移除未被任何三角形引用的頂點並重編索引(filter_triangles 可能孤立掉頂點)。
+
+    used 為升序,hull 索引本在 [0,n_hull) 最前段 → 保留後仍在最前且連續,
+    Spine 的「hull 頂點排最前」不變式維持;n_hull 依保留數重算。
+    """
+    used = sorted({int(i) for t in tris for i in t})
+    if len(used) == len(pts):
+        return pts, tris, n_hull
+    remap = {old: new for new, old in enumerate(used)}
+    new_pts = pts[used]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32)
+    new_hull = sum(1 for u in used if u < n_hull)
+    return new_pts, new_tris, new_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,12 +133,13 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_px=2.0, min_dist=14, margin=6):
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
+    hull = boundary_points(mask, epsilon_px)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = drop_orphans(pts, tris, n_hull)
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
@@ -126,7 +148,8 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", type=float, default=2.0,
+                    help="Douglas-Peucker 絕對像素容差(尺度不變);越小邊界越貼、頂點越多")
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
     mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)
