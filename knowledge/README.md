@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端泛化到 Award 藝術家 mesh](s3-award-mesh-generalization.md) — **里程碑:PSD件→S3 mesh→對照真實生產 mesh**。光暈/身體/左手 3 個 weighted 骨驅 mesh:IoU ≥ 藝術家、頂點 ≤ 藝術家、setup 乾淨(`validate_award_mesh.py`)。校準 v1 Delaunay epsilon 0.008→0.002(有機輪廓覆蓋率+0.05);atlas_crop CW 還原獲藝術家 UV 幾何獨立確認。缺口:weighted mesh 的骨驅變形閘 + BBW 權重生成。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
