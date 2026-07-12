@@ -110,11 +110,39 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+# Douglas-Peucker epsilon 由粗到細的階梯(adaptive 用)。
+# 發現(2026-07-12,機器人光暈件):預設 eps=0.008 對「細緻/圓形」邊界(如光暈)欠取樣
+# → hull 太疏、覆蓋率 IoU 掉到 0.93。愈細 eps → hull 愈密 → IoU 愈高,但頂點數上升。
+# adaptive 策略:取「頂點數仍 ≤ budget」的最細 eps,兼顧邊界保真與頂點預算。
+_EPS_LADDER = [0.008, 0.006, 0.004, 0.003, 0.002, 0.0015, 0.001]
+
+
+def _adaptive_delaunay(path, budget):
+    """在 eps 階梯上挑「nv ≤ budget 的最細邊界」;回傳選中的 v1 mesh 與所用 eps。"""
+    from generate_mesh import generate as gen_v1
+    chosen, chosen_eps = None, _EPS_LADDER[0]
+    for eps in _EPS_LADDER:
+        m, _ = gen_v1(path, epsilon_frac=eps)
+        nv = len(m["uvs"]) // 2
+        if nv <= budget:
+            chosen, chosen_eps = m, eps          # 仍在預算內 → 記錄,繼續嘗試更細
+        else:
+            break                                 # 超預算 → 停,保留上一個(更粗)結果
+    if chosen is None:                            # 連最粗都超預算(罕見)→ 用最粗
+        chosen, _ = gen_v1(path, epsilon_frac=_EPS_LADDER[0])
+    chosen["_eps"] = chosen_eps
+    return chosen
+
+
+def generate(path, rows=10, cols=3, mode="auto", adaptive=False, budget=64):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        if adaptive:
+            m = _adaptive_delaunay(path, budget)
+            m["_mode"] = "delaunay-v1-adaptive"
+            return m
         from generate_mesh import generate as gen_v1
         m, _ = gen_v1(path)
         m["_mode"] = "delaunay-v1"
