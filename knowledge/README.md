@@ -33,6 +33,8 @@
 
 - [S4 PSD-first 切圖契約](s4-psd-contract.md) — 使用者拍板走 PSD 契約。完成 psd_slice.py(PSD→各部位件+manifest)+ 自驗閘 + 合成 fixture;含給美術的交檔規範(已用真實檔校準)。
 
+- [S3 對照 Award 真實 mesh 端到端驗收](s3-award-mesh-groundtruth.md) — PSD件→生成 mesh 對 3 件真實生產 weighted mesh(光暈/身體/左手):頂點數 ≤ 藝術家、IoU ≥ 藝術家全 PASS。關鍵:邊界容差改「絕對像素(eps_px=3.5)」而非周長比例(大件過度簡化 bug),已加入 generate_mesh 為向後相容 knob,4 mesh main_draw 零回歸。
+
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

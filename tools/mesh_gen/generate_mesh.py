@@ -35,13 +35,21 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
-def boundary_points(mask, epsilon_frac):
+def boundary_points(mask, epsilon_frac, eps_px=None):
+    """輪廓簡化取點。
+
+    `eps_px`(絕對像素邊界容差)若給定則覆蓋 `epsilon_frac`:
+    approxPolyDP 的 epsilon 直接用像素而非周長比例。發現(2026-07-12,
+    對 Award 真實 mesh 驗):固定周長比例對大件(周長越大 → 邊界越粗)過度簡化,
+    覆蓋率掉;改用固定 ~3.5px 絕對容差對大小件都吻合藝術家覆蓋率。
+    """
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
     peri = cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
+    eps = eps_px if eps_px is not None else epsilon_frac * peri
+    approx = cv2.approxPolyDP(cnt, eps, True)
     return approx.reshape(-1, 2).astype(np.float64)
 
 
@@ -112,9 +120,10 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             eps_px=None):
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
+    hull = boundary_points(mask, epsilon_frac, eps_px)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
