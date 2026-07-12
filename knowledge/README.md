@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真值](s3-end-to-end-award.md) — PSD 件→generate_mesh_v2→對照 Award 藝術家 mesh(光暈/身體/左手)。3 件全過(相對藝術家 tol=2% + 幾何乾淨),我的 mesh 用少 21–43 頂點達藝術家覆蓋(身體件反超)。**第四次評估器校準:絕對 0.95 IoU AC 對軟邊件過嚴,連藝術家真值(0.9486)都不過 → 改用「相對藝術家」判準**。負對照確認 coverage 度量鑑別力(對角 0.95–0.98 vs 錯件 0.48–0.58)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
