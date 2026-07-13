@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端 vs Award 真實 mesh](s3-award-real-mesh-comparison.md) — **PSD件→S3→對照藝術家 mesh(有真值),3/3 通過**且頂點更精簡。校正 log 006 誤解(Award mesh uvs 是 region 局部 0..1、非 atlas UV)。找到並修 v1 覆蓋率缺陷:**IoU 由 hull 邊界密度(epsilon)決定、內部點無關**,預設 0.008→0.004。閘內建 sanity gate 擋 UV 誤解。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
