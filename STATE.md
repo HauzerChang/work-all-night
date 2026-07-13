@@ -31,7 +31,23 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3×S4 端到端驗收通過(里程碑,2026-07-13)**:PSD 件 → 生成 mesh → 對照 Award 藝術家真值。
+- 3 個機器人 mesh 件(光暈/左手/身體)生成 mesh 覆蓋率 IoU **0.983/0.980/0.971 ≈/優於藝術家
+  0.980/0.968/0.976**,且少 **20–35% 頂點**、全在 64 預算內。
+- **修好通用性 bug**:固定 epsilon 不通用(光暈需細邊界、小件會爆預算)→ 新增
+  `generate_mesh.generate_auto`(自適應 epsilon 買覆蓋率 + 預算感知內部點),設為 v2 非 strip 回退。
+- 學到:Award mesh uvs = **region-local / 上正(rotate 旗標與 uvs 無關)/ v-down**;
+  藝術家 mesh 要疊在 **atlas 自身貼圖**(非 PSD 緊裁框)才免假性低 IoU。詳見 `knowledge/s3-psd-to-award-mesh.md`。
+
+下一個 bounded chunk 候選(接續):
+1. **❗件→Spine JSON 組裝工具(SkelToJson)**:固化 `PSD名/圖層名` 命名 + size+2px padding +
+   mesh/region 分配 + 自適應 mesh 生成,端到端產出可載入的 Spine mesh attachment JSON。
+2. **deform 穩健性對照**:機器人件在 Award 無 deform timeline(靠骨骼權重)→ 本輪未做變形閘;
+   找有 deform 的件(main_draw 窗簾)或加合成位移場,比較「藝術家沿內部邊界佈點 vs 生成佈點」耐變形。
+
+---
+### 舊里程碑(2026-06-26):S3 推廣到全部 4 個 mesh
+整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -97,3 +113,8 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-07-13:**S3×S4 端到端驗收(里程碑)** — robot_parts.psd 3 mesh 件跑 generate_mesh_v2,
+  對照 Award 藝術家 mesh:覆蓋率 IoU 0.97~0.98 ≈/優於藝術家、少 20–35% 頂點、全在預算內。
+  修好「固定 epsilon 不通用」→ `generate_auto`(自適應 epsilon + 預算感知內部點)。
+  釐清 Award mesh uvs = region-local/上正/v-down;藝術家 mesh 須疊 atlas 自身貼圖避假性低 IoU。
+  見 `knowledge/s3-psd-to-award-mesh.md` + figures。

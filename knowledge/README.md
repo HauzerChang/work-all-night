@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端:PSD件→生成 mesh vs Award 藝術家真值](s3-psd-to-award-mesh.md) — **里程碑**:3 個機器人 mesh 件生成 mesh 覆蓋率 IoU ≈/優於藝術家(0.97~0.98),少 20–35% 頂點、全在預算內。修好「固定 epsilon 不通用」→ 自適應 epsilon + 預算感知內部點(`generate_auto`)。發現 Award mesh uvs 為 region-local/上正/v-down;藝術家 mesh 須疊在 atlas 自身貼圖(非 PSD 緊裁框)才免假性低 IoU。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

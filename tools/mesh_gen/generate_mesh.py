@@ -121,6 +121,49 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
+def _hull_iou(hull_pts, mask):
+    """把 hull 邊界當 polygon 填滿,和 mask 比 IoU(生成器內建 QA,非 evaluator)。
+    三角化會 tile 整個 hull 內部,故 hull-fill IoU ≈ 最終 mesh 覆蓋率上界。"""
+    h, w = mask.shape
+    recon = np.zeros((h, w), np.uint8)
+    cv2.fillPoly(recon, [np.round(hull_pts).astype(np.int32)], 1)
+    inter = int(np.logical_and(recon, mask > 0).sum())
+    union = int(np.logical_or(recon, mask > 0).sum())
+    return inter / union if union else 0.0
+
+
+# 由粗到細的 Douglas-Peucker epsilon 候選(佔周長比例)
+_EPS_LADDER = [0.008, 0.006, 0.004, 0.003, 0.002, 0.0015, 0.001]
+
+
+def generate_auto(path, budget=64, iou_target=0.97, min_dist=14, margin=6):
+    """自適應 v1:先為「覆蓋率」自動挑 epsilon(邊界細節),再把剩餘頂點預算分給內部點。
+
+    動機(2026-07-13,對真實機器人件驗證):固定 epsilon 不通用 ——
+    大而平滑的件(光暈)需細邊界才夠 IoU;小而角的件在低 epsilon 下 hull 暴增,
+    加上固定 40 內部點會爆 64 頂點預算。**內部點不影響靜態覆蓋 IoU(只影響 deform)**,
+    故正確作法是「先用 hull 買到覆蓋率,再用剩餘預算補內部點」。
+    """
+    mask, gray, W, H = load_mask(path)
+    chosen_eps, hull = _EPS_LADDER[0], boundary_points(mask, _EPS_LADDER[0])
+    hull_cap = budget - 4  # 至少留 4 個內部點的空間
+    for eps in _EPS_LADDER:
+        cand = boundary_points(mask, eps)
+        if len(cand) > hull_cap:
+            break                      # 再細會擠掉內部點預算,停在上一個
+        chosen_eps, hull = eps, cand
+        if _hull_iou(hull, mask) >= iou_target:
+            break                      # 覆蓋率已達標,不必再加邊界點
+    n_hull = len(hull)
+    max_interior = max(0, budget - n_hull)
+    inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+    pts, tris, nh = triangulate(hull, inter)
+    tris = filter_triangles(pts, tris, mask)
+    m = to_spine(pts, tris, nh, W, H)
+    m["_eps"] = chosen_eps
+    return m, mask
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")
@@ -128,8 +171,14 @@ def main():
     ap.add_argument("--max-interior", type=int, default=40)
     ap.add_argument("--epsilon", type=float, default=0.008)
     ap.add_argument("--min-dist", type=float, default=14)
+    ap.add_argument("--auto", action="store_true",
+                    help="自適應 epsilon + 預算感知內部點分配(推薦,通用於件大小)")
+    ap.add_argument("--budget", type=int, default=64)
     args = ap.parse_args()
-    mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)
+    if args.auto:
+        mesh, _ = generate_auto(args.image, budget=args.budget, min_dist=args.min_dist)
+    else:
+        mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)
     nv = len(mesh["uvs"]) // 2
     out = args.out or (args.image.rsplit(".", 1)[0] + "_mesh.json")
     with open(out, "w") as f:
