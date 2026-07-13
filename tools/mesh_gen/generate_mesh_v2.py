@@ -110,14 +110,15 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", target_iou=0.98, vertex_cap=96):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # 非 strip(方/寬/非 row-convex)→ Delaunay 回退,並開啟自適應邊界細分達覆蓋率目標。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
-        m["_mode"] = "delaunay-v1"
+        m, _ = gen_v1(path, target_iou=target_iou, vertex_cap=vertex_cap)
+        m["_mode"] = "delaunay-v1-adaptive"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)

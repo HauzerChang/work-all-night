@@ -112,13 +112,51 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
-    mask, gray, W, H = load_mask(path)
+def _coverage_iou(mesh, mask):
+    """三角形填滿 vs alpha 的 IoU(生成器內部自評,不依賴 evaluate_mesh 以免循環)。"""
+    W, H = mesh["width"], mesh["height"]
+    v = mesh["vertices"]
+    pts = np.array([[v[i] + W / 2.0, H / 2.0 - v[i + 1]] for i in range(0, len(v), 2)])
+    recon = np.zeros((H, W), np.uint8)
+    for t in np.array(mesh["triangles"]).reshape(-1, 3):
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0).astype(np.uint8)
+    u = int(np.logical_or(recon, m).sum())
+    return int(np.logical_and(recon, m).sum()) / u if u else 0.0
+
+
+def _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin):
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
-    return to_spine(pts, tris, n_hull, W, H), mask
+    return to_spine(pts, tris, n_hull, W, H)
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_iou=None, vertex_cap=96):
+    """target_iou=None → 沿用固定 epsilon(向後相容)。
+
+    設定 target_iou 時啟動**閉環自適應邊界細分**:Douglas-Peucker epsilon 由粗到細,
+    邊界取樣密度↑ → 覆蓋率↑(與 strip 的 rows 同理)。取「達標且頂點 ≤ vertex_cap」
+    的最粗 epsilon;若無一達標,回傳 cap 內覆蓋率最佳者。避免對簡單形狀過度細分。
+    """
+    mask, gray, W, H = load_mask(path)
+    if target_iou is None:
+        return _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin), mask
+    best = None
+    for eps in (0.008, 0.006, 0.004, 0.003, 0.002, 0.0015, 0.001):
+        m = _build(mask, gray, W, H, max_interior, eps, min_dist, margin)
+        nv = len(m["uvs"]) // 2
+        iou = _coverage_iou(m, mask)
+        if nv > vertex_cap:
+            break                       # 更細只會更多點 → 停
+        if best is None or iou > best[1]:
+            best = (m, iou)
+        if iou >= target_iou:
+            return m, mask
+    return (best[0] if best else _build(mask, gray, W, H, max_interior,
+            epsilon_frac, min_dist, margin)), mask
 
 
 def main():
