@@ -95,6 +95,19 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def prune_unused(pts, tris, n_hull):
+    """去掉未被任何三角使用的『內部』孤兒頂點並重新編號。
+    hull 頂點(index < n_hull)一律保留以維持『hull 排最前 + 邊界完整』的 Spine 不變量;
+    只有內部候選點可能在三角形被 centroid 過濾後變孤兒(見 knowledge/s3-psd-to-mesh-award.md)。"""
+    used = set(int(i) for i in tris.flatten()) if tris.size else set()
+    keep = [i for i in range(len(pts)) if i < n_hull or i in used]
+    remap = {old: new for new, old in enumerate(keep)}
+    new_pts = pts[keep]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32) \
+        if tris.size else tris
+    return new_pts, new_tris, n_hull  # n_hull 不變(hull 全保留)
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,12 +125,13 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.004, min_dist=14, margin=6):
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = prune_unused(pts, tris, n_hull)
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
@@ -126,7 +140,7 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", type=float, default=0.004)
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
     mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)

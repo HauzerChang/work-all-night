@@ -110,13 +110,16 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", epsilon=0.004):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # blob 件(非高瘦窗簾)走 v1 Delaunay。epsilon=0.004 由真實 Award mesh 件校準:
+        # 0.008 hull 太粗、覆蓋率不及藝術家;0.004 hull 對齊藝術家且不超頂點預算
+        # (見 knowledge/s3-psd-to-mesh-award.md)。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=epsilon)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
