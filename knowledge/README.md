@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3+S4 端到端對照 Award 真實 mesh](s3-s4-end-to-end-award-mesh.md) — PSD 件→生成 mesh→對照 Award 藝術家 mesh 真值,機器人 3 mesh 件(光暈/身體/左手)**全 PASS**:覆蓋率 IoU 打平或勝藝術家(身體 0.966>0.948)且**頂點更少**(35/60/59 vs 78/98/80)。`mode=auto` 首次在真實 blob 形狀上驗證正確路由到 v1 Delaunay。IoU 在同張 PSD 件遮罩上算(uvs 正規化,免 atlas 縮放/旋轉干擾)。雙向負對照確認鑑別力。限制:此 3 件無 deform timeline,只驗靜態覆蓋率+精簡度。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
