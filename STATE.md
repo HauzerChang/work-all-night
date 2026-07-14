@@ -31,24 +31,27 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
-- **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
-- **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
-- 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
-- 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
+**S3+S4 端到端對照 Award 完成(里程碑,2026-07-14)** — `tools/mesh_gen/e2e_psd_award.py`:
+`robot_parts.psd` 的 3 個 mesh 件(光暈/身體/左手)→ `generate_mesh_v2` → 對照 big win `Award`
+的藝術家 **weighted** mesh。三件 **AC1 全過**:生成 mesh 用更少頂點(35/60/59 vs 藝術家 78/98/80)
+達到 >= 藝術家包覆基準的輪廓 IoU(0.933/0.966/0.964),且覆蓋同一 footprint(gen↔artist 0.92/0.93/0.96)。
+- 三件近方形(aspect<1.2)→ auto 走 v1 Delaunay(非 strip 形狀)。
+- 確定 **uv→region 局部不翻 y**(direct vs flip IoU 差 0.34–0.52,解掉 log 006 開放問題)。
+- **限制**:只做靜態輪廓;三件皆 weighted(骨驅動、無 deform timeline),weighted deform 對照待下一 chunk。
+- 詳見 `knowledge/s3-s4-e2e-award.md`、圖 `knowledge/figures/e2e-psd-award-mesh.png`。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
-3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+1. **weighted deform 對照(承接本次限制)**:寫「bone bind-pose skinning 重現」,拿 Award 動畫某骨
+   旋轉/平移驅動藝術家 weighted mesh vs 生成 mesh(需先補權重),比對變形穩健。純 CPU;需重現 skinning。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding
+   固化成「件→Spine attachment」寫出工具,端到端產可載入的 Spine JSON(把本次生成 mesh 塞回 skin)。
+3. **S3 補權重(BBW/heat)**:讓生成 mesh 能綁 Award 骨架、真正取代 weighted mesh(較後段)。
+4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3+S4 已端到端對真實生產標的驗收(靜態)。建議下一步:(2) SkelToJson 把生成 mesh 寫回 Spine JSON
+> 做完整「PSD→件→mesh→JSON」;或 (1) 補 weighted deform 對照補足本次靜態限制。
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +96,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-14:**S3+S4 端到端對照 Award(里程碑)** — `e2e_psd_award.py`:robot_parts.psd 3 mesh 件
+  → generate_mesh_v2 → 對照 Award 藝術家 weighted mesh,三件 AC1 全過(生成更精簡、輪廓 IoU 不輸、覆蓋
+  同 footprint)。確定 uv→region 局部不翻 y。限制:靜態輪廓(三件皆 weighted、無 deform timeline)。
+  見 `knowledge/s3-s4-e2e-award.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
