@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對照 Award 真實 mesh(端到端里程碑)](s3-vs-award-real-mesh.md) — S3 對真實生產 mesh(光暈/左手/身體)驗收通過:覆蓋率不遜藝術家(0.96~0.97)、頂點更精簡、足跡 IoU 0.94~0.96。發現「軟邊件覆蓋率由 hull 取樣密度(epsilon)決定」→ 生成器加**覆蓋率自我收斂**(用自帶 coverage_iou 迴圈調 epsilon 達 target)。回歸:main_draw 4 mesh(strip)不受影響。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

@@ -112,12 +112,42 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def coverage_iou(pts, tris, mask):
+    """三角化足跡 vs 來源 alpha 的 IoU(用於覆蓋率自我收斂)。"""
+    h, w = mask.shape
+    recon = np.zeros((h, w), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0).astype(np.uint8)
+    inter = int(np.logical_and(recon, m).sum())
+    union = int(np.logical_or(recon, m).sum())
+    return inter / union if union else 0.0
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_iou=0.95, min_epsilon=0.0015, vertex_budget=64):
+    """對 alpha 生成 unweighted mesh。
+
+    覆蓋率自我收斂(2026-07-15,對照 Award 真實 mesh 加入):軟邊/凸形大件的覆蓋率**受 hull
+    取樣密度(epsilon)限制、非內部點**(對照發現:光暈 eps 0.008→0.9292,0.002→0.9832,
+    藝術家 78-all-hull=0.9795)。故用生成器自帶的 coverage_iou 迴圈:若覆蓋率未達 target 就
+    對半調細 epsilon 再生,直到達標 / 觸及 epsilon 下限 / 觸及頂點預算。target_iou<=0 可關閉。
+    """
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
-    inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
-    pts, tris, n_hull = triangulate(hull, inter)
-    tris = filter_triangles(pts, tris, mask)
+    eps = epsilon_frac
+    best = None
+    for _ in range(6):
+        hull = boundary_points(mask, eps)
+        inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+        pts, tris, n_hull = triangulate(hull, inter)
+        tris = filter_triangles(pts, tris, mask)
+        cov = coverage_iou(pts, tris, mask) if len(tris) else 0.0
+        if best is None or cov > best[3]:
+            best = (pts, tris, n_hull, cov)
+        if target_iou <= 0 or cov >= target_iou or eps <= min_epsilon or len(pts) >= vertex_budget:
+            break
+        eps *= 0.5
+    pts, tris, n_hull, _ = best
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
