@@ -112,13 +112,47 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def coverage_iou(mesh, mask):
+    """把 mesh 三角形填滿的覆蓋 vs 來源遮罩 IoU(生成期自評,不需 ground truth)。"""
+    W, H = mesh["width"], mesh["height"]
+    v = mesh["vertices"]
+    pts = np.array([(v[i] + W / 2.0, H / 2.0 - v[i + 1]) for i in range(0, len(v), 2)])
+    tris = np.array(mesh["triangles"], np.int32).reshape(-1, 3)
+    recon = np.zeros((H, W), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0).astype(np.uint8)
+    uni = int(np.logical_or(recon, m).sum())
+    return int(np.logical_and(recon, m).sum()) / uni if uni else 0.0
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_iou=None, vertex_cap=128, eps_floor=0.0008):
+    """target_iou=None:固定 epsilon_frac(原行為,不變)。
+    target_iou 設值時:自適應細化邊界 —— 由 epsilon_frac 起逐步(÷1.6)降低容差,
+    直到覆蓋 IoU ≥ target_iou 或頂點數超過 vertex_cap 或觸及 eps_floor。
+    解決『單一固定 epsilon 對大而平滑輪廓取樣不足』(見 knowledge/s3-award-mesh-parity.md)。"""
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
-    inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
-    pts, tris, n_hull = triangulate(hull, inter)
-    tris = filter_triangles(pts, tris, mask)
-    return to_spine(pts, tris, n_hull, W, H), mask
+
+    def build(eps):
+        hull = boundary_points(mask, eps)
+        inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+        pts, tris, n_hull = triangulate(hull, inter)
+        tris = filter_triangles(pts, tris, mask)
+        return to_spine(pts, tris, n_hull, W, H)
+
+    if target_iou is None:
+        return build(epsilon_frac), mask
+
+    eps = epsilon_frac
+    best = build(eps)
+    while coverage_iou(best, mask) < target_iou and eps > eps_floor:
+        eps = max(eps / 1.6, eps_floor)
+        cand = build(eps)
+        if len(cand["uvs"]) // 2 > vertex_cap:
+            break  # 保留上一個未超預算的結果
+        best = cand
+    return best, mask
 
 
 def main():
