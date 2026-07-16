@@ -17,6 +17,11 @@
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
   見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
+- **S3+S4 端到端對真實件驗收通過(里程碑,2026-07-16)** — 真實貼圖區→S3 mesh→對照 Award 藝術家 mesh,
+  **3 個 mesh 件(光暈/身體/左手)全 overall_pass**(靜態輪廓 IoU 0.966/0.971/0.988 ≥ 藝術家基準,頂點更精簡,
+  0 孤兒/0 退化/格式合規)。⭐**關鍵發現:Award 生產件是 weighted mesh(骨骼蒙皮),無 per-vertex deform,
+  與 main_draw 的 4 個 unweighted mesh 本質不同** → S3 目前只產 unweighted,**權重(BBW)是被真值點名的下一落差**。
+  新增 `validate_against_award.py`(處理 weighted 目標);修 v1 epsilon 為 auto-refine。見 `knowledge/s3-award-end-to-end.md`。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -38,17 +43,18 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. **❗最高優先(被真值點名的落差):S3 BBW 權重**。真實驗收發現 Award 生產 mesh 是 **weighted**;S3 只產
+   unweighted,無法對照蒙皮件的「變形」(只驗到靜態輪廓)。實作 bounded biharmonic weights:對生成 mesh
+   依骨架綁定算每頂點權重 → 產 weighted Spine mesh。輸入骨架可先用 Award 現成骨綁定(或等 S5)。**純 CPU**。
+   完成條件:對某骨旋轉時,加權變形無自交/翻面,且蒙皮輪廓貼近 Award 對應件。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把 `PSD名/圖層名` 命名慣例 + size+2px padding + mesh 段固化成
+   「件→Spine attachment」寫檔工具,端到端產可載入的 Spine JSON。純 CPU 可自驅。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3+S4 已端到端對真實生產件驗收通過(靜態輪廓+拓樸)。**被真值點名的最大缺口 = 權重蒙皮(BBW)**。
+> 建議下一步做 (1) S3 BBW,補上 weighted mesh 能力,才能對照 Award 這類蒙皮件的變形(而非只有靜態輪廓)。
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +99,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-16:**S3+S4 端到端對真實生產件驗收(里程碑)** — 真實貼圖區→S3 mesh→對照 Award 藝術家 mesh,
+  3 件(光暈/身體/左手)全 overall_pass(輪廓 IoU 0.966/0.971/0.988,頂點更精簡)。**關鍵發現:Award 生產件是
+  weighted mesh(蒙皮),與 main_draw unweighted 本質不同 → 權重(BBW)是下一落差**。新增 `validate_against_award.py`
+  (處理 weighted 目標);修 v1 epsilon 為 auto-refine(光暈 0.929→0.966、去孤兒);main_draw 4 mesh 回歸全過。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

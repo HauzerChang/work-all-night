@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3+S4 端到端(對 Award 真實件)](s3-award-end-to-end.md) — 真實貼圖區→S3 mesh→對照藝術家 mesh,**3 件全 overall_pass**(光暈 0.966/身體 0.971/左手 0.988,頂點更精簡)。**關鍵發現:生產件是 weighted mesh(骨骼蒙皮),與 main_draw 的 unweighted 本質不同 → S3 缺的權重(BBW)是被真值點名的下一落差**。順手修 v1 epsilon 為 auto-refine(大凹件光暈 IoU 0.929→0.966、去孤兒);新增 `validate_against_award.py`(能處理 weighted 目標)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

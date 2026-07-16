@@ -112,13 +112,37 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
-    mask, gray, W, H = load_mask(path)
+def _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin):
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
-    return to_spine(pts, tris, n_hull, W, H), mask
+    used = set(int(i) for i in tris.flatten()) if tris.size else set()
+    orphans = sum(1 for i in range(len(pts)) if i not in used)
+    return to_spine(pts, tris, n_hull, W, H), orphans
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             auto_refine=True, budget=64):
+    """auto_refine:固定 frac 不隨件大小/複雜度縮放 → 大且凹的件(如光暈 solidity 0.79)邊界
+    取樣不足(IoU 低 + 三角過濾產生孤兒)。改為在頂點預算內選『最細、0 孤兒』的邊界:
+    由粗到細掃 epsilon,取 nv≤budget 且 0 孤兒中最細的一個(輪廓保真在預算下最大化)。
+    schedule 含舊預設 0.008 為最粗,小件通常本來就少點 → 行為不變。"""
+    mask, gray, W, H = load_mask(path)
+    if not auto_refine:
+        m, _ = _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin)
+        return m, mask
+    best = None  # (nv, mesh) 取符合條件中 nv 最大(最細)
+    for eps in (0.008, 0.006, 0.004, 0.003, 0.002):
+        m, orph = _build(mask, gray, W, H, max_interior, eps, min_dist, margin)
+        nv = len(m["uvs"]) // 2
+        if nv <= budget and orph == 0:
+            if best is None or nv > best[0]:
+                best = (nv, m)
+    if best is None:  # 沒有任一在預算內乾淨 → 退回原預設(至少產出)
+        m, _ = _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin)
+        return m, mask
+    return best[1], mask
 
 
 def main():
