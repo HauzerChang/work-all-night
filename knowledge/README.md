@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端 Award mesh 對照](s3-award-mesh-match.md) — atlas 切件→`generate_mesh`→對照 Award 藝術家真實 mesh(光暈/左手/身體)。調到藝術家保真度(eps=0.002、budget=100)後 3 件覆蓋 IoU 全 ≥ 藝術家 baseline、格式/拓樸全過。發現:預設 eps=0.008 欠覆蓋、budget=64 對真實大件太緊(藝術家本身 78~98v);mesh 密度是標的相依。Award 件 weighted 無 deform → 不跑 deform 閘。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

@@ -31,6 +31,22 @@
 
 ## 下一步動作 (next action)
 
+**S3 端到端對照真實生產 mesh 通過(里程碑,2026-07-16)**:`validate_award_mesh.py` 對 Award spine
+3 個 mesh 件(光暈/左手/身體)—— atlas 切件→`generate_mesh`→對藝術家真實 mesh 比覆蓋率。
+- 調到藝術家保真度(**eps=0.002、budget=100**)後 3 件覆蓋 IoU(0.983/0.991/0.993)全 ≥ 藝術家 baseline
+  (0.980/0.968/0.976)、格式/拓樸/無孤兒全過 → `--gen v1` exit 0。
+- **發現**:預設 `epsilon_frac=0.008` 對不規則團塊件欠覆蓋(hull 只 14~21);eps=0.002 貼齊藝術家精簡度
+  (hull 37~43、nv 67~77 ≈ 藝術家 78~98)。`vertex_budget=64` 對真實大件太緊(藝術家本身 78~98v)。
+  **mesh 密度是「標的相依」的**。
+- Award 件 **weighted + 無 deform timeline**(骨骼權重 warp)→ 沒有位移場真值可轉移,故只做靜態+拓樸 AC,
+  不硬套未校準合成壓力場。詳見 `knowledge/s3-award-mesh-match.md`。
+
+下一個候選(接續):
+- **自適應 epsilon**:依 arcLength / 目標頂點預算自動定 eps,讓 `generate_mesh` auto 對任意件貼齊藝術家精簡度免手調(直接解掉本次手調 eps 的限制)。
+- 切圖→Spine JSON 組裝(SkelToJson):固化 `PSD名/圖層名`+size+2px padding。
+- S2 補圖閘 / 骨架閘。
+
+---
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -93,6 +109,11 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-16:**S3 端到端對照真實生產 mesh(里程碑)** — 新增 `validate_award_mesh.py`,對 Award
+  3 mesh 件(光暈/左手/身體)atlas 切件→`generate_mesh`→比藝術家真實 mesh 覆蓋率。預設參數 3 件全 fail
+  (小 1~5%);根因=eps=0.008 欠覆蓋(hull 只 14~21)+ budget=64 太緊(藝術家 78~98v)。調 eps=0.002/budget=100
+  後 3 件覆蓋 IoU 全 ≥ 藝術家 baseline、拓樸全過(exit 0)。Award 件 weighted 無 deform → 只驗靜態+拓樸。
+  未改全域生成器預設(main_draw 4 mesh 重驗仍過)。教訓:mesh 密度標的相依,宜做自適應 eps。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
