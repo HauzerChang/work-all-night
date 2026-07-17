@@ -31,7 +31,27 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3+S4 端到端對真實生產 mesh 驗收通過(里程碑,2026-07-17)**:`robot_parts.psd` 切件 →
+`generate_mesh_v2` → 對照 Award 3 個 mesh 件(光暈/身體/左手)靜態幾何 **3/3 PASS**
+(工具 `tools/mesh_gen/compare_gen_vs_award.py`)。
+- **評估器第 4 次校準**:初版誤把 Spine mesh `uvs` 當 full-sheet → 藝術家基準算成 0.0/0.5/0.7 垃圾值
+  → 生成 IoU 輕鬆假 PASS。**事實:uvs 是 region-local [0,1]**(同 `validate_against_real.artist_iou`)。
+  校準後藝術家基準 ≈0.97(高基準 sanity 通過才可信)。
+- **修 v1 生成器尺度依賴 bug**:`epsilon=epsilon_frac*周長` 使大件(光暈 706px→23px 容差)外輪廓被
+  過度簡化,覆蓋率崩到 0.93。改**尺度不變** `min(epsilon_frac*peri, abs_tol_px=3.0)` → 光暈 0.99、
+  3 件全達/超藝術家基準、頂點同級。無回歸(v1 curtain_left + v2 4mesh 重驗全過)。
+- **誠實範圍**:這 3 件無 deform timeline(weighted,骨骼變形)→ deform 閘不適用;本次為靜態幾何。
+- 詳見 `knowledge/s3-award-mesh-e2e.md`。
+
+下一個 bounded chunk 候選(依槓桿):
+1. **SkelToJson 組裝器**:固化已驗慣例(`<PSD名>/<圖層名>` slot、+2px padding、mesh/region 分配)
+   → 端到端從 PSD 件產出「可載入的 Spine mesh attachment JSON」。純 CPU 可自驅。
+2. **BBW 權重生成**(S3 路線圖第三塊):生成 mesh 目前 unweighted,真實生產件為 weighted(骨骼變形);
+   要對 weighted 標的完整對齊需此能力。
+3. S2 補圖閘 / 骨架閘;S1 反推分析器(需 benchmark 影片,repo 無影片資產)。
+
+---
+（歷史)**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -93,6 +113,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-17:**S3+S4 端到端對真實生產 mesh 驗收(里程碑)** — robot_parts.psd 切件→generate_mesh_v2→
+  對照 Award 3 mesh 件 3/3 PASS(`compare_gen_vs_award.py`)。校準第 4 次(uvs 為 region-local 非 full-sheet,
+  假 PASS→真基準 0.97);修 v1 尺度依賴 epsilon bug(大件外輪廓過簡化)為尺度不變絕對像素上限;無回歸。
+  這 3 件無 deform timeline(weighted)故 deform 閘不適用(誠實註記)。見 `knowledge/s3-award-mesh-e2e.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

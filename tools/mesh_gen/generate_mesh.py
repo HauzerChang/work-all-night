@@ -35,13 +35,18 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
-def boundary_points(mask, epsilon_frac):
+def boundary_points(mask, epsilon_frac, abs_tol_px=3.0):
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
     peri = cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
+    # ⚠️ 尺度不變 epsilon(2026-07-17 對 Award 真實 mesh 校驗發現):
+    #   純用 epsilon_frac*peri 會讓「大件」得到過粗的絕對容差(光暈 706px → 23px),
+    #   Douglas-Peucker 把外輪廓過度簡化 → 覆蓋率掉到 0.93 << 藝術家 0.98。
+    #   改為與 abs_tol_px(像素)取小:大件收斂到 ~abs_tol_px 的細緻度,小件維持比例。
+    epsilon = min(epsilon_frac * peri, abs_tol_px)
+    approx = cv2.approxPolyDP(cnt, epsilon, True)
     return approx.reshape(-1, 2).astype(np.float64)
 
 
@@ -112,9 +117,9 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6, abs_tol_px=3.0):
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
+    hull = boundary_points(mask, epsilon_frac, abs_tol_px)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)

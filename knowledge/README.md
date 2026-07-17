@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端 PSD件→mesh→對照 Award](s3-award-mesh-e2e.md) — **S3+S4 串通對真實生產 mesh(光暈/身體/左手)3/3 PASS**。校準前假 PASS(誤把 uvs 當 full-sheet;實為 region-local);修 v1 生成器**尺度依賴 epsilon bug**(大件外輪廓過度簡化 → 覆蓋率崩)為尺度不變絕對像素上限。生成覆蓋率達/超藝術家基準、頂點同級。工具 `compare_gen_vs_award.py`。這 3 件無 deform timeline(weighted),deform 閘不適用(誠實註記)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
