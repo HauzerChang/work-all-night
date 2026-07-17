@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端 件→mesh 對真實生產 mesh](s3-psd-to-mesh-real.md) — PSD/atlas 切件→`generate_mesh_v2`→對照 Award 3 個 mesh 件(光暈/身體/左手),6 組全 PASS(IoU 0.99+ ≥ 藝術家基準)。發現:blobby 件 IoU 由 hull 密度(epsilon)決定→加 budget-targeted auto-epsilon;誠實邊界:這些件靠骨骼權重(無 deform timeline)、S3 尚缺 BBW 權重。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

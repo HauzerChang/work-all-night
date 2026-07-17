@@ -112,13 +112,45 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
-    mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
+# 由粗到細的 epsilon 候選(auto 模式用):epsilon 越小 hull 越密、覆蓋率越高、頂點越多。
+_EPS_LADDER = (0.008, 0.006, 0.005, 0.004, 0.003, 0.0025, 0.002, 0.0015, 0.001)
+
+
+def _build(mask, gray, hull, max_interior, min_dist, margin, W, H):
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
-    return to_spine(pts, tris, n_hull, W, H), mask
+    return to_spine(pts, tris, n_hull, W, H)
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_vertices=None):
+    """target_vertices 指定時:auto-epsilon —— 取「總頂點數 ≤ target 的最細 hull」。
+
+    發現(2026-07-17,對 Award 機器人 mesh 件驗):**blobby(Delaunay-v1)件的覆蓋率 IoU
+    由 hull 密度(epsilon_frac)決定**;固定粗 epsilon=0.008 對大件(光暈 496px)hull 只有 14,
+    IoU 僅 0.93 < 藝術家 0.98。藝術家自身用 78~98 頂點 → 以「生產級頂點預算」為目標自動選 epsilon,
+    可在同等頂點數下達到/超越藝術家覆蓋率(6 件全 IoU>0.99)。與 v2 strip「IoU 由 rows 決定」對應。
+    """
+    mask, gray, W, H = load_mask(path)
+    if target_vertices:
+        chosen = None
+        for eps in _EPS_LADDER:
+            hull = boundary_points(mask, eps)
+            n = len(hull) + len(interior_points(mask, gray, hull, max_interior, min_dist, margin))
+            if n <= target_vertices:
+                chosen = (eps, hull)  # 仍在預算內 → 記錄,繼續找更細的
+            else:
+                break                 # 超預算 → 停在上一個(單調遞增)
+        if chosen is None:            # 連最粗都超預算:用最粗的盡力而為
+            eps = _EPS_LADDER[0]; hull = boundary_points(mask, eps)
+        else:
+            eps, hull = chosen
+        m = _build(mask, gray, hull, max_interior, min_dist, margin, W, H)
+        m["_epsilon"] = eps
+        return m, mask
+    hull = boundary_points(mask, epsilon_frac)
+    return _build(mask, gray, hull, max_interior, min_dist, margin, W, H), mask
 
 
 def main():

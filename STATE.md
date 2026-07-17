@@ -17,6 +17,13 @@
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
   見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
+- **S3×S4 端到端串接:對真實生產 mesh 驗收通過(里程碑,2026-07-17)** — 把切件(PSD/atlas 兩來源)
+  餵進 `generate_mesh_v2` → 對照 Award 的 3 個 mesh 件(光暈/身體/左手),**6 組全 PASS**(生成 IoU
+  0.99+ ≥ 藝術家覆蓋率基準,頂點數同級)。發現 blobby(Delaunay)件 IoU 由 hull 密度決定 → 加
+  **budget-targeted auto-epsilon**(`generate_mesh.generate(target_vertices=)`,thread 進 v2)。
+  工具 `tools/mesh_gen/validate_psd_to_mesh.py`、圖 `knowledge/figures/psd2mesh_robot_wireframe.png`。
+  **誠實邊界**:這些件無 deform timeline(骨骼/權重驅動)→ S3 尚缺 **BBW 權重**,無法 like-for-like 取代。
+  見 `knowledge/s3-psd-to-mesh-real.md`。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -38,17 +45,17 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. **❗最高優先:S3 加 BBW / 骨骼權重(weighted mesh)**。這是 S3 最大缺口 —— 上一步(2026-07-17)證實
+   Award 生產 mesh 件靠骨骼權重變形(無 deform timeline),S3 目前只產 unweighted,無法 like-for-like 取代。
+   需骨架 + bind pose(Award.json 有 77 bones + 這 3 件的 weighted vertices 可當真值)。純 CPU(BBW/heat)。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:固化 `<PSD名>/<圖層名>` 命名 + size+2px padding + mesh 用
+   auto-epsilon@budget + region 用旋轉 → 端到端產可用 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3×S4 端到端已對真實生產 mesh 件驗收通過(靜態幾何)。建議下一步:S3 加 BBW/骨骼權重(候選 1),
+> 用 Award 的 weighted mesh 真值當對照,把 S3 從「靜態拓樸」推進到「可對接骨骼驅動的生產件」。
 
 ## 環境前置(已驗證可用)
 
