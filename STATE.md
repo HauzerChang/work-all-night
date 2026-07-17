@@ -37,18 +37,23 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
+- **✅ 完成(2026-07-17,里程碑):PSD件→S3 mesh→對照 Award 真實 mesh**。`validate_against_award.py` 對
+  光暈/身體/左手 3 件端到端驗收 **3/3 PASS**:生成 IoU 0.933/0.966/0.964 達藝術家 self-IoU
+  (0.949/0.948/0.977,margin 0.02)且頂點更精簡(35/60/59 vs 78/98/80)。auto 對 blob 件正確選 v1。
+  座標慣例對 rotate:true 區域(光暈/身體)經 self-IoU 確認。**誠實邊界:這 3 件無 deform timeline,
+  只驗靜態拓樸、未驗 blob 變形穩健**(S3 變形穩健由 main_draw 窗簾的 `validate_against_real` 驗過)。
+  見 `knowledge/s3-award-real-mesh-validation.md` + `figures/award_robot_generated_vs_artist.png`。
+
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. **❗最高優先:切圖→Spine JSON 組裝(SkelToJson)**。把已驗過的生成 mesh(blob 用 v1、strip 用 v2)+
+   `機器人拆件/<圖層名>` 命名慣例 + size+2px padding + atlas 0.70 縮放,端到端產一份可載入的 Spine JSON。
+2. **提升 v1 blob thin-protrusion 覆蓋**:光暈細長突起取樣不足(IoU 0.933 最低)→ v1 加「高曲率邊界自適應加點」再重驗。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3 已對「有 deform 的窗簾」與「真實生產 blob 件」雙向驗收。建議下一步把 S3+S4 收斂成 SkelToJson 組裝工具(#1),
+> 端到端產可載入 Spine JSON;或補 v1 thin-protrusion 覆蓋(#2)。
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +98,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-17:**S3 對真實生產 mesh 端到端驗收(里程碑)** — `validate_against_award.py`:PSD 切件→
+  `generate_mesh_v2`→對照 Award 藝術家 mesh(光暈/身體/左手)。3/3 PASS,生成 IoU 0.933/0.966/0.964
+  達藝術家 self-IoU 且頂點更精簡。auto 對 blob 正確選 v1;座標慣例對 rotate:true 區域經 self-IoU 確認;
+  誠實記錄「無 deform timeline → 只驗靜態拓樸」的能力邊界。出 knowledge + 對照圖。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
