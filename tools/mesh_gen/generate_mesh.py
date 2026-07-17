@@ -121,6 +121,29 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
+def generate_auto(path, target_iou, vertex_budget=120, max_interior=60,
+                  min_dist=10, eps_grid=(0.012, 0.008, 0.006, 0.004, 0.003, 0.002, 0.0015, 0.001)):
+    """自動調 epsilon(Douglas-Peucker)以達 target_iou,回傳「最省頂點且達標」的 mesh。
+
+    對真實生產 mesh(Award 光暈/左手/身體)驗證:單調用 epsilon 換頂點↔覆蓋率,
+    在藝術家頂點量級(78–98)即可達/超越藝術家 IoU。若全部 grid 都不達標,回最高 IoU 者。
+    降序掃 epsilon(粗→細),第一個「IoU≥target 且 nv≤budget」即停(最省頂點解)。
+    回傳 (mesh, mask, meta)。meta: {epsilon, iou, nv, reached}。
+    """
+    from evaluate_mesh import evaluate
+    best = None  # (iou, mesh, mask, eps, nv)
+    for eps in eps_grid:
+        mesh, mask = generate(path, max_interior, eps, min_dist)
+        nv = len(mesh["uvs"]) // 2
+        iou = evaluate(mesh, mask, vertex_budget=10 ** 9)["criteria"]["AC1_iou"]["value"]
+        if best is None or iou > best[0]:
+            best = (iou, mesh, mask, eps, nv)
+        if iou >= target_iou and nv <= vertex_budget:
+            return mesh, mask, {"epsilon": eps, "iou": iou, "nv": nv, "reached": True}
+    iou, mesh, mask, eps, nv = best
+    return mesh, mask, {"epsilon": eps, "iou": iou, "nv": nv, "reached": False}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")
