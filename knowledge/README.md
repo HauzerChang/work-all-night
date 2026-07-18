@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端(PSD→mesh→對照 Award)](s3-award-end-to-end.md) — **里程碑:S3×S4 串接**。robot_parts.psd 3 個 mesh 件(光暈/身體/左手)生成 mesh 靜態覆蓋 IoU 與藝術家同級或更好、頂點少 40~55%,3/3 PASS。發現 mesh **兩種 regime**(deform-driven 高瘦→strip;骨骼-driven 團塊→Delaunay),`v2 auto` 已分流正確。誠實邊界:weighted mesh deform 穩健性未驗(無位移真值)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
