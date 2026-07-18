@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端:件→mesh 對照 Award 真實 mesh](s3-psd-to-mesh-award.md) — **里程碑**:Award 3 個 weighted mesh 件(光暈/身體/左手)生成 mesh 靜態 IoU 全達/超藝術家基準。關鍵修正:固定 epsilon 對凹形件(光暈 solidity 0.79)取樣過疏(IoU 0.93)→ **自適應邊界**(收細到 IoU≥target/hull 預算)修正到 0.986,近凸件無回歸。validate 加無-deform 件的 N/A 閘(支援 weighted/骨骼驅動件)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

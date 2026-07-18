@@ -35,14 +35,43 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
-def boundary_points(mask, epsilon_frac):
+def _poly_iou(poly, mask):
+    """多邊形填滿 vs mask 的 IoU(邊界近似品質)。"""
+    h, w = mask.shape
+    recon = np.zeros((h, w), np.uint8)
+    cv2.fillPoly(recon, [np.round(poly).astype(np.int32)], 1)
+    inter = int(np.logical_and(recon, mask).sum())
+    union = int(np.logical_or(recon, mask).sum())
+    return inter / union if union else 0.0
+
+
+def boundary_points(mask, epsilon_frac, adaptive=True, target_iou=0.985, max_hull=80):
+    """外輪廓 → Douglas-Peucker 簡化的 hull 頂點。
+
+    adaptive(2026-07-18,凹形件校正):固定 epsilon_frac=0.008 對近凸件(窗簾/陰影
+    solidity>0.99)夠用,但對凹/尖刺件(機器人光暈 solidity 0.79 → hull 僅 14 點、
+    IoU 0.93)取樣過疏。改成「從給定 epsilon 起,逐步收細直到輪廓多邊形對 mask 的
+    IoU ≥ target 或 hull 點數達 max_hull 預算」的自調機制 —— 純確定性,單一預設通吃各形狀。
+    """
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
     peri = cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
-    return approx.reshape(-1, 2).astype(np.float64)
+    if not adaptive:
+        approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
+        return approx.reshape(-1, 2).astype(np.float64)
+    eps = epsilon_frac
+    best = None
+    for _ in range(10):
+        approx = cv2.approxPolyDP(cnt, eps * peri, True).reshape(-1, 2).astype(np.float64)
+        if best is not None and len(approx) > max_hull:
+            break                         # 超過頂點預算 → 用上一版(預算內最佳)
+        best = approx
+        if _poly_iou(approx, mask) >= target_iou:
+            break                         # 已達邊界保真目標
+        eps *= 0.6
+    return best
 
 
 def interior_points(mask, gray, hull_pts, max_interior, min_dist, margin):
@@ -112,9 +141,10 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             adaptive=True, target_iou=0.985, max_hull=80):
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
+    hull = boundary_points(mask, epsilon_frac, adaptive, target_iou, max_hull)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)

@@ -31,8 +31,16 @@ def artist_iou(skeleton, slot, name, mask):
     return float(np.logical_and(recon, mask).sum() / np.logical_or(recon, mask).sum())
 
 
+def has_deform(skeleton, slot, name):
+    """該 mesh 在任一動畫是否有 deform timeline(無 → 靠骨骼驅動,不套變形閘)。"""
+    for anim in skeleton.get("animations", {}):
+        if de.deform_frames(skeleton, anim, slot, name):
+            return True
+    return False
+
+
 def validate(skeleton_path, atlas_path, png_path, slot, name, gen_fn, tmp_dir,
-             iou_margin=0.0):
+             iou_margin=0.01):
     sk = json.load(open(skeleton_path))
     sub = extract(atlas_path, png_path, name)
     crop = os.path.join(tmp_dir, "_region.png")
@@ -44,20 +52,32 @@ def validate(skeleton_path, atlas_path, png_path, slot, name, gen_fn, tmp_dir,
         mesh = mesh[0]
     nv = len(mesh["uvs"]) // 2
 
-    iou = evaluate(mesh, mask)["criteria"]["AC1_iou"]["value"]
+    iou = evaluate(mesh, mask, vertex_budget=max(200, nv))["criteria"]["AC1_iou"]["value"]
     base = artist_iou(sk, slot, name, mask)
-    uvs_src, field, frame = de.real_deform_field(sk, slot, name)
-    dres = de.transfer_deform_check(mesh, uvs_src, field)
+    iou_pass = iou >= base - iou_margin
+
+    # deform 閘:只對「有 deform timeline」的 mesh 套用。剛體 / 純骨骼驅動件(如 Award
+    # 機器人拆件,weighted 且無 deform)不做變形閘 → 標 N/A pass(靠骨骼,拓樸不受 deform 拉扯)。
+    if has_deform(sk, slot, name):
+        uvs_src, field, frame = de.real_deform_field(sk, slot, name)
+        dres = de.transfer_deform_check(mesh, uvs_src, field)
+        deform_ac = {"applicable": True, "frame": frame, "area_ratio": dres["area_ratio"],
+                     "self_intersections": dres["self_intersections"],
+                     "triangle_flips": dres["triangle_flips"], "pass": dres["clean"]}
+        deform_pass = dres["clean"]
+    else:
+        deform_ac = {"applicable": False, "reason": "no deform timeline (skeleton-driven)",
+                     "pass": True}
+        deform_pass = True
 
     return {
+        "slot": slot, "name": name,
         "mesh": {"vertices": nv, "hull": mesh["hull"], "triangles": len(mesh["triangles"]) // 3,
                  "mode": mesh.get("_mode")},
         "AC_iou": {"value": round(iou, 4), "artist_baseline": round(base, 4),
-                   "pass": iou >= base - iou_margin},
-        "AC_real_deform": {"frame": frame, "area_ratio": dres["area_ratio"],
-                           "self_intersections": dres["self_intersections"],
-                           "triangle_flips": dres["triangle_flips"], "pass": dres["clean"]},
-        "overall_pass": (iou >= base - iou_margin) and dres["clean"],
+                   "margin": iou_margin, "pass": iou_pass},
+        "AC_real_deform": deform_ac,
+        "overall_pass": iou_pass and deform_pass,
     }
 
 

@@ -31,7 +31,22 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3+S4 端到端串接(里程碑,2026-07-18)**:Award「機器人拆件」3 個 weighted mesh 件
+(光暈/身體/左手)跑 `generate_mesh_v2`,對照 Award **真實生產 mesh** 靜態 IoU **全達/超藝術家基準**。
+- 關鍵修正:固定 `epsilon_frac=0.008` 對**凹/尖刺件**(光暈 solidity 0.79)取樣過疏(hull 14 點、IoU 0.93)。
+  加**自適應邊界**(收細 epsilon 到「輪廓對 mask IoU≥0.985 / hull≤80」)→ 光暈 0.929→**0.986**;身體/左手亦超基準。
+- 生成覆蓋率全超藝術家、頂點數持平或更少;main_draw 4 mesh(strip)重驗**無回歸**(自適應只動 v1 路徑)。
+- `validate_against_real` 加 `has_deform`:**無 deform 件跳變形閘標 N/A pass**(支援 weighted/骨骼驅動件)。
+- 詳見 `knowledge/s3-psd-to-mesh-award.md`、圖 `knowledge/figures/s3-robot-parts-gen-vs-artist.png`。
+
+下一個 bounded chunk 候選(更新):
+1. **切圖→Spine JSON 組裝(SkelToJson)**:把 `<PSD檔名>/<圖層名>` 命名 + size+2px padding + mesh/region 分配
+   固化成「件→Spine attachment JSON」工具,端到端產可載入的 Spine JSON(現已有 PSD切件+mesh生成兩塊,缺組裝)。
+2. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+3. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產)。
+
+---
+### (前一里程碑)S3 推廣到全部 4 個 mesh(2026-06-26):整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -93,6 +108,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-18:**S3+S4 端到端串接(里程碑)** — Award 3 個 weighted mesh 件(光暈/身體/左手)生成 mesh 對照
+  真實生產 mesh,IoU 全達/超藝術家基準。修:固定 epsilon 對凹形件(光暈 solidity 0.79)取樣過疏(0.93)
+  → 自適應邊界(收細到 IoU≥target/hull 預算)→ 0.986,近凸件無回歸。validate 加無-deform 件 N/A 閘。
+  見 `knowledge/s3-psd-to-mesh-award.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
