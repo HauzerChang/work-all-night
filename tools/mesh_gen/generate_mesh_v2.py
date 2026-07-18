@@ -100,6 +100,57 @@ def gen_strip(mask, W, H, rows, cols, inset=0.0):
     return pts, tris, len(hull_ij)
 
 
+def _largest_contour(mask):
+    cnts, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not cnts:
+        return None
+    return max(cnts, key=cv2.contourArea)
+
+
+def solidity(mask):
+    """area / convexHullArea:凹度指標。低(<~0.9)= 有凹角/尖刺(如光暈射線)。"""
+    c = _largest_contour(mask)
+    if c is None:
+        return 1.0
+    a = cv2.contourArea(c)
+    h = cv2.contourArea(cv2.convexHull(c))
+    return float(a / h) if h > 0 else 1.0
+
+
+def gen_contour(mask, W, H, target=48, budget=64):
+    """凹形/尖刺形(如光暈)用:外輪廓 loop + 受約束(PSLG)三角化,凹處不被切掉。
+    藝術家對這類形狀正是用『全 hull 邊界環』(hull==nv);本模式重現之。
+    - approxPolyDP 依 target 自適應 epsilon,把外輪廓簡化到 ≤budget 個邊界點。
+    - triangle 'p'(PSLG,不加 Steiner 點)→ nv==邊界點數、hull==nv,凹多邊形被正確填滿。
+    """
+    import triangle as tr
+    c = _largest_contour(mask)
+    pts = c.reshape(-1, 2).astype(np.float64)
+    peri = cv2.arcLength(c, True)
+    # 二分 epsilon 讓邊界點數落在 [target*0.8, budget]
+    lo, hi = 0.001, 0.08
+    best = None
+    for _ in range(24):
+        eps = (lo + hi) / 2 * peri
+        ap = cv2.approxPolyDP(c, eps, True).reshape(-1, 2).astype(np.float64)
+        n = len(ap)
+        if n > budget:
+            lo = (lo + hi) / 2
+        elif n < max(8, int(target * 0.8)):
+            hi = (lo + hi) / 2
+        else:
+            best = ap; break
+        best = ap
+    ap = best
+    n = len(ap)
+    seg = np.array([[i, (i + 1) % n] for i in range(n)])
+    t = tr.triangulate({"vertices": ap, "segments": seg}, "p")
+    tris = t["triangles"].tolist()
+    verts = t["vertices"]
+    # triangle 'p' 不新增頂點 → verts 順序 == ap(全部是邊界/hull)
+    return [(float(x), float(y)) for x, y in verts], tris, len(verts)
+
+
 def to_spine(pts, tris, n_hull, W, H):
     verts, uvs = [], []
     for (x, y) in pts:
@@ -110,18 +161,25 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", solidity_thresh=0.9):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
-    if not use_strip:
-        from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
-        m["_mode"] = "delaunay-v1"
+    if use_strip:
+        pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
+        m = to_spine(pts, tris, n_hull, W, H)
+        m["_mode"] = "strip"
         return m
-    pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
-    m = to_spine(pts, tris, n_hull, W, H)
-    m["_mode"] = "strip"
+    # 凹形/尖刺形 → contour(全 hull 邊界環,凹處不被切)
+    use_contour = (mode == "contour") or (mode == "auto" and solidity(mask) < solidity_thresh)
+    if use_contour:
+        pts, tris, n_hull = gen_contour(mask, W, H)
+        m = to_spine(pts, tris, n_hull, W, H)
+        m["_mode"] = "contour"
+        return m
+    from generate_mesh import generate as gen_v1
+    m, _ = gen_v1(path)
+    m["_mode"] = "delaunay-v1"
     return m
 
 
@@ -131,7 +189,7 @@ def main():
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--rows", type=int, default=10)
     ap.add_argument("--cols", type=int, default=3)
-    ap.add_argument("--mode", choices=["auto", "strip", "delaunay"], default="auto")
+    ap.add_argument("--mode", choices=["auto", "strip", "delaunay", "contour"], default="auto")
     a = ap.parse_args()
     m = generate(a.image, a.rows, a.cols, a.mode)
     out = a.out or (a.image.rsplit(".", 1)[0] + "_mesh_v2.json")

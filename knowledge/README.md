@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對 Award weighted mesh 靜態驗收 + contour 模式](s3-award-weighted-static.md) — S3 v2 對第二個生產骨架 Award 的 3 個真實 **weighted** 機器人 mesh 靜態覆蓋率**全過且超越藝術家**(0.986/0.990/0.994 vs 0.980/0.968/0.976,頂點 45/42/45 vs 78/80/98)。新增 **contour 模式**(輪廓 loop+PSLG 三角化)治凹形/尖刺(光暈);auto 依 solidity 選擇;main_draw 4 mesh 無回歸。⚠️ weighted 的 **deform 閘尚未驗** → 下一 chunk。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
