@@ -47,17 +47,30 @@ def validate(skeleton_path, atlas_path, png_path, slot, name, gen_fn, tmp_dir,
     iou = evaluate(mesh, mask)["criteria"]["AC1_iou"]["value"]
     base = artist_iou(sk, slot, name, mask)
     uvs_src, field, frame = de.real_deform_field(sk, slot, name)
-    dres = de.transfer_deform_check(mesh, uvs_src, field)
+
+    iou_pass = iou >= base - iou_margin
+    if frame is None:
+        # 該 mesh 無 deform timeline(bone-driven,如機器人光暈/身體/左手):
+        # 拓樸不受 deform 位移場拉扯,deform 閘不適用 → 標 N/A,overall 只看靜態 IoU。
+        deform = {"frame": None, "status": "N/A (bone-driven; no deform timeline)", "pass": True}
+        deform_pass = True
+    else:
+        dres = de.transfer_deform_check(mesh, uvs_src, field)
+        deform = {"frame": frame, "area_ratio": dres["area_ratio"],
+                  "self_intersections": dres["self_intersections"],
+                  "triangle_flips": dres["triangle_flips"], "pass": dres["clean"]}
+        deform_pass = dres["clean"]
 
     return {
         "mesh": {"vertices": nv, "hull": mesh["hull"], "triangles": len(mesh["triangles"]) // 3,
                  "mode": mesh.get("_mode")},
         "AC_iou": {"value": round(iou, 4), "artist_baseline": round(base, 4),
-                   "pass": iou >= base - iou_margin},
-        "AC_real_deform": {"frame": frame, "area_ratio": dres["area_ratio"],
-                           "self_intersections": dres["self_intersections"],
-                           "triangle_flips": dres["triangle_flips"], "pass": dres["clean"]},
-        "overall_pass": (iou >= base - iou_margin) and dres["clean"],
+                   "artist_vertices": len(np.array(
+                       (sk["skins"][0] if isinstance(sk["skins"], list) else sk["skins"])
+                       .get("attachments", sk["skins"])[slot][name]["uvs"])) // 2,
+                   "pass": iou_pass},
+        "AC_real_deform": deform,
+        "overall_pass": iou_pass and deform_pass,
     }
 
 
@@ -69,14 +82,16 @@ def main():
     ap.add_argument("--slot", default="image/curtain_left")
     ap.add_argument("--name", default="image/curtain_left")
     ap.add_argument("--gen", choices=["v1", "v2"], default="v1")
+    ap.add_argument("--epsilon", type=float, default=0.002,
+                    help="Delaunay 邊界簡化比例(靜態件輪廓 IoU 操作點,見 award-mesh knowledge)")
     ap.add_argument("--tmp", default="/tmp")
     a = ap.parse_args()
     if a.gen == "v1":
         from generate_mesh import generate as g
-        gen = lambda p: g(p)
+        gen = lambda p: g(p, epsilon_frac=a.epsilon)
     else:
         from generate_mesh_v2 import generate as g
-        gen = lambda p: g(p, mode="auto")
+        gen = lambda p: g(p, mode="auto", epsilon=a.epsilon)
     rep = validate(a.skeleton, a.atlas, a.png, a.slot, a.name, gen, a.tmp)
     print(json.dumps(rep, ensure_ascii=False, indent=2))
     raise SystemExit(0 if rep["overall_pass"] else 1)

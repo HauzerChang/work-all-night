@@ -110,13 +110,17 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", epsilon=0.002):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # 非 strip 件(靜態/bone-driven，如機器人光暈/身體/左手):走 Delaunay-v1。
+        # epsilon=0.002 為對真實 Award 藝術家 mesh 校準的操作點:靜態輪廓 IoU 由
+        # Douglas-Peucker epsilon 決定,0.008(v1 預設)對有機/羽化邊過粗;0.002 在
+        # 「頂點數 ≈ 藝術家預算」下達到 IoU ≥ 藝術家基準(見 knowledge/s3-award-mesh-static-iou.md)。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=epsilon)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
@@ -132,8 +136,10 @@ def main():
     ap.add_argument("--rows", type=int, default=10)
     ap.add_argument("--cols", type=int, default=3)
     ap.add_argument("--mode", choices=["auto", "strip", "delaunay"], default="auto")
+    ap.add_argument("--epsilon", type=float, default=0.002,
+                    help="Delaunay 回退的 Douglas-Peucker 邊界簡化比例(靜態件輪廓 IoU 操作點)")
     a = ap.parse_args()
-    m = generate(a.image, a.rows, a.cols, a.mode)
+    m = generate(a.image, a.rows, a.cols, a.mode, a.epsilon)
     out = a.out or (a.image.rsplit(".", 1)[0] + "_mesh_v2.json")
     json.dump(m, open(out, "w"), ensure_ascii=False)
     print(f"[{m.get('_mode')}] {out}: 頂點 {len(m['uvs'])//2} (hull {m['hull']}), 三角 {len(m['triangles'])//3}")

@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真實 mesh](s3-award-mesh-static-iou.md) — **里程碑:S3 首次對「有真值」的真實生產 mesh 達標**。3 個機器人 warp 件(光暈/左手/身體)生成 mesh 靜態 IoU **≥ 藝術家基準**(0.983/0.991/0.993 vs 0.980/0.968/0.976)且頂點數 ≤ 藝術家預算。發現:靜態輪廓 IoU 由 Douglas-Peucker `epsilon` 決定,舊預設 0.008 對有機邊過粗 → 定 0.002 為操作點。3 件無 deform timeline(bone-driven)→ deform 閘標 N/A。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
