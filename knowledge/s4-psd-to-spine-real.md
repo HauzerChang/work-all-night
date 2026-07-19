@@ -79,6 +79,8 @@ python3 tools/mesh_gen/atlas_crop.py assets/Award.atlas assets/Award.png '機器
 
 ## 下一步
 
-- 用機器人 mesh 件(光暈/身體/左手)的真實 alpha 跑 S3 `generate_mesh_v2`,**對照 Award 真實 mesh**
-  做 IoU/deform → 端到端「PSD→件→mesh」對真實標的驗收(Award mesh uvs 為 atlas UV,需先轉 region 局部)。
+- ✅ **已完成(2026-07-19)**:用機器人 mesh 件(光暈/身體/左手)跑 S3 `generate_mesh_v2` 對照 Award 真實 mesh
+  → 端到端「PSD→件→mesh」驗收 3/3 PASS。見 `s3-psd-to-real-mesh.md`。
+  ⚠️ 更正:**Award mesh uvs 其實是 region-local [0,1]**(本推測的「atlas UV,需轉 region」有誤);且這批件
+  為 weighted 骨驅、無 deform timeline,故閘用靜態覆蓋率(非 deform)。
 - 把對應慣例(`PSD名/圖層名`、mesh/region 分配、+2px padding、atlas 0.70 縮放)固化進切圖→Spine JSON 組裝工具。
