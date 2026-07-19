@@ -112,7 +112,11 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.002, min_dist=14, margin=6):
+    # epsilon_frac 校準(2026-07-19,對真實 Award 機器人 3 件 area/ring mesh):
+    #   舊預設 0.008 對「非直條」面/環狀件邊界取樣過粗(hull 14~21),IoU 低於藝術家基準。
+    #   0.002 讓 hull 密度(37~43)≈ 藝術家(40~78),3 件全過基準且頂點預算相當;
+    #   0.001 IoU 更高但頂點爆量(118~139),過頭。詳見 knowledge/s3-award-weighted-parts.md。
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
@@ -126,7 +130,7 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", type=float, default=0.002)
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
     mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)

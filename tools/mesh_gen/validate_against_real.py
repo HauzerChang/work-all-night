@@ -46,18 +46,35 @@ def validate(skeleton_path, atlas_path, png_path, slot, name, gen_fn, tmp_dir,
 
     iou = evaluate(mesh, mask)["criteria"]["AC1_iou"]["value"]
     base = artist_iou(sk, slot, name, mask)
+    iou_pass = iou >= base - iou_margin
+
+    # 藝術家該件是否 weighted(vertices 長度 != uvs×2)?
+    skin = sk["skins"]; skin = skin[0] if isinstance(skin, list) else skin
+    a = skin.get("attachments", skin)[slot][name]
+    weighted = len(a["vertices"]) != len(a["uvs"])
+
     uvs_src, field, frame = de.real_deform_field(sk, slot, name)
-    dres = de.transfer_deform_check(mesh, uvs_src, field)
+    if field is None:
+        # 該件無 deform timeline(骨骼驅動,如 Award 機器人拆件)→ 位移場轉移不適用。
+        deform_ac = {"applicable": False,
+                     "note": "no deform timeline (bone-driven); deform-transfer N/A",
+                     "pass": None}
+        overall = iou_pass
+    else:
+        dres = de.transfer_deform_check(mesh, uvs_src, field)
+        deform_ac = {"applicable": True, "frame": frame, "area_ratio": dres["area_ratio"],
+                     "self_intersections": dres["self_intersections"],
+                     "triangle_flips": dres["triangle_flips"], "pass": dres["clean"]}
+        overall = iou_pass and dres["clean"]
 
     return {
         "mesh": {"vertices": nv, "hull": mesh["hull"], "triangles": len(mesh["triangles"]) // 3,
                  "mode": mesh.get("_mode")},
-        "AC_iou": {"value": round(iou, 4), "artist_baseline": round(base, 4),
-                   "pass": iou >= base - iou_margin},
-        "AC_real_deform": {"frame": frame, "area_ratio": dres["area_ratio"],
-                           "self_intersections": dres["self_intersections"],
-                           "triangle_flips": dres["triangle_flips"], "pass": dres["clean"]},
-        "overall_pass": (iou >= base - iou_margin) and dres["clean"],
+        "artist_mesh": {"vertices": len(a["uvs"]) // 2, "hull": a.get("hull"),
+                        "triangles": len(a["triangles"]) // 3, "weighted": weighted},
+        "AC_iou": {"value": round(iou, 4), "artist_baseline": round(base, 4), "pass": iou_pass},
+        "AC_real_deform": deform_ac,
+        "overall_pass": overall,
     }
 
 

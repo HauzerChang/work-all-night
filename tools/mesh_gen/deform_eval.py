@@ -202,6 +202,16 @@ def real_deform_field(skeleton, slot, name):
     skin = skeleton["skins"]; skin = skin[0] if isinstance(skin, list) else skin
     a = skin.get("attachments", skin)[slot][name]
     uvs = np.array(a["uvs"], dtype=np.float64).reshape(-1, 2)
+    nv = len(uvs)
+    weighted = len(a["vertices"]) != nv * 2
+    # 有沒有真實 deform timeline?沒有(靠骨骼驅動的件,如 Award 機器人拆件)→ 無位移場可轉移。
+    has_deform = any(deform_frames(skeleton, anim, slot, name)
+                     for anim in skeleton.get("animations", {}))
+    if not has_deform:
+        return uvs, None, None
+    if weighted:
+        # weighted mesh 的 setup 需 bone 綁定變換才能還原;目前僅支援 unweighted deform 轉移。
+        raise NotImplementedError(f"{slot}/{name} 為 weighted mesh 且有 deform:尚未支援位移場轉移")
     setup = np.array(a["vertices"], dtype=np.float64).reshape(-1, 2)
     best = None
     for anim in skeleton.get("animations", {}):
