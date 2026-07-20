@@ -110,13 +110,18 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", blob_epsilon=0.004,
+             blob_interior=18):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # blob(非長條)走 v1 Delaunay。IoU 由 hull 密度(epsilon)決定、內部點不影響
+        # (2026-07-20 對 Award 3 mesh 件驗證);v1 預設 epsilon=0.008 為窗簾調的、
+        # 對 compact blob 太粗 → 這裡用 blob 專用 epsilon≈0.004,內部點取少即可
+        # (內部點只助變形平滑,不助覆蓋率),在 ≤64 頂點內達藝術家覆蓋率。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, max_interior=blob_interior, epsilon_frac=blob_epsilon)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

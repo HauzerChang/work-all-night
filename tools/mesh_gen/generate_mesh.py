@@ -95,6 +95,22 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def drop_orphans(pts, tris, n_hull):
+    """移除未被任何三角用到的頂點並重新編號(AC2c)。
+    hull 頂點在約束三角化中恆被 segment 使用,孤兒只會是內部點,
+    故丟棄不影響「hull 頂點排最前」的 Spine 格式不變式。"""
+    used = np.unique(tris.reshape(-1)) if len(tris) else np.array([], int)
+    used_set = set(int(u) for u in used)
+    keep = [i for i in range(len(pts)) if i < n_hull or i in used_set]
+    if len(keep) == len(pts):
+        return pts, tris, n_hull
+    remap = {old: new for new, old in enumerate(keep)}
+    new_pts = pts[keep]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32) \
+        if len(tris) else tris
+    return new_pts, new_tris, n_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -118,6 +134,7 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = drop_orphans(pts, tris, n_hull)
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
