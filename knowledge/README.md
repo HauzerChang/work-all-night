@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對照真實生產 mesh(Award 拆件)](s3-award-mesh-parts.md) — 端到端「PSD→件→S3 mesh」對 Award 3 真實 mesh 件驗收:靜態覆蓋率全 meet-or-beat 藝術家(頂點數 ≤ 藝術家)。**兩發現**:(1) 真實拆件是 weighted+純骨骼驅動、**無 deform** → S3 deform 閘不適用,耐變形正確性屬待建的 **BBW 權重**;(2) v1 預設 epsilon 0.008 對軟邊 glow 太粗(hull 14/IoU 0.92)→ 收緊 0.002 達標,再證「**邊界密度決定 IoU、內部點不影響**」v1/v2 共通律。無回歸。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

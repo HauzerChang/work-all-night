@@ -115,8 +115,13 @@ def generate(path, rows=10, cols=3, mode="auto"):
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # 非 strip 件回退 v1 Delaunay。epsilon 由 0.008(合成/窗簾期預設)收緊為 0.002:
+        # 對真實生產「拆件」mesh(Award 光暈/左手/身體,軟邊/細節輪廓)驗證發現,IoU 覆蓋率
+        # 由「邊界取樣密度(hull)」決定、內部點不影響(與 v2 strip 的 rows 律一致);
+        # 0.008 對軟邊 glow 只給 14 hull(IoU 0.92 << 藝術家 0.98),0.002 → hull~38、
+        # 3 件全 meet-or-beat 藝術家覆蓋率且頂點數 ≤ 藝術家。見 knowledge/s3-award-mesh-parts.md。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=0.002, min_dist=8)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
