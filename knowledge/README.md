@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對照 Award 真實 mesh(端到端里程碑)](s3-vs-award-real-mesh.md) — 首次拿藝術家手做 mesh 當 ground truth 驗 S3:PSD件→生成 mesh 對照光暈/身體/左手,3 件全過(覆蓋 ≥ 藝術家 −2%、外周 IoU 0.91–0.96、頂點更精簡、校準 deform 0 自交)。auto 對方塊件正確選 v1(strip 只適窗簾)。第 4 次評估器 miscalibration:跨件絕對位移場需依 diag 尺度正規化(左手 si10→si0)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
