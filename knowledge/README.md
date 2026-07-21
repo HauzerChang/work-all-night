@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真實 mesh](s3-award-robot-end-to-end.md) — PSD 件→generate_mesh_v2→對照 Award 機器人 3 mesh:靜態公平閘(IoU+預算+拓樸)**全過藝術家基準**。★真相一:Award 機器人 mesh 是 **weighted/骨骼驅動、0 deform**,與 main_draw 窗簾(unweighted/deform)**不同類** → S3 尚缺 BBW 權重生成。★真相二(第 4 次評估器校準):curtain 位移場轉移對骨骼驅動件**跨域不適用**(連 weighted 真值都無法套閘)。新增 `compare_to_real_mesh.py`(自動判定 deform 閘是否適用);修 v2 回退 epsilon 0.008→0.004(compact 件邊界貼合),main_draw 4 mesh 零回歸。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

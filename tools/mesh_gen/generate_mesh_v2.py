@@ -115,9 +115,12 @@ def generate(path, rows=10, cols=3, mode="auto"):
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # 回退 Delaunay(散點)。發現(2026-07-21,對 Award 機器人拆件真值):
+        # 預設 epsilon_frac=0.008 是為窗簾調的,對大型 compact 件(光暈/左手)邊界取樣過疏,
+        # 靜態 IoU 略低於藝術家基準。改用較細 0.004 → 3 件全過基準且仍在頂點預算內。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
-        m["_mode"] = "delaunay-v1"
+        m, _ = gen_v1(path, epsilon_frac=0.004)
+        m["_mode"] = "delaunay-v1-fine"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)
