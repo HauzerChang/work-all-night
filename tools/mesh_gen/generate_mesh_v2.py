@@ -110,11 +110,49 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def _delaunay_coverage_refine(path, mask, target_iou, budget, max_rounds=5):
+    """evaluator 驅動的覆蓋自收斂:v1 預設 epsilon_frac=0.008 對『大而圓的柔邊』件
+    (如機器人光暈)邊界取樣過粗 → 覆蓋 IoU 由邊界近似主導、偏低。逐輪減半 epsilon
+    (加密 hull 邊界點)直到覆蓋達標或頂點預算用盡。回傳 (mesh, refine_log)。"""
+    from generate_mesh import generate as gen_v1
+    from evaluate_mesh import evaluate as _eval
+    eps = 0.008
+    best = None          # 最佳「乾淨且達標」候選
+    fallback = None      # 退路:預算內 IoU 最高(即使有孤兒/退化)
+    log = []
+    for _ in range(max_rounds):
+        m, _msk = gen_v1(path, epsilon_frac=eps)
+        nv = len(m["uvs"]) // 2
+        cr = _eval(m, mask, vertex_budget=budget)["criteria"]
+        iou = cr["AC1_iou"]["value"]
+        clean = cr["AC2b_degenerate"]["value"] == 0 and cr["AC2c_orphans"]["value"] == 0
+        log.append({"eps": round(eps, 4), "verts": nv, "iou": iou,
+                    "clean": clean, "budget_ok": nv <= budget})
+        m["_iou"] = iou
+        if nv <= budget and (fallback is None or iou > fallback["_iou"]):
+            fallback = m
+        if nv <= budget and clean:
+            if best is None or iou > best["_iou"]:
+                best = m
+            if iou >= target_iou:
+                break
+        eps /= 2.0
+    mesh = best if best is not None else (fallback if fallback is not None else m)
+    mesh.pop("_iou", None)
+    return mesh, log
+
+
+def generate(path, rows=10, cols=3, mode="auto",
+             refine_coverage=False, target_iou=0.95, budget=64):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        if refine_coverage:
+            m, rlog = _delaunay_coverage_refine(path, mask, target_iou, budget)
+            m["_mode"] = "delaunay-v1-refined"
+            m["_refine"] = rlog
+            return m
         from generate_mesh import generate as gen_v1
         m, _ = gen_v1(path)
         m["_mode"] = "delaunay-v1"
