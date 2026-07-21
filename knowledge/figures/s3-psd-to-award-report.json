@@ -1,0 +1,187 @@
+{
+  "deform_field_source": {
+    "skeleton": "main_draw.json",
+    "slot": "image/curtain_left",
+    "frame": "main_draw_close"
+  },
+  "parts": [
+    {
+      "slot": "機器人拆件/光暈",
+      "part_size": [
+        706,
+        683
+      ],
+      "gen": {
+        "vertices": 35,
+        "hull": 16,
+        "triangles": 49,
+        "mode": "delaunay-v1",
+        "iou": 0.9331
+      },
+      "artist": {
+        "vertices": 78,
+        "hull": 78,
+        "triangles": 76,
+        "iou": 0.9486,
+        "wh": [
+          708,
+          685
+        ]
+      },
+      "AC_cover": {
+        "pass": true,
+        "gen_iou": 0.9331,
+        "artist_iou": 0.9486,
+        "margin": 0.02
+      },
+      "AC_budget": {
+        "pass": true,
+        "gen_v": 35,
+        "artist_v": 78,
+        "limit": 117.0
+      },
+      "AC_static_clean": {
+        "pass": true,
+        "degenerate": 0,
+        "orphans": 0
+      },
+      "deform_probe": {
+        "note": "此 slot 在 Award 全動畫無 deform(骨骼驅動);以下為『若被 warp』的耐受探針。",
+        "auto": {
+          "mode": "delaunay-v1",
+          "clean": true,
+          "self_intersections": 0,
+          "triangle_flips": 0,
+          "area_ratio": 1.137
+        },
+        "strip": {
+          "vertices": 30,
+          "clean": true,
+          "self_intersections": 0,
+          "triangle_flips": 0,
+          "area_ratio": 1.138
+        }
+      },
+      "overall_pass": true
+    },
+    {
+      "slot": "機器人拆件/身體",
+      "part_size": [
+        379,
+        425
+      ],
+      "gen": {
+        "vertices": 60,
+        "hull": 20,
+        "triangles": 97,
+        "mode": "delaunay-v1",
+        "iou": 0.966
+      },
+      "artist": {
+        "vertices": 98,
+        "hull": 40,
+        "triangles": 154,
+        "iou": 0.9477,
+        "wh": [
+          381,
+          427
+        ]
+      },
+      "AC_cover": {
+        "pass": true,
+        "gen_iou": 0.966,
+        "artist_iou": 0.9477,
+        "margin": 0.02
+      },
+      "AC_budget": {
+        "pass": true,
+        "gen_v": 60,
+        "artist_v": 98,
+        "limit": 147.0
+      },
+      "AC_static_clean": {
+        "pass": true,
+        "degenerate": 0,
+        "orphans": 0
+      },
+      "deform_probe": {
+        "note": "此 slot 在 Award 全動畫無 deform(骨骼驅動);以下為『若被 warp』的耐受探針。",
+        "auto": {
+          "mode": "delaunay-v1",
+          "clean": true,
+          "self_intersections": 0,
+          "triangle_flips": 0,
+          "area_ratio": 1.145
+        },
+        "strip": {
+          "vertices": 30,
+          "clean": true,
+          "self_intersections": 0,
+          "triangle_flips": 0,
+          "area_ratio": 1.141
+        }
+      },
+      "overall_pass": true
+    },
+    {
+      "slot": "機器人拆件/左手",
+      "part_size": [
+        257,
+        215
+      ],
+      "gen": {
+        "vertices": 59,
+        "hull": 19,
+        "triangles": 97,
+        "mode": "delaunay-v1",
+        "iou": 0.9642
+      },
+      "artist": {
+        "vertices": 80,
+        "hull": 42,
+        "triangles": 116,
+        "iou": 0.9768,
+        "wh": [
+          259,
+          217
+        ]
+      },
+      "AC_cover": {
+        "pass": true,
+        "gen_iou": 0.9642,
+        "artist_iou": 0.9768,
+        "margin": 0.02
+      },
+      "AC_budget": {
+        "pass": true,
+        "gen_v": 59,
+        "artist_v": 80,
+        "limit": 120.0
+      },
+      "AC_static_clean": {
+        "pass": true,
+        "degenerate": 0,
+        "orphans": 0
+      },
+      "deform_probe": {
+        "note": "此 slot 在 Award 全動畫無 deform(骨骼驅動);以下為『若被 warp』的耐受探針。",
+        "auto": {
+          "mode": "delaunay-v1",
+          "clean": false,
+          "self_intersections": 10,
+          "triangle_flips": 3,
+          "area_ratio": 1.58
+        },
+        "strip": {
+          "vertices": 30,
+          "clean": true,
+          "self_intersections": 0,
+          "triangle_flips": 0,
+          "area_ratio": 1.527
+        }
+      },
+      "overall_pass": true
+    }
+  ],
+  "overall_pass": true
+}
