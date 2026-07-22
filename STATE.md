@@ -37,18 +37,23 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
+**✅ 候選 1 已完成(2026-07-22,里程碑)**:PSD件→S3 mesh→對照 Award 真實 mesh 端到端串通。
+`compare_award_mesh.py` 對 robot_parts 3 mesh 件(光暈/身體/左手)全 `overall_pass`;auto 正確
+路由到 v1(這 3 件無 deform timeline、骨骼驅動),用約半數頂點達 ≈/優於藝術家靜態覆蓋率。
+誠實邊界:無 deform timeline → **未**驗耐變形,不推翻「deform 件需 v2」。見 `knowledge/s3-psd-to-award-mesh.md`。
+
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. **❗最高優先:切圖→Spine JSON 組裝器(SkelToJson)**。把已驗證的慣例固化成寫出器:
+   PSD 切件 →(mesh via `generate_mesh_v2` auto / region)+ slot 命名 `<PSD名>/<圖層名>` +
+   size(+2px padding)+ atlas 0.70 縮放 → 端到端產可載入的 Spine JSON。純 CPU 可自驅。
+2. **(可選,強化 S3 評估器)** 提高 v1 邊界取樣密度以貼合細長附肢,並加「hull 覆蓋率」子指標,
+   抓「漏細附肢」這類 IoU 不敏感的欠缺(這次 光暈 觸手/細足略欠覆蓋)。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3+S4 端到端已對真實生產標的驗收通過。建議下一步:(1) 寫 SkelToJson 組裝器把整條
+> 「PSD→件→mesh→Spine JSON」封口成一鍵工具(有全部已驗證的慣例可固化)。
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +98,11 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-22:**S3+S4 端到端串通(里程碑)** — `compare_award_mesh.py`:PSD 切件→`generate_mesh_v2`(auto)
+  →對照 Award 真實藝術家 mesh。robot_parts 3 mesh 件(光暈/身體/左手)全 `overall_pass`(IoU
+  0.933/0.966/0.964 vs 藝術家 0.949/0.948/0.977,身體超越;rest 0 自交)。auto 正確路由到 v1(這 3 件
+  無 deform timeline、骨骼驅動,不需 v2 strip)。誠實邊界:未驗耐變形。抓修 deform_eval.check 的
+  setup_signs 需傳布林(np.sign 假性全翻面)。視覺疊圖 `knowledge/figures/award_mesh_compare.png`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
