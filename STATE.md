@@ -31,6 +31,22 @@
 
 ## 下一步動作 (next action)
 
+**S3×S4 端到端對照真實生產 mesh(里程碑,2026-07-22)** — robot_parts.psd 3 個 mesh 件
+(光暈/身體/左手)經 `psd_slice`→`generate_mesh_v2`,與 Award 藝術家真實 mesh 在同一件剪影上
+量化對照 → **3 件全 PASS**:覆蓋率不遜於藝術家(容差 0.03 內,身體還更高),且更精簡(頂點
+35/60/59 vs 78/98/80)。校準閘(藝術家 self-IoU 0.95~0.98 ≥0.80)+ 負對照(swapUV 0.47~0.71 /
+flipV 0.43~0.60 全 <0.80)確認 frame 對齊、比對可信。工具:`tools/mesh_gen/compare_psd_to_award_mesh.py`。
+- 發現:Award mesh uvs 為 region-local(非 global atlas UV),直接對件剪影可比。
+- 這 3 件走 delaunay-v1(非 strip);Award 無 deform timeline → 只驗**靜態剪影覆蓋**,weighted 變形品質未測。
+- 詳見 `knowledge/s3-psd-to-award-mesh.md`。
+
+下一個 bounded chunk 候選(接續此里程碑):
+1. **SkelToJson 組裝**:把「件→Spine attachment」慣例(slot=`<PSD檔名>/<圖層名>`、size+2px、
+   mesh/region 分配)固化成工具,端到端由 PSD 件產出可載入的 Spine JSON。
+2. **weighted 綁定(BBW)**:目前生成 mesh 為 unweighted;要對等藝術家品質需骨骼權重 + 有 deform 真值。
+3. S2 補圖閘 / 骨架閘(純 CPU)。
+
+---
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -93,6 +109,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-22:**S3×S4 端到端對照真實生產 mesh(里程碑)** — robot_parts 3 mesh 件(光暈/身體/左手)
+  psd_slice→generate_mesh_v2,對 Award 藝術家真實 mesh 同剪影量化 → 3 件全 PASS(覆蓋率不遜、更精簡)。
+  校準閘 + swapUV/flipV 負對照確認可信。發現 Award mesh uvs 為 region-local。限:僅靜態覆蓋,weighted 變形未測。
+  新增 `tools/mesh_gen/compare_psd_to_award_mesh.py`、`knowledge/s3-psd-to-award-mesh.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
