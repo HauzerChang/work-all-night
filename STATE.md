@@ -37,18 +37,26 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
+**✅ 已完成(2026-07-23):PSD件→S3 mesh→對照 Award 真實 mesh(端到端里程碑)**。
+`compare_generated_vs_artist.py` 對機器人 3 mesh 件(光暈/身體/左手)跑 `generate_mesh_v2`,
+與 Award 藝術家 mesh 做覆蓋率 IoU 對照:3 件全過(生成 IoU 0.933/0.966/0.964 vs 藝術家
+0.949/0.948/0.977,margin 0.03),且**只用藝術家 0.45~0.74 倍頂點**。v1 Delaunay(3 件皆低長寬比→auto 回退)
+在真實 blob 形狀首次真值對照通過。評估器經三態負對照(正確 0.95↔翻轉/縮小 0.43~0.60)確認鑑別力。
+**缺口**:此 3 件在 Award 無 deform timeline(加權骨動)→ 只驗靜態覆蓋,未驗 deform 穩健(需 BBW)。
+詳見 `knowledge/s3-psd-to-award-mesh.md`。
+
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. **❗最高優先(接續上一步缺口):weighted mesh 的 BBW 權重生成 + 骨動 deform 驗收**。
+   上一步證「覆蓋率」達標;藝術家多用的頂點是為「可變形平滑度」。下一能力是對生成 mesh 綁骨+算權重
+   (BBW/heat),用 Award 這 3 件的真實骨綁定當真值,驗骨動 deform 下 0 自交/形變貼合。純 CPU 可自驅。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
+   生成 mesh 固化成「件→Spine attachment」寫出工具,端到端產可載入的 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3×S4 端到端已對真實生產標的(Award mesh)驗收通過。建議下一步:(1) 補 weighted mesh 的 BBW 權重
+> 與骨動 deform 驗收(有 Award 真骨綁定當真值、純 CPU 可自驅),把「能生成→能變形」補齊;或 (2) SkelToJson 組裝。
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +101,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-23:**S3×S4 端到端(里程碑)** — `compare_generated_vs_artist.py` 把 PSD 切件→`generate_mesh_v2`→
+  對照 Award 真實藝術家 mesh。機器人 3 mesh 件覆蓋率 IoU 達/超基準(身體甚至優於),只用 0.45~0.74 倍頂點,
+  3 件全過。v1 Delaunay 在真實 blob 首次真值對照通過。三態負對照確認評估器鑑別力。發現缺口:weighted mesh 的
+  deform 穩健未驗(無 deform timeline,靠骨權重)→ 下一步定為 BBW 權重+骨動 deform 驗收。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
