@@ -31,6 +31,28 @@
 
 ## 下一步動作 (next action)
 
+**S3×S4 端到端對照 Award 真實 mesh 完成(里程碑,2026-07-23)**:`compare_award_mesh.py`
+把「PSD 件 → `generate_mesh_v2(auto)` → 對照生產 spine `Award` 的藝術家真值」串成端到端;
+機器人三件 mesh(光暈/身體/左手)**全 `overall_pass`** —— 覆蓋率達/超藝術家(差 ±0.02 內)、
+頂點數更精簡(生成 35–60 vs 藝術家 78–98)、拓樸乾淨(0 孤兒/0 退化/重心全在 mask)。
+- **校驗**:Award 這三件 mesh `uvs` 實為 **region-local、v 由頂部量**(v-top IoU 0.95–0.98、
+  v-flip 0.43–0.61)→ **推翻 log 006「uvs 為 atlas 頁 UV」的假設**,與生成器慣例一致無需轉換。
+- **v1 首度過真實團塊 mesh**:三件 aspect 都 < 1.2,auto 全走 v1 Delaunay(非 strip)並通過。
+- **deform 閘對這 5 件不適用**(Award 無 deform timeline;靠骨骼/權重變形)。
+- 詳見 `knowledge/s3-s4-award-mesh-endtoend.md`、圖 `knowledge/figures/award_mesh_compare.png`。
+- 標準指令:`psd_slice robot_parts.psd -o /tmp/robot_parts && compare_award_mesh.py`(all_pass, exit 0)。
+
+下一個 bounded chunk 候選(接續):
+1. **❗切圖→Spine JSON 組裝工具(SkelToJson)**:把已驗慣例(`機器人拆件/<圖層名>`、size+2px、
+   mesh/region 分配、region-local v-top uvs、atlas 0.70 縮放)固化,端到端由 PSD 產可載入 Spine JSON。
+   這是把 S3+S4 成果變成「可交付產物」的收斂點。
+2. (可選)給 v1 加「hull 取樣密度」參數 → 覆蓋率↔頂點數 Pareto 掃描,對藝術家真值定甜蜜點。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+
+---
+以下為前一里程碑存檔:
+
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -97,3 +119,7 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-07-23:**S3×S4 端到端對照 Award 真實 mesh(里程碑)** — 新增 `compare_award_mesh.py`;
+  PSD 件→`generate_mesh_v2(auto)`→對照生產 spine 藝術家真值,機器人三件全 PASS(覆蓋達/超藝術家、
+  頂點更精簡)。校驗 Award uvs 為 region-local v-top(推翻 log 006 假設);v1 首度過真實團塊 mesh;
+  deform 閘對這 5 件不適用。見 `knowledge/s3-s4-award-mesh-endtoend.md`。
