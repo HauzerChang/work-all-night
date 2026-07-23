@@ -37,18 +37,27 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
+**✅ PSD件→S3 mesh→對照 Award 真實 mesh(端到端里程碑,2026-07-23)**:
+`compare_award_mesh.py` 對 3 個生產 mesh(機器人拆件 光暈/身體/左手)全 `overall_pass` —
+靜態覆蓋率 IoU 達藝術家基準(margin 0.02)、頂點更精簡、0 自交。見
+`knowledge/s3-award-mesh-endtoend.md` + 圖 `knowledge/figures/award_robot_mesh_compare.png`。
+- **關鍵發現①**:robot 件是 **bone-weighted 且無 deform timeline** → `transfer_deform_check`
+  **不適用**(那是給 deform-driven mesh 如窗簾的閘);bone-weighted 耐變形屬未建的 S3 加權(BBW)課題。
+- **關鍵發現②**:覆蓋率主槓桿 = **hull 解析度(epsilon)**;固定 0.008 對圓潤件覆蓋不足。
+  已給 `generate_mesh.generate` 加 `target_coverage`+`vertex_budget` 自適應(預設 None → 舊行為不變,
+  main_draw 4 mesh + slicing 重跑無回歸)。
+
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. **❗S3 加權(BBW)閘**:給生成 unweighted mesh 綁權重,用 Award 骨骼姿勢驅動 → 才能對 bone-weighted
+   件補「耐變形」閘(當前只做了靜態覆蓋率)。這是把 robot 件驗收補完整的關鍵。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
+   生成 mesh 固化成「件→Spine attachment」寫出工具,端到端產 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S4 已對真實檔驗收通過;S3 已對真實 mesh 端到端對照通過(靜態)。建議下一步:S3 加權(BBW)以補上
+> bone-weighted 件的耐變形閘,或做 SkelToJson 把件→Spine JSON 串起來。
 
 ## 環境前置(已驗證可用)
 
@@ -97,3 +106,7 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-07-23:**S3 端到端對照 Award 真實 mesh(里程碑)** — `compare_award_mesh.py` 對 3 生產 mesh
+  (光暈/身體/左手)靜態覆蓋率全達藝術家基準、頂點更精簡、0 自交,全 overall_pass。
+  發現①robot 件為 bone-weighted 無 deform timeline → deform 閘不適用(界定範圍);
+  發現②覆蓋率主槓桿=hull 解析度,給 v1 加 `target_coverage` 自適應(舊行為不變,無回歸)。

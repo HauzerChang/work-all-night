@@ -112,13 +112,49 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def _coverage(mesh, mask):
+    """把 mesh 三角形填滿,回傳 vs mask 的 IoU(與 evaluate_mesh.AC1 同義,獨立實作免循環相依)。"""
+    H, W = mask.shape
+    v = mesh["vertices"]
+    pts = np.array([[v[i] + W / 2.0, H / 2.0 - v[i + 1]] for i in range(0, len(v), 2)])
+    tris = np.array(mesh["triangles"], dtype=np.int32).reshape(-1, 3)
+    recon = np.zeros((H, W), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0).astype(np.uint8)
+    u = int(np.logical_or(recon, m).sum())
+    return int(np.logical_and(recon, m).sum()) / u if u else 0.0
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_coverage=None, vertex_budget=64):
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
-    inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
-    pts, tris, n_hull = triangulate(hull, inter)
-    tris = filter_triangles(pts, tris, mask)
-    return to_spine(pts, tris, n_hull, W, H), mask
+
+    def build(eps):
+        hull = boundary_points(mask, eps)
+        inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+        pts, tris, n_hull = triangulate(hull, inter)
+        tris = filter_triangles(pts, tris, mask)
+        return to_spine(pts, tris, n_hull, W, H)
+
+    if target_coverage is None:
+        return build(epsilon_frac), mask
+
+    # 自適應 hull 解析度:對圓潤/軟邊件(如發光暈)固定 epsilon 會覆蓋不足。
+    # 由粗到細掃描,取「達覆蓋目標且頂點數在預算內」中最省頂點的解;
+    # 都不達標時回傳覆蓋率最高者。此為 IoU 主槓桿(hull 解析度)的自主收斂。
+    best_ok, best_any = None, None
+    for eps in (0.008, 0.006, 0.004, 0.003, 0.002, 0.0015, 0.001):
+        m = build(eps)
+        nv = len(m["uvs"]) // 2
+        cov = _coverage(m, mask)
+        m["_coverage"], m["_epsilon"] = round(cov, 4), eps
+        if best_any is None or cov > best_any["_coverage"]:
+            best_any = m
+        if cov >= target_coverage and nv <= vertex_budget and best_ok is None:
+            best_ok = m
+            break
+    return (best_ok or best_any), mask
 
 
 def main():
