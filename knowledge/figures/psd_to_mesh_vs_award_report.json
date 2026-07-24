@@ -1,0 +1,76 @@
+{
+  "overall_pass": true,
+  "margin": 0.02,
+  "note": "3 件在 Award 皆 weighted mesh 且無 deform timeline → 靜態 IoU 閘;deform 閘 N/A",
+  "parts": [
+    {
+      "part": "機器人拆件/光暈",
+      "artist": {
+        "vertices": 78,
+        "coverage_iou": 0.9795
+      },
+      "A_atlas_source": {
+        "gen_mode": "delaunay-v1",
+        "gen_vertices": 73,
+        "gen_iou": 0.9832,
+        "pass_vs_artist": true,
+        "format_ok": true,
+        "degenerate": 0,
+        "orphans": 0
+      },
+      "B_psd_source": {
+        "gen_mode": "delaunay-v1",
+        "gen_vertices": 64,
+        "gen_iou": 0.9796,
+        "pass_self": true
+      },
+      "vertex_efficiency": 0.936
+    },
+    {
+      "part": "機器人拆件/身體",
+      "artist": {
+        "vertices": 98,
+        "coverage_iou": 0.976
+      },
+      "A_atlas_source": {
+        "gen_mode": "delaunay-v1",
+        "gen_vertices": 69,
+        "gen_iou": 0.9858,
+        "pass_vs_artist": true,
+        "format_ok": true,
+        "degenerate": 0,
+        "orphans": 0
+      },
+      "B_psd_source": {
+        "gen_mode": "delaunay-v1",
+        "gen_vertices": 69,
+        "gen_iou": 0.9828,
+        "pass_self": true
+      },
+      "vertex_efficiency": 0.704
+    },
+    {
+      "part": "機器人拆件/左手",
+      "artist": {
+        "vertices": 80,
+        "coverage_iou": 0.9681
+      },
+      "A_atlas_source": {
+        "gen_mode": "delaunay-v1",
+        "gen_vertices": 57,
+        "gen_iou": 0.9816,
+        "pass_vs_artist": true,
+        "format_ok": true,
+        "degenerate": 0,
+        "orphans": 0
+      },
+      "B_psd_source": {
+        "gen_mode": "delaunay-v1",
+        "gen_vertices": 70,
+        "gen_iou": 0.9796,
+        "pass_self": true
+      },
+      "vertex_efficiency": 0.713
+    }
+  ]
+}

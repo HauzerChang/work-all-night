@@ -95,6 +95,18 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def self_iou(pts, tris, mask):
+    """生成 mesh 對其來源 mask 的覆蓋 IoU(生成器自我品質量測,用於 adaptive 收斂)。"""
+    h, w = mask.shape
+    recon = np.zeros((h, w), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0).astype(np.uint8)
+    inter = int(np.logical_and(recon, m).sum())
+    union = int(np.logical_or(recon, m).sum())
+    return (inter / union) if union else 0.0
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,12 +124,36 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
-    mask, gray, W, H = load_mask(path)
+def _build(mask, gray, max_interior, epsilon_frac, min_dist, margin):
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    return pts, tris, n_hull
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             adaptive=True, target_iou=0.97, vertex_cap=110):
+    """adaptive(預設開):Douglas-Peucker epsilon 對「直邊」件夠用,但平滑凸形(如光暈)
+    會切角、覆蓋率不足。收斂到自我覆蓋 IoU >= target_iou —— 沿 epsilon 遞減階梯建網,
+    取第一個達標者;皆不達標則取 IoU 最高且頂點數 <= vertex_cap 的解。
+    量測用 self_iou(生成器自評,不需外部真值),符合「評估器把關」原則。"""
+    mask, gray, W, H = load_mask(path)
+    if not adaptive:
+        pts, tris, n_hull = _build(mask, gray, max_interior, epsilon_frac, min_dist, margin)
+        return to_spine(pts, tris, n_hull, W, H), mask
+
+    ladder = [e for e in (0.008, 0.004, 0.002, 0.001) if e <= epsilon_frac] or [epsilon_frac]
+    best = None  # (iou, nv, tuple)
+    for eps in ladder:
+        pts, tris, n_hull = _build(mask, gray, max_interior, eps, min_dist, margin)
+        nv = len(pts)
+        iou = self_iou(pts, tris, mask)
+        if best is None or (iou > best[0] and nv <= vertex_cap):
+            best = (iou, nv, (pts, tris, n_hull))
+        if iou >= target_iou and nv <= vertex_cap:
+            break
+    pts, tris, n_hull = best[2]
     return to_spine(pts, tris, n_hull, W, H), mask
 
 

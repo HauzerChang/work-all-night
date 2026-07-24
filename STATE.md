@@ -31,6 +31,25 @@
 
 ## 下一步動作 (next action)
 
+**✅ 端到端「PSD件→S3 mesh→對照 Award 真值」已通過(里程碑,2026-07-24)** —— 見
+`knowledge/s3-psd-to-mesh-vs-award.md`。機器人 3 warp 件(光暈/身體/左手)切件 →
+`generate_mesh_v2(auto)` → 對照 Award 藝術家 weighted mesh,靜態覆蓋 IoU **全過**
+(生成 0.982~0.986 > 藝術家 0.968~0.980,頂點省 0.6–0.94×;atlas 與 PSD 兩來源一致)。
+閘:`tools/mesh_gen/psd_to_mesh_vs_award.py`(exit 0=PASS)。
+副產:v1 生成器加 **adaptive epsilon**(以 `self_iou` 自評收斂,修平滑凸形切角覆蓋不足);
+main_draw 4 mesh 走 strip 路徑無回歸。
+⚠️ 限制:這 3 件在 Award **無 deform timeline**(靠骨骼擺放)→ 本次只驗靜態輪廓;
+deform 穩健真值驗證仍以 main_draw 4 個 unweighted deform mesh 為準。
+
+下一個 bounded chunk 候選(更新後):
+1. **❗切圖→Spine JSON 組裝(SkelToJson)**:把 `<PSD檔名>/<圖層名>` 命名 + size+2px padding +
+   「warp 件用 mesh、剛體用 region」規則,固化成「件清單 → Spine skin/slot/attachment JSON」產生器,
+   端到端從 PSD 產出可載入的 Spine JSON(可用 psd_to_mesh 的 mesh 塞入)。純 CPU 可自驅。
+2. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+3. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產)——屬 A 類(需使用者提供)。
+
+---
+(以下為前一里程碑,保留供追溯)
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -97,3 +116,9 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-07-24:**端到端 PSD件→mesh vs Award 真值(里程碑)** — 機器人 3 warp 件(光暈/身體/左手)
+  切件→`generate_mesh_v2`→對照 Award 藝術家 weighted mesh,靜態覆蓋 IoU 全過(生成 0.982~0.986 >
+  藝術家 0.968~0.980,頂點省 0.6–0.94×,atlas/PSD 兩來源一致)。發現 v1 DP epsilon 對平滑凸形(光暈)
+  切角覆蓋不足(0.929)→ 加 **adaptive epsilon**(以 self_iou 自評沿 epsilon 階梯收斂,不需外部真值)→
+  0.983、孤兒歸零;main_draw 4 mesh 走 strip 無回歸。新增 `psd_to_mesh_vs_award.py` 閘 + knowledge + 對照圖。
+  發現這 3 件在 Award **無 deform**(靠骨骼)→ 本次僅靜態驗,deform 真值仍靠 main_draw 4 mesh。
