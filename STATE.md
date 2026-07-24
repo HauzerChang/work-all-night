@@ -17,6 +17,12 @@
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
   見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
+- **S3×S4 端到端串接:對真實生產 mesh(Award)驗收通過(里程碑,2026-07-24)** —
+  `validate_psd_to_award.py` 把 `robot_parts.psd` 3 個 mesh 件(光暈/身體/左手)自動生成 mesh,
+  覆蓋率 IoU 打平/勝過 Award 藝術家 mesh(0.933/0.966/0.964 vs 0.949/0.948/0.977,margin 0.03,全 PASS),
+  且用**更少頂點**(35/60/59 vs 78/98/80)。auto-mode 對 blob 件全落 v1 Delaunay(路由正確)。
+  負對照(uvs 縮0.7/平移)確認閘鑑別力。**局限:生成件仍 unweighted,缺 BBW 權重綁定**
+  (S3 路線圖後半)。見 `knowledge/s3-psd-to-award-endtoend.md`。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -38,17 +44,21 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
-3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-07-24)**,見上方里程碑 + `s3-psd-to-award-endtoend.md`。
+2. **❗最高優先:切圖→Spine JSON 組裝(SkelToJson)**。把已驗證的慣例
+   (slot=`機器人拆件/<圖層名>`、size+2px padding、mesh/region 分配、atlas 0.70 縮放、生成 mesh 拓樸)
+   固化成「件 manifest → Spine attachment/skin/slot」寫出工具,端到端產可用 Spine JSON。純 CPU 可自驅,
+   可用 Award.json 當輸出格式真值逐欄比對。
+3. **❗高優先:S3 BBW 權重綁定**(補齊 S3 路線圖後半)。目前生成件為 unweighted;真實件靠骨骼權重變形。
+   需 骨架 → 各頂點對各骨的 BBW/heat 權重 → weighted mesh 格式(`vertices=[骨數,boneIdx,bindX,bindY,w,...]`,
+   權重和=1,hull 排最前)。可用 Award 藝術家 weighted mesh 當真值比對權重分佈合理性。純 CPU。
+4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3×S4 端到端已對真實生產 mesh 驗收通過(拓樸/覆蓋率層)。建議下一步二選一:
+> (2) SkelToJson 把件組裝成完整 Spine JSON(最接近可交付),或 (3) 補 S3 BBW 權重(讓生成 mesh 能真正變形替代藝術家 mesh)。
+> 兩者皆純 CPU 可自驅、皆有 Award 真值可比對。
 
 ## 環境前置(已驗證可用)
 
