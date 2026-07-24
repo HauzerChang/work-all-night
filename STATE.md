@@ -31,6 +31,24 @@
 
 ## 下一步動作 (next action)
 
+**S3+S4 端到端串接(里程碑,2026-07-24)**:`robot_parts.psd` 3 個 mesh 件(光暈/身體/左手)
+→ `psd_slice` 切件 → S3 生成 mesh → 對照 **Award 真實生產 mesh**。`compare_to_award.py --refine`
+auto-refine epsilon 後 **3 件靜態 IoU 全達/超藝術家基準**(0.958/0.966/0.980 ≥ 0.949/0.948/0.977),
+且頂點反而**比藝術家少 12~45%**(43/60/70 vs 78/98/80)。
+- **固定 eps=0.008 對細緻生產件太粗** → 光暈/左手差 1~2% fail;auto-refine(由粗到細下修 eps)收斂。
+- **AC3 的 64 頂點預算對生產件偏緊**(藝術家用 78~98v);應隨件輪廓複雜度縮放(閘用 `--vert-cap 96`)。
+- **限制**:Award 這 5 件是 weighted 且無 deform timeline → 真實 deform 閘不適用,本次只驗靜態輪廓+頂點經濟。
+- 詳見 `knowledge/s3-psd-to-mesh-vs-award.md`、圖 `knowledge/figures/s3-award-mesh-compare.png`。
+
+下一個 bounded chunk 候選:
+1. 把 auto-refine epsilon(達 IoU 目標的最粗輪廓)+ 頂點預算隨尺寸縮放,固化進 `generate_mesh_v2` 一個模式。
+2. 為「純 warp」件加 `ring`(純外環)拓樸模式,對照光暈藝術家策略(78v 全 hull)。
+3. S3 **BBW 權重階段**:unweighted mesh + 骨架 → weighted,才能對齊 Award 生產件全貌(目前生成件仍 unweighted)。
+4. 切圖→Spine JSON 組裝(SkelToJson):固化 `PSD名/圖層名`+size+2px padding 慣例。
+5. S2 補圖閘 / 骨架閘(補齊 S2 樞紐)。
+
+---
+以下為前一里程碑(保留):
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -93,6 +111,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-24:**S3+S4 端到端串接(里程碑)** — PSD件→切件→S3 mesh→對照 Award 真實生產 mesh。
+  新增 `compare_to_award.py`(--refine auto-refine epsilon)。3 件靜態 IoU 全達/超藝術家、頂點少 12~45%。
+  發現:固定 eps=0.008 對細緻件太粗、64 頂點預算偏緊、光暈藝術家用純外環拓樸(78v 全 hull)。
+  限制:件為 weighted 且無 deform timeline → 只驗靜態輪廓+頂點經濟。見 `knowledge/s3-psd-to-mesh-vs-award.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
