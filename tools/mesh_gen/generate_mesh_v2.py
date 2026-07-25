@@ -110,13 +110,16 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", epsilon_frac=0.008):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        # epsilon_frac 控制 delaunay 路徑的 hull 追蹤密度;周長長/形狀不規則的件
+        # (如 glow 光暈)在預設 0.008 下 hull 追不到位而覆蓋不足,0.002 可對齊藝術家真值
+        # (見 knowledge/s3-psd-to-award-e2e.md)。
+        m, _ = gen_v1(path, epsilon_frac=epsilon_frac)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

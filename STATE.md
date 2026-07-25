@@ -31,6 +31,25 @@
 
 ## 下一步動作 (next action)
 
+**S3×S4 端到端對真實生產標的驗收通過(里程碑,2026-07-25)** — 候選 #1 已完成。
+`robot_parts.psd` 的 光暈/身體/左手 3 件(Award 中為 mesh)跑 `psd_slice → generate_mesh_v2 →
+對照 Award 藝術家 mesh`,**3/3 overall_pass**:自動 mesh 覆蓋 IoU ≥ 藝術家自身覆蓋、頂點更少
+(73/78、77/98、67/80)。工具 `tools/mesh_gen/validate_psd_to_award.py`(exit 0),報告
+`knowledge/reports/psd-to-award-e2e.json`,詳 `knowledge/s3-psd-to-award-e2e.md`。
+- **發現①**:`epsilon_frac`(hull 追蹤密度)是**不規則/柔邊件的覆蓋槓桿**。glow 在預設 0.008 下
+  hull 追不到位(gap +0.050 fail);校準 0.002 後 3 件全對齊藝術家真值。`min_dist` 幾乎不影響
+  (再證覆蓋由 hull/邊界決定)。已把 `epsilon_frac` 穿進 `generate_mesh_v2.generate`(**預設仍 0.008**,
+  不動既有 main_draw/strip 行為;main_draw curtain 回歸驗證 overall_pass)。
+- **發現②(結構性)**:Award 機器人 mesh 皆 **weighted(骨驅動)、無 deform timeline** → 真實位移場
+  轉移閘**不適用**(已明確標 N/A,非假性通過)。**S3 下一缺口 = 權重指派(BBW)**:對骨驅動件
+  目前只做了拓樸生成,還缺權重才能對齊生產。
+
+**下一個 bounded chunk 建議:S3 權重指派(BBW)** — 讓 `generate_mesh_v2` 對骨驅動件輸出 weighted
+mesh,對照 Award 藝術家權重驗(純 CPU 有真值)。或做 `epsilon_frac` 依形狀複雜度自適應。
+
+---
+以下為前次里程碑(2026-06-26)紀錄,保留:
+
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -38,9 +57,9 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
+1. ✅ **已完成(2026-07-25):PSD件→S3 mesh→對照 Award 真實 mesh**(見上方 next action)。
+   端到端 3/3 過;副產:epsilon_frac 覆蓋槓桿、weighted/骨驅動件 deform 閘 N/A、S3 缺 BBW 權重。
+1b. **❗新最高優先:S3 權重指派(BBW)** — 對骨驅動件輸出 weighted mesh,對照 Award 藝術家權重(有真值、純 CPU)。
 2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
    寫出工具(SkelToJson),端到端產 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
@@ -93,6 +112,11 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-25:**S3×S4 端到端對真實生產標的驗收(里程碑)** — PSD件→generate_mesh_v2→對照 Award
+  藝術家 mesh,光暈/身體/左手 3/3 overall_pass(覆蓋 ≥ 藝術家、頂點更少)。發現 epsilon_frac 是不規則/
+  柔邊件的覆蓋槓桿(glow 0.008→gap5%,0.002 對齊真值;min_dist 不影響)、機器人件是 weighted 骨驅動
+  無 deform → deform 閘 N/A、S3 下一缺口為 BBW 權重。新增 `validate_psd_to_award.py` + knowledge +
+  報告;`generate_mesh_v2` 加 epsilon_frac 參數(預設不變,main_draw 回歸過)。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

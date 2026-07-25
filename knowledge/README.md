@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3×S4 端到端:PSD件→mesh→對照 Award 真實 mesh](s3-psd-to-award-e2e.md) — **端到端對真實生產標的 3/3 全過**:自動 mesh 覆蓋 ≥ 藝術家、頂點更省。發現①`epsilon_frac`(hull 密度)是不規則/柔邊件的覆蓋槓桿(glow 預設 0.008 gap 5%,0.002 對齊真值);②Award 機器人件是 **weighted 骨驅動、無 deform** → deform 閘不適用,S3 下一缺口是**權重指派(BBW)**。工具 `validate_psd_to_award.py`,報告 `reports/psd-to-award-e2e.json`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

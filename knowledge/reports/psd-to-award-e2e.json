@@ -1,0 +1,131 @@
+[
+  {
+    "piece": "機器人拆件/光暈",
+    "pathA_psd_provenance": {
+      "source": "00_光暈.png",
+      "mesh": {
+        "vertices": 64,
+        "hull": 45,
+        "triangles": 80,
+        "mode": "delaunay-v1"
+      },
+      "self_iou": 0.9796,
+      "format_ok": true,
+      "orphans": 0,
+      "degenerate": 0,
+      "centroid_in_mask": 1.0,
+      "valid_mesh_pass": true
+    },
+    "pathB_artist_groundtruth": {
+      "gen_mesh": {
+        "vertices": 73,
+        "hull": 38,
+        "triangles": 106
+      },
+      "artist_mesh": {
+        "vertices": 78,
+        "triangles": 76,
+        "hull": 78,
+        "weighted": true
+      },
+      "gen_iou": 0.9832,
+      "artist_iou_baseline": 0.9795,
+      "epsilon_frac": 0.002,
+      "coverage_pass": true,
+      "vertex_budget_pass": true
+    },
+    "deform_gate": {
+      "applicable": false,
+      "reason": "weighted mesh, no deform timeline (bone-driven)",
+      "weighted": true,
+      "deform_anim": null
+    },
+    "overall_pass": true
+  },
+  {
+    "piece": "機器人拆件/身體",
+    "pathA_psd_provenance": {
+      "source": "03_身體.png",
+      "mesh": {
+        "vertices": 77,
+        "hull": 37,
+        "triangles": 115,
+        "mode": "delaunay-v1"
+      },
+      "self_iou": 0.9908,
+      "format_ok": true,
+      "orphans": 0,
+      "degenerate": 0,
+      "centroid_in_mask": 1.0,
+      "valid_mesh_pass": true
+    },
+    "pathB_artist_groundtruth": {
+      "gen_mesh": {
+        "vertices": 77,
+        "hull": 37,
+        "triangles": 115
+      },
+      "artist_mesh": {
+        "vertices": 98,
+        "triangles": 154,
+        "hull": 40,
+        "weighted": true
+      },
+      "gen_iou": 0.9926,
+      "artist_iou_baseline": 0.976,
+      "epsilon_frac": 0.002,
+      "coverage_pass": true,
+      "vertex_budget_pass": true
+    },
+    "deform_gate": {
+      "applicable": false,
+      "reason": "weighted mesh, no deform timeline (bone-driven)",
+      "weighted": true,
+      "deform_anim": null
+    },
+    "overall_pass": true
+  },
+  {
+    "piece": "機器人拆件/左手",
+    "pathA_psd_provenance": {
+      "source": "04_左手.png",
+      "mesh": {
+        "vertices": 84,
+        "hull": 44,
+        "triangles": 122,
+        "mode": "delaunay-v1"
+      },
+      "self_iou": 0.9901,
+      "format_ok": true,
+      "orphans": 0,
+      "degenerate": 0,
+      "centroid_in_mask": 1.0,
+      "valid_mesh_pass": true
+    },
+    "pathB_artist_groundtruth": {
+      "gen_mesh": {
+        "vertices": 67,
+        "hull": 43,
+        "triangles": 89
+      },
+      "artist_mesh": {
+        "vertices": 80,
+        "triangles": 116,
+        "hull": 42,
+        "weighted": true
+      },
+      "gen_iou": 0.9913,
+      "artist_iou_baseline": 0.9681,
+      "epsilon_frac": 0.002,
+      "coverage_pass": true,
+      "vertex_budget_pass": true
+    },
+    "deform_gate": {
+      "applicable": false,
+      "reason": "weighted mesh, no deform timeline (bone-driven)",
+      "weighted": true,
+      "deform_anim": null
+    },
+    "overall_pass": true
+  }
+]
