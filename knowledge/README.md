@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真值](s3-award-mesh-compare.md) — **第一次 PSD件→generate_mesh_v2→對照真實藝術家 weighted mesh**;3 件(光暈/身體/左手)靜態整合 AC 全過:生成 IoU 對齊藝術家(差≤1.5%)且頂點更省(35/60/59 vs 78/98/80)。工具 `compare_to_award.py`(自含切 PSD)。邊界:僅靜態;weighted mesh 的骨骼位移場變形閘是下一 chunk。更正 log006「uvs 需轉」— 實測 region-local 可直接用。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
