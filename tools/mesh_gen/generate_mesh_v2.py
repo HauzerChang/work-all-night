@@ -110,13 +110,16 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", v1_kw=None):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        # blob 件的覆蓋率由 hull 密度(epsilon)決定;預設 0.008 對 blob 過粗
+        # (對照 Award 藝術家 mesh:eps=0.002 才達覆蓋率 parity,見
+        #  knowledge/s3-vs-award-artist-mesh.md)。呼叫端可傳 v1_kw 覆寫。
+        m, _ = gen_v1(path, **(v1_kw or {}))
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

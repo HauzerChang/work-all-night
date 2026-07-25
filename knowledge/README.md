@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3×S4 端到端 vs Award 藝術家 mesh](s3-vs-award-artist-mesh.md) — **里程碑:S3 mesh 首次對真實生產藝術家 mesh 驗收**。機器人 3 mesh 件(光暈/身體/左手)生成 mesh 靜態輪廓覆蓋率 **3/3 達/超 parity**(頂點 ≤ 藝術家)。關鍵:blob 件覆蓋率由 **hull 密度(eps)** 決定(eps 0.008→0.002 達 parity,同 v2「rows 決定 IoU」規律);比較須用 **region-local uvs**(非 vertices);gen-from-PSD 對 atlas region 掉到 ~0.95 是**跨源縮放偽差**非品質。工具 `compare_award_mesh.py`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
