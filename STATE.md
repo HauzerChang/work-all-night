@@ -31,7 +31,22 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3 已對照 Award 真實藝術家 mesh 端到端驗收(2026-07-26)** — 見 `knowledge/s3-award-real-mesh.md`、
+`tools/mesh_gen/validate_robot_mesh.py`。用 Award「機器人拆件」的 3 個 mesh 件(光暈/左手/身體,真實生產真值)
+對照生成器:調到相當 hull 密度(eps≈0.002)後 **3 件全達/超藝術家 IoU 且頂點數 ≤ 藝術家**;
+**IoU 由 hull 取樣密度決定**在第三類資產(真實 warp mesh)再確認。Award 3 件**無 deform timeline
+(weighted 靠骨骼權重)** → 該資產變形閘 N/A,外來窗簾場壓力屬 miscalibration。負對照須用位移/縮放。
+- ⏭️ **可安全落地的 tuning**:v1 對圓潤/有機件預設 `epsilon` 0.008 太粗 → 改 0.002–0.004(需先重跑 4-mesh 全套確認不回歸再改預設)。
+
+下一個 bounded chunk 候選:
+1. **把 v1 epsilon 調 0.002~0.004 設為預設**,重跑 main_draw 4-mesh + Award 3-mesh 全套確認無回歸後落地(小而穩)。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:件→attachment(`PSD名/圖層名`、size+2px、hull-first、eps≈0.002),端到端產 Spine JSON。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產)。
+
+<details><summary>先前:S3 推廣到全部 4 個 mesh(里程碑,2026-06-26)</summary>
+
+整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -49,6 +64,8 @@
 
 > S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
 > 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+
+</details>
 
 ## 環境前置(已驗證可用)
 
@@ -97,3 +114,8 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-07-26:**S3 對照 Award 真實藝術家 mesh(端到端 PSD/atlas→mesh)** — 新增 `validate_robot_mesh.py`;
+  對機器人拆件 3 個 mesh 件(光暈/左手/身體)比對生成器 vs 藝術家真值。調 hull 密度(eps≈0.002)後
+  3 件全達/超藝術家 IoU 且頂點數 ≤ 藝術家;**IoU 由 hull 取樣密度決定**在真實 warp mesh 再確認。
+  界定範圍:Award 3 件無 deform timeline(weighted)→ 變形閘 N/A,外來場壓力屬 miscalibration;
+  負對照須用位移/縮放(uv 亂序太弱,校正)。見 `knowledge/s3-award-real-mesh.md`。
