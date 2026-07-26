@@ -35,12 +35,44 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
+def _hull_fill_iou(mask, approx):
+    recon = np.zeros_like(mask, np.uint8)
+    cv2.fillPoly(recon, [approx.astype(np.int32)], 1)
+    m = (mask > 0).astype(np.uint8)
+    return np.logical_and(recon, m).sum() / max(1, np.logical_or(recon, m).sum())
+
+
+def auto_epsilon_frac(mask, target=0.985, max_hull=80, eps0=0.02, shrink=0.75, min_eps=2e-4):
+    """自動選 Douglas-Peucker 容差:由「邊界多邊形填滿 vs mask 的 IoU」驅動,
+    而非武斷常數。逐步縮小 eps 直到 hull 覆蓋率達 target 或 hull 頂點達 max_hull。
+
+    發現(2026-07-26,光暈件):IoU 受 hull 取樣密度限制(固定 eps=0.008 對大平滑
+    輪廓過粗,光暈只給 14 hull 點 → IoU 0.929 < 藝術家 0.98)。這是 v2「IoU 由 rows
+    決定」在 v1 邊界上的對應。coverage-targeted 選 eps 讓密度隨輪廓曲率自適應。"""
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not cnts:
+        raise SystemExit("找不到輪廓(mask 全空?)")
+    cnt = max(cnts, key=cv2.contourArea)
+    peri = cv2.arcLength(cnt, True)
+    eps = eps0
+    last = eps0
+    while eps >= min_eps:
+        approx = cv2.approxPolyDP(cnt, eps * peri, True).reshape(-1, 2)
+        last = eps
+        if _hull_fill_iou(mask, approx) >= target or len(approx) >= max_hull:
+            break
+        eps *= shrink
+    return last
+
+
 def boundary_points(mask, epsilon_frac):
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
     peri = cv2.arcLength(cnt, True)
+    if epsilon_frac in (None, "auto"):
+        epsilon_frac = auto_epsilon_frac(mask)
     approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
     return approx.reshape(-1, 2).astype(np.float64)
 
@@ -112,7 +144,7 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac="auto", min_dist=14, margin=6):
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
@@ -126,10 +158,12 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", default="auto",
+                    help="Douglas-Peucker 容差比例;'auto'(預設)由覆蓋率自適應,或給 float")
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
-    mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)
+    eps = args.epsilon if args.epsilon == "auto" else float(args.epsilon)
+    mesh, _ = generate(args.image, args.max_interior, eps, args.min_dist)
     nv = len(mesh["uvs"]) // 2
     out = args.out or (args.image.rsplit(".", 1)[0] + "_mesh.json")
     with open(out, "w") as f:

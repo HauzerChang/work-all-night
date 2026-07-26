@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3+S4 端到端:PSD 件→S3 mesh 對真實 mesh 驗收](s3-s4-robot-end-to-end.md) — **里程碑**:機器人 3 mesh 件(光暈/身體/左手)自動生成 mesh,IoU 全超過 Award 藝術家 mesh 基準(0.988/0.987/0.988 vs 0.980/0.976/0.968)、rest-pose 幾何乾淨。發現並修正 v1 邊界密度限制 → 新增 coverage-targeted **auto-epsilon**(v2「IoU 由 rows 決定」在 v1 邊界的對應)。工具 `compare_robot_mesh.py`、圖 `figures/robot_mesh_compare.png`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
