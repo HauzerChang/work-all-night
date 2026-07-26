@@ -100,6 +100,48 @@ def gen_strip(mask, W, H, rows, cols, inset=0.0):
     return pts, tris, len(hull_ij)
 
 
+def gen_contour(mask, W, H, target_pts=56, min_pts=24):
+    """soft/roundish 件(如光暈/發光 halo)的正確拓樸 = 密集邊界多邊形 + 約束三角化。
+
+    來自 Award 藝術家真值(knowledge/s4-psd-to-spine-real.md):光暈 mesh 為 78 頂點**全 hull**
+    (無內部點)、76 三角 —— 沿輪廓密取樣後把「簡單多邊形」直接三角化。相對散點 Delaunay:
+    (1) 每個邊界頂點必在三角化內 → 0 孤兒;(2) 密集邊界貼合凹形輪廓 → 高 IoU。
+    做法:findContours → 二分搜 approxPolyDP epsilon 命中頂點預算 → triangle 'p' 約束三角化
+    (簡單多邊形內部,天然尊重凹形,不需重心過濾)。
+    """
+    import triangle as tr
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not cnts:
+        raise SystemExit("找不到輪廓(mask 全空?)")
+    cnt = max(cnts, key=cv2.contourArea)
+    peri = cv2.arcLength(cnt, True)
+    # 二分搜 epsilon 讓多邊形頂點數 ≈ target_pts(頂點預算內、貼合輪廓)
+    lo, hi = 0.0005, 0.05
+    poly = None
+    for _ in range(24):
+        mid = (lo + hi) / 2
+        approx = cv2.approxPolyDP(cnt, mid * peri, True).reshape(-1, 2)
+        n = len(approx)
+        if n > target_pts:
+            lo = mid            # epsilon 太小 → 點太多 → 加大
+        else:
+            hi = mid
+            poly = approx
+            if n <= target_pts and n >= min_pts:
+                break
+    if poly is None or len(poly) < 3:
+        poly = cv2.approxPolyDP(cnt, 0.01 * peri, True).reshape(-1, 2)
+    poly = poly.astype(np.float64)
+    n_hull = len(poly)
+    segs = np.array([[i, (i + 1) % n_hull] for i in range(n_hull)], dtype=np.int32)
+    out = tr.triangulate({"vertices": poly, "segments": segs}, "p")
+    if "triangles" not in out or len(out["vertices"]) != n_hull:
+        out = tr.triangulate({"vertices": poly}, "")   # 退回:保住頂點集
+    pts = [(float(x), float(y)) for x, y in poly]
+    tris = [list(t) for t in out["triangles"]]
+    return pts, tris, n_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     verts, uvs = [], []
     for (x, y) in pts:
@@ -110,14 +152,20 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", target_pts=56):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
-    if not use_strip:
+    if mode == "delaunay":
         from generate_mesh import generate as gen_v1
         m, _ = gen_v1(path)
         m["_mode"] = "delaunay-v1"
+        return m
+    if mode == "contour" or (mode == "auto" and not use_strip):
+        # 非 strip 件(soft/roundish,如光暈)→ 輪廓多邊形(對齊藝術家全 hull 拓樸)
+        pts, tris, n_hull = gen_contour(mask, W, H, target_pts=target_pts)
+        m = to_spine(pts, tris, n_hull, W, H)
+        m["_mode"] = "contour"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)
@@ -131,9 +179,10 @@ def main():
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--rows", type=int, default=10)
     ap.add_argument("--cols", type=int, default=3)
-    ap.add_argument("--mode", choices=["auto", "strip", "delaunay"], default="auto")
+    ap.add_argument("--mode", choices=["auto", "strip", "contour", "delaunay"], default="auto")
+    ap.add_argument("--target-pts", type=int, default=56)
     a = ap.parse_args()
-    m = generate(a.image, a.rows, a.cols, a.mode)
+    m = generate(a.image, a.rows, a.cols, a.mode, a.target_pts)
     out = a.out or (a.image.rsplit(".", 1)[0] + "_mesh_v2.json")
     json.dump(m, open(out, "w"), ensure_ascii=False)
     print(f"[{m.get('_mode')}] {out}: 頂點 {len(m['uvs'])//2} (hull {m['hull']}), 三角 {len(m['triangles'])//3}")

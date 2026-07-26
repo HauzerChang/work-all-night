@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真實 mesh(+contour 模式)](s3-award-mesh-endtoend.md) — atlas件→生成 mesh→對照 Award 3 真實 mesh(光暈/左手/身體)全過。揭露光暈(soft/roundish)v1 散點 Delaunay 留孤兒+覆蓋不足;依藝術家全 hull 拓樸新增 **contour 模式**(密集輪廓多邊形+約束三角化)→ IoU 0.97/0.98/0.99、頂點 26/32/30。對齊自洽閘(E1)抓到「uvs 誤當 page 正規化」;strip 路徑零回歸。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
