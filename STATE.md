@@ -31,24 +31,30 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
-- **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
-- **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
-- 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
-- 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
+**S3×S4 端到端串接完成(里程碑,2026-07-26)**:PSD 件 → 生成 mesh → 對照 Award 真實 mesh。
+- 用 `robot_parts.psd` 切出 光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,對照 Award 真值 mesh 的 IoU/拓樸。
+- **這 3 件在 Award 為 weighted/無 deform timeline** → deform-transfer 閘不適用;比對限**靜態 IoU + 拓樸**。
+- **發現+校準**:v1 Delaunay 舊預設 `eps=0.008` 邊界太粗(hull 16~20),光暈/左手覆蓋率**低於藝術家**;
+  **校準 `eps=0.002`(hull 37~45)後 3 件 IoU 全 ≥ 藝術家且頂點數 ≤ 藝術家**(64/77/84 vs 78/98/80)。
+- 推廣結論:**IoU 由「邊界取樣密度」決定**(strip 是 rows、Delaunay 是 epsilon_frac)。
+- 已把 `epsilon_frac`(預設 0.002)threaded 進 `generate_mesh_v2` 的 blob/Delaunay fallback(+CLI `--epsilon`)。
+- 回歸:main_draw 4 個 strip mesh 不受影響,全 `overall_pass`。
+- 詳見 `knowledge/s3-psd-to-award-mesh.md`。工具:`tools/mesh_gen/compare_to_award.py`。
+
+**先前(2026-06-26)**:S3 推廣到全部 4 個 main_draw mesh — v2(strip)通用、4 mesh 全 deform 乾淨
+(`rows=10,cols=3`);v1 散點 Delaunay 對 curtain_right/shadow 真實 deform 自交。見 `s3-four-mesh-generalization.md`。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. **bone-skin 變形場對照(補完 deform 面向)**:光暈/身體/左手靠骨骼/權重變形。用 Award bone transforms +
+   mesh 權重算 setup↔動畫幀真實世界頂點位移場,轉移到生成 mesh 跑自交/翻面閘(場源自 skinning 而非 deform timeline)。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把 `<PSD名>/<圖層名>` 命名 + size+2px + mesh/region 分配 +
+   校準後 mesh 參數固化成「件→Spine attachment」寫出工具,端到端產 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> 端到端「PSD→件→mesh」已對真實生產標的(Award)驗收通過。建議下一步:(1) bone-skin 變形場對照補完
+> deform 面向,或 (2) SkelToJson 組裝把整條切圖→mesh→Spine JSON 打通。
 
 ## 環境前置(已驗證可用)
 
@@ -97,3 +103,7 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-07-26:**S3×S4 端到端串接(里程碑)** — PSD 件(robot_parts 光暈/身體/左手)→ `generate_mesh_v2`
+  → 對照 Award 真實 mesh。3 件在 Award 為 weighted/無 deform timeline → deform-transfer 閘不適用,比對限靜態 IoU+拓樸。
+  發現 v1 Delaunay 舊預設 eps=0.008 邊界太粗、光暈/左手覆蓋率低於藝術家;**校準 eps=0.002 → 3 件 IoU 全 ≥ 藝術家
+  且頂點數 ≤ 藝術家**。推廣「IoU 由邊界取樣密度決定」到 Delaunay。新增 `compare_to_award.py`;main_draw 4 strip mesh 回歸全過。

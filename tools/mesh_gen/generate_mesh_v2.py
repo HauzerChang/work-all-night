@@ -110,13 +110,18 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", epsilon_frac=0.002, max_interior=40):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # blob 形(aspect<1.2 或非 row-convex)走 Delaunay。
+        # epsilon_frac=0.002:對真實生產件(robot_parts 光暈/左手/身體)校準的邊界取樣密度。
+        # 發現(2026-07-26,對照 Award 真實 mesh):v1 舊預設 0.008 的 hull 太粗(16~20 點),
+        # 覆蓋率低於藝術家基準;eps=0.002 hull 37~45 點,3 件 IoU 全 >= 藝術家且頂點數 <= 藝術家。
+        # 與 strip 版「IoU 由邊界取樣密度決定」同一原理。見 knowledge/s3-psd-to-award-mesh.md。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, max_interior=max_interior, epsilon_frac=epsilon_frac)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
@@ -132,8 +137,9 @@ def main():
     ap.add_argument("--rows", type=int, default=10)
     ap.add_argument("--cols", type=int, default=3)
     ap.add_argument("--mode", choices=["auto", "strip", "delaunay"], default="auto")
+    ap.add_argument("--epsilon", type=float, default=0.002, help="Delaunay 邊界簡化 fraction(blob 用)")
     a = ap.parse_args()
-    m = generate(a.image, a.rows, a.cols, a.mode)
+    m = generate(a.image, a.rows, a.cols, a.mode, epsilon_frac=a.epsilon)
     out = a.out or (a.image.rsplit(".", 1)[0] + "_mesh_v2.json")
     json.dump(m, open(out, "w"), ensure_ascii=False)
     print(f"[{m.get('_mode')}] {out}: 頂點 {len(m['uvs'])//2} (hull {m['hull']}), 三角 {len(m['triangles'])//3}")
