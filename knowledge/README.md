@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對照 Award 真實生產 mesh](s3-award-real-mesh.md) — **S3 首次對照真實藝術家 mesh**:Award 機器人 3 件(光暈/身體/左手)靜態幾何 AC 全過,S3 覆蓋率達/超藝術家基準且**頂點更少**。過程揪出「固定 epsilon 對羽化邊界(光暈)採樣不足」→ 加 **adaptive 邊界細化**(受頂點預算約束);main_draw 4 mesh 回歸不受影響。weighted-deform 對照需 BBW(未來)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

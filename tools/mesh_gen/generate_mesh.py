@@ -112,12 +112,52 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
-    mask, gray, W, H = load_mask(path)
+def _coverage_iou(pts, tris, mask):
+    """三角形填滿 vs mask 的 IoU(與 evaluate_mesh.AC1 同義,內建避免循環 import)。"""
+    h, w = mask.shape
+    recon = np.zeros((h, w), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0).astype(np.uint8)
+    union = int(np.logical_or(recon, m).sum())
+    return (int(np.logical_and(recon, m).sum()) / union) if union else 0.0
+
+
+def _build(mask, gray, epsilon_frac, max_interior, min_dist, margin):
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    return pts, tris, n_hull
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             adaptive=False, vertex_budget=64, iou_target=0.96):
+    """單一 epsilon(預設,向後相容)或 adaptive 邊界細化。
+
+    adaptive:由粗到細掃 epsilon,取**最粗(頂點最少)且覆蓋率達 iou_target** 的解;
+    若無人達標則取預算內覆蓋率最高者。動機:固定 epsilon 對『羽化/複雜邊界』(如光暈)
+    採樣不足 → 覆蓋率不及藝術家;對簡單形又浪費頂點。細化受 vertex_budget 上限約束。"""
+    mask, gray, W, H = load_mask(path)
+    if not adaptive:
+        pts, tris, n_hull = _build(mask, gray, epsilon_frac, max_interior, min_dist, margin)
+        return to_spine(pts, tris, n_hull, W, H), mask
+    best = None  # (iou, -nv, pts, tris, n_hull)
+    for eps in (0.008, 0.005, 0.004, 0.003, 0.002, 0.0015):
+        pts, tris, n_hull = _build(mask, gray, eps, max_interior, min_dist, margin)
+        nv = len(pts)
+        if nv > vertex_budget:
+            break  # 更細只會更多頂點,停止
+        iou = _coverage_iou(pts, tris, mask)
+        cand = (iou, -nv, pts, tris, n_hull)
+        if best is None or cand[:2] > best[:2]:
+            best = cand
+        if iou >= iou_target:
+            break  # 已達標,取此最粗解(頂點最省)
+    if best is None:  # 連最粗都超預算 → 退回最粗單解
+        pts, tris, n_hull = _build(mask, gray, 0.008, max_interior, min_dist, margin)
+        return to_spine(pts, tris, n_hull, W, H), mask
+    _, _, pts, tris, n_hull = best
     return to_spine(pts, tris, n_hull, W, H), mask
 
 

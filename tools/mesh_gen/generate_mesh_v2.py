@@ -116,8 +116,8 @@ def generate(path, rows=10, cols=3, mode="auto"):
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
-        m["_mode"] = "delaunay-v1"
+        m, _ = gen_v1(path, adaptive=True)  # 邊界自適應:複雜/羽化邊界(如光暈)採樣足夠
+        m["_mode"] = "delaunay-v1-adaptive"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)
