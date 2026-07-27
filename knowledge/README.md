@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端:PSD件→mesh→對照 Award 真實 mesh](s3-award-robot-e2e.md) — **里程碑**:S4+S3 串端到端,對真實生產標的(Award 機器人 3 mesh 件)驗收。生成 mesh 覆蓋率達藝術家水準(±0.02,身體更高),頂點省 44~55%、0 退化三角。實測確立 Award uvs 為 region-local。⚠️ 這 3 件無 deform timeline → 只驗靜態覆蓋(deform 耐受另在 4mesh 驗過);auto 回退 v1 Delaunay。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

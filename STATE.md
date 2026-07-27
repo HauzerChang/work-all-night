@@ -31,7 +31,23 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**✅ S3×S4 端到端里程碑(2026-07-27)**:PSD件→generate_mesh→對照 Award 真實生產 mesh。
+`robot_parts.psd` 的 3 個 mesh 件(光暈/身體/左手)經 `psd_slice`→`generate_mesh_v2`,
+覆蓋 IoU 全達藝術家手做 mesh 水準(±0.02,身體 +0.018 更高)、頂點省 44~55%、0 退化三角。
+一鍵重現 `python3 tools/mesh_gen/validate_against_award.py`(overall_pass=true)。
+實測確立 **Award mesh uvs 為 region-local 0..1**(更正舊 knowledge 措辭)。
+⚠️ 這 3 件在 Award 無 deform timeline → 本次只驗**靜態覆蓋+頂點預算+拓樸**(deform 耐受度已在
+main_draw 4 mesh 用真實位移場驗過,互補);3 件長寬比<1.2 故 auto 回退 v1 Delaunay。
+詳見 `knowledge/s3-award-robot-e2e.md` + `figures/s3-award-robot-mesh.png`。
+
+下一個 bounded chunk 候選(依槓桿):
+1. **SkelToJson 組裝工具**:把「件→Spine mesh attachment」慣例(`PSD名/圖層名` slot、size+2px padding、
+   uvs region-local、atlas 0.70 縮放)固化成工具,端到端產出可載入的 Spine JSON 片段(純 CPU 可自驅)。
+2. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐尚缺兩閘;純 CPU)。
+3. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產,屬使用者層級)。
+
+---
+（歷史）**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -97,3 +113,8 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-07-27:**S3×S4 端到端里程碑** — PSD件→generate_mesh→對照 Award 真實生產 mesh(有藝術家真值)。
+  `robot_parts.psd` 3 mesh 件(光暈/身體/左手)自動生成 mesh 覆蓋率達藝術家水準(±0.02、身體 +0.018),
+  頂點省 44~55%、0 退化三角。先以藝術家 mesh 對件 alpha IoU 0.95~0.98 校準評估器可信。
+  實測確立 Award uvs=region-local(更正舊措辭)。誠實標註:3 件無 deform timeline → 只驗靜態覆蓋;
+  auto 回退 v1 Delaunay。產 `validate_against_award.py` + 疊圖。
