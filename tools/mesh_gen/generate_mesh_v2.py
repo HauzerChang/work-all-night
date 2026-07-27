@@ -110,13 +110,16 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", epsilon=0.002):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # 非長條(blobby)件走 v1 Delaunay。epsilon(Douglas-Peucker 容差)決定 hull 密度 →
+        # 覆蓋率。0.002 經 Award 3 真實 weighted mesh(光暈/身體/左手)校準:全部 hull 密度
+        # 接近藝術家、IoU 全過藝術家基準且頂點數 ≤ 藝術家。0.008(窗簾預設)對這類複雜輪廓過粗。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=epsilon)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
@@ -132,8 +135,10 @@ def main():
     ap.add_argument("--rows", type=int, default=10)
     ap.add_argument("--cols", type=int, default=3)
     ap.add_argument("--mode", choices=["auto", "strip", "delaunay"], default="auto")
+    ap.add_argument("--epsilon", type=float, default=0.002,
+                    help="delaunay 回退路徑的 hull 簡化容差(越小 hull 越密、覆蓋率越高)")
     a = ap.parse_args()
-    m = generate(a.image, a.rows, a.cols, a.mode)
+    m = generate(a.image, a.rows, a.cols, a.mode, a.epsilon)
     out = a.out or (a.image.rsplit(".", 1)[0] + "_mesh_v2.json")
     json.dump(m, open(out, "w"), ensure_ascii=False)
     print(f"[{m.get('_mode')}] {out}: 頂點 {len(m['uvs'])//2} (hull {m['hull']}), 三角 {len(m['triangles'])//3}")

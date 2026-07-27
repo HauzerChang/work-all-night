@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對 Award 機器人真實 mesh 驗收](s3-award-robot-mesh.md) — generate_mesh_v2 對 3 個真實 weighted/骨骼驅動生產 mesh(光暈/身體/左手)靜態 IoU **全過藝術家基準且頂點更精簡**(eps=0.002 設為 delaunay 回退新預設)。修 `validate_against_real` 對 weighted/無 deform 的兩個盲點(誤 reshape crash + 假 pass)→ 老實標 N/A。揭露 gap:**weighted-bone mesh 變形穩健性尚無閘**。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

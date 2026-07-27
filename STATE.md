@@ -17,6 +17,10 @@
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
   見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
+- **S3 對真實生產 mesh 端到端驗收通過(里程碑,2026-07-27)** — generate_mesh_v2 對 Award 3 個真實
+  **weighted/骨骼驅動** mesh(光暈/身體/左手)靜態 IoU 全過藝術家基準(0.983/0.993/0.991 vs 0.980/0.976/0.968)
+  且頂點更精簡。修正 `validate_against_real` 對 weighted/無 deform 的兩個盲點;delaunay 回退預設 eps 改 0.002。
+  見 `knowledge/s3-award-robot-mesh.md`。**gap:weighted-bone mesh 變形穩健性尚無閘。**
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -38,17 +42,20 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
-3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+1. ✅ ~~PSD件→S3 mesh→對照 Award 真實 mesh~~:**已完成(2026-07-27)**。3 件靜態 IoU 全過藝術家基準;
+   deform 閘對 weighted/無-deform 標 N/A。見 `knowledge/s3-award-robot-mesh.md`。
+2. **❗最高優先:weighted-bone mesh 變形穩健性閘**(本次揭露的 gap)。機器人 mesh 靠骨骼權重變形
+   (非 deform timeline),現有 `deform_eval` 只做 unweighted deform。需:展開 setup bind-pose
+   (逐頂點 `[骨數,骨idx,bindX,bindY,權重]`)→ 套動畫某幀 bone world transform 算變形後世界座標
+   → 跑自交/翻面。有真值(Award 有骨骼動畫)、純 CPU 可自驅。
+3. **切圖→Spine JSON 組裝**(SkelToJson):把 `<PSD檔名>/<圖層名>` 命名 + size+2px + mesh/region 分配
+   (會 warp→mesh、剛體→region)固化成「件→Spine attachment」工具,端到端產 Spine JSON。
+4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3+S4 已串成端到端並對真實生產 mesh 驗收通過。建議下一步:(2) 補 weighted-bone mesh 變形閘
+> —— 這是把 S3 從「靜態覆蓋」推進到「骨骼驅動變形穩健」的關鍵,且對機器人這種真實標的才有意義。
 
 ## 環境前置(已驗證可用)
 
