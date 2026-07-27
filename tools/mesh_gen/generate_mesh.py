@@ -95,6 +95,20 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def compact_orphans(pts, tris, n_hull):
+    """移除「非 hull」且不被任何保留三角參照的孤兒頂點(filter_triangles 對凹形/軟邊
+    會丟掉某些內部點的所有三角)。只動 index>=n_hull 的內部點 → hull-first 順序與 hull 數不變。"""
+    used = set(int(i) for i in tris.flatten()) if len(tris) else set()
+    keep_idx = [i for i in range(len(pts)) if i < n_hull or i in used]
+    if len(keep_idx) == len(pts):
+        return pts, tris, n_hull
+    remap = {old: new for new, old in enumerate(keep_idx)}
+    new_pts = pts[keep_idx]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32) \
+        if len(tris) else tris
+    return new_pts, new_tris, n_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,13 +126,51 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
-    mask, gray, W, H = load_mask(path)
+def _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin):
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
-    return to_spine(pts, tris, n_hull, W, H), mask
+    pts, tris, n_hull = compact_orphans(pts, tris, n_hull)
+    return pts, tris, n_hull
+
+
+def _coverage(pts, tris, mask):
+    H, W = mask.shape
+    recon = np.zeros((H, W), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0)
+    union = np.logical_or(recon, m).sum()
+    return float(np.logical_and(recon, m).sum() / union) if union else 0.0
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_iou=0.97, vertex_budget=100):
+    """epsilon_frac="auto"(預設由 to_spine 呼叫端決定)時,沿 epsilon 階梯由粗到細細化
+    邊界取樣,直到覆蓋率達 target_iou(或碰到 vertex_budget)。定值 epsilon 則單次生成。
+
+    背景(2026-07-27,對 Award 三件真實 mesh 校準):固定 eps=0.008 是為窗簾(高瘦)調的,
+    對中型塊狀件(光暈/身體/左手)覆蓋不足且軟邊會孤兒化;自適應 eps 讓覆蓋自對齊藝術家水準。"""
+    mask, gray, W, H = load_mask(path)
+    if epsilon_frac != "auto":
+        pts, tris, n_hull = _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin)
+        return to_spine(pts, tris, n_hull, W, H), mask
+    ladder = [0.008, 0.004, 0.002, 0.001]
+    best = None
+    for eps in ladder:
+        pts, tris, n_hull = _build(mask, gray, W, H, max_interior, eps, min_dist, margin)
+        iou = _coverage(pts, tris, mask)
+        best = (pts, tris, n_hull, iou, eps)
+        if iou >= target_iou and len(pts) <= vertex_budget:
+            break
+        if len(pts) > vertex_budget:  # 已超預算,退回上一階(若有)
+            break
+    pts, tris, n_hull = best[0], best[1], best[2]
+    m = to_spine(pts, tris, n_hull, W, H)
+    m["_epsilon"] = best[4]
+    m["_coverage"] = round(best[3], 4)
+    return m, mask
 
 
 def main():

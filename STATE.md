@@ -31,7 +31,23 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3 端到端對照生產 mesh 通過(2026-07-27)**:PSD件→S3 mesh 對 `Award` 生產 spine 的 3 個 warp 件
+(光暈/身體/左手)驗收 —— 靜態覆蓋 0.982~0.986 **≥ 藝術家手做 0.968~0.980**,頂點預算相當(69~78 vs 78~98)、
+零孤兒/零退化,`validate_robot_parts.py overall_pass=true`。
+- **結構性發現**:Award 這 3 件是 **weighted mesh(骨驅動)、無 deform timeline** → 與 main_draw(unweighted+deform)
+  機制根本不同。deform 閘不適用,只驗靜態;**S3 輸出 unweighted,缺 BBW 權重+骨綁(S3 未建組件)= 下一個真正槓桿**。
+- **方法修正**:固定 eps=0.008(窗簾調的)對塊狀件覆蓋不足且軟邊孤兒化 → 改**自適應 epsilon**(階梯細化到覆蓋達標)
+  + `compact_orphans`(安全移除內部孤兒);main_draw 4 mesh(strip 路徑)`--gen v2` 全 overall_pass **無回歸**。
+- 詳見 `knowledge/s3-robot-parts-production-parity.md`。
+
+下一個 bounded chunk 候選(更新):
+1. **❗最高優先:BBW 權重 + 骨綁生成(S3 未建組件)**。把 unweighted 幾何綁到骨架產 weighted mesh,
+   對照 Award 3 件的權重/骨綁 → 「生產等價」而非只覆蓋等價。可用 Award 現成骨架當靶(有真值、純 CPU)。
+2. **件→Spine JSON 組裝(SkelToJson)**:固化 `<PSD檔名>/<圖層名>`+size+2px padding + mesh 產生器成一鍵工具。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+
+---
+(舊里程碑)**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。

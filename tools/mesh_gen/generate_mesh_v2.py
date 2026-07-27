@@ -116,7 +116,8 @@ def generate(path, rows=10, cols=3, mode="auto"):
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        # 塊狀件回退 v1:用自適應 epsilon(2026-07-27 校準)自對齊覆蓋率,min_dist 放寬以容納細邊界
+        m, _ = gen_v1(path, epsilon_frac="auto", min_dist=8)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

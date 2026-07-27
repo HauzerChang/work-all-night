@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照生產 mesh(機器人拆件)](s3-robot-parts-production-parity.md) — **端到端 PSD件→S3 mesh 對 Award 3 個 warp 件驗收通過**(靜態覆蓋 0.982~0.986 ≥ 藝術家 0.968~0.980,頂點預算相當、零孤兒)。**結構性發現:生產 warp 件是 weighted+無 deform → S3 缺 BBW 權重/骨綁(未建組件)**。方法:固定 eps 不通用 → 改**自適應 epsilon** + compact_orphans;main_draw 4 mesh 無回歸。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
