@@ -115,9 +115,10 @@ def generate(path, rows=10, cols=3, mode="auto"):
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
-        from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
-        m["_mode"] = "delaunay-v1"
+        # 邊界自適應 Delaunay:對大面積細緻剪影自動加密 hull(見 generate_adaptive 註解)
+        from generate_mesh import generate_adaptive
+        m, _ = generate_adaptive(path)
+        m["_mode"] = "delaunay-adaptive"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)
