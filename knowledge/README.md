@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3+S4 端到端對照 Award 真實 mesh](s3-psd-mesh-vs-award.md) — **PSD 切件→生成 mesh→對照 Award 藝術家 mesh,3 件全 PASS**(IoU ≥ 藝術家基準−0.03)。★發現 **Spine JSON mesh uvs 是 region-local[0,1]**(直接 u*W,v*H 疊件,不理 atlas 旋轉/縮放)。3 件均正確走 v1(blobby→Delaunay);軟邊光暈連藝術家都 <0.95 → 再證 IoU 門檻要對齊藝術家非武斷 0.95。閘內建映射自驗。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

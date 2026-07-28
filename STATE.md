@@ -31,7 +31,23 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3+S4 端到端對照 Award 真實 mesh(里程碑,2026-07-28)**:`psd_mesh_vs_award.py` 對機器人 3 個 mesh 件
+(光暈/身體/左手)跑「PSD 切件→生成 mesh→對照 Award 藝術家 mesh」,**3 件全 PASS**(生成 IoU ≥ 藝術家基準−0.03)。
+- ★關鍵發現:**Spine JSON mesh `uvs` 是 region-local [0,1]**(不是 atlas page 全域)→ 疊件比對直接 `u*W,v*H`,
+  完全不需處理 atlas 旋轉/0.70 縮放。映射自驗:藝術家 mesh 對自己件 IoU 0.95/0.95/0.98 → 確認映射正確。
+- 3 件都正確走 **v1(Delaunay)**(長寬比 <1.2、blobby → v2 auto 正確回退);v2 strip 是給窗簾類高瘦件。
+- 軟邊光暈連藝術家都只 0.9486 → 再證 IoU 門檻要對齊藝術家真值、不用武斷 0.95。
+- 詳見 `knowledge/s3-psd-mesh-vs-award.md`、圖 `knowledge/figures/s3-psd-mesh-vs-award.png`。標準指令 `python3 tools/mesh_gen/psd_mesh_vs_award.py`(exit 0)。
+
+下一個 bounded chunk 候選(更新):
+1. **SkelToJson 組裝雛形**(接續本次):把「件→Spine mesh/region attachment」寫成工具 —— 固化 region-local uvs +
+   `PSD名/圖層名` slot 命名 + size+2px + mesh/region 依需求分配,端到端產出可載入的 Spine JSON。這是 S3+S4 收尾成 pipeline 的關鍵一步。
+2. **(改進)軟邊 blob 的 contour 密取樣 hull 模式**:把光暈類 IoU 再往藝術家推(目前 −0.0155,仍過)。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+
+---
+**(前一里程碑)S3 已推廣到全部 4 個 mesh(2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -93,6 +109,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-28:**S3+S4 端到端對照 Award 真實 mesh(里程碑)** — `psd_mesh_vs_award.py`:機器人 3 mesh 件
+  「PSD 切件→生成 mesh→對照 Award 藝術家 mesh」3 件全 PASS。★發現 Spine JSON mesh uvs 是 region-local[0,1]
+  (直接 u*W,v*H 疊件,不理 atlas 旋轉/縮放);映射自驗 IoU 0.95/0.95/0.98。3 件正確走 v1(blobby);
+  軟邊光暈連藝術家 <0.95 → 再證門檻對齊藝術家。閘內建映射自驗(防第四次 miscalibration)。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
