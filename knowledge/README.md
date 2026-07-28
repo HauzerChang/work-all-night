@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對真實 weighted mesh(Award 機器人)](s3-award-weighted-real.md) — 首次對真實生產標的驗收:S3 v1(eps=0.002)輪廓覆蓋對 3 件機器人 mesh 全 ≥ 藝術家基準(頂點同級);揭露這些件是 weighted/bone-driven/無 deform timeline → 現有 deform 閘不適用,S3 尚缺 BBW 權重綁定 + bone-driven 變形閘。strip 對非 row-convex 件有結構天花板、auto 正確回退 v1。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
