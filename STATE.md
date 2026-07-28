@@ -31,7 +31,20 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3×S4 端到端驗收完成(里程碑,2026-07-28)**:PSD 件 → `generate_mesh_v2` → 對照 Award 真實藝術家 mesh。
+`robot_parts.psd` 的 3 個 mesh 件(光暈/左手/身體)全 `overall_pass`:覆蓋率 IoU 與藝術家平價
+(0.933/0.964/0.966 vs 藝術家 0.949/0.977/0.948,身體勝出),用 35–60 頂點 vs 藝術家 78–98,拓樸全乾淨。
+blobby 件全自動走 v1 Delaunay(auto 路由判斷正確)。工具 `tools/mesh_gen/validate_psd_to_award.py`
+(可重現,EXIT 0);圖 `knowledge/figures/s3-psd-to-award-mesh.png`;詳見 `knowledge/s3-psd-to-award-endtoend.md`。
+⚠️ 誠實邊界:只驗**靜態覆蓋**、**未驗權重**(S3 無 BBW);deform 閘 N/A(這 3 件在 Award 無 deform timeline)。
+
+下一個 bounded chunk 候選(更新後):
+1. **S3 權重生成(BBW)**:對這 3 件加骨綁定 + BBW 權重,對照 Award `vertices`(weighted 攤平)驗權重分佈
+   → 才能真正取代藝術家 weighted mesh(純 CPU 可自驅)。
+2. **件→Spine JSON 組裝(SkelToJson)**:固化 `PSD名/圖層名`+size+2px+mesh/region 分配+atlas 0.70 縮放,端到端產可載入 JSON。
+3. S2 補圖閘 / 骨架閘(補齊 S2 樞紐)。
+
+先前里程碑保留:**S3 已推廣到全部 4 個 mesh(2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
