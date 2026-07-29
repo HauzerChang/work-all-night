@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端:件→mesh→對照 Award 真實 mesh](s3-psd-to-award-mesh.md) — **里程碑**:S3+S4 串端到端,對 Award 3 個生產 mesh(光暈/身體/左手)驗收全 PASS,生成 mesh IoU **超越藝術家**且**用更少頂點**、耐變形不劣。發現 **Delaunay 覆蓋率由 hull 邊界密度(epsilon)決定、內部點不影響**(與 strip「rows 決定、cols 不影響」同源);舊預設 epsilon=0.008 對平滑生產件過疏,0.002 達標。v2 透傳 epsilon;新閘 `validate_psd_to_mesh.py`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

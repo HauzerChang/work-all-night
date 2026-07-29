@@ -110,13 +110,18 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", epsilon=0.008, max_interior=40):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # Delaunay fallback(非 strip 件,如機器人拆件)。
+        # 發現(2026-07-29):覆蓋率 IoU 由 hull 邊界取樣密度(epsilon)決定,內部點(max_interior)不影響
+        # —— 與 strip 模式「IoU 由 rows 決定、cols 不影響」同源。預設 epsilon=0.008 對平滑生產件
+        # (光暈/身體/左手)hull 過疏 → 傳 epsilon=0.002 可達/超越藝術家覆蓋。詳見
+        # knowledge/s3-psd-to-award-mesh.md。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, max_interior=max_interior, epsilon_frac=epsilon)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
@@ -132,8 +137,10 @@ def main():
     ap.add_argument("--rows", type=int, default=10)
     ap.add_argument("--cols", type=int, default=3)
     ap.add_argument("--mode", choices=["auto", "strip", "delaunay"], default="auto")
+    ap.add_argument("--epsilon", type=float, default=0.008, help="Delaunay 回退時的 hull 簡化比例(越小 hull 越密、覆蓋越高)")
+    ap.add_argument("--max-interior", type=int, default=40)
     a = ap.parse_args()
-    m = generate(a.image, a.rows, a.cols, a.mode)
+    m = generate(a.image, a.rows, a.cols, a.mode, a.epsilon, a.max_interior)
     out = a.out or (a.image.rsplit(".", 1)[0] + "_mesh_v2.json")
     json.dump(m, open(out, "w"), ensure_ascii=False)
     print(f"[{m.get('_mode')}] {out}: 頂點 {len(m['uvs'])//2} (hull {m['hull']}), 三角 {len(m['triangles'])//3}")

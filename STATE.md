@@ -31,24 +31,27 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
-- **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
-- **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
-- 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
-- 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
+**S3+S4 端到端驗收完成(里程碑,2026-07-29)**:件→生成 mesh→**對照 Award 真實生產 mesh**(有真值)。
+- 對機器人拆件 3 個 mesh(光暈/身體/左手)跑 `validate_psd_to_mesh.py` → **3 件全 overall_pass**:
+  生成 IoU(0.983/0.993/0.991)**超越藝術家**(0.980/0.976/0.968),且**用更少頂點**(73/77/67 < 78/98/80),
+  同一 synthetic stress 下自交/翻面皆 0(不劣於藝術家)。
+- 3 件皆非 strip → v2 auto **正確回退 Delaunay(v1)**;證明 v1 路徑對真實剛性件足夠。
+- **關鍵發現:Delaunay 覆蓋率由 hull 邊界密度(epsilon)決定、內部點(max_interior)不影響** —— 與 strip
+  「rows 決定、cols 不影響」同源(普適規律)。舊預設 epsilon=0.008 對平滑生產件過疏,**0.002 達標**。
+- 工具變更:`generate_mesh_v2.generate` 新增並透傳 `epsilon`/`max_interior` 到 Delaunay 回退(預設 0.008
+  不變,已重驗 main_draw 4 mesh 無回歸);新閘 `validate_psd_to_mesh.py`(weighted+無 deform 件用相對耐變形)。
+- 詳見 `knowledge/s3-psd-to-award-mesh.md`。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. **自適應 epsilon**:依邊界曲率/周長自動選 epsilon(免逐件調參),對直邊/曲邊件都達標;用 4 mesh + 3 機器人件當回歸集。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名 + size+2px + atlas 0.70 縮放 + 本 mesh 生成
+   固化成「件→Spine attachment」工具,端到端產可回填 Award 的 JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> 端到端「件→mesh」已對真實生產標的驗收通過。建議下一步:(1) 自適應 epsilon 收掉最後的調參,或
+> (2) 寫 SkelToJson 把整條 PSD→件→mesh→Spine JSON 串成可產出檔的 pipeline。
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +96,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-29:**S3+S4 端到端對真實生產 mesh 驗收(里程碑)** — 件→生成 mesh→對照 Award 3 個真實 mesh
+  (光暈/身體/左手)全 PASS:生成 IoU 超越藝術家、頂點更少、耐變形不劣。發現 **Delaunay 覆蓋率由 hull
+  邊界密度(epsilon)決定、內部點不影響**(與 strip rows/cols 同源);舊預設 0.008 對平滑件過疏,0.002 達標。
+  v2 透傳 epsilon(預設不變,main_draw 4 mesh 重驗無回歸);新閘 `validate_psd_to_mesh.py`(相對耐變形)。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
