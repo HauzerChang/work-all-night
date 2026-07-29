@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3×S4 端到端:件→mesh→對照 Award 真實 mesh](s3-psd-to-award-mesh.md) — **里程碑**:S3 auto(Delaunay 回退)對 Award 3 個 weighted mesh 件(光暈/身體/左手)達藝術家覆蓋水準(身體/左手**超過**且頂點少~30%,光暈在 2% 噪聲內)。新增 `validate_psd_to_award.py`(4 朝向 oracle 負對照抓轉換 bug)。發現:**Award uvs 為 region-local**、覆蓋率由邊界密度決定 → v2 回退 epsilon 0.008→0.004。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

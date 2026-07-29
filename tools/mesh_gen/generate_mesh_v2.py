@@ -110,13 +110,17 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", eps=0.004):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # Delaunay 回退(blobby/圓件)。覆蓋率由**邊界取樣密度**決定(內部點不影響),
+        # 與 strip 的「IoU 由 rows 決定」同理。對 atlas 縮放(~0.70)+ 羽化邊的真實件,
+        # 預設 0.008 太粗 → 用 0.004 貼合輪廓(對 Award 光暈/身體/左手實測達藝術家水準)。
+        # 見 knowledge/s3-psd-to-award-mesh.md。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=eps)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

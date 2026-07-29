@@ -31,6 +31,20 @@
 
 ## 下一步動作 (next action)
 
+**S3×S4 端到端閉環達成(里程碑,2026-07-29)**:PSD 件 → S3 auto mesh → 對照 Award 真實生產 mesh。
+- 新增 `tools/mesh_gen/validate_psd_to_award.py`:對 Award 3 個 **weighted** mesh 件(光暈/身體/左手,
+  **無 deform timeline**,`validate_against_real` 的真實 deform 閘不適用)做靜態覆蓋對照。
+- 結果:身體 0.986 / 左手 0.982 **覆蓋率超過藝術家**(0.976 / 0.968)且頂點少 ~30%;光暈 0.966 vs 0.980
+  (差 0.014,在 atlas 0.70 縮放 + 羽化邊的 <2% 重採樣噪聲 margin 內)。mesh-對-mesh 輪廓一致 0.95~0.97。
+- 方法關鍵:(a) 用 `extract()` 直立裁圖當**共同畫布**;(b) 發現 **Award mesh uvs 為 region-local**([0,1]
+  over region,非 atlas 頁面 UV)→ `px=(u·W,v·H)` 直接映射;(c) **4 朝向 oracle 負對照**(direct 0.98 vs
+  vflip/hflip/rot180 0.4~0.76)當場抓到第一版「誤當頁面 UV+CW 旋轉」的轉換 bug(baseline 崩 0.0)。
+- 副產發現:**覆蓋率由邊界取樣密度(epsilon)決定,內部點無關**(同 strip「rows 決定」原理)→
+  v2 Delaunay 回退預設 epsilon 0.008→0.004(main_draw 4 mesh 走 strip,已重驗未回歸)。詳見
+  `knowledge/s3-psd-to-award-mesh.md`。
+
+---
+
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -38,17 +52,17 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ ✅ **已完成(2026-07-29 里程碑,見上)**。
+2. **❗最高優先:件→Spine JSON 組裝器(SkelToJson)**。把 `PSD名/圖層名` 命名慣例 + size+2px padding
+   + region-local uvs + 生成 mesh(已證達生產水準)固化成工具:吃 PSD 切件 manifest → 產可用 Spine
+   skin/slots/attachments JSON。真正端到端「PSD → Spine 檔」。純 CPU 可自驅。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3×S4 端到端已閉環(件→mesh 達生產水準)。建議下一步:攻候選 2(SkelToJson 組裝器),把生成 mesh
+> + 命名/padding/uv 慣例組出完整 Spine JSON。註:生成為 unweighted mesh,真實件為 weighted(靠骨變形);
+> 對映真實綁定需 S5 骨架 + BBW 權重(未做)→ 目前端到端結論限**靜態幾何/覆蓋**。
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +107,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-07-29:**S3×S4 端到端閉環(里程碑)** — PSD 件→S3 auto mesh→對照 Award 3 個 weighted mesh 件真值。
+  身體/左手覆蓋率**超過藝術家**且頂點少~30%,光暈在 2% 重採樣噪聲內。新增 `validate_psd_to_award.py`
+  (4 朝向 oracle 負對照抓到「誤當頁面 UV」的轉換 bug → 發現 **Award uvs 為 region-local**)。
+  發現覆蓋率由邊界密度決定 → v2 Delaunay 回退 epsilon 0.008→0.004(main_draw strip 路徑未回歸)。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
