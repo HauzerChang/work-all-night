@@ -31,7 +31,26 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+> ⚠️ **分支**:本 session 在 `claude/vibrant-franklin-pg17w8`(排程 harness 指定,與 origin 同步;
+> 與 `claude/zealous-noether-y2ecwu` 內容一致)。push 回本分支。run.md 內舊分支名待後續統一。
+
+**端到端 S4→S3 對照 Award 真實 mesh 完成(里程碑,2026-07-29)** — 候選 #1 已達成。
+`compare_psd_to_award_mesh.py`:robot_parts.psd 的 光暈/身體/左手 三 mesh 件,
+PSD 切件 → `generate_mesh_v2` → 對照 Award 美術真值 mesh。3 件全 PASS
+(coverage:生成 IoU 0.93~0.97 ≥ 美術基準−0.02;topology 全有效;parsimony 頂點更少)。
+負對照(對錯誤件 alpha)IoU 崩到 0.50~0.58 → 閘可信。詳見 `knowledge/s3-s4-end-to-end-award-mesh.md`。
+關鍵更正:Award mesh uvs 實測為 region-local [0,1](非先前記的 atlas UV)。
+
+下一個 bounded chunk 候選(更新):
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ ✅ **已完成(2026-07-29)**。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:固化「件→attachment」慣例(`PSD名/圖層名`、
+   mesh/region 分配、+2px padding、atlas 0.70 縮放、uvs region-local)→ 端到端產可載入 Spine JSON。**(現最高優先)**
+3. **S3 加 BBW 權重**:目前生成 mesh 為 unweighted,真實件為 weighted;要完全取代美術件需綁骨權重。
+4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+
+---
+### (歷史)S3 推廣到全部 4 個 mesh(里程碑,2026-06-26)整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -97,3 +116,8 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-07-29:**端到端 S4→S3 對照 Award 真實 mesh(里程碑)** — 新 `compare_psd_to_award_mesh.py`:
+  robot_parts.psd 3 個 mesh 件(光暈/身體/左手)切件→`generate_mesh_v2`→對照 Award 美術真值 mesh,3 件全 PASS
+  (生成 IoU 0.93~0.97 ≥ 美術基準;頂點更精簡 35/60/59 vs 78/98/80)。負對照(錯誤件)IoU 崩至 0.50~0.58 → 閘可信。
+  更正舊記載:Award mesh uvs 實測為 region-local [0,1](非 atlas UV)。確認 v1 Delaunay 對真實方正件通用、
+  mode=auto aspect 分派正確。這 3 件 weighted+無 deform timeline → AC 用靜態覆蓋率+拓樸。
