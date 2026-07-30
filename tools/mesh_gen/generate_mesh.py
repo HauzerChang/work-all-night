@@ -112,6 +112,23 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
+def _iou(mesh, mask):
+    """把 mesh 三角形填滿 vs mask 的 IoU(與 evaluate_mesh.AC1 同法,內嵌以免耦合)。"""
+    H, W = mask.shape
+    pts = []
+    v = mesh["vertices"]
+    for i in range(0, len(v), 2):
+        pts.append((v[i] + W / 2.0, H / 2.0 - v[i + 1]))
+    pts = np.array(pts, np.float64)
+    tris = np.array(mesh["triangles"], np.int32).reshape(-1, 3)
+    recon = np.zeros((H, W), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0).astype(np.uint8)
+    u = int(np.logical_or(recon, m).sum())
+    return int(np.logical_and(recon, m).sum()) / u if u else 0.0
+
+
 def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
@@ -119,6 +136,37 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
     return to_spine(pts, tris, n_hull, W, H), mask
+
+
+def generate_adaptive(path, iou_target=0.96, vertex_budget=64,
+                      epsilons=(0.008, 0.004, 0.002, 0.001),
+                      max_interior=40, min_dist=14, margin=6):
+    """自我收斂:由粗到細掃 epsilon(hull 保真度),用內嵌 IoU 閘驅動。
+    取「第一個 IoU≥target 且頂點≤budget」的結果;都不到 target 時取預算內 IoU 最佳。
+
+    依 4-mesh 研究:IoU 由邊界取樣(epsilon)決定,故只調 epsilon。避免固定 epsilon
+    對大而彎的件(如光暈)欠取樣、對小件過取樣。回傳 (mesh, mask),mesh 帶收斂 meta。"""
+    mask, gray, W, H = load_mask(path)
+    best = None  # (iou, nv, mesh)
+    for eps in epsilons:
+        hull = boundary_points(mask, eps)
+        inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+        pts, tris, n_hull = triangulate(hull, inter)
+        tris = filter_triangles(pts, tris, mask)
+        mesh = to_spine(pts, tris, n_hull, W, H)
+        nv = len(mesh["uvs"]) // 2
+        iou = _iou(mesh, mask)
+        if nv <= vertex_budget and (best is None or iou > best[0]):
+            best = (iou, nv, mesh, eps)
+        if iou >= iou_target and nv <= vertex_budget:
+            mesh["_adaptive"] = {"epsilon": eps, "iou": round(iou, 4),
+                                 "vertices": nv, "converged": True}
+            return mesh, mask
+    # 未達 target:回預算內最佳
+    iou, nv, mesh, eps = best
+    mesh["_adaptive"] = {"epsilon": eps, "iou": round(iou, 4),
+                         "vertices": nv, "converged": False}
+    return mesh, mask
 
 
 def main():

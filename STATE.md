@@ -11,6 +11,12 @@
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
+- **S3⇄S4 端到端(里程碑,2026-07-30):生成 mesh 對照 Award 真實生產 mesh(有真值)通過** —
+  機器人拆件 光暈/身體/左手 3 件,以藝術家手做 mesh 為 IoU 真值,S3 **3/3 達藝術家級覆蓋率**
+  (皆過 0.96、與藝術家差 ≤0.02),頂點只用 ~40–50%(37–38v vs 78–98v)。`tools/mesh_gen/compare_to_award.py`。
+  發現**固定 epsilon 對大而彎件(光暈)欠取樣** → 新增 `generate_mesh.generate_adaptive()`
+  (IoU 閘驅動自我收斂,只調 epsilon)。更正 uv 慣例:Award mesh uvs 為 **region-local、v 不翻**。
+  見 `knowledge/s3-award-mesh-groundtruth.md`。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
 - **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
@@ -38,17 +44,16 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 完成(2026-07-30,見上)**。3/3 達藝術家級覆蓋率。
+2. **❗建議下一步:切圖→Spine JSON 組裝(SkelToJson)**。把已驗證的慣例固化:
+   `slot=<PSD名>/<圖層名>`、size+2px padding、mesh/region 分配、mesh 用 `generate_adaptive`,
+   端到端從 PSD parts 產出可載入的 Spine JSON attachment 區塊。真值:對照 Award 的結構。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3⇄S4 端到端已對真實 mesh 有真值驗收通過(3/3)。建議下一步:把「件→Spine attachment」慣例
+> 固化成 SkelToJson 組裝工具,mesh 件用 `generate_adaptive`,region 件記 size+padding+rotation。
 
 ## 環境前置(已驗證可用)
 
