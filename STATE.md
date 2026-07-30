@@ -17,6 +17,13 @@
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
   見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
+- **S3+S4 端到端對照真實生產 mesh(里程碑,2026-07-30)** — 用 Award 機器人 3 個 mesh 件
+  (光暈/左手/身體)當真值,`validate_award_static.py` 靜態覆蓋率對照全過藝術家基準
+  (光暈 0.9832/左手 0.9913/身體 0.9926,頂點 73/67/77 皆 < 藝術家 78/80/98)。
+  過程揪出 v1/Delaunay 回退對大型軟邊輪廓取樣過疏(光暈舊值 0.929<0.980 FAIL,天然負對照)→
+  校準 `eps_fallback=0.002`(僅動 v2 回退路徑,strip/v1-standalone 不變,main_draw 無回歸)。
+  **關鍵發現:這 3 件是 weighted、由骨頭 skinning 驅動、無 deform timeline**(≠ main_draw 的
+  unweighted+deform)。見 `knowledge/s3-award-mesh-static.md`。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -38,17 +45,25 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
+1. **❗最高優先(承接本次):weighted mesh 變形閘 = BBW 權重 + bone-sim**。本次只驗了靜態覆蓋率;
+   Award 3 件靠骨頭 skinning 變形,要對照「生成 mesh 的變形穩健度」需:對生成 mesh 算 BBW 骨權重
+   → 用 Award 動畫的骨頭世界變換模擬 skinning → 量自交/翻面。這是 S3 路線圖 BBW 段,純 CPU 可自驅
+   (骨頭變換可從 Award.json 動畫 timeline 重現,如同既有 deform_eval 對 unweighted 做的)。
 2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
    寫出工具(SkelToJson),端到端產 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3+S4 已對真實生產 mesh 端到端靜態驗收通過(本次)。建議下一步:攻 weighted 變形閘(候選 1),
+> 把 S3 對 weighted/skinning 件的「變形穩健度」也納入自主閘 —— 這是目前唯一還沒有評估器覆蓋的
+> mesh 變形機制。
+
+## 分支現況(2026-07-30 補記)
+
+- 本 session 啟動於 `claude/vibrant-franklin-hwq7tf`(harness 指定的開發分支),推回同分支。
+- `prompts/run.md` 內文仍寫舊分支 `claude/zealous-noether-y2ecwu`(排程機制已改為從 default clone;
+  見 git log `docs: 更正排程分支機制`)。**以「啟動時所在分支」為準**,不要被 run.md 內文誤導。
 
 ## 環境前置(已驗證可用)
 

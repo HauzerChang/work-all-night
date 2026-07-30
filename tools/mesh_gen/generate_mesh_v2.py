@@ -110,13 +110,18 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", eps_fallback=0.002):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # Delaunay 回退:低長寬比 / 非 row-convex 的塊狀件(如光暈)。
+        # 對真實生產標的(Award 機器人 mesh)校準發現:v1 預設 eps=0.008 對大型軟邊
+        # 輪廓取樣過疏 → 覆蓋率不足(光暈 IoU 0.929 < 藝術家 0.980);eps=0.002 使 hull
+        # 密度貼近藝術家(頂點 73~77 vs 藝術家 78~98),3 件全過藝術家基準。
+        # 見 knowledge/s3-award-mesh-static.md。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=eps_fallback)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

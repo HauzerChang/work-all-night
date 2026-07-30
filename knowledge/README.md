@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端 vs Award 真實 mesh(靜態)](s3-award-mesh-static.md) — 生成 mesh 對照 Award 機器人 3 件 weighted mesh:揪出 v1/Delaunay 回退軟邊取樣過疏(光暈 IoU 0.929<0.980 FAIL),校準 `eps_fallback=0.002` → 3 件全過藝術家基準、頂點貼近。發現這些 mesh 由**骨頭 skinning 驅動、無 deform timeline** → 下一步需 BBW 權重 + bone-sim 才能驗 weighted 變形。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
