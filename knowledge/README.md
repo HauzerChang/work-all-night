@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3×S4 端到端 PSD→件→mesh 對照 Award 真實 mesh](s3-psd-to-real-mesh.md) — 光暈/身體/左手 3 件生成 mesh vs 藝術家手做 mesh:覆蓋率 ≈ 藝術家(0.93~0.97)、頂點少 26~55%、setup+外來真實場 0 自交,3 件全 `overall_pass`。第四次差點 miscalibration(藝術家 local vertices 非置中/跨滿 wh → 改用 uvs 基準);雙負對照確認覆蓋率閘鑑別力。工具 `benchmark_psd_mesh.py`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
