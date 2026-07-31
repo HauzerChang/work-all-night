@@ -31,6 +31,26 @@
 
 ## 下一步動作 (next action)
 
+**S3 端到端對照第二生產資產 Award(里程碑,2026-07-31)**:`PSD 件 → generate_mesh_v2 → 對照
+Award 機器人 3 件(光暈/左手/身體)真實 mesh`。工具 `tools/mesh_gen/validate_award_static.py`,
+`all_static_pass=True`(exit 0)。
+- **靜態覆蓋率全追平藝術家**(公平判準:對齊頂點預算後 `iou ≥ 藝術家 − 0.015` 雜訊地板)。
+  光暈柔邊 default 太省(37v/0.934)→ 降 epsilon 到 ~89–103v 追平/超越藝術家 78v(0.983–0.988);
+  左手/身體 default 更省即達標(59–60v vs 藝術家 80–98v,殘差 <1% = 三角化雜訊地板)。
+- **關鍵**:覆蓋率由**輪廓取樣密度**界定,非拓樸缺陷;省 vs 追平是兩獨立故事,分開報。
+- **PSD⇄atlas 剪影 IoU 0.95–0.99** 證輸入=spine 同素材(端到端非拼湊)。兩覆蓋率評估器負對照有鑑別力。
+- ⚠️ **邊界(誠實)**:這 3 件在 Award **無 deform**(weighted 純骨骼蒙皮)→ deform 閘 N/A
+  (strip 耐 deform 已於 main_draw 4 mesh 驗過);**生成的是 unweighted,未做 BBW 權重+骨綁**
+  → 真正取代生產 mesh 的「骨骼驅動變形」未端到端驗。詳見 `knowledge/s3-award-static-e2e.md`。
+
+下一個 bounded chunk 候選(更新):
+0. **(承上)weighted 骨綁 / BBW 權重**:讓生成 mesh 能被 Award 骨架驅動,端到端驗骨骼變形
+   (需讀 Award weighted vertices + bones 結構;S3 後段核心解鎖)。
+1. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` + size+2px padding 慣例固化,
+   端到端由件產 Spine JSON attachment(把靜態已驗的 mesh 寫回 spine)。
+
+舊候選(仍有效):
+
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -65,6 +85,11 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-07-31：**S3 端到端對照 Award 生產 mesh(里程碑)** — `validate_award_static.py`:PSD 件→
+  generate_mesh_v2→對照 Award 機器人 3 件,靜態覆蓋率全追平藝術家(margin 0.015 雜訊地板)。
+  發現覆蓋率由輪廓密度界定(光暈柔邊 default 太省 0.934,~89v 追平藝術家 78v/0.980);緊實件更省即達標,
+  殘差 <1% = 三角化雜訊地板。誠實邊界:3 件無 deform(deform 閘 N/A)、生成 unweighted 未做骨綁。
+  兩覆蓋率評估器負對照有鑑別力(打對欄位:evaluate 吃 vertices、artist_iou 吃 uvs)。
 - 2026-06-24：建立自驅研究框架骨架(RULES/PLAN/STATE/knowledge/log/prompts)。
 - 2026-06-24：匯入「Spine mesh system analysis」完整交接;PLAN/RULES/STATE 依實際研究內容填妥,狀態轉 `ACTIVE`。
 - 2026-06-24：**S3 第一輪** — 探測並安裝 CPU 套件;完成 mesh 生成器 + 評估器 + 合成測試;6 條 AC 全過(IoU 0.99)。
