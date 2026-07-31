@@ -110,13 +110,16 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", epsilon_frac=0.004):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # v1 Delaunay 後備。epsilon_frac 已對真實生產件校準(2026-07-31,robot_parts⇄Award):
+        # 舊預設 0.008 對羽化軟邊(光暈)覆蓋率低藝術家 4.5%;0.004 對 3 件全 match/beat 藝術家
+        # 且頂點數 ≤ 藝術家。見 knowledge/s3-psd-to-award-mesh.md。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=epsilon_frac)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

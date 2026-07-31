@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3×S4 端到端:PSD件→生成mesh→對照 Award 真實 mesh](s3-psd-to-award-mesh.md) — **端到端整合里程碑**。3 個真實生產 mesh 件(光暈/身體/左手)生成 mesh 全 match/beat 藝術家覆蓋率(頂點數 ≤ 藝術家)、setup 幾何 0 缺陷、負對照有鑑別力。校準 v1 epsilon 0.008→0.004(軟邊覆蓋率修 +4.5%)。發現 Award 機器人 mesh 為 weighted 骨骼蒙皮、0 deform timeline(deform 閘 N/A)。工具 `psd_to_award_mesh.py`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
