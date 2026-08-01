@@ -17,6 +17,12 @@
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
   見 `knowledge/s4-psd-to-spine-real.md`、`s4-psd-contract.md`(已用真實檔校準)。
+- **S3 端到端對真實生產 weighted mesh 驗收(里程碑,2026-08-01)** — 機器人拆件 3 mesh
+  是 weighted/骨骼驅動/**無 deform timeline** → 新驗證體制(覆蓋保真+頂點經濟,deform 閘 N/A)。
+  新工具 `validate_weighted_real.py`:**左手/身體 PASS**(生成 IoU 0.96–0.97,僅落後藝術家 0.008、
+  頂點 0.6×;PSD 路徑與 atlas 路徑一致 → PSD→件→mesh 閉環成立);**光暈(軟邊放射狀)FAIL**
+  (31% 羽化 alpha,散點外殼填不滿 0.93 vs 藝術家 0.98)。根因已定位、修法方向已實測
+  (門檻 10→去孤島;外輪廓 approxPolyDP eps≈0.005→IoU 0.966)。見 `knowledge/s3-weighted-real-mesh.md`。
 - S1 / S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -38,9 +44,11 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
+1. ✅ **已完成(2026-08-01):PSD件→S3 mesh→對照 Award 真實 mesh**。左手/身體 PASS、光暈 FAIL(見上)。
+   → **後續**:給 `generate_mesh_v2` 加 **`mode=radial/contour`**(軟 alpha 門檻 10 去孤島 +
+   外輪廓 approxPolyDP eps≈0.005 為主 hull),目標光暈 IoU≥0.96/orphans=0 轉 PASS;
+   再把三類拓樸 auto 偵測(高瘦→strip、軟邊 soft_edge>0.25→radial、其餘→scatter)整併進 v2。
+   驗收沿用 `validate_weighted_real.py`。**此為當前最高優先(有真值、純 CPU、收斂條件明確)。**
 2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
    寫出工具(SkelToJson),端到端產 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。

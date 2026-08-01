@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對真實 weighted mesh 驗收(端到端 PSD→件→mesh)](s3-weighted-real-mesh.md) — 機器人 3 mesh 是 weighted/骨驅/無 deform → 新體制(覆蓋保真閘,deform N/A);新工具 `validate_weighted_real.py`。**左手/身體 PASS**(IoU 0.96–0.97、0.6× 頂點,PSD 與 atlas 路徑一致);**光暈(軟邊放射)FAIL**,根因定位(31% 羽化 + 散點填不滿),實測外輪廓 approxPolyDP 可達 0.966。**形狀類別決定拓樸:硬邊→散點、軟邊→輪廓、高瘦→strip**。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
