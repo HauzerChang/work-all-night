@@ -31,7 +31,24 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3 端到端對照 Award 真實 mesh 完成(2026-08-01,candidate #1)**:機器人 3 mesh 件(光暈/左手/身體)
+從 Award atlas 抽真實件貼圖 → 跑 `generate_mesh_v2(auto)` → 對照 Award 真實生產 mesh。
+- **全走 v1 Delaunay**(三件 aspect 都不夠瘦長)→ 實測確認 **strip 是窗簾類長條專用、團塊件用 Delaunay**。
+- 生成 mesh 對真實件 alpha **覆蓋 IoU 0.929/0.960/0.968 全達標、格式合法、頂點 48–61 ≤ 64、比藝術家精簡 20–40%**。
+- **發現 Award.json uvs 跨滿整頁 ≠ 縮小重打包的 Award.atlas**(json 為原始打包 uv)→ 形狀對照改用解 weighted
+  幾何(Σw·boneSetupWorld·bind)。左手 decoder 自驗吻合 attachment wh;左手/光暈 生成 vs 藝術家 mesh IoU 0.85–0.95。
+- 身體覆蓋僅 0.61(self_check flag):主骨設定 rot 87.81° + 多骨混成,90° dihedral 對正量測局限,**非生成缺陷**。
+- 工具 `tools/mesh_gen/compare_award_mesh.py`;詳見 `knowledge/s3-award-mesh-e2e.md`。
+
+下一個 bounded chunk 候選(更新):
+1. ✅ ~~PSD件→S3 mesh→對照 Award(candidate #1)~~ **本次完成**(生成側可信;身體嚴謹對照可補 Procrustes)。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把 `PSD名/圖層名` 命名 + size+2px padding + **v1/strip 分流**
+   固化成「件→Spine attachment」工具,端到端產 Spine JSON。← 建議下一步。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **身體嚴謹對照**:補主軸/Procrustes 對正,把 gen-vs-artist mesh IoU 做到與左手/光暈同等可信。
+
+---
+### (歷史)S3 推廣到全部 4 個 mesh(里程碑,2026-06-26):整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。

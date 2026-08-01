@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真實 mesh](s3-award-mesh-e2e.md) — 機器人 3 mesh 件(光暈/左手/身體)跑 generate_mesh_v2:**全走 v1 Delaunay(strip 是窗簾專用)**;對真實件 alpha **覆蓋 IoU 0.93/0.96/0.97、頂點比藝術家少 20–40%**。發現 **Award.json uvs 跨滿整頁 ≠ 縮小重打包的 Award.atlas**(形狀對照須用解 weighted 幾何,非 uv)。左手/光暈 生成 vs 藝術家 mesh IoU 0.85–0.95;身體受設定姿勢近 90° 旋轉+多骨混成,90° 對正量測局限(非生成缺陷)。工具 `compare_award_mesh.py`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
