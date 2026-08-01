@@ -33,6 +33,8 @@
 
 - [S4 PSD-first 切圖契約](s4-psd-contract.md) — 使用者拍板走 PSD 契約。完成 psd_slice.py(PSD→各部位件+manifest)+ 自驗閘 + 合成 fixture;含給美術的交檔規範(已用真實檔校準)。
 
+- [S3 端到端:PSD件→生成 mesh→對照 Award 真實 mesh](s3-award-mesh-end-to-end.md) — **里程碑**:機器人 3 mesh 件對藝術家 ground-truth mesh 全 PASS,IoU 達/超越、頂點更少(68/68/53 vs 78/98/80)、0 自交。auto 正確回退 v1;v1 邊界改自適應 + 加孤兒清除;無 deform 件誠實只用靜態閘;main_draw 無回歸。
+
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

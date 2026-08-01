@@ -35,14 +35,42 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
-def boundary_points(mask, epsilon_frac):
+def _hull_iou(mask, approx):
+    """填滿 hull 多邊形對 mask 的覆蓋率(邊界保真度指標)。"""
+    H, W = mask.shape
+    recon = np.zeros((H, W), np.uint8)
+    cv2.fillPoly(recon, [approx.reshape(-1, 2).astype(np.int32)], 1)
+    inter = int(np.logical_and(recon, mask).sum())
+    union = int(np.logical_or(recon, mask).sum())
+    return inter / union if union else 0.0
+
+
+def boundary_points(mask, epsilon_frac=None, target_iou=0.97, max_hull=120):
+    """外輪廓 → Douglas-Peucker 簡化 hull 邊界。
+
+    epsilon_frac 指定 → 固定簡化(向後相容)。
+    epsilon_frac=None → **自適應**:由粗到細掃 epsilon,取「hull 多邊形覆蓋率 ≥ target_iou」
+      的最粗(頂點最少)結果 → 保真度足夠且頂點精簡(貼近藝術家)。大而柔的塊(如光暈)
+      會自動取較細邊界;小而簡單的塊仍保精簡。上限 max_hull 防柔邊爆點。
+    """
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
     peri = cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
-    return approx.reshape(-1, 2).astype(np.float64)
+    if epsilon_frac is not None:
+        approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
+        return approx.reshape(-1, 2).astype(np.float64)
+    # 自適應:由粗到細,首個達標(且未超 max_hull)即採用
+    last = None
+    for ef in (0.02, 0.012, 0.008, 0.005, 0.003, 0.002, 0.0012, 0.0008):
+        approx = cv2.approxPolyDP(cnt, ef * peri, True)
+        last = approx
+        if len(approx) > max_hull:
+            break
+        if _hull_iou(mask, approx) >= target_iou:
+            return approx.reshape(-1, 2).astype(np.float64)
+    return last.reshape(-1, 2).astype(np.float64)
 
 
 def interior_points(mask, gray, hull_pts, max_interior, min_dist, margin):
@@ -95,6 +123,19 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def drop_orphans(pts, tris, n_hull):
+    """移除未被任何三角使用的孤兒頂點並重編索引(hull 頂點永遠保留,排最前)。
+    孤兒頂點是 evaluate_mesh AC2c 的失分項,且對 Spine 無用 → 一律清掉。"""
+    used = set(int(i) for t in tris for i in t)
+    keep = [i for i in range(len(pts)) if i < n_hull or i in used]
+    remap = {old: new for new, old in enumerate(keep)}
+    new_pts = pts[keep]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32) \
+        if len(tris) else tris
+    new_hull = sum(1 for i in keep if i < n_hull)  # == n_hull(hull 全保留)
+    return new_pts, new_tris, new_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,12 +153,14 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=None, min_dist=14, margin=6):
+    """epsilon_frac=None → 自適應邊界(預設);給定數值則固定簡化(向後相容)。"""
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = drop_orphans(pts, tris, n_hull)
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
@@ -126,7 +169,8 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", type=float, default=None,
+                    help="固定 DP epsilon 比例;省略則自適應(依 hull 覆蓋率自選)")
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
     mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)

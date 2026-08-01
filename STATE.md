@@ -11,6 +11,11 @@
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
+- **S3+S4 端到端對真實生產標的驗收通過(里程碑,2026-08-01)** — 機器人 3 mesh 件(光暈/身體/左手)
+  用 Award 真實 alpha 跑 `generate_mesh_v2`,對照 Award **藝術家 ground-truth mesh** 全 PASS:
+  IoU 0.976~0.983 達/超越藝術家、**頂點更少**(68/68/53 vs 78/98/80)、0 自交/退化/孤兒。
+  auto 正確把團塊回退 v1;**v1 邊界升級為自適應(依 hull 覆蓋率自選 epsilon)+ 加通用孤兒清除**;
+  這 3 件無 deform → 誠實只用靜態閘。main_draw 無回歸。見 `knowledge/s3-award-mesh-end-to-end.md`。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
 - **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
@@ -38,17 +43,17 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 完成(2026-08-01,見上「里程碑」)**。
+2. **❗最高優先:切圖→Spine JSON 組裝(SkelToJson)**。把真實慣例固化成工具:
+   slot 命名 `<PSD名>/<圖層名>`、mesh(會 warp)vs region(剛體)分配、size +2px padding、
+   atlas ~0.70 縮放。輸入 PSD 件 → 輸出可載入的 Spine mesh/region attachment JSON。
+   驗收:對機器人 5 件重建的 attachment 結構(命名/type/size)逐件對上 Award。純 CPU 可自驅。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3+S4 端到端已對真實生產標的驗收通過。建議下一步:把「件→Spine JSON 組裝(SkelToJson)」固化,
+> 就能從 PSD 件端到端產出可載入的 Spine attachment(mesh 用本次已驗的生成器)。
 
 ## 環境前置(已驗證可用)
 
