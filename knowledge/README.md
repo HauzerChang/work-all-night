@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端 PSD→件→mesh 對照真實 mesh](s3-psd-to-real-mesh-e2e.md) — **首次以藝術家真實 mesh 為外部真值** PASS。機器人 3 mesh 件自產覆蓋率與藝術家持平(Δ±0.017)、頂點少 40~55%;v2 auto 正確回退 delaunay-v1;負對照(交叉件 IoU 0.47~0.58 vs 對角 0.95+)確認鑑別力。限制:此 3 件 weighted 無 deform,只驗靜態覆蓋+拓樸。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
