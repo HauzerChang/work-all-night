@@ -3,3 +3,7 @@ __pycache__/
 # 測試 fixture(可由 tools/mesh_gen/make_test_psd.py 重生)+ 切圖輸出
 assets/test_layered.psd
 psd_parts/
+
+# stray atlas-crop temp outputs (validators write here if --tmp unset)
+_region.png
+_award_region.png
