@@ -31,7 +31,28 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3 已對 held-out 生產標的泛化驗收通過(2026-08-02)**:端到端 PSD/atlas→`generate_mesh_v2`→
+對照 Award 機器人 3 件真實 mesh(光暈/左手/身體)。工具 `tools/mesh_gen/validate_award_robot.py`,all_pass。
+- 關鍵:機器人 mesh 是 **weighted + 無 deform timeline**(與 main_draw 的 unweighted+deform-timeline 相反)
+  → AC5 對其 **N/A**(誠實標記,weighted 蒙皮變形目前無閘)。
+- 泛化缺口:窗簾校準的固定 `eps=0.008` 對有機輪廓覆蓋不足(0.93~0.97<藝術家)、凹形光暈生孤兒頂點。
+- 修法:`generate_mesh_v2` 非 strip 分支改走 **`refine_delaunay`(自適應邊界密度,target_iou=0.98)**,
+  只用件 alpha 自評 → 3 件全 IoU≥藝術家、頂點≤藝術家、0 孤兒;strip 分支不動(main_draw 無回歸)。
+- AC3 絕對 64 預算是資產相依 → 對真實件改用「≤藝術家頂點數」相對經濟。詳見
+  `knowledge/s3-award-holdout-generalization.md`。
+
+下一個 bounded chunk 候選(接續):
+0. **weighted 蒙皮變形閘**:機器人 mesh 靠骨骼蒙皮變形,現有 deform_eval 不覆蓋;建「骨骼 setup/pose
+   → 頂點蒙皮重現 → 自交/翻面」閘,補上 weighted mesh 的變形 AC(目前唯一標 N/A 的能力邊界)。
+
+原候選(仍有效):
+2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
+   寫出工具(SkelToJson),端到端產 Spine JSON。現在 S3 mesh 生成已對真實件驗收 → 可把 mesh 直接塞進 attachment。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+
+---
+**(歷史)S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -97,3 +118,8 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-08-02:**S3 對 held-out 生產標的泛化(里程碑)** — 端到端 PSD/atlas→S3→對照 Award 機器人 3 件真實 mesh。
+  發現機器人 mesh 為 weighted+無 deform timeline(AC5 對其 N/A);窗簾校準的固定 eps=0.008 對有機輪廓覆蓋不足
+  (0.93~0.97<藝術家)且凹形光暈生孤兒頂點;加 `refine_delaunay` 自適應邊界密度(件 alpha 自評,target_iou=0.98)
+  → 3 件全 IoU≥藝術家、頂點≤藝術家、0 孤兒。AC3 絕對 64 預算改「≤藝術家頂點數」。新工具 `validate_award_robot.py`;
+  strip 無回歸。見 `knowledge/s3-award-holdout-generalization.md`。

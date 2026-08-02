@@ -110,15 +110,59 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def refine_delaunay(path, target_iou=0.98, max_verts=128,
+                    epsilons=(0.008, 0.005, 0.003, 0.002, 0.0015, 0.001)):
+    """自適應邊界密度(2026-08-02,Award held-out 泛化發現)。
+
+    固定 epsilon=0.008 對窗簾/影子夠用,但對機器人光暈/身體/左手等有機輪廓**覆蓋不足**
+    (IoU 0.93~0.97 < 藝術家 0.97~0.98),甚至在凹形光暈產生孤兒頂點。
+    IoU 由邊界取樣密度(epsilon)決定 → 由粗到細掃 epsilon,取**最粗且達標**者
+    (經濟性:用最少頂點達覆蓋目標,近似藝術家精簡度)。只用件本身 alpha 自評,不需藝術家參照。
+    """
+    from generate_mesh import generate as gen_v1
+    from evaluate_mesh import evaluate
+    mask, _, _, _ = load_mask_full(path)
+    best = None
+    for eps in epsilons:
+        m, _ = gen_v1(path, epsilon_frac=eps)
+        nv = len(m["uvs"]) // 2
+        ev = evaluate(m, mask)
+        iou = ev["criteria"]["AC1_iou"]["value"]
+        orph = ev["criteria"]["AC2c_orphans"]["value"]
+        cand = {"mesh": m, "eps": eps, "iou": iou, "nv": nv, "orphans": orph}
+        if orph == 0 and nv <= max_verts:
+            # 記錄達標可用者中 IoU 最高者作為後備
+            if best is None or iou > best["iou"]:
+                best = cand
+            if iou >= target_iou:
+                m["_mode"] = "delaunay-auto"
+                m["_density"] = {"eps": eps, "iou": round(iou, 4), "verts": nv}
+                return m
+    # 沒有 epsilon 達 target:回傳目前最佳(orphans=0、預算內)可用網格
+    if best is None:  # 極端:全都有孤兒 → 退回最細
+        m, _ = gen_v1(path, epsilon_frac=epsilons[-1])
+        best = {"mesh": m, "eps": epsilons[-1],
+                "iou": evaluate(m, mask)["criteria"]["AC1_iou"]["value"],
+                "nv": len(m["uvs"]) // 2, "orphans": None}
+    bm = best["mesh"]; bm["_mode"] = "delaunay-auto"
+    bm["_density"] = {"eps": best["eps"], "iou": round(best["iou"], 4),
+                      "verts": best["nv"], "note": "target_iou 未達,取最佳可用"}
+    return bm
+
+
+def load_mask_full(path):
+    """回傳 (mask, gray, W, H) —— 借 v1 的 loader 保持一致(含 alpha>8 門檻)。"""
+    from generate_mesh import load_mask as lm
+    return lm(path)
+
+
+def generate(path, rows=10, cols=3, mode="auto", target_iou=0.98):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
-        from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
-        m["_mode"] = "delaunay-v1"
-        return m
+        # 非 strip(有機輪廓)→ 自適應密度 Delaunay(取代固定 eps=0.008)
+        return refine_delaunay(path, target_iou=target_iou)
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)
     m["_mode"] = "strip"

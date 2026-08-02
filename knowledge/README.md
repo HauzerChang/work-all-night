@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對 held-out 生產標的泛化 + 自適應密度](s3-award-holdout-generalization.md) — 端到端 PSD/atlas→S3→對照 Award 機器人 3 件真實 mesh。發現:(1) 機器人 mesh 是 weighted+無 deform timeline(AC5 對其 N/A);(2) 窗簾校準的固定 eps=0.008 對有機輪廓覆蓋不足(0.93~0.97<藝術家)且凹形光暈生孤兒頂點;(3) 加 `refine_delaunay` 自適應邊界密度(只用件 alpha 自評,不需藝術家參照)→ 3 件全 IoU≥藝術家、頂點≤藝術家、0 孤兒;(4) AC3 絕對 64 預算是資產相依,改「≤藝術家頂點數」。無 strip 回歸。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
