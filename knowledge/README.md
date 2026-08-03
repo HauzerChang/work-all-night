@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3+S4 端到端:PSD件→mesh→對照 Award 真實 mesh](s3s4-psd-to-mesh-vs-award.md) — 機器人 3 mesh 件端到端(psd_slice→generate_mesh_v2),生成輪廓 vs 藝術家 mesh hull IoU **0.91/0.93/0.96**,且用更少頂點達相當覆蓋。**關鍵:Spine JSON mesh uvs 是 region-local 正規化,不是 page 正規化**(誤解曾致身體 IoU=0 假性失敗)。校準 identity 勝出(判別力 0.94 vs 0.60)自證對齊。工具 `compare_to_award.py`。邊界:只驗靜態輪廓,deform/權重(BBW)未做。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
