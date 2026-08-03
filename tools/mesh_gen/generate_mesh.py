@@ -121,6 +121,46 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
+def generate_auto(path, iou_target=0.98, vertex_budget=None,
+                  eps0=0.008, min_eps=0.0008, rounds=6,
+                  max_interior=40, min_dist=14, margin=6):
+    """自我調參生成器:從 eps0 起,每輪對半縮小 epsilon(邊界取樣加密)直到
+    輪廓 IoU >= iou_target(且頂點數在 budget 內)。IoU 由邊界密度決定
+    (見 s3-four-mesh-generalization / s3-award-mesh-parts),故 epsilon 是收斂旋鈕。
+
+    重點:target 為**絕對** IoU(不看藝術家真值),真實 pipeline 無真值時仍可自驅。
+    回傳 (mesh, mask);mesh 帶 _iou/_eps/_iter/_history 供追溯。最多 `rounds` 輪(對齊 5 輪預算)。
+    """
+    from evaluate_mesh import evaluate
+    mask, gray, W, H = load_mask(path)
+    eps = eps0
+    best = None
+    history = []
+    for it in range(rounds):
+        hull = boundary_points(mask, eps)
+        inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+        pts, tris, n_hull = triangulate(hull, inter)
+        tris = filter_triangles(pts, tris, mask)
+        mesh = to_spine(pts, tris, n_hull, W, H)
+        iou = float(evaluate(mesh, mask)["criteria"]["AC1_iou"]["value"])
+        nv = len(mesh["uvs"]) // 2
+        history.append({"iter": it, "eps": round(eps, 5), "verts": nv, "iou": round(iou, 4)})
+        ok_budget = vertex_budget is None or nv <= vertex_budget
+        # 記錄「達標且合預算」中頂點最少者為 best;否則記 IoU 最高者
+        if iou >= iou_target and ok_budget:
+            best = (mesh, iou, eps, it)
+            break
+        if best is None or iou > best[1]:
+            best = (mesh, iou, eps, it)
+        eps /= 2.0
+        if eps < min_eps:
+            break
+    mesh, iou, eps, it = best
+    mesh["_iou"] = round(iou, 4); mesh["_eps"] = round(eps, 5)
+    mesh["_iter"] = it; mesh["_history"] = history
+    return mesh, mask
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")

@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端:Award weighted mesh 件 + 自調參生成器](s3-award-mesh-parts.md) — 對 3 個真實生產 mesh 件(光暈/左手/身體,皆 **weighted**、無 deform)跑「atlas 切件→S3 生成→對照藝術家 mesh」,**靜態輪廓三件全過**(生成 IoU ≥ 藝術家 且頂點更少)。發現預設 eps 對真實件覆蓋不足 → 新增 `generate_auto`(自調 epsilon,絕對 IoU target,2–3 輪收斂)。誠實邊界:S3 只產 unweighted,**權重(BBW)維度尚未串**。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
