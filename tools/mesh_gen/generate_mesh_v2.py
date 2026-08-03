@@ -110,13 +110,20 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", density=None):
+    """density: 選填,傳給 delaunay-v1 fallback 的 (max_interior, epsilon_frac, min_dist)
+    以提高頂點預算(複雜輪廓如機器人件需要,見 knowledge/s3-award-weighted-static.md)。
+    None = 沿用 v1 預設(不影響現有 4-mesh 校準)。"""
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        if density is not None:
+            mi, eps, md = density
+            m, _ = gen_v1(path, max_interior=mi, epsilon_frac=eps, min_dist=md)
+        else:
+            m, _ = gen_v1(path)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

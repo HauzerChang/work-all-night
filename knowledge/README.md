@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 推廣到真實 weighted mesh(靜態軸)](s3-award-weighted-static.md) — 對 Award 藝術家手做的 3 個 weighted mesh(光暈/左手/身體)端到端驗收:**預設 30v 預算全 fail**(低於藝術家 baseline),**拉高到 ≈ 藝術家頂點量後 3 件全達標/超越**。缺口=頂點預算非拓樸(IoU 隨密度單調上升)。生成器新增 backward-compatible `density=` 透傳。下一塊:weighted mesh 的 deform 閘。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

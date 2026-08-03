@@ -11,6 +11,9 @@
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
+  **並已推廣到真實生產 weighted mesh(Award 機器人 3 件)靜態 IoU 軸**:預設 30v 預算不足(全 fail),
+  拉到 ≈ 藝術家頂點量後 3 件全達標/超越(`tools/mesh_gen/validate_award_static.py`,見
+  `knowledge/s3-award-weighted-static.md`)。⚠️ 僅靜態軸;weighted deform 閘尚未做。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
 - **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
@@ -38,9 +41,11 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **靜態 IoU 軸已完成(2026-08-03)**:3 件對藝術家 baseline
+   全達標(需拉高頂點預算);見 `knowledge/s3-award-weighted-static.md`。**剩:weighted mesh 的
+   deform 閘**(`real_deform_field` 目前只支援 unweighted;weighted 的 vertices 為變長 bind 格式,
+   deform 偏移作用在 bind 座標,需先實作 weighted 世界座標/位移場抽取並以藝術家真值自一致性校準)。
+   → 這是下一個最高優先塊,完成後 Award 3 件才有完整整合 AC(靜態+變形)。
 2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
    寫出工具(SkelToJson),端到端產 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
@@ -97,3 +102,10 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-08-03:**S3 推廣到真實 weighted mesh(靜態軸,里程碑)** — 對 Award 藝術家手做的 3 個 weighted
+  mesh(光暈/左手/身體)端到端驗收。發現:為簡單 curtain/shadow 校準的**預設 ~30v 預算對複雜機器人
+  輪廓不足**(3 件 IoU 全低於藝術家 baseline);頂點預算拉到 ≈ 藝術家水準後 **3 件全達標/超越**
+  (0.983/0.991/0.993 vs baseline 0.980/0.968/0.976)。IoU 隨密度單調上升 → 缺口是預算非拓樸。
+  新增 `validate_award_static.py`(可重跑,exit code 化)+ `generate_mesh_v2.density=` 透傳
+  (backward-compatible,不動 4-mesh 校準)。見 `knowledge/s3-award-weighted-static.md`。
+  下一塊定為 weighted mesh 的 deform 閘。分支 `claude/vibrant-franklin-bdou0b`。
