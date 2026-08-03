@@ -110,13 +110,20 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", v1_epsilon=0.002):
+    """v1_epsilon:非 strip 件回退 Delaunay 時的邊界簡化係數。
+
+    2026-08-03(對 Award 3 個真實 blob mesh 件驗)發現:v1 預設 0.008 對不規則 blob
+    件(光暈/身體/左手)hull 過疏 → 覆蓋率低於藝術家(內接多邊形恆低估凸弧)。
+    降到 0.002 時 3 件覆蓋率全 ≥ 藝術家基準,且頂點數仍少於藝術家(更精簡)。
+    故 v2 回退路徑預設用 0.002;v1 自身預設不動(避免動到已記錄的 v1 數據)。
+    """
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=v1_epsilon)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

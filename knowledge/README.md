@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 藝術家 mesh](s3-award-mesh-endtoend.md) — 3 個真實機器人 mesh 件(光暈/身體/左手)生成 mesh 覆蓋率**全 ≥ 藝術家且更少頂點**(`compare_gen_vs_artist.py`,overall_pass)。發現 ① Spine mesh uvs 是**來源圖局部 [0,1]** 非 atlas 座標(自我檢查抓到誤映射);② blob 件需更密邊界(v2 回退 Delaunay `v1_epsilon` 0.008→0.002 泛化)。限界:件為 weighted 無 deform → deform 閘 N/A;**BBW 權重是下一缺口**。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
