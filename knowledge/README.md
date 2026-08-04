@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真實 mesh](s3-award-mesh-e2e.md) — **里程碑**:機器人 3 mesh 件(光暈/身體/左手)生成 mesh 對照 Award 生產 mesh,3 件全 PASS(覆蓋率 > 藝術家、頂點更精簡、0 自交)。**關鍵發現**:覆蓋率由邊界密度決定(與 strip rows 同構),`epsilon_frac` 周長相對對大平滑件失準 → 改**絕對像素 `epsilon_px=2`**;無回歸(main_draw 4 mesh strip 全過)。未測:weighted-mesh deform(機制不同)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

@@ -31,7 +31,24 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3 端到端對照 Award 真實生產 mesh(里程碑,2026-08-04)**:機器人 3 mesh 件(光暈/身體/左手)
+在 Award 生產貼圖 region 上生成 mesh,對照 Award 真實 mesh → **3 件全 PASS**(覆蓋率 0.99 > 藝術家
+0.97–0.98、頂點更精簡 68/49/48 vs 78/98/80、0 自交)。標準指令 `validate_award_mesh.py --gen v2`。
+- **關鍵發現/修正**:覆蓋率由**邊界取樣密度**決定、內部點不影響(與 strip 的 rows 同構)。
+  `epsilon_frac`(周長相對)對大而平滑件(光暈)失準 → 改**絕對像素 `epsilon_px=2`**(已設預設)。
+  blob 回退 Delaunay 內部預算調 12 守頂點預算。**無回歸**:main_draw 4 mesh 走 strip,重驗全過。
+- 範圍:Award 3 件是 weighted+無 deform timeline,故只驗**靜態拓樸/覆蓋率**;weighted deform 未測。
+- 詳見 `knowledge/s3-award-mesh-e2e.md`。
+
+下一個 bounded chunk 候選(更新):
+1. **切圖→Spine JSON 組裝(SkelToJson)**:把 `PSD名/圖層名` 命名 + size+2px padding + mesh(epsilon_px=2/
+   內部12)vs region 分配,固化成「件→Spine attachment/mesh」工具,端到端產可用 Spine JSON。
+2. **weighted-mesh deform 對照**:生成 BBW 權重 + 骨骼驅動,對照 Award weighted mesh 的變形(補上本輪未測面向)。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產)。
+
+---
+**歷史里程碑:S3 推廣到全部 4 個 mesh(2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -97,3 +114,8 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-08-04:**S3 端到端對照 Award 真實 mesh(里程碑)** — 機器人 3 mesh 件(光暈/身體/左手)生成 mesh 對照
+  Award 生產 mesh,3 件全 PASS(覆蓋率 0.99>藝術家、頂點更精簡、0 自交)。**發現**覆蓋率由邊界密度決定
+  (與 strip rows 同構);`epsilon_frac` 周長相對對大平滑件失準 → 改**絕對像素 `epsilon_px=2`**(預設),
+  blob 內部預算 12。無回歸(main_draw 4 mesh strip 重驗全過)。新工具 `validate_award_mesh.py`。
+  範圍:Award 3 件 weighted+無 deform,故只驗靜態拓樸;weighted deform 列後續。

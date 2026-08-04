@@ -115,8 +115,10 @@ def generate(path, rows=10, cols=3, mode="auto"):
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # blob/寬件回退 Delaunay。覆蓋率由邊界密度(epsilon_px=2)決定,內部點不影響
+        # 覆蓋率(2026-08-04 Award 真實 mesh 驗);故內部預算取精簡值以守住頂點預算。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, max_interior=12, epsilon_px=2.0)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

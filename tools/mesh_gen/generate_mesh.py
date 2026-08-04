@@ -35,13 +35,20 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
-def boundary_points(mask, epsilon_frac):
+def boundary_points(mask, epsilon_frac, epsilon_px=None):
+    """Douglas-Peucker 邊界簡化。
+
+    ⚠️ 覆蓋率由邊界取樣密度決定(2026-08-04 對 Award 真實 mesh 驗出,與 strip 的
+       『IoU 由 rows 決定』同構)。`epsilon_frac`(周長相對)對**大而平滑**的件會給出過大
+       的絕對 epsilon → 切過平滑曲線 → 覆蓋率不足(光暈 0.929 < 藝術家 0.980)。
+       改用 `epsilon_px`(絕對像素容差,DP 對真實輪廓的固定像素偏差,與件大小無關):
+       2px 對 Award 3 件全部覆蓋率 > 藝術家且頂點數更精簡。**優先用 epsilon_px**。"""
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
-    peri = cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
+    eps = epsilon_px if epsilon_px is not None else epsilon_frac * cv2.arcLength(cnt, True)
+    approx = cv2.approxPolyDP(cnt, eps, True)
     return approx.reshape(-1, 2).astype(np.float64)
 
 
@@ -112,9 +119,10 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             epsilon_px=2.0):
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
+    hull = boundary_points(mask, epsilon_frac, epsilon_px)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
@@ -126,10 +134,15 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", type=float, default=0.008,
+                    help="周長相對 epsilon(僅在 --epsilon-px 為負時使用)")
+    ap.add_argument("--epsilon-px", type=float, default=2.0,
+                    help="絕對像素 DP 容差(預設 2px;<0 則退回 --epsilon 周長相對)")
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
-    mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)
+    epx = None if args.epsilon_px < 0 else args.epsilon_px
+    mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist,
+                       epsilon_px=epx)
     nv = len(mesh["uvs"]) // 2
     out = args.out or (args.image.rsplit(".", 1)[0] + "_mesh.json")
     with open(out, "w") as f:
