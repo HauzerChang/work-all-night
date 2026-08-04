@@ -121,6 +121,47 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
+def _coverage_iou(mesh, mask):
+    """三角形填滿覆蓋 vs alpha mask 的 IoU(與 evaluate_mesh.AC1 同義,內建避免相依)。"""
+    h, w = mask.shape
+    pts = np.array(mesh["vertices"], dtype=np.float64).reshape(-1, 2)
+    # to_spine 已置中+y上翻;還原回影像像素座標
+    px = np.column_stack([pts[:, 0] + w / 2.0, h / 2.0 - pts[:, 1]])
+    tris = np.array(mesh["triangles"], dtype=np.int32).reshape(-1, 3)
+    recon = np.zeros((h, w), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(px[t]).astype(np.int32), 1)
+    m = (mask > 0).astype(np.uint8)
+    union = int(np.logical_or(recon, m).sum())
+    return (int(np.logical_and(recon, m).sum()) / union) if union else 0.0
+
+
+def generate_adaptive(path, vertex_cap=96, iou_target=0.975,
+                      epsilons=(0.008, 0.005, 0.003, 0.002, 0.0015, 0.001),
+                      max_interior=40, min_dist=14, margin=6):
+    """自適應 hull 密度:從粗到細掃 epsilon_frac,回傳「達到 iou_target 的最粗 hull」
+    (頂點越少越好),但頂點數不得超過 vertex_cap。
+
+    動機(2026-08-04 機器人光暈驗收):soft/round 件的覆蓋率由 hull 密度決定,固定
+    epsilon_frac=0.008 對長平滑輪廓取點太少 → 欠覆蓋。interior 點對覆蓋率幾乎無影響
+    (它主要影響變形),故只掃 hull。回傳 (mesh, mask, chosen_epsilon, iou)。
+    """
+    best = None  # (mesh, mask, eps, iou) 最後一個(最細)可用者,作為達不到 target 的後備
+    for eps in epsilons:
+        mesh, mask = generate(path, max_interior, eps, min_dist, margin)
+        nv = len(mesh["uvs"]) // 2
+        if nv > vertex_cap:
+            break  # 再細只會更多頂點,停在上一個
+        iou = _coverage_iou(mesh, mask)
+        best = (mesh, mask, eps, iou)
+        if iou >= iou_target:
+            return mesh, mask, eps, iou
+    if best is None:  # 連最粗都超 cap:退回最粗設定(不設 cap)
+        mesh, mask = generate(path, max_interior, epsilons[0], min_dist, margin)
+        best = (mesh, mask, epsilons[0], _coverage_iou(mesh, mask))
+    return best
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")

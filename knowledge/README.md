@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對真實生產 mesh](s3-robot-mesh-vs-award.md) — 機器人 3 件 mesh（光暈/身體/左手)用生成器對照 Award 藝術家真實 mesh;自適應 hull 密度後 3 件全 PASS 且頂點更少覆蓋更好。發現「覆蓋率由 hull 密度決定、interior 無關」再獲印證;固定 ε=0.008 對 soft/round 件過粗。新增 `generate_adaptive`(opt-in,主線無回歸)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
