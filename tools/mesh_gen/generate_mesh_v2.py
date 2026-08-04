@@ -110,13 +110,22 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", epsilon_frac=None, max_interior=None):
+    """epsilon_frac/max_interior:僅在退回 v1(Delaunay)時傳入以控制邊界取樣密度;
+    None → 用 v1 預設(向後相容,strip 模式不受影響)。
+    發現(2026-08-04,Award 光暈):覆蓋率 IoU 由 hull 取樣密度(epsilon_frac)決定,
+    軟/細邊界(光暈)需比預設 0.008 更細才達藝術家基準。"""
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        kw = {}
+        if epsilon_frac is not None:
+            kw["epsilon_frac"] = epsilon_frac
+        if max_interior is not None:
+            kw["max_interior"] = max_interior
+        m, _ = gen_v1(path, **kw)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 加權生產 mesh](s3-award-weighted-mesh.md) — PSD件→generate_mesh_v2→對照 Award 3 件 **weighted mesh**(光暈/身體/左手),**靜態閘**(無 deform timeline,不捏造 deform 閘)全 overall_pass + 負對照。發現:①Spine mesh uvs 為 region-local 0..1(self-IoU 0.97–0.98,同時佐證 atlas_crop CW derotate 正確);②覆蓋率 IoU 由 epsilon/hull 密度決定(同 strip「rows 決定」),軟邊界(光暈)需比預設更細 eps。generate_mesh_v2 加 epsilon 透傳(向後相容)+ 有界自我迭代。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
