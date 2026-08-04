@@ -115,9 +115,12 @@ def generate(path, rows=10, cols=3, mode="auto"):
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # 非 strip 形狀(複雜輪廓,如手/身體/光暈)走 Delaunay,並開自適應輪廓密度:
+        # 逐步加密邊界直到 recon IoU 達 target(在頂點預算內),解決固定 epsilon 對
+        # 真實生產 mesh 取樣過疏的問題(2026-08-04,knowledge/s3-real-weighted-mesh.md)。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
-        m["_mode"] = "delaunay-v1"
+        m, _ = gen_v1(path, target_iou=0.982, vertex_budget=110)
+        m["_mode"] = "delaunay-v1-adaptive"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)

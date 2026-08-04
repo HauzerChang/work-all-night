@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 真實 weighted mesh + 自適應輪廓密度](s3-real-weighted-mesh.md) — S3 首次對真實生產 mesh(Award 機器人 光暈/左手/身體,weighted、hull 40~78)驗收。發現舊固定 epsilon 取樣過疏(IoU 差 0.008~0.05,**全是邊界密度**);加入**自適應輪廓密度**(加密直到 recon IoU 達 target,自量測)後 3 件全過藝術家基準、頂點數還更少。教訓:把「絕對量參數」換成「自量測回饋迴圈」。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

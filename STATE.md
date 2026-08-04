@@ -11,6 +11,9 @@
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
+- **S3 推廣到真實生產 weighted mesh(里程碑,2026-08-04)** — 對 Award 機器人 3 件(光暈/左手/身體,weighted、hull 40~78)驗收:
+  發現舊固定 epsilon 對複雜輪廓取樣過疏(IoU 差 0.008~0.05,全是邊界密度);加**自適應輪廓密度**後 3 件全過藝術家基準且頂點更少。
+  `validate_robot_mesh.py --gen v2` all_pass;strip 路徑(main_draw 4 mesh)不受影響、無回歸。見 `knowledge/s3-real-weighted-mesh.md`。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
 - **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
@@ -38,9 +41,10 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
+1. ✅ **已完成(2026-08-04):S3→對照 Award 真實 weighted mesh**。用 atlas 真值(Award.png/Award2.png)對
+   光暈/左手/身體 3 件跑 `generate_mesh_v2`,IoU 對照藝術家基準 → 全過(見上,加自適應輪廓密度)。
+   ⚠️ 未做:weighted mesh 的 **deform 級**驗證(需 skinning+骨骼動畫)、以及**綁權重**(BBW)把生成的
+   unweighted mesh 變成可替換生產的 weighted mesh。這兩項是 S3 下半段,屬較大工作塊。
 2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
    寫出工具(SkelToJson),端到端產 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。

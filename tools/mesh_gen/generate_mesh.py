@@ -112,12 +112,54 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
-    mask, gray, W, H = load_mask(path)
+def _recon_iou(pts, tris, mask):
+    """三角化 recon vs mask 的 IoU(自量測邊界保真度,不需外部真值)。"""
+    h, w = mask.shape
+    recon = np.zeros((h, w), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    uni = np.logical_or(recon, mask).sum()
+    return float(np.logical_and(recon, mask).sum() / uni) if uni else 0.0
+
+
+def _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin):
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    return pts, tris, n_hull
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_iou=None, vertex_budget=96,
+             eps_schedule=(0.008, 0.004, 0.002, 0.001, 0.0005)):
+    """固定 epsilon(target_iou=None,向後相容)或自適應輪廓密度(target_iou 設值)。
+
+    自適應(2026-08-04 發現):Douglas-Peucker 的預設 epsilon=0.008 是在 main_draw 簡單
+    mesh 上調的,對真實生產 mesh(光暈/手/身體,輪廓複雜)取樣過疏 → IoU 差 0.01~0.05。
+    差距**全來自邊界密度**(內部 OK)。此處由疏到密逐步降 epsilon,取「達標且最省頂點」的一版;
+    若在頂點預算內都達不到 target,回傳預算內 IoU 最佳者。
+    """
+    mask, gray, W, H = load_mask(path)
+    if target_iou is None:
+        pts, tris, n_hull = _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin)
+        return to_spine(pts, tris, n_hull, W, H), mask
+
+    best = None  # (iou, pts, tris, n_hull)
+    for eps in eps_schedule:
+        pts, tris, n_hull = _build(mask, gray, W, H, max_interior, eps, min_dist, margin)
+        iou = _recon_iou(pts, tris, mask)
+        nv = len(pts)
+        if nv <= vertex_budget and (best is None or iou > best[0]):
+            best = (iou, pts, tris, n_hull)
+        if iou >= target_iou and nv <= vertex_budget:
+            break
+        if nv > vertex_budget:
+            break
+    if best is None:  # 連最疏都超預算:退回最疏那版
+        pts, tris, n_hull = _build(mask, gray, W, H, max_interior, eps_schedule[0], min_dist, margin)
+        best = (_recon_iou(pts, tris, mask), pts, tris, n_hull)
+    _, pts, tris, n_hull = best
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
