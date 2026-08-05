@@ -3,3 +3,5 @@ __pycache__/
 # 測試 fixture(可由 tools/mesh_gen/make_test_psd.py 重生)+ 切圖輸出
 assets/test_layered.psd
 psd_parts/
+# 比對工具的暫存 crop 輸出(可由 compare_to_real_mesh.py 重生)
+scratch_cmp/

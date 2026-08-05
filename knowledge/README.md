@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照真實生產 mesh](s3-vs-real-production-mesh.md) — **里程碑**:S3 首次對「未見過的生產資產」(Award 機器人 3 個 mesh)驗收。生成 hull ∩ 美術真實 hull IoU **0.91–0.955** 全過;S3 覆蓋率 0.926–0.966(美術基準 ~0.972)且**少 30–40% 頂點**。`auto` 正確選 delaunay(團塊件)。對映用 alpha 外部真值校正(region-local uv)。局限:weighted 件無 deform timeline,變形穩健未驗。工具 `compare_to_real_mesh.py`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
