@@ -115,9 +115,11 @@ def generate(path, rows=10, cols=3, mode="auto"):
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
-        from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
-        m["_mode"] = "delaunay-v1"
+        # 非 strip(近方形/實心件)走 v1 Delaunay,但用自我驗證迴圈自動調邊界密度:
+        # 硬邊件早停(頂點少)、軟邊大 blob 自動加密到達覆蓋門檻(見 generate_adaptive)。
+        from generate_mesh import generate_adaptive
+        m, _ = generate_adaptive(path)
+        m["_mode"] = "delaunay-v1-adaptive"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)

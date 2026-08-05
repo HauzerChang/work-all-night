@@ -95,6 +95,22 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def prune_orphans(pts, tris, n_hull):
+    """移除三角過濾後不再被任何三角引用的『內部』孤兒頂點並重編索引。
+    hull 頂點(0..n_hull-1)一律保留(定義邊界環,順序/數量不變);只丟 idx>=n_hull 的孤兒。
+    修正 filter_triangles 對凹形/軟邊件可能孤立內部頂點 → Spine 格式非法(AC2c fail)。"""
+    if len(tris) == 0:
+        return pts, tris, n_hull
+    used = set(int(i) for i in tris.flatten())
+    keep = [i for i in range(len(pts)) if i < n_hull or i in used]
+    if len(keep) == len(pts):
+        return pts, tris, n_hull
+    remap = {old: new for new, old in enumerate(keep)}
+    new_pts = pts[keep]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32)
+    return new_pts, new_tris, n_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,13 +128,58 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
+def _coverage_iou(mesh, mask):
+    """三角形填滿 vs mask 的 IoU(不依賴 evaluate_mesh,避免循環 import)。"""
+    W, H = mesh["width"], mesh["height"]
+    v = mesh["vertices"]
+    pts = np.array([(v[i] + W / 2.0, H / 2.0 - v[i + 1]) for i in range(0, len(v), 2)])
+    recon = np.zeros((H, W), np.uint8)
+    for t in np.array(mesh["triangles"]).reshape(-1, 3):
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0).astype(np.uint8)
+    inter = int(np.logical_and(recon, m).sum())
+    union = int(np.logical_or(recon, m).sum())
+    return inter / union if union else 0.0
+
+
 def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = prune_orphans(pts, tris, n_hull)
     return to_spine(pts, tris, n_hull, W, H), mask
+
+
+def generate_adaptive(path, target_iou=0.95, budget=64, eps0=0.008,
+                      min_eps=0.0015, shrink=1.6, **kw):
+    """自我驗證迴圈:從粗 epsilon 起,量測覆蓋 IoU,不足且預算未滿就加密邊界(縮小 eps)重試。
+    - 硬邊件在粗 epsilon 即達標(頂點少)→ 早停;軟邊大 blob(如光暈)自動加密到達標或撞預算。
+    - 回傳同時滿足 (iou>=target 且 nv<=budget) 的最精簡解;若無,回傳『達標且頂點最少』
+      或退而求其次『IoU 最高且不超預算』的一版。不引入 per-shape 魔數。"""
+    eps = eps0
+    meeting = []   # (nv, mesh, mask) 達 target 且在預算內
+    fallbacks = [] # (iou, nv, mesh, mask) 在預算內但未達 target
+    for _ in range(8):
+        mesh, mask = generate(path, epsilon_frac=eps, **kw)
+        nv = len(mesh["uvs"]) // 2
+        iou = _coverage_iou(mesh, mask)
+        if nv <= budget:
+            if iou >= target_iou:
+                meeting.append((nv, mesh, mask))
+                break  # eps 遞減使覆蓋單調上升,首達標即最精簡
+            fallbacks.append((iou, nv, mesh, mask))
+        if eps <= min_eps:
+            break
+        eps = max(min_eps, eps / shrink)
+    if meeting:
+        nv, mesh, mask = min(meeting, key=lambda x: x[0])
+        return mesh, mask
+    if fallbacks:
+        _, _, mesh, mask = max(fallbacks, key=lambda x: x[0])
+        return mesh, mask
+    return generate(path, epsilon_frac=eps0, **kw)  # 極端退路
 
 
 def main():
