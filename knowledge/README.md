@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 泛化到 Award 機器人 mesh + epsilon 校正](s3-award-robot-generalization.md) — 對**第二份生產資產**(Award 光暈/左手/身體,真實 weighted mesh)驗 S3。找出固定 epsilon 對羽化/星形輪廓取樣太疏(光暈 gap −0.05,14 vs 藝術家 78 hull 點),校正 `epsilon_frac=0.003`+頂點預算自適應(內部點讓位給 hull)→ 3 mesh 全達/超越藝術家覆蓋率、≤64v、AC 全乾淨、main_draw strip 無回歸。副產:確認 rotate region 的 uvs 直接對齊 CW-derotate 裁切圖。**限制**:weighted mesh 的 real-deform 閘尚未支援(下一 chunk)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

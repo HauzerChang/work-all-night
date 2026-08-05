@@ -112,10 +112,21 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.003, min_dist=14, margin=6,
+             vertex_budget=64):
+    """PNG(alpha) → unweighted Spine mesh。
+
+    epsilon_frac 預設 0.003(2026-08-05 由 Award 機器人 mesh 泛化校正):
+      覆蓋率(IoU)由 **hull 取樣密度** 決定,內部點不影響覆蓋。原 0.008 對羽化/星形
+      輪廓(如機器人「光暈」,33% 半透明邊)只取 14 個 hull 點 → 剪掉凸角、漏 6k px、
+      IoU 0.929 < 藝術家 0.980。降到 0.003 → hull~32、IoU 0.978 達藝術家 parity。
+    vertex_budget:hull 變密後,把內部點預算收成 `budget - n_hull`,總頂點守在預算內
+      (內部點只服務 deform 拓樸、不影響覆蓋,故先讓位給 hull)。
+    """
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
-    inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+    interior_budget = max(0, min(max_interior, vertex_budget - len(hull)))
+    inter = interior_points(mask, gray, hull, interior_budget, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
     return to_spine(pts, tris, n_hull, W, H), mask
@@ -126,7 +137,7 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", type=float, default=0.003)
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
     mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)

@@ -10,7 +10,9 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
-- **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
+- **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`);
+  **並已泛化到第二份生產資產** — Award 機器人 3 mesh(delaunay-v1 路徑)靜態覆蓋率全達/超越藝術家
+  (epsilon 校正,見 `knowledge/s3-award-robot-generalization.md`)。weighted mesh 的 deform 閘尚缺。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
 - **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
@@ -37,18 +39,28 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
+**S3 已泛化到第二份生產資產(Award 機器人 mesh,里程碑,2026-08-05)**:對 光暈/左手/身體
+3 個真實 **weighted** mesh 做靜態覆蓋率對照(`validate_robot_mesh.py`)。
+- 找出並修掉泛化缺口:固定 `epsilon_frac=0.008` 對羽化/星形輪廓(光暈,33% 半透明邊)只取 14 hull 點
+  → 漏 6364px、IoU 0.929 < 藝術家 0.980。**校正 `epsilon_frac=0.003` + 頂點預算自適應**
+  (`interior = budget − n_hull`,內部點讓位給 hull)→ 3 mesh 全達/超越藝術家覆蓋率、≤64v、AC 全乾淨。
+- 副產:確認 rotate region 的 Spine uvs 直接對齊 `atlas_crop` 的 CW-derotate 裁切圖(art_iou 0.97–0.98)。
+- 無回歸:main_draw 4 mesh 走 strip 路徑不受 v1 epsilon 影響,`validate_against_real --gen v2` 仍全過。
+- 詳見 `knowledge/s3-award-robot-generalization.md`。
+
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
+1. **❗最高優先(補上本回合的另一半):weighted mesh 的 real-deform 閘**。`deform_eval` 目前
+   `reshape(-1,2)` 只對 unweighted 正確;Award 機器人 mesh 全 weighted → 本回合只驗了靜態覆蓋、
+   **未驗變形穩健**。讓 deform_eval 解析 weighted vertices(bind→setup-pose local + 對映 deform offset),
+   對 3 機器人 mesh 跑真實位移場轉移閘,把「PSD→件→mesh」對機器人**完整**驗收(覆蓋率 ≠ 耐變形)。
 2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
    寫出工具(SkelToJson),端到端產 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3 現已在**兩份**生產資產(main_draw strip + Award robot delaunay)上達藝術家覆蓋率。
+> 建議下一步:補 weighted deform 閘(#1),讓機器人 mesh 的變形穩健也有 gate,S3+S4 端到端才完整。
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +105,11 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-05:**S3 泛化到第二份生產資產(里程碑)** — 對 Award 機器人 3 真實 weighted mesh
+  (光暈/左手/身體)做靜態覆蓋率對照(新 `validate_robot_mesh.py`)。找出固定 epsilon 對羽化/星形
+  輪廓取樣太疏(光暈 14 vs 藝術家 78 hull 點,漏 6364px)→ 校正 `epsilon_frac=0.003`+頂點預算自適應
+  → 3 mesh 全達/超越藝術家覆蓋率、≤64v、AC 全乾淨、main_draw strip 無回歸。副產:確認 rotate region
+  uvs 直接對齊 CW-derotate 裁切圖。留下 weighted-mesh deform 閘為下一 chunk。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
