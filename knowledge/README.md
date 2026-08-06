@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 機器人件 vs Award 真實 mesh](s3-robot-mesh-vs-award.md) — 端到端「atlas 件→生成 mesh→對照 Award 藝術家真實 mesh」:3 件(光暈/身體/左手)靜態 IoU 全**高於藝術家真值**且頂點更少。auto 正確走 delaunay;delaunay 邊界 epsilon 由 0.008 收緊到 0.003(圓弧覆蓋率),對窗簾(strip)零回歸。Award mesh uvs 為 region-local 已確認。變形驗證待做(件為 weighted、需權重轉移)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
