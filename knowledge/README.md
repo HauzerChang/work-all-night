@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對真實生產標的驗收](s3-award-mesh-validation.md) — PSD→件→mesh 對 Award 機器人 3 mesh(weighted)靜態 IoU 驗收。發現固定 `epsilon_frac=0.008` 對有機輪廓 hull 過稀(光暈 −0.05);新增**自適應 epsilon**(`generate_adaptive`)後 3 件全達/超藝術家 baseline,無回歸。frame:Award uvs 為 region-local(非 atlas-page)。deform 閘對 weighted/無 deform timeline 件標 N/A(誠實)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

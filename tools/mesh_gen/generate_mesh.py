@@ -121,6 +121,51 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
+def _iou_vs_mask(mesh, mask):
+    """三角形填滿 vs 來源 mask 的 IoU(與 evaluate_mesh 的 AC1 同義,避免循環 import)。"""
+    H, W = mask.shape
+    pts = np.array(mesh["uvs"], dtype=np.float64).reshape(-1, 2)
+    pts[:, 0] *= W; pts[:, 1] *= H
+    tris = np.array(mesh["triangles"], dtype=np.int32).reshape(-1, 3)
+    recon = np.zeros((H, W), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0).astype(np.uint8)
+    u = int(np.logical_or(recon, m).sum())
+    return float(np.logical_and(recon, m).sum() / u) if u else 0.0
+
+
+def generate_adaptive(path, iou_target=0.98, vertex_budget=200,
+                      eps_start=0.008, eps_min=5e-4, max_interior=40,
+                      min_dist=14, margin=6):
+    """自適應 epsilon:從粗 hull 起,逐步加細(epsilon 減半)直到覆蓋 IoU≥target
+    或頂點數觸頂。解決固定 epsilon_frac 對「不同解析度 / 不同輪廓複雜度」不通用的問題
+    (見 knowledge/s3-award-mesh-validation.md:main_draw 直條 0.008 夠,Award 有機輪廓需 ~0.002)。
+
+    回傳 (mesh, mask, meta);meta 記錄實際採用的 epsilon 與掃描軌跡,便於稽核。
+    """
+    mask, gray, W, H = load_mask(path)
+    eps = eps_start
+    trail = []
+    best = None
+    while eps >= eps_min:
+        hull = boundary_points(mask, eps)
+        inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+        pts, tris, n_hull = triangulate(hull, inter)
+        tris = filter_triangles(pts, tris, mask)
+        mesh = to_spine(pts, tris, n_hull, W, H)
+        nv = len(mesh["uvs"]) // 2
+        iou = _iou_vs_mask(mesh, mask)
+        trail.append({"eps": eps, "nv": nv, "hull": mesh["hull"], "iou": round(iou, 4)})
+        best = (mesh, iou, nv, eps)
+        if iou >= iou_target or nv >= vertex_budget:
+            break
+        eps /= 2.0
+    mesh, iou, nv, eps_used = best
+    return mesh, mask, {"eps_used": eps_used, "iou": round(iou, 4),
+                        "vertices": nv, "hit_target": iou >= iou_target, "trail": trail}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")
