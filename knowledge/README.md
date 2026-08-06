@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端 PSD→mesh→對照 Award](s3-psd-to-mesh-award.md) — S4 切件接 S3 生成,對 Award 3 個機器人 mesh 件做覆蓋率對照。降預設 `epsilon_frac` 0.008→0.004 後 3 件生成 IoU 全過 artist baseline 且頂點更精簡。**關鍵發現:Award 機器人 mesh 全是 weighted(骨綁)、無 deform timeline → 變形閘 N/A,S3 缺 BBW 權重生成器**。無回歸(只影響 v1 delaunay 路徑)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
