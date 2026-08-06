@@ -31,7 +31,29 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3 對真實生產 mesh 端到端驗收通過(里程碑,2026-08-06)**:PSD 件 → `generate_mesh_v2` →
+對照 Award 生產 spine 的 3 個機器人件(光暈/身體/左手,皆手做 weighted mesh)。
+- 標準指令 `python3 tools/mesh_gen/compare_award_mesh.py`(eps 預設 0.002)→ `_overall_pass: true`。
+- 結果:自動 mesh coverage IoU(0.983/0.993/0.991)**≥ 藝術家 baseline**(0.980/0.976/0.968),
+  頂點 nv(73/77/67)**≤ 藝術家**(78/98/80),setup 內在拓樸全乾淨;PSD 件↔atlas 件輪廓 IoU 0.91~0.97。
+- **關鍵發現**:coverage IoU 由 **hull 邊界密度(epsilon_frac)** 決定;舊預設 0.008(為 main_draw
+  簡單形調)對有機生產件取樣不足 → 降到 **0.002** 三件全過。`generate_mesh_v2.generate` 新增 `eps` 參數
+  (預設 None=舊行為,main_draw 4 mesh 零回歸)。詳見 `knowledge/s3-award-mesh-groundtruth.md`。
+- **限制/開放**:Award 3 件是 **weighted mesh**,現有 `real_deform_field` 只支援 unweighted →
+  **對 Award 件的真實 deform 轉移閘尚未做**(需先寫 weighted-mesh 世界座標重現器)。
+
+下一個 bounded chunk 候選(排序):
+1. **❗weighted-mesh deform 重現器**:寫 CPU 版 computeWorldVertices(setup 世界點 = Σ weight·bone·bindPos;
+   疊加 deform timeline),讓 `real_deform_field`/`transfer_deform_check` 支援 weighted → 補齊 Award 3 件的
+   「真實 deform 下 0 自交/翻面」動態閘。這是把上面靜態里程碑升級為完整動態驗收的直接下一步。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把件→attachment(命名慣例 + size + 2px padding)寫出工具,
+   端到端產 Spine JSON(可直接餵 compare_award_mesh 的生成 mesh 回填 attachment)。
+3. S2 補圖閘 / 骨架閘(補齊 S2 樞紐;純 CPU)。
+4. S1 反推分析器(需 benchmark 影片;repo 無影片資產)。
+
+<details><summary>先前里程碑(2026-06-26):S3 推廣到全部 4 mesh</summary>
+
+整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -47,8 +69,10 @@
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> ~~建議下一步:用機器人件跑 S3 並對照 Award 真實 mesh~~ **✅ 2026-08-06 完成(靜態部分)**。
+> 現建議:補 weighted-mesh deform 重現器,把 Award 件從「靜態覆蓋達標」升級到「動態穩健達標」。
+
+</details>
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +117,11 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-06:**S3 對真實生產 mesh 端到端驗收(里程碑)** — PSD 件→v2 mesh→對照 Award 3 個機器人
+  藝術家 weighted mesh:覆蓋率 ≥ 藝術家、頂點 ≤ 藝術家(eps=0.002 全過,overall_pass);PSD→mesh ≡ atlas→mesh。
+  發現 coverage IoU 由 hull 邊界密度決定,舊預設 0.008 對有機件取樣不足 → v2 加 `eps` 參數(預設 None 零回歸)。
+  修 compare 的 leg B/C 未裁 padding bug(身體 0.62→0.95)。限制:weighted 真實 deform 轉移未涵蓋(下一 chunk)。
+  新增 `tools/mesh_gen/compare_award_mesh.py`、`knowledge/s3-award-mesh-groundtruth.md`、figure。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

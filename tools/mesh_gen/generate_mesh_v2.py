@@ -110,13 +110,16 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", eps=None):
+    """eps:v1(Delaunay)分支的 hull Douglas-Peucker 容差。None → 用 v1 預設(0.008,
+    適合 main_draw 窗簾/陰影等簡單形)。有機生產件(如機器人拆件)邊界較複雜,建議 ~0.002
+    (仍 ≤ 藝術家頂點預算,見 knowledge/s3-award-mesh-groundtruth.md)。strip 分支不用 eps。"""
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path) if eps is None else gen_v1(path, epsilon_frac=eps)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
