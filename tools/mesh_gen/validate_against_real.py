@@ -46,19 +46,39 @@ def validate(skeleton_path, atlas_path, png_path, slot, name, gen_fn, tmp_dir,
 
     iou = evaluate(mesh, mask)["criteria"]["AC1_iou"]["value"]
     base = artist_iou(sk, slot, name, mask)
+    iou_pass = iou >= base - iou_margin
+
     uvs_src, field, frame = de.real_deform_field(sk, slot, name)
-    dres = de.transfer_deform_check(mesh, uvs_src, field)
+    if frame is None:
+        # 無 deform timeline(如機器人拆件:weighted mesh 靠骨骼變形,非逐頂點 deform)。
+        # real_deform_field 會回傳零位移場,套用後必然「乾淨」→ 那是假性通過,不可採信。
+        # 標為 not applicable,overall_pass 只看靜態 IoU。
+        ac_deform = {"applicable": False,
+                     "reason": "no deform timeline (bone-weighted mesh)"}
+        overall = iou_pass
+    else:
+        dres = de.transfer_deform_check(mesh, uvs_src, field)
+        ac_deform = {"applicable": True, "frame": frame,
+                     "area_ratio": dres["area_ratio"],
+                     "self_intersections": dres["self_intersections"],
+                     "triangle_flips": dres["triangle_flips"], "pass": dres["clean"]}
+        overall = iou_pass and dres["clean"]
 
     return {
         "mesh": {"vertices": nv, "hull": mesh["hull"], "triangles": len(mesh["triangles"]) // 3,
                  "mode": mesh.get("_mode")},
+        "artist_vertices": _artist_nv(sk, slot, name),
         "AC_iou": {"value": round(iou, 4), "artist_baseline": round(base, 4),
-                   "pass": iou >= base - iou_margin},
-        "AC_real_deform": {"frame": frame, "area_ratio": dres["area_ratio"],
-                           "self_intersections": dres["self_intersections"],
-                           "triangle_flips": dres["triangle_flips"], "pass": dres["clean"]},
-        "overall_pass": (iou >= base - iou_margin) and dres["clean"],
+                   "pass": iou_pass},
+        "AC_real_deform": ac_deform,
+        "overall_pass": overall,
     }
+
+
+def _artist_nv(skeleton, slot, name):
+    skin = skeleton["skins"]; skin = skin[0] if isinstance(skin, list) else skin
+    a = skin.get("attachments", skin)[slot][name]
+    return len(a["uvs"]) // 2
 
 
 def main():
@@ -69,11 +89,14 @@ def main():
     ap.add_argument("--slot", default="image/curtain_left")
     ap.add_argument("--name", default="image/curtain_left")
     ap.add_argument("--gen", choices=["v1", "v2"], default="v1")
+    ap.add_argument("--epsilon", type=float, default=None,
+                    help="v1 Douglas-Peucker 邊界簡化 frac;越小 hull 越密、覆蓋率越高。"
+                         "大而軟邊的件(如光暈)預設 0.008 太粗,建議 0.0015~0.002。")
     ap.add_argument("--tmp", default="/tmp")
     a = ap.parse_args()
     if a.gen == "v1":
         from generate_mesh import generate as g
-        gen = lambda p: g(p)
+        gen = (lambda p: g(p, epsilon_frac=a.epsilon)) if a.epsilon else (lambda p: g(p))
     else:
         from generate_mesh_v2 import generate as g
         gen = lambda p: g(p, mode="auto")

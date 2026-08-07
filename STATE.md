@@ -31,7 +31,23 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3×S4 端到端對真實生產 mesh 驗收(里程碑,2026-08-07)**:用 Award 機器人 3 個 mesh 件
+(光暈/左手/身體)跑 `generate_mesh` 並對照 Award 藝術家手做 mesh。**對齊藝術家頂點預算下,
+生成 mesh 靜態 IoU 3 件全 ≥ 藝術家**(光暈 0.988/0.980、左手 0.993/0.968、身體 0.993/0.976)。
+- 關鍵發現①:覆蓋率由邊界取樣密度決定,預設 `epsilon_frac=0.008` 對大軟邊件(光暈)太粗
+  → 降到 0.0015~0.002 打平藝術家;已把 `--epsilon` 開成 `validate_against_real.py` 參數。
+- 關鍵發現②:這 3 件 weighted 且**無 deform timeline**(靠骨骼權重變形)→ `real_deform_field`
+  對無 deform frame 回零位移場會**假性通過**;已修 harness 偵測 `frame is None` → deform 閘標
+  `applicable:false`、overall_pass 只採信靜態 IoU。詳見 `knowledge/s3-vs-award-real-mesh.md`。
+- 限制:本次僅驗**靜態覆蓋率**;bone-weighted 變形品質尚未驗(見下方候選 6)。
+
+下一個 bounded chunk 候選:
+6. **❗最高優先(補完上面的限制):weighted-mesh 骨骼蒙皮重現**。讀 bones 階層 + 動畫 bone
+   timeline → 世界變換 → 權重混合,對機器人 3 件做真實 bone-driven 變形的自交/翻面閘,
+   才算完整對齊藝術家取捨(較少頂點換蒙皮平滑)。純 CPU 可自驅,Award 有真值。
+
+---
+**先前里程碑(2026-06-26)**:S3 推廣到全部 4 個 main_draw mesh。整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -93,6 +109,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-07:**S3×S4 端到端對真實生產 mesh 驗收(里程碑)** — Award 機器人 3 個 mesh 件(光暈/左手/身體)
+  跑 `generate_mesh` 對照藝術家真實 mesh:對齊頂點預算下靜態 IoU 3 件全 ≥ 藝術家。發現預設 epsilon 對大軟邊件
+  太粗(開 `--epsilon`);這 3 件無 deform timeline(bone-weighted)→ 修 harness 不讓零位移場假性通過。
+  見 `knowledge/s3-vs-award-real-mesh.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
