@@ -35,13 +35,17 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
-def boundary_points(mask, epsilon_frac):
+def boundary_points(mask, epsilon_frac, max_eps_px=6.0):
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
     peri = cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
+    # Douglas-Peucker 容差 = 多邊形與真實輪廓的最大像素偏差。
+    # 用 frac*peri 會隨周長變大 → 大而平滑的輪廓(如光暈)被過度簡化、覆蓋不足。
+    # 以絕對像素上限封頂,讓大件也維持足夠邊界取樣;小件(frac*peri < 上限)不受影響。
+    eps = min(epsilon_frac * peri, max_eps_px)
+    approx = cv2.approxPolyDP(cnt, eps, True)
     return approx.reshape(-1, 2).astype(np.float64)
 
 
@@ -95,6 +99,22 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def prune_orphans(pts, tris, n_hull):
+    """移除三角化過濾後未被任何三角形參照的孤兒頂點,並重編索引。
+    保持原順序 → hull 頂點(原索引 < n_hull)仍排最前且維持邊界 loop 次序;
+    n_hull 重算為存活的原 hull 頂點數(移除孤兒邊界點只是讓 loop 略粗,仍有效)。"""
+    if not len(tris):
+        return pts, tris, n_hull
+    used = sorted(set(int(i) for i in np.asarray(tris).flatten()))
+    if len(used) == len(pts):
+        return pts, tris, n_hull
+    remap = {old: new for new, old in enumerate(used)}
+    new_pts = pts[used]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32)
+    new_hull = sum(1 for old in used if old < n_hull)
+    return new_pts, new_tris, new_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -118,6 +138,7 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = prune_orphans(pts, tris, n_hull)
     return to_spine(pts, tris, n_hull, W, H), mask
 
 

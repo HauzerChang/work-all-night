@@ -31,7 +31,21 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3×S4 端到端里程碑(2026-08-07):PSD件→mesh→對照 Award 真實生產 mesh,3/3 PASS。**
+- 機器人 3 mesh 件(光暈/左手/身體)對真實 ground truth:覆蓋率達藝術家基準(2% 內)、頂點少 14–40%。
+- `auto` 模式選擇經真實雙向樣本確認:blob(aspect<1.2)→ v1 Delaunay、窗簾/陰影(≥1.55)→ strip。
+- 用真實標的揪出並修好 v1 兩缺陷:**孤兒頂點 prune**、**DP epsilon 絕對像素封頂(6px)**(光暈 IoU 0.929→0.977)。
+  main_draw 4 mesh(走 strip)不回歸,已實跑 4/4 PASS。工具:`tools/mesh_gen/validate_robot_mesh.py`。
+- 這 3 件無 deform timeline(靠骨骼 warp)→ deform 軸誠實標 N/A(不捏造壓力測試)。詳見 `knowledge/s3-robot-psd-to-mesh.md`。
+
+下一個 bounded chunk 候選(接續):
+- **A. 切圖→Spine JSON 組裝(SkelToJson)**:固化 `<PSD檔名>/<圖層名>` 命名 + size+2px padding + mesh/region 分配
+  (warp件→mesh、剛體→region),把「件→Spine attachment/slot」寫成工具,端到端產出可載入的 Spine JSON。
+- **B. 邊界密度隨曲率自適應**(取代單一 epsilon 上限;需跨全部件前後 eval)。
+- **C. S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+
+---
+（歷史）**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -93,6 +107,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-07:**S3×S4 端到端(里程碑)** — 機器人 3 mesh 件對 Award 真實 ground truth 3/3 PASS
+  (覆蓋率≈藝術家、頂點少 14–40%);auto 模式選擇經真實雙向樣本確認(blob→v1、窗簾→strip)。
+  用真實標的揪出並修好 v1 兩缺陷(孤兒頂點 prune、DP epsilon 絕對像素封頂 6px:光暈 IoU 0.929→0.977);
+  main_draw 4 mesh 走 strip 不回歸(4/4 PASS)。新增 `validate_robot_mesh.py` + `knowledge/s3-robot-psd-to-mesh.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
