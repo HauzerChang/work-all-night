@@ -31,7 +31,22 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3×S4 端到端對照 Award 真值完成(里程碑,2026-08-07)**:`compare_against_award.py` 把
+「PSD 件→`generate_mesh_v2`」對真實生產 spine `Award` 的三個藝術家 weighted mesh(光暈/左手/身體)
+量化對照,**三件全 PASS**(exit 0)。覆蓋 parity 0.98–1.02、footprint IoU 0.92–0.96,生成頂點數
+僅藝術家 45–75%(35/59/60 vs 78/80/98)。關鍵:uvs 正規化空間可**免 atlas 對位**直接疊比;
+**羽化件(光暈半透明佔 24.6%)絕對 IoU 不適用 → 改 parity-against-artist 閘**(附三向負對照)。
+詳見 `knowledge/s3-s4-end-to-end-award.md`、結果 `results/robot_award_compare/`。
+
+下一塊候選(擇一推進):
+- **A. deform 對照(自然延伸)**:把 Award 真實 deform 位移場轉到生成 mesh 驗自交/耐變形。
+  ⚠️ 需先擴充 Python 重現 **weighted** 世界座標 + 骨階層變換(`deform_eval` 目前只處理 unweighted)。
+- **B. BBW 權重生成**:生成 mesh 目前 unweighted;要真正替換藝術家 mesh 需綁權重(S3 後段)。
+- **C. SkelToJson**:把 `機器人拆件/<圖層名>` + size+2px padding + 生成 mesh 固化成「件→Spine
+  attachment」寫出工具,端到端產可載入的 Spine JSON。
+
+---
+**(前一里程碑)S3 已推廣到全部 4 個 mesh(2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -97,3 +112,8 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-08-07:**S3×S4 端到端對照 Award 真值(里程碑)** — 新 `compare_against_award.py`:PSD 件
+  (robot_parts 光暈/左手/身體)→`generate_mesh_v2`→對 Award 三個藝術家 weighted mesh 在正規化 UV
+  空間量化對照,**三件全 PASS**。覆蓋 parity 0.98–1.02、footprint IoU 0.92–0.96,生成頂點僅藝術家
+  45–75%。發現 uvs 免 atlas 對位可直接疊比;**羽化件(光暈半透明 24.6%)絕對 IoU 不適用→改
+  parity-against-artist 閘**(職責分離:E1 只驗拓樸)。三向負對照(錯配標的/翻轉/平移)確認鑑別力。

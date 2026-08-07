@@ -1,0 +1,137 @@
+{
+  "overall_pass": true,
+  "parts": [
+    {
+      "slot": "機器人拆件/光暈",
+      "mode": "delaunay-v1",
+      "cover_iou_gen": 0.9274,
+      "cover_iou_real": 0.945,
+      "footprint_iou": 0.9178,
+      "verts_gen": 35,
+      "verts_real": 78,
+      "tris_gen": 49,
+      "tris_real": 76,
+      "AC": {
+        "E1_format": {
+          "pass": true,
+          "topo_detail": {
+            "AC4_format": true,
+            "AC2a_centroid_in_mask": true,
+            "AC2b_degenerate": true,
+            "AC2c_orphans": true,
+            "AC3_vertex_budget": true
+          },
+          "cover_iou_note": {
+            "pass": false,
+            "value": 0.9331,
+            "thresh": 0.95
+          }
+        },
+        "E2_cover_self": {
+          "pass": true,
+          "value": 0.9274,
+          "thresh": 0.9
+        },
+        "E3_parity": {
+          "pass": true,
+          "cover_ratio": 0.981,
+          "footprint_iou": 0.9178
+        },
+        "E4_compact": {
+          "pass": true,
+          "verts_gen": 35,
+          "verts_real": 78
+        }
+      },
+      "overall_pass": true
+    },
+    {
+      "slot": "機器人拆件/左手",
+      "mode": "delaunay-v1",
+      "cover_iou_gen": 0.9545,
+      "cover_iou_real": 0.9811,
+      "footprint_iou": 0.9565,
+      "verts_gen": 59,
+      "verts_real": 80,
+      "tris_gen": 97,
+      "tris_real": 116,
+      "AC": {
+        "E1_format": {
+          "pass": true,
+          "topo_detail": {
+            "AC4_format": true,
+            "AC2a_centroid_in_mask": true,
+            "AC2b_degenerate": true,
+            "AC2c_orphans": true,
+            "AC3_vertex_budget": true
+          },
+          "cover_iou_note": {
+            "pass": true,
+            "value": 0.9642,
+            "thresh": 0.95
+          }
+        },
+        "E2_cover_self": {
+          "pass": true,
+          "value": 0.9545,
+          "thresh": 0.9
+        },
+        "E3_parity": {
+          "pass": true,
+          "cover_ratio": 0.973,
+          "footprint_iou": 0.9565
+        },
+        "E4_compact": {
+          "pass": true,
+          "verts_gen": 59,
+          "verts_real": 80
+        }
+      },
+      "overall_pass": true
+    },
+    {
+      "slot": "機器人拆件/身體",
+      "mode": "delaunay-v1",
+      "cover_iou_gen": 0.9617,
+      "cover_iou_real": 0.9477,
+      "footprint_iou": 0.9292,
+      "verts_gen": 60,
+      "verts_real": 98,
+      "tris_gen": 97,
+      "tris_real": 154,
+      "AC": {
+        "E1_format": {
+          "pass": true,
+          "topo_detail": {
+            "AC4_format": true,
+            "AC2a_centroid_in_mask": true,
+            "AC2b_degenerate": true,
+            "AC2c_orphans": true,
+            "AC3_vertex_budget": true
+          },
+          "cover_iou_note": {
+            "pass": true,
+            "value": 0.966,
+            "thresh": 0.95
+          }
+        },
+        "E2_cover_self": {
+          "pass": true,
+          "value": 0.9617,
+          "thresh": 0.9
+        },
+        "E3_parity": {
+          "pass": true,
+          "cover_ratio": 1.015,
+          "footprint_iou": 0.9292
+        },
+        "E4_compact": {
+          "pass": true,
+          "verts_gen": 60,
+          "verts_real": 98
+        }
+      },
+      "overall_pass": true
+    }
+  ]
+}

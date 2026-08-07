@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3+S4 端到端對照 Award 真值](s3-s4-end-to-end-award.md) — **PSD 件→生成 mesh→對照 Award 三個藝術家 weighted mesh(光暈/左手/身體)全 PASS**(里程碑)。生成 mesh 覆蓋 parity 0.98–1.02、footprint IoU 0.92–0.96、頂點數僅藝術家 45–75%。關鍵:uvs 正規化空間可免 atlas 對位直接疊比;**羽化件(光暈半透明 24.6%)絕對 IoU 不適用 → 改 parity-against-artist 閘**。附三向負對照確認鑑別力。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
