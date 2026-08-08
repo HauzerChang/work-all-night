@@ -31,24 +31,34 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3 已對第二支生產檔(Award)真實 mesh 端到端驗收(里程碑,2026-08-08)**:
+用 Award 機器人 3 件 mesh(`機器人拆件/{光暈,身體,左手}`,皆 weighted、無 deform)當 ground truth。
+- 先驗評估器可信(藝術家 self-IoU 0.97–0.98 一致 → frame/derotate 對齊正確)。
+- 發現 v1 固定 `epsilon_frac=0.008` 對**大柔邊件(光暈)**hull 過疏 → 覆蓋率輸藝術家基準。
+- 修:v1 加**自校準 hull 密度**(以 `mesh_self_iou` 為閘,epsilon 從 0.008 減半至達 `target_iou=0.985`
+  或 nv≥`vertex_cap=140`)。修後 3 件全過(光暈 0.992/身體 0.986/左手 0.991),nv(92/69/67)≈ 藝術家,不過細分。
+- main_draw 4 mesh 走 v2 strip **不受影響**(回歸全 overall_pass)。詳見 `knowledge/s3-award-mesh-groundtruth.md`。
+- 誠實限制:這 3 件無 deform timeline,僅靜態拓樸對照;weighted 綁定(骨權)本工具仍未生成(只產 unweighted)。
+
+**先前:S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
-3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+1. ✅ **(已完成 2026-08-08)PSD件/Award→S3 mesh→對照 Award 真實 mesh**。見上方里程碑。
+2. **❗最高優先:切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 +
+   size+2px padding + mesh/region 分配 + S3 自校準 mesh,固化成「件→Spine attachment」寫出工具,
+   端到端產 Spine JSON。已有 S3(mesh)、S4(切件+manifest)、Award 命名慣例當範本,可自驅。
+3. **weighted mesh 生成(BBW 骨權綁定)**:真實生產 mesh 多為 weighted;本工具只產 unweighted。
+   需先有骨架(S5)或給定骨線才能綁權;可能屬 S5 相依,列為中期。
+4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3 已對兩支生產檔(main_draw + Award)的真實 mesh 驗收通過。建議下一步:(2) SkelToJson 把
+> S3+S4+命名慣例串成端到端「PSD→Spine JSON」組裝工具(純 CPU、有範本可自驅)。
 
 ## 環境前置(已驗證可用)
 
@@ -93,6 +103,11 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-08:**S3 對 Award 真實 weighted mesh 端到端驗收 + v1 自校準(里程碑)** — 換第二支生產檔
+  (Award 機器人 3 件 mesh)當 ground truth。先驗藝術家 self-IoU(0.97–0.98 一致)確認 frame/評估器可信;
+  發現 v1 固定 epsilon 對大柔邊件(光暈)hull 過疏、覆蓋率輸藝術家 → 加自校準 hull 密度
+  (mesh_self_iou 為閘、epsilon 減半至達 target)。修後 3 件全過、nv≈藝術家;main_draw 4 mesh(v2)回歸不受影響。
+  誠實限制:這 3 件無 deform timeline,僅靜態拓樸對照。見 `knowledge/s3-award-mesh-groundtruth.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

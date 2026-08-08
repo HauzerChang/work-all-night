@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對 Award 真實 mesh 端到端驗收 + v1 自校準](s3-award-mesh-groundtruth.md) — 第一次對「另一支生產 spine(Award)的真實 weighted mesh」做 ground-truth 對照。發現 v1 固定 `epsilon_frac=0.008` 對大柔邊件(光暈)hull 過疏、覆蓋率輸藝術家;改為**以自身覆蓋率為閘的自校準 hull 密度**後 3 件全達標且 nv 與藝術家相當。main_draw 4 mesh(v2 strip)不受影響。誠實限制:這 3 件無 deform timeline,僅靜態拓樸對照。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

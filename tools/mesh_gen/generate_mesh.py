@@ -95,6 +95,16 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def mesh_self_iou(pts, tris, W, H, mask):
+    """重建(填三角)覆蓋率 vs 來源 alpha — 自校準用,不需外部真值。"""
+    recon = np.zeros((H, W), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    m = (mask > 0)
+    union = int(np.logical_or(recon, m).sum())
+    return int(np.logical_and(recon, m).sum()) / union if union else 0.0
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,13 +122,32 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_iou=0.985, vertex_cap=140):
+    """alpha → v1 Delaunay mesh。
+
+    自校準 hull 密度(2026-08-08,對 Award 3 真實 weighted mesh 校準):固定
+    `epsilon_frac=0.008` 對「大而柔邊」的件(如光暈)hull 過疏 → 覆蓋率低於藝術家
+    基準。改為從粗 epsilon 起,以自身覆蓋率(mesh_self_iou)為閘逐次減半,直到達
+    `target_iou` 或頂點數達 `vertex_cap`。`target_iou=None` 還原單發舊行為。
+    """
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
-    inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
-    pts, tris, n_hull = triangulate(hull, inter)
-    tris = filter_triangles(pts, tris, mask)
-    return to_spine(pts, tris, n_hull, W, H), mask
+    eps = epsilon_frac
+    best = None
+    for _ in range(6):  # 0.008 → 0.00025,有界
+        hull = boundary_points(mask, eps)
+        inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+        pts, tris, n_hull = triangulate(hull, inter)
+        tris = filter_triangles(pts, tris, mask)
+        best = to_spine(pts, tris, n_hull, W, H)
+        if target_iou is None:
+            break
+        nv = len(best["uvs"]) // 2
+        iou = mesh_self_iou(pts, tris, W, H, mask)
+        if iou >= target_iou or nv >= vertex_cap:
+            break
+        eps /= 2.0
+    return best, mask
 
 
 def main():
