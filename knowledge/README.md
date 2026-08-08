@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 跨資產推廣:PSD→Award 真實 mesh](s3-psd-to-award-crossasset.md) — S3 首次離開 main_draw:`robot_parts.psd` 3 件(光暈/左手/身體)自動生成 mesh,靜態輪廓覆蓋率達/逼近 Award 藝術家 mesh 基準且更精簡(65/59/60 < 78/80/98v),端到端 `validate_psd_to_mesh.py` overall_pass。發現:機器人件非 strip→回退 Delaunay;軟邊光暈需細化 epsilon(0.008→0.002,加 refine 迴圈)。範圍:weighted mesh 只驗靜態,deform 待後續。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

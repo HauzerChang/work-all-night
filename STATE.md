@@ -31,6 +31,22 @@
 
 ## 下一步動作 (next action)
 
+**S3×S4 端到端跨資產推廣(里程碑,2026-08-08)** — 舊候選 (1) 已完成:
+`tools/mesh_gen/validate_psd_to_mesh.py` 從 `robot_parts.psd` 切 3 件(光暈/左手/身體,Award 中為 mesh)
+自動生成 mesh,以藝術家 mesh 自身覆蓋率為基準,**3 件全 pass、overall_pass=True(exit 0)**;
+生成頂點更精簡(65/59/60 < 藝術家 78/80/98)。發現:機器人件非 strip→v2 auto 回退 Delaunay;
+軟邊光暈需細化 `epsilon_frac`(0.008→0.002)→ 加了 5 輪 refine 自驗迴圈。含負對照(平移30px IoU 0.966→0.703)。
+⚠️ Award mesh 皆 **weighted**,本閘**只驗靜態輪廓**,未驗 deform。詳見 `knowledge/s3-psd-to-award-crossasset.md`。
+
+下一個 bounded chunk 候選(更新後):
+1. **weighted-mesh deform 重現**:讀 Award skin weighted 綁定(骨數/boneIdx/bind/weight)+ 動畫 bone timeline,
+   重現機器人件骨驅變形,補上「跨資產 deform 穩健性」(補齊本次刻意留的範圍缺口)。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
+   本次生成 mesh 固化成「件→Spine attachment」寫出工具,端到端產可載入 Spine JSON。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+
+<!-- ↓ 歷史里程碑,保留備查 -->
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -97,3 +113,8 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-08-08:**S3×S4 端到端跨資產推廣(里程碑)** — 新增 `validate_psd_to_mesh.py`:`robot_parts.psd`
+  切 3 件(光暈/左手/身體)→ 生成 mesh → 對照 Award 藝術家 weighted mesh 覆蓋率基準,3 件全 pass、
+  頂點更精簡。發現機器人件非 strip(回退 Delaunay)、軟邊光暈需細化 epsilon(加 5 輪 refine 迴圈)。
+  含負對照(平移30px IoU 0.966→0.703)。範圍界定:weighted mesh 只驗靜態,deform 列下一步。
+  見 `knowledge/s3-psd-to-award-crossasset.md`。
