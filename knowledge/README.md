@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對 Award weighted mesh 驗收 + 自適應輪廓](s3-award-weighted-mesh.md) — S3 端到端接第二個真實資產(Award 機器人 weighted mesh)。發現固定 epsilon 對細節外框(光暈)過度簡化→ **自適應輪廓密度**(填充 IoU 驅動、預算內加密,deterministic)。3 件全 PASS,IoU 均超藝術家且頂點更省(64/64/59 vs 78/98/80);順修 v1 孤兒頂點;main_draw 4-mesh 無回歸。weighted mesh 無 deform timeline → deform 閘誠實標 N/A。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

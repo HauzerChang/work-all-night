@@ -45,6 +45,35 @@ def boundary_points(mask, epsilon_frac):
     return approx.reshape(-1, 2).astype(np.float64)
 
 
+def _poly_fill_iou(hull_pts, mask):
+    """把 hull 多邊形填滿 vs mask 的 IoU — 衡量輪廓簡化保真度。"""
+    recon = np.zeros(mask.shape, np.uint8)
+    cv2.fillPoly(recon, [np.round(hull_pts).astype(np.int32)], 1)
+    m = (mask > 0).astype(np.uint8)
+    inter = int(np.logical_and(recon, m).sum())
+    union = int(np.logical_or(recon, m).sum())
+    return inter / union if union else 0.0
+
+
+def adaptive_boundary_points(mask, target_iou=0.985, max_hull=56,
+                             grid=(0.008, 0.006, 0.004, 0.003, 0.002)):
+    """自適應輪廓密度:由粗到細降低 epsilon,直到 hull 填充 IoU 達 target,
+    或 hull 頂點數逼近 max_hull(留 interior 給預算)。取「符合上限中最保真」者。
+
+    來由(2026-08-09,Award 光暈):固定 epsilon=0.008 對細節外框(發光暈)過度簡化
+    (hull 14 → IoU 0.929 fail);藝術家用 78 全邊界點。自適應在預算內加密輪廓,
+    對 blob 件(身體/左手)則早停於粗 epsilon,不浪費頂點。"""
+    best = None
+    for eps in grid:
+        hull = boundary_points(mask, eps)
+        if best is not None and len(hull) > max_hull:
+            break  # 太密,超出 hull 預算 → 保留上一個可接受者
+        best = hull
+        if _poly_fill_iou(hull, mask) >= target_iou:
+            break
+    return best
+
+
 def interior_points(mask, gray, hull_pts, max_interior, min_dist, margin):
     h, w = mask.shape
     eroded = cv2.erode(mask, np.ones((margin, margin), np.uint8))
@@ -112,10 +141,17 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             adaptive=True, vertex_budget=64):
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
-    inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+    if adaptive:
+        # hull 預算留給 interior:max_hull = budget - 少量 interior 保底
+        hull = adaptive_boundary_points(mask, max_hull=max(12, vertex_budget - 8))
+    else:
+        hull = boundary_points(mask, epsilon_frac)
+    # 動態夾 interior,使 hull+interior 不超過總頂點預算
+    room = max(0, vertex_budget - len(hull))
+    inter = interior_points(mask, gray, hull, min(max_interior, room), min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
     return to_spine(pts, tris, n_hull, W, H), mask
