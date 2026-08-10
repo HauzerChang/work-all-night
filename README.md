@@ -19,6 +19,8 @@
 | `knowledge/` | **能力培訓 / 知識累積**。研究過程中學到的東西、結論、可重用的方法。 |
 | `log/` | **每次執行的紀錄**。一次 session 一個檔案,方便回溯「上次做了什麼」。 |
 | `prompts/run.md` | **每次排程要送的指令**。把這份內容當作 trigger 的 prompt。 |
+| `tools/mesh_gen/` | **研究產出的工具本體**(mesh 生成器 / 評估器 / PSD 切圖 / atlas)——上游源頭。 |
+| `skills/spine-mesh-pipeline/` | **打包成可安裝 Skill 的研究成果**,讓 cowork / chat 也能直接用最新技術(見其 `INSTALL.md`)。 |
 | (其他) | 實際的研究產出 / 程式碼(目標開發)。 |
 
 ---

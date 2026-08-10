@@ -1,0 +1,8 @@
+# S3 mesh 生成器 / 評估器(純 CPU)。排程環境為臨時容器,每次新 session 需重裝。
+numpy
+opencv-python-headless
+triangle
+scipy
+# S4 PSD-first 切圖(psd-tools 純 CPU;Pillow 為其影像後端)。
+psd-tools
+Pillow
