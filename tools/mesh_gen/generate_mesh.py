@@ -95,6 +95,24 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def prune_orphans(pts, tris, n_hull):
+    """去除 filter_triangles 後不被任何三角引用的孤兒頂點,並重編索引。
+    保持「hull 頂點排最前」的 Spine 格式:依原順序保留存活頂點,
+    n_hull 重算為存活的 hull 頂點數(原索引 < n_hull 者)。"""
+    if not len(tris):
+        return pts, tris, n_hull
+    used = np.unique(tris.flatten())
+    used_set = set(int(i) for i in used)
+    keep = [i for i in range(len(pts)) if i in used_set]
+    if len(keep) == len(pts):
+        return pts, tris, n_hull
+    remap = {old: new for new, old in enumerate(keep)}
+    new_pts = pts[keep]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32)
+    new_hull = sum(1 for i in keep if i < n_hull)
+    return new_pts, new_tris, new_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,12 +130,44 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
-    mask, gray, W, H = load_mask(path)
+def _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin):
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    return prune_orphans(pts, tris, n_hull)
+
+
+def fit_epsilon(mask, gray, W, H, target_verts, max_interior, min_dist, margin):
+    """二分搜 epsilon_frac,使總頂點數 ≤ target_verts 且盡量貼近(輪廓解析度是 IoU 主槓桿)。
+    發現(2026-08-10,Award 3 mesh):blob mesh 的 IoU 幾乎只由 hull 輪廓密度決定,
+    interior 密度近乎無關 → 用頂點預算反推 epsilon 即可對齊藝術家覆蓋率。"""
+    lo, hi = 0.0006, 0.02          # 小 eps=細輪廓多頂點;大 eps=粗
+    best = None
+    for _ in range(18):
+        mid = (lo + hi) / 2
+        pts, tris, n_hull = _build(mask, gray, W, H, max_interior, mid, min_dist, margin)
+        nv = len(pts)
+        if nv <= target_verts:
+            best = (mid, pts, tris, n_hull)
+            hi = mid                # 還有預算 → 更細(更小 eps)
+        else:
+            lo = mid                # 超預算 → 更粗(更大 eps)
+    if best is None:               # 連最粗都超標,取最粗結果
+        pts, tris, n_hull = _build(mask, gray, W, H, max_interior, hi, min_dist, margin)
+        return pts, tris, n_hull
+    return best[1], best[2], best[3]
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_verts=None):
+    mask, gray, W, H = load_mask(path)
+    if target_verts is not None:
+        pts, tris, n_hull = fit_epsilon(mask, gray, W, H, target_verts,
+                                        max_interior, min_dist, margin)
+    else:
+        pts, tris, n_hull = _build(mask, gray, W, H, max_interior, epsilon_frac,
+                                   min_dist, margin)
     return to_spine(pts, tris, n_hull, W, H), mask
 
 

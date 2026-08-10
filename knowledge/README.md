@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對真實生產 mesh(Award)](s3-award-mesh-endtoend.md) — PSD件→S3 mesh 對照 Award 3 真實 mesh(光暈/左手/身體):對齊藝術家頂點成本下,生成 IoU **全 ≥ 藝術家**(0.986/0.994/0.995)、拓樸乾淨 → 端到端 PASS。發現①輪廓解析度(epsilon)是 blob mesh 的 IoU 主槓桿、interior 無關(strip「rows 決定」的 Delaunay 版)→ 加 `target_verts` 自適應 epsilon;②固定 64 預算對大件過緊,AC 改「相對藝術家頂點數」;③Award 機器人 mesh 是 weighted+無 deform → 靜態幾何是對的閘。修掉真實件才暴露的 orphan bug(`prune_orphans`)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
