@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3×S4 端到端:PSD件→生成 mesh→對照 Award 真實 mesh](s3-s4-psd-to-award-mesh.md) — 機器人 3 件(光暈/身體/左手)生成 mesh 靜態 IoU 達/超藝術家(0.934/0.966/0.964 vs 0.945/0.948/0.977),**頂點數約藝術家一半**、0 自交,3 AC 全過。第三個資產家族的通用性證據。無 deform timeline 故誠實不做變形閘。雙向負對照(件錯配 0.488、v-flip 0.426)確認鑑別力。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
