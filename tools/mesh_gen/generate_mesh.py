@@ -112,12 +112,41 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def _coverage_iou(pts, tris, mask):
+    h, w = mask.shape
+    recon = np.zeros((h, w), np.uint8)
+    for t in tris:
+        cv2.fillConvexPoly(recon, np.round(pts[t]).astype(np.int32), 1)
+    inter = int(np.logical_and(recon, mask).sum())
+    union = int(np.logical_or(recon, mask).sum())
+    return inter / union if union else 0.0
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             auto_hull_target=0.97, vertex_cap=96):
+    """auto_hull_target:若設(0..1),自粗到細嘗試多個 epsilon,取「達到覆蓋率目標」
+    的最粗(頂點最少)拓樸;達不到就用最細者。頂點超過 vertex_cap 即停(預算保護)。
+    這把生成綁到評估器 IoU 上 —— 大而圓的件(如光暈)固定 epsilon 會欠取樣 hull;
+    自適應讓覆蓋率對齊藝術家水準而不需人工調參。設 None 則用固定 epsilon_frac(舊行為)。"""
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
-    inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
-    pts, tris, n_hull = triangulate(hull, inter)
-    tris = filter_triangles(pts, tris, mask)
+    if auto_hull_target is None:
+        cand_eps = [epsilon_frac]
+    else:
+        cand_eps = [e for e in (0.008, 0.004, 0.002, 0.001) if e <= epsilon_frac] or [epsilon_frac]
+    best = None  # (pts, tris, n_hull, iou, nv)
+    for eps in cand_eps:
+        hull = boundary_points(mask, eps)
+        inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+        pts, tris, n_hull = triangulate(hull, inter)
+        tris = filter_triangles(pts, tris, mask)
+        iou = _coverage_iou(pts, tris, mask)
+        nv = len(pts)
+        best = (pts, tris, n_hull, iou, nv)
+        if auto_hull_target is None:
+            break
+        if iou >= auto_hull_target or nv >= vertex_cap:
+            break
+    pts, tris, n_hull, _, _ = best
     return to_spine(pts, tris, n_hull, W, H), mask
 
 

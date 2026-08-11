@@ -31,7 +31,26 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3+S4 端到端對真實 Award mesh 驗收通過(里程碑,2026-08-11)**:PSD 件 → `generate_mesh_v2`
+→ 對照 Award 藝術家 mesh 覆蓋率真值。機器人 3 件(光暈/左手/身體,皆 weighted、blobby)
+生成覆蓋率 0.982–0.986 達/勝藝術家(0.968–0.980)且頂點更精簡。工具 `validate_psd_to_award_mesh.py`。
+- **關鍵發現+修正**:覆蓋率 IoU 由 **hull DP 容差**決定(非內部點密度);固定 epsilon=0.008 對大而圓的件
+  (光暈)欠取樣(0.929 fail)→ 加**自適應 hull 精化**(`generate_mesh` `auto_hull_target=0.97`,由粗到細取
+  達標最少頂點,`vertex_cap` 保護)→ 3/3 pass,`main_draw` 4 mesh 無回歸。
+- **open item**:Award mesh 是 weighted,現行 `deform_eval` 假設 unweighted 逐頂點 offset,
+  本次**只驗靜態覆蓋率**,weighted 的真實 deform 閘待擴充(見 `knowledge/s3-psd-to-award-mesh.md`)。
+- 詳見 `knowledge/s3-psd-to-award-mesh.md`。
+
+### 下一個 bounded chunk 候選(更新)
+1. **weighted mesh 的 deform 閘**:擴充 `deform_eval` 支援 weighted(重建 skinning 或展平成等效
+   unweighted setup+逐頂點合成 offset),讓 Award 3 件也能跑真實 deform 幾何閘(補上本次 open item)。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把「PSD件→attachment」(命名慣例 + size + 生成 mesh)
+   固化成寫出 Spine JSON 的工具,端到端產可載入的骨架。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產)。
+
+---
+（歷史）**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -97,3 +116,9 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-08-11:**S3+S4 端到端對真實 Award mesh(里程碑)** — PSD 件→`generate_mesh_v2`→對照 Award
+  藝術家 mesh 覆蓋率真值(機器人光暈/左手/身體,皆 weighted、blobby)。發現**覆蓋率 IoU 由 hull DP 容差
+  決定,非內部點密度**;固定 epsilon 對大圓件(光暈)欠取樣(0.929 fail)→ 加**自適應 hull 精化(綁評估器)**
+  → 3/3 生成覆蓋 0.982–0.986 達/勝藝術家(0.968–0.980)且更精簡;main_draw 4 mesh 無回歸。
+  weighted mesh 的真實 deform 閘列 open item(deform_eval 目前僅支援 unweighted)。
+  新增 `validate_psd_to_award_mesh.py`、`knowledge/s3-psd-to-award-mesh.md`。
