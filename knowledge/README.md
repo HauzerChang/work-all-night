@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對 Award 真實 mesh 靜態驗收](s3-award-mesh-static.md) — **端到端「真實 atlas 切件→S3 mesh→對照藝術家真值」對生產標的成立**:機器人光暈/身體/左手 3 件全 overall_pass(IoU≥藝術家 + 0退化/0孤兒/合法)。核心發現:dense 件 IoU 由 `epsilon_frac`(邊界密度)決定,**0.002** 為甜蜜點(舊預設 0.008 太粗);跨兩生成模式證「覆蓋率只吃邊界密度、內部點不影響」。限制:weighted 件無 deform timeline,僅驗靜態幾何(不用未校準壓力)。新增 `validate_award_static.py`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

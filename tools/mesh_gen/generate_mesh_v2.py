@@ -110,13 +110,18 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", epsilon_frac=None,
+             max_interior=40, min_dist=14):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        # dense/complex silhouettes (Award big-win 件:光暈/身體/左手,藝術家 78~98v)需要
+        # 更密的邊界取樣才追得上藝術家覆蓋率。預設 0.008 太粗(見 knowledge/s3-award-mesh-static.md);
+        # epsilon_frac=0.002 對 3 件全過藝術家 IoU 且頂點數落在藝術家鄰域。
+        eps = 0.008 if epsilon_frac is None else epsilon_frac
+        m, _ = gen_v1(path, max_interior=max_interior, epsilon_frac=eps, min_dist=min_dist)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
@@ -132,8 +137,10 @@ def main():
     ap.add_argument("--rows", type=int, default=10)
     ap.add_argument("--cols", type=int, default=3)
     ap.add_argument("--mode", choices=["auto", "strip", "delaunay"], default="auto")
+    ap.add_argument("--epsilon", type=float, default=None,
+                    help="Delaunay 邊界簡化 epsilon_frac(dense 件建議 0.002;預設 0.008)")
     a = ap.parse_args()
-    m = generate(a.image, a.rows, a.cols, a.mode)
+    m = generate(a.image, a.rows, a.cols, a.mode, epsilon_frac=a.epsilon)
     out = a.out or (a.image.rsplit(".", 1)[0] + "_mesh_v2.json")
     json.dump(m, open(out, "w"), ensure_ascii=False)
     print(f"[{m.get('_mode')}] {out}: 頂點 {len(m['uvs'])//2} (hull {m['hull']}), 三角 {len(m['triangles'])//3}")
