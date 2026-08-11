@@ -95,6 +95,26 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def prune_orphans(pts, tris, n_hull):
+    """移除三角化後未被任何三角形引用的孤兒頂點並重新編號。
+
+    凹形輪廓在 filter_triangles 後可能孤立某個 hull(邊界)頂點:它落在的凹口三角
+    重心在 mask 外被砍掉。孤兒頂點違反 AC2c 且對 Spine 無意義。移除它並把 hull 計數
+    相應減 1 —— hull 仍是「前 n_hull 個頂點依序繞外周」的不變式(少一個凹口點,
+    外周多邊形只是跳過該凹口,幾何上正確;那個點本來就被裁掉了)。
+    """
+    if not len(tris):
+        return pts, tris, n_hull
+    used = sorted(set(int(i) for i in tris.flatten()))
+    if len(used) == len(pts):
+        return pts, tris, n_hull
+    remap = {old: new for new, old in enumerate(used)}
+    new_pts = pts[used]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32)
+    new_hull = sum(1 for old in used if old < n_hull)
+    return new_pts, new_tris, new_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,12 +132,17 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.004, min_dist=14, margin=6):
+    # epsilon_frac 預設 0.004(2026-08-11 校準):coverage 主要由邊界取樣密度決定;
+    # 0.008 對平滑窗簾夠,但對真實生產的複雜有機輪廓(機器人光暈/手)略輸藝術家;
+    # 0.004 對 robot_parts 3 件(vs Award 真實 mesh)全 BEAT 藝術家覆蓋率且頂點更少。
+    # 見 knowledge/s3-psd-to-real-mesh.md、tools/mesh_gen/validate_psd_mesh.py。
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = prune_orphans(pts, tris, n_hull)  # 凹形輪廓孤兒頂點清除
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
@@ -126,7 +151,7 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", type=float, default=0.004)
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
     mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)

@@ -31,7 +31,18 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3×S4 端到端接縫已對真實生產 mesh 驗收通過(里程碑,2026-08-11)**:
+`robot_parts.psd` 3 個 mesh 件(光暈/身體/左手)→ `generate_mesh` → 對照 `Award` 藝術家手做 mesh
+(外部真值)比 coverage IoU:**三件全 BEAT 藝術家覆蓋率且頂點更少、全 AC 通過**(閘
+`tools/mesh_gen/validate_psd_mesh.py`,exit 0)。新閘可重跑。
+- 校準:coverage 由邊界密度 `epsilon_frac` 決定(非內部點)→ v1 預設 0.008→**0.004**;
+  凹形輪廓孤兒頂點 → 加 `prune_orphans()`。regression:curtain_left v1(IoU 0.98→0.99,deform 乾淨)、
+  v2 strip 4-mesh 全過。詳見 `knowledge/s3-psd-to-real-mesh.md`。
+- **下一個 bounded chunk 首選:SkelToJson 組裝工具** —— 把命名慣例(`PSD名/圖層名`)+ size+2px padding +
+  mesh/region 分配 + 本 mesh 生成串起來,PSD → 可載入 Spine JSON(端到端 S3+S4 產線)。
+
+---
+（歷史）**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -93,6 +104,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-11:**S3×S4 端到端接縫(里程碑)** — PSD件→生成mesh→對照 Award 真實 mesh(外部真值)。
+  robot 3 mesh 件校準後全 BEAT 藝術家覆蓋率且頂點更少。發現 coverage 由 `epsilon_frac` 決定
+  (v1 預設 0.008→0.004);凹形輪廓孤兒頂點 → 加 `prune_orphans()`。新閘 `validate_psd_mesh.py`;
+  curtain_left v1 / v2 4-mesh regression 全過。見 `knowledge/s3-psd-to-real-mesh.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
