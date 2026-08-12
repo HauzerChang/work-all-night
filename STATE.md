@@ -11,6 +11,10 @@
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
+- **S3+S4 端到端(里程碑,2026-08-12)** — `robot_parts.psd` 切件→`generate_mesh_v2`→對照生產 spine `Award.json`
+  藝術家 mesh 的輪廓 IoU:**身體 0.966>藝術家 0.948、左手打平,皆只用 ~60% 頂點**;軟邊光暈略遜(需環狀拓樸)。
+  發現 0.95 固定 IoU 閘對軟邊過嚴(藝術家自己也 <0.95)→ 改以藝術家為相對基準;Award 無 deform(weighted 骨骼蒙皮),
+  故此標的不做 deform 閘。工具 `tools/mesh_gen/compare_to_artist.py`,見 `knowledge/s3-psd-to-artist-mesh.md`。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
 - **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
@@ -38,17 +42,17 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 完成(2026-08-12)**,見上方里程碑。副產待續:
+   **軟邊/中空件的環狀拓樸**——對 `hull==nv`(藝術家全周)或低填充比件,S3 改用 ring/annulus 生成
+   (先加「內部有洞」偵測),預期把光暈從 0.933 拉到藝術家 0.948 水準。這是最直接的 S3 改進點。
+2. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding
+   固化成「件→Spine attachment」寫出工具,端到端產 Spine JSON。S3+S4 已通,這步把它輸出成可載入檔。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3+S4 已串成端到端並對真實生產標的驗收通過。建議下一步:(1) 軟邊件環狀拓樸(把光暈補上,純 CPU 可自驅),
+> 或(2) SkelToJson 把 S3 mesh 輸出成 Spine JSON 檔(端到端最後一哩)。
 
 ## 環境前置(已驗證可用)
 
@@ -97,3 +101,7 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-08-12:**S3+S4 端到端對真實生產標的(里程碑)** — robot_parts 切件→generate_mesh_v2→對照 Award 藝術家 mesh
+  輪廓 IoU:身體 0.966>藝術家 0.948(勝)、左手打平、光暈略遜;S3 平均只用 60% 頂點。新工具 `compare_to_artist.py`。
+  兩發現:(1) 0.95 固定 IoU 閘對軟邊過嚴(藝術家自己也 <0.95)→ 改相對基準;(2) Award 無 deform、機器人 mesh 為
+  weighted 骨骼蒙皮(非 deform 驅動)→ 此標的不做 deform 閘,揭示兩種變形範式。下一步:軟邊件環狀拓樸 / SkelToJson。

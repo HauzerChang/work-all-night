@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端:PSD件→mesh vs 藝術家 mesh](s3-psd-to-artist-mesh.md) — **S3+S4 首次串成端到端對真實生產標的**。robot_parts 3 件跑 generate_mesh_v2,與 Award 藝術家 mesh 比輪廓 IoU:**身體勝過藝術家、左手打平,皆只用 ~60% 頂點**;軟邊「光暈」略遜(需環狀拓樸)。發現:0.95 固定 IoU 閘對軟邊過嚴(藝術家自己也 <0.95)→ 改以藝術家為相對基準;Award 無 deform(weighted 骨骼蒙皮),故不做 deform 閘。工具 `compare_to_artist.py`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
