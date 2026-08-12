@@ -95,6 +95,24 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def prune_orphans(pts, tris, n_hull):
+    """移除過濾三角後不再被任何三角引用的頂點,並重編索引(保住 hull-first 不變式)。
+
+    凹形輪廓(如光暈星芒)在 filter_triangles 砍掉凹陷處三角後,某些邊界頂點可能失去
+    全部三角 → 成孤兒(違反 AC2c、Spine 不接受無三角的頂點)。因原順序為 [hull..., interior...],
+    存活的 hull 頂點仍連續排在最前,新 hull 數 = 存活且原索引 < n_hull 的頂點數。
+    """
+    if len(tris) == 0:
+        return pts[:0], tris, 0
+    used = np.unique(tris.reshape(-1))
+    used.sort()
+    remap = {int(old): new for new, old in enumerate(used)}
+    new_pts = pts[used]
+    new_tris = np.vectorize(lambda i: remap[int(i)])(tris).astype(np.int32)
+    new_hull = int(np.count_nonzero(used < n_hull))
+    return new_pts, new_tris, new_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,12 +130,13 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.006, min_dist=14, margin=6):
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = prune_orphans(pts, tris, n_hull)  # 凹形濾三角後可能留孤兒頂點 → 清除
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
@@ -126,7 +145,7 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", type=float, default=0.006)
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
     mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)
