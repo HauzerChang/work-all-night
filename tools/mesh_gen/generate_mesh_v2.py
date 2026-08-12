@@ -110,13 +110,17 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", delaunay_epsilon=0.002):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # delaunay 分支處理「團塊狀」件(非高瘦條)。覆蓋率由邊界取樣密度(epsilon)決定,
+        # 內部點不影響(2026-08-12 Award 機器人 3 mesh 對照驗證,與 strip 的 rows 律一致)。
+        # 舊預設 0.008 對 Award 光暈/身體/左手 覆蓋率低於藝術家真值 → 收緊到 0.002:
+        # 三件覆蓋 IoU 皆 ≥ 藝術家生產 mesh 且頂點數持平/更少,0 孤兒。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=delaunay_epsilon)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

@@ -31,7 +31,22 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3 端到端對照 Award 真實生產 mesh 通過(里程碑,2026-08-12)** — 見 `knowledge/s3-award-real-mesh-comparison.md`。
+- 標準指令:`python3 tools/mesh_gen/compare_award_mesh.py`(exit 0 = 3 件全過)。
+- 生成器對 Award 機器人 3 件 weighted mesh(光暈/身體/左手)覆蓋 IoU **全 ≥ 藝術家生產真值**
+  (0.983/0.993/0.991 vs 0.980/0.976/0.968),頂點數 0.79–0.94×(更少)、0 孤兒。
+- 修正:delaunay 分支預設 `epsilon_frac` 0.008→0.002(團塊件過粗會低於真值);main_draw 4 mesh 走 strip 路徑,無回歸。
+- 推廣:**覆蓋率由邊界取樣密度(delaunay 是 epsilon、strip 是 rows)決定,內部點只影響變形平滑度不影響覆蓋率**。
+- 第 4 次評估器校準:`evaluate_mesh` 絕對 `vertex_budget=64` 比真實生產(78/98/80)還嚴 → 對照真值改以藝術家頂點數為參照。
+
+下一個 bounded chunk 候選(接續):
+1. **切圖→Spine JSON 組裝(SkelToJson)**:把「件→attachment」(命名 `<PSD檔名>/<圖層名>`、size+2px、mesh/region 分配、
+   本次生成的 mesh)固化成工具,端到端從 PSD 產出可用 Spine JSON mesh attachment。
+2. **生成 mesh 的 weighted 變形品質**:把 Award 骨綁+權重(BBW)轉到生成 mesh,驗骨骼驅動下變形乾淨(這批件真值無 deform,需自建骨綁)。
+3. S2 補圖閘 / 骨架閘(補齊 S2 樞紐;純 CPU)。
+
+---
+（歷史)**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -93,6 +108,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-12:**S3 端到端對照真實生產 mesh(里程碑)** — 生成器對 Award 機器人 3 件 weighted mesh
+  覆蓋 IoU 全 ≥ 藝術家真值、頂點更少、0 孤兒。修 delaunay 預設 epsilon 0.008→0.002(main_draw 走 strip 無回歸);
+  覆蓋率定律推廣到 delaunay(邊界 epsilon 定覆蓋、內部點不影響);第 4 次評估器校準(絕對 vertex_budget=64 比生產嚴)。
+  新增 `compare_award_mesh.py`;`knowledge/s3-award-real-mesh-comparison.md` + 3 張對照圖。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

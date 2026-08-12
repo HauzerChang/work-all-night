@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對照 Award 真實生產 mesh](s3-award-real-mesh-comparison.md) — **端到端里程碑**:生成器對 Award 機器人 3 件真實 weighted mesh(光暈/身體/左手)覆蓋 IoU 全 ≥ 藝術家(0.983/0.993/0.991),頂點數更少、0 孤兒。修 delaunay 預設 epsilon 0.008→0.002。推廣覆蓋率定律到 delaunay(IoU 由邊界 epsilon 決定、內部點不影響);第 4 次評估器校準(絕對 vertex_budget=64 比生產還嚴)。harness=`compare_award_mesh.py`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
