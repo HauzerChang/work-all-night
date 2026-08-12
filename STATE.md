@@ -37,18 +37,25 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
+**✅ 已完成(2026-08-12):PSD件→S3 mesh→對照 Award 真實 mesh(端到端里程碑)。**
+`tools/mesh_gen/compare_award_mesh.py`:robot_parts.psd 的 光暈/左手/身體 3 件跑 `generate_mesh_v2`(auto),
+輪廓 IoU **匹配或勝過藝術家**(0.933/0.964/**0.966** vs 0.946/0.965/0.946),頂點少 ~40%
+(35/59/60 vs 78/80/98);`overall_pass: true`;負對照鑑別 OK。3 件 auto 都落 delaunay-v1(非窗簾型)。
+⚠️ 此 3 件 Award 內**無 deform timeline**(靠骨骼 warp),故只驗**靜態覆蓋 + 頂點經濟**,
+**未驗 warp 手感**(需綁 Award 骨架權重後才可比)。地雷:GT mask 門檻要跨生成/評估一致(>8),
+差 1~2 灰階會在邊界三角翻判 AC2a(第 4 次評估器校準)。詳見 `knowledge/s3-award-mesh-compare.md`。
+
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
+1. **切圖→Spine JSON 組裝(SkelToJson)❗建議下一個**:把 `機器人拆件/<圖層名>` 命名慣例 +
+   size+2px padding + 本次驗證過的 mesh 生成串成「件→Spine attachment」寫出工具,端到端產 Spine JSON
+   (unweighted mesh 版;weighted 綁權重另議)。純 CPU 可自驅,直接接續本次成果。
+2. **weighted mesh / 骨架權重(S5 前哨)**:把本次生成的 unweighted mesh 綁到 Award 骨架權重,
+   才能對照藝術家 mesh 的**變形手感**(本次未驗的一環)。涉及 pivot/權重 → 可能觸 A 類岔路。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
-> 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
+> S3+S4 已串成端到端並對真實藝術家真值驗收通過。建議下一步走 (1) SkelToJson 把慣例固化成產 JSON 工具。
 
 ## 環境前置(已驗證可用)
 
@@ -97,3 +104,7 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-08-12:**S3+S4 端到端對照 Award 真實 mesh(里程碑)** — `compare_award_mesh.py`:光暈/左手/身體 3 件
+  generate_mesh_v2 自動 mesh 輪廓 IoU 匹配/勝過藝術家(身體 0.966>0.946),頂點少 ~40%,overall_pass。
+  負對照鑑別 OK。3 件 auto 都落 delaunay-v1(非窗簾型)。第 4 次評估器校準:GT mask 門檻(>8)須跨生成/評估一致。
+  此 3 件無 deform timeline → 只驗靜態覆蓋非 warp 手感。下一步定為 SkelToJson(件→Spine JSON)。
