@@ -31,6 +31,24 @@
 
 ## 下一步動作 (next action)
 
+**S3×S4 端到端串接完成(里程碑,2026-08-13)**:件→`generate_mesh_v2`→對照 **Award 真實生產 mesh**
+(機器人 3 件 mesh:光暈/身體/左手),`compare_award_mesh.py` **3 件全 overall_pass**(exit 0)。
+- **v1/Delaunay 首次對真實生產 mesh 真值驗收通過**(補上 strip 之外的另一半;這 3 件是 blob,auto 正確回退 Delaunay)。
+- 新發現:**Delaunay 覆蓋率旋鈕 = hull 點密度(`epsilon_frac`),與 strip 的 `rows` 同理**。
+  預設 0.008 對大軟 blob(光暈羽化邊)欠取樣(IoU 0.929<基準)→ 加**確定性 epsilon 階梯自動收斂**
+  (光暈 2 iter→eps 0.006、nv 57、IoU 0.950 過)。身體/左手預設即過。
+- 效率:生成 mesh 用藝術家 ~60–75% 頂點達覆蓋率基準;藝術家自身 3 件靜置拓樸全乾淨(閘可信)。
+- ⚠️ 誠實聲明:這 3 件在 Award **無 deform timeline**(權重變形)→ 未套 deform 閘;blob 的 deform 穩健性驗收是**待補缺口**。
+- 詳見 `knowledge/s3-award-mesh-endtoend.md`。
+
+下一個 bounded chunk 候選(更新後):
+1. **SkelToJson 組裝工具**:把「件→Spine mesh/region attachment」慣例(`PSD名/圖層名` slot、size+2px、
+   mesh vs region 分配、atlas 0.70 縮放、Delaunay epsilon 自動收斂)固化成端到端產 Spine JSON 的工具。
+2. **weight-based deform 閘**:補上 blob mesh 變形穩健性驗收缺口(目前 deform 閘只涵蓋有 deform timeline 的 strip)。
+3. **S2 補圖閘 / 骨架閘**(純 CPU 可續)。
+4. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產)。
+
+---
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -93,6 +111,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-13:**S3×S4 端到端串接(里程碑)** — `compare_award_mesh.py`:件 alpha→`generate_mesh_v2`→
+  對照 Award 真實生產 mesh(光暈/身體/左手)3 件全 overall_pass。v1/Delaunay 首次對藝術家 mesh 真值過關;
+  發現 Delaunay 覆蓋率旋鈕=hull 密度(epsilon_frac,同 strip 的 rows),大軟 blob 需降 epsilon→加確定性自動收斂;
+  誠實聲明 blob 無 deform timeline 故未套 deform 閘(待補 weight-based 閘)。見 `knowledge/s3-award-mesh-endtoend.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

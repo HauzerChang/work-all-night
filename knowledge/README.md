@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真實 mesh](s3-award-mesh-endtoend.md) — 件→`generate_mesh_v2`→對照藝術家真值 mesh(光暈/身體/左手),**3 件全 overall_pass**。v1/Delaunay 首次對真實生產 mesh 真值驗收通過;發現 **Delaunay 覆蓋率旋鈕=hull 密度(epsilon_frac),與 strip 的 rows 同理**,大軟 blob 需降 epsilon → 加確定性覆蓋率自動收斂。deform 閘不適用(這 3 件無 deform timeline,誠實聲明)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
