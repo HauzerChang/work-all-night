@@ -31,7 +31,25 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3×S4 端到端對真實生產標的驗收通過(里程碑,2026-08-13)**:`robot_parts.psd` 的 3 個 mesh 件
+(光暈/身體/左手)從 PSD 切件 → `generate_mesh_v2` → 覆蓋率 IoU **全達/超 Award 真實 mesh**
+(0.964/0.983/0.980 vs 藝術家 0.949/0.948/0.977,頂點更少)。可重現 `python3 tools/mesh_gen/validate_robot_mesh.py`(overall_pass)。
+- 發現①:**Award mesh uvs 為 region-local 0..1、原始未旋轉方向**(rot0 IoU 0.949/0.948/0.977 >> ±90° 0.44~0.65)
+  → 件→Spine JSON 組裝時 uv 直接 `x/W,y/H`,無需依 atlas `rotate` 換算。
+- 發現②:**v2 auto 的 Delaunay 分支預設 eps=0.008 對凹形 blobby 件覆蓋不足**(光暈 0.904<0.949、左手 0.964<0.977)
+  → 調為 **eps=0.004**(max_interior=60,min_dist=10);只改 Delaunay 分支,strip 路徑不動,main_draw 4 mesh 重驗無回歸。
+- 兩種拓樸規則定案:高瘦逐頂點 deform→strip(rows 主導);blobby 骨骼權重變形→Delaunay(epsilon 主導)。詳見 `knowledge/s3-robot-mesh-vs-award.md`。
+
+下一個 bounded chunk 候選(更新後):
+1. **❗最高優先:固化「件→Spine mesh attachment JSON」組裝(SkelToJson)** — 用本輪確認的慣例(uv 原始件 0..1、
+   size+2px padding、`<PSD檔名>/<圖層名>` slot 命名、atlas rotate 不影響 uv),把 S4 切圖 + S3 mesh 串成
+   可直接輸出 Spine JSON 的工具,端到端產一份可載入的 mesh attachment。
+2. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+3. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產)。
+4. rig 級變形驗證(權重/骨綁正確性,機器人件無 deform timeline → 屬 S5 範疇)。
+
+---
+### (歷史)S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26):整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -93,6 +111,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-13:**S3×S4 端到端對真實生產標的驗收(里程碑)** — 機器人 3 mesh 件(光暈/身體/左手)PSD切件→
+  `generate_mesh_v2`→覆蓋率 IoU 全達/超 Award 真實 mesh(頂點更少)。發現 Award mesh uvs 為 region-local 原始
+  未旋轉方向(無需依 atlas rotate 換算);v2 Delaunay 分支預設 eps 對凹形件覆蓋不足 → 調 eps=0.004(strip 不動,
+  4 mesh 無回歸)。新增 `tools/mesh_gen/validate_robot_mesh.py`、`knowledge/s3-robot-mesh-vs-award.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

@@ -115,8 +115,12 @@ def generate(path, rows=10, cols=3, mode="auto"):
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # blobby / 非 strip 件(如機器人拆件 光暈/身體/左手,靠骨骼權重變形、無 deform timeline)。
+        # 覆蓋率由 hull 簡化 epsilon 主導;v1 預設 eps=0.008 對凹形輪廓覆蓋不足(對照 Award 真值
+        # 光暈 0.904<0.949、左手 0.964<0.977 假性偏低)。**eps=0.004** 對機器人 3 件皆達/超過藝術家
+        # 覆蓋率基準且頂點數相當或更少(見 knowledge/s3-robot-mesh-vs-award.md)。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, max_interior=60, epsilon_frac=0.004, min_dist=10)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
