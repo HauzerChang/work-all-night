@@ -35,14 +35,38 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
-def boundary_points(mask, epsilon_frac):
+def _poly_coverage(pts, mask):
+    """填滿邊界多邊形 vs mask 的 IoU(衡量邊界簡化保真度,不需三角化)。"""
+    h, w = mask.shape
+    recon = np.zeros((h, w), np.uint8)
+    cv2.fillPoly(recon, [np.round(pts).astype(np.int32)], 1)
+    inter = int(np.logical_and(recon, mask).sum())
+    union = int(np.logical_or(recon, mask).sum())
+    return inter / union if union else 0.0
+
+
+def boundary_points(mask, epsilon_frac, cover_target=0.985, hull_cap=48):
+    """自適應邊界簡化:從粗到細逐步降 epsilon,取「達到覆蓋目標」的最粗解;
+    若在 hull_cap 內都達不到,取仍在 cap 內的最細解。
+
+    動機(本 session 對真實 glow 件的發現):以「周長比例」為 epsilon,對大而平滑
+    的曲邊件(周長長)會得到過大的絕對容差 → 邊界被簡化成粗多邊形、覆蓋率不足
+    (glow 14 邊形 IoU 0.93);自適應細化在頂點預算內把曲邊追回(hull 38 → IoU 0.98)。
+    對已是折線/角狀的件,粗 epsilon 就達標,不會過度增點。"""
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
     peri = cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
-    return approx.reshape(-1, 2).astype(np.float64)
+    best = None
+    for scale in (1.0, 0.6, 0.4, 0.28, 0.2, 0.14):
+        approx = cv2.approxPolyDP(cnt, epsilon_frac * scale * peri, True).reshape(-1, 2).astype(np.float64)
+        if best is not None and len(approx) > hull_cap:
+            break                       # 再細會超過 hull 上限 → 保留上一解
+        best = approx
+        if _poly_coverage(approx, mask) >= cover_target:
+            break                       # 覆蓋達標,不再細化
+    return best
 
 
 def interior_points(mask, gray, hull_pts, max_interior, min_dist, margin):
@@ -95,6 +119,22 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def drop_orphans(pts, tris, n_hull):
+    """移除未被任何(過濾後)三角形引用的孤兒頂點,重映射索引。
+    `used` 升冪排序 → hull 索引(<n_hull)仍全排在 interior 之前,hull-first 順序不變。
+    孤兒源於 filter_triangles 依重心刪凹形外三角後,某些內部點失去所有相鄰三角。"""
+    if not len(tris):
+        return pts, tris, n_hull
+    used = sorted(set(int(i) for i in tris.flatten()))
+    if len(used) == len(pts):
+        return pts, tris, n_hull
+    remap = {old: new for new, old in enumerate(used)}
+    new_pts = pts[used]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32)
+    new_hull = sum(1 for u in used if u < n_hull)
+    return new_pts, new_tris, new_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -112,12 +152,17 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, vertex_budget=64, epsilon_frac=0.008, min_dist=14, margin=6,
+             cover_target=0.985):
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
-    inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
+    # hull 上限保留內部點空間;自適應邊界在此上限內追曲邊
+    hull_cap = max(8, vertex_budget - 8)
+    hull = boundary_points(mask, epsilon_frac, cover_target, hull_cap)
+    interior_budget = max(0, vertex_budget - len(hull))
+    inter = interior_points(mask, gray, hull, interior_budget, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = drop_orphans(pts, tris, n_hull)
     return to_spine(pts, tris, n_hull, W, H), mask
 
 
@@ -125,11 +170,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
-    ap.add_argument("--max-interior", type=int, default=40)
+    ap.add_argument("--budget", type=int, default=64)
     ap.add_argument("--epsilon", type=float, default=0.008)
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
-    mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)
+    mesh, _ = generate(args.image, args.budget, args.epsilon, args.min_dist)
     nv = len(mesh["uvs"]) // 2
     out = args.out or (args.image.rsplit(".", 1)[0] + "_mesh.json")
     with open(out, "w") as f:
