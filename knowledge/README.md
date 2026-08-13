@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 對照 Award 真實生產 mesh(覆蓋率達標)](s3-award-mesh-parity.md) — 端到端「件→生成 mesh→對生產真值」。Award 3 weighted 件(光暈/左手/身體)靜態覆蓋率**全達/超藝術家、頂點數 ≤ 藝術家**。兩發現:①Award uvs 是 region-local 直立(非 atlas-UV,session-006 有誤),獨立佐證 CW 去旋轉;②覆蓋率由 hull 密度主導,加 v1 自我精修(target_iou 降 epsilon 加密邊界,opt-in,strip 路徑不受影響)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

@@ -112,13 +112,39 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
-    mask, gray, W, H = load_mask(path)
+def _iou(mesh, mask):
+    from evaluate_mesh import evaluate
+    ev = evaluate(mesh, mask)
+    return ev.get("criteria", ev)["AC1_iou"]["value"]
+
+
+def _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin):
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
-    return to_spine(pts, tris, n_hull, W, H), mask
+    return to_spine(pts, tris, n_hull, W, H)
+
+
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             target_iou=None, vertex_budget=200):
+    """target_iou 給定時,自我精修:覆蓋率(對自身 alpha 的 IoU)未達標就逐步降低 epsilon
+    (提升 hull 取樣密度 —— 覆蓋率由邊界密度主導),直到達標 / 觸底 / 撞頂點預算為止。
+    這讓生成器對「羽化/曲率大」的件自動加密邊界,對「實心」件維持精簡(見
+    knowledge/s3-award-mesh-parity.md)。target_iou=None 時行為與舊版一致(不精修)。"""
+    mask, gray, W, H = load_mask(path)
+    mesh = _build(mask, gray, W, H, max_interior, epsilon_frac, min_dist, margin)
+    if target_iou is not None:
+        eps = epsilon_frac
+        for _ in range(6):
+            if _iou(mesh, mask) >= target_iou or len(mesh["uvs"]) // 2 >= vertex_budget:
+                break
+            eps *= 0.6                       # 逐步加密邊界(0.008→0.0048→…)
+            cand = _build(mask, gray, W, H, max_interior, eps, min_dist, margin)
+            if len(cand["uvs"]) // 2 > vertex_budget:
+                break
+            mesh = cand
+    return mesh, mask
 
 
 def main():

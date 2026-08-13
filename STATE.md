@@ -31,6 +31,26 @@
 
 ## 下一步動作 (next action)
 
+**（2026-08-13）S3 端到端對照 Award 真實生產 mesh 通過（里程碑）**：`award_mesh_compare.py`
+對 Award 3 個 weighted 件（光暈/左手/身體）跑生成 mesh，靜態覆蓋率 IoU **全達/超藝術家、
+頂點數 ≤ 藝術家**(0.9856/0.9884/0.9834 vs 0.9795/0.9681/0.9760；v78/61/68 vs v78/80/98)。
+評估器先過校準閘(藝術家自 IoU 0.968~0.980)。詳見 `knowledge/s3-award-mesh-parity.md`。
+- 兩校準發現：①Award uvs 是 **region-local 直立**(非 atlas-UV,session-006 log 有誤)→
+  **獨立佐證 CW 去旋轉**(第二條證據,與 PSD 外部真值一致);②覆蓋率由 **hull 密度**主導。
+- 生成器加 **自我精修**(opt-in)：`generate_mesh.generate(target_iou=...)` 未達標就降 epsilon
+  加密邊界;`generate_mesh_v2` blob fallback 預設 `target_iou=0.98`。**strip 路徑(main_draw 4mesh)
+  完全不受影響**,已回歸驗證全 overall_pass;v1 預設(無 target_iou)行為不變。
+
+下一個 bounded chunk 候選(更新):
+- **A. weighted 件變形穩健閘**:重現 bone-skinning(讀 weighted `[骨數,骨idx,bindX,bindY,權重]`
+  + 骨動畫),對 Award 3 件做變形自交/翻面檢查(補上靜態→變形的另一半;Award mesh 無 deform
+  timeline,靠骨骼 warp,故需骨骼 skinning 而非位移場)。
+- **B. 切圖→Spine JSON 組裝(SkelToJson)**:固化 `<PSD檔名>/<圖層名>` + size+2px + mesh/region
+  分配,把「件→生成 mesh→Spine attachment」寫成端到端工具,產出可載入 JSON。
+- **C. S2 補圖閘 / 骨架閘**(補齊 S2 樞紐,純 CPU)。
+
+---
+
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -65,6 +85,9 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-08-13：**S3 端到端對照 Award 生產 mesh 通過(里程碑)** — `award_mesh_compare.py` 對 3 weighted 件
+  覆蓋率全達/超藝術家、頂點 ≤ 藝術家。校準揪出 session-006「uvs=atlas-UV」記載錯誤(實為 region-local
+  直立),獨立佐證 CW 去旋轉。生成器加自我精修(target_iou 降 epsilon 加密 hull,opt-in);strip 路徑回歸全過。
 - 2026-06-24：建立自驅研究框架骨架(RULES/PLAN/STATE/knowledge/log/prompts)。
 - 2026-06-24：匯入「Spine mesh system analysis」完整交接;PLAN/RULES/STATE 依實際研究內容填妥,狀態轉 `ACTIVE`。
 - 2026-06-24：**S3 第一輪** — 探測並安裝 CPU 套件;完成 mesh 生成器 + 評估器 + 合成測試;6 條 AC 全過(IoU 0.99)。
