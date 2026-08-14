@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award artist mesh](s3-psd-to-award-mesh.md) — **首度把「PSD件→S3 mesh」對真實藝術家 mesh 驗收**(光暈/身體/左手)。公平共同遮罩下 eps=0.004 時 3/3 落在 artist ±1.4% 且頂點更少。兩個方法論校正:①Award JSON mesh uvs 是 region 局部正規化(非 page)、weighted 故 setup 形狀只能從 uvs 還原;②生成與評分須用同一張遮罩(否則 0.70 縮放羽化差注入 ~5% 假 gap)。發現:預設 epsilon 對大平滑件過度簡化 → 建議自適應 epsilon。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
