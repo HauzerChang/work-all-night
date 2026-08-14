@@ -31,6 +31,12 @@
 
 ## 下一步動作 (next action)
 
+**成果發表 A/B 完成(2026-08-14)**:把研究成果串成端到端最佳化 pipeline,對真實 `main_draw` 產 A(原)/B(升級)。
+- 對 4 片會變形網格(curtain_left/right, shadow, shadow2)自動:①S3 strip 細分(21v/12v→64v/42v)②deform 場 RBF 轉移(9 動畫全關鍵影格,time/curve 不動)③deform 幾何閘逐幀驗證。
+- 量化:忠實度 shape IoU 0.958~0.986、平滑度邊界轉折角↓54~59%、穩健度全幀 0 自交/0 翻面。骨架/時間軸/其它 36 slot 不動。
+- 產物 `delivery/{A,B}/main_draw.{json,atlas,png}` + `delivery/README.md` + `verify_ab_deform.png`;工具 `tools/demo/build_ab_demo.py`;詳見 `knowledge/s3-mesh-upgrade-ab-demo.md`。
+- 踩雷修正:軟漸層 alpha 不可當形狀源(改光柵化 mesh footprint)、shadow2 非仿射 setup warp(RBF thin-plate 重採樣)、deform 綁死拓樸須逐格重建。
+
 **S3×S4 端到端驗收完成(里程碑,2026-08-14)**:PSD 件 → `generate_mesh_v2` → 對照 Award 真實 mesh。
 - 機器人 3 個 mesh 件(光暈/身體/左手)跑 auto,對真實藝術家 mesh(ground truth)**3 件全 `overall_pass`**:
   覆蓋 IoU 0.933/0.966/0.964(藝術家 0.949/0.948/0.977,margin 0.03),**頂點省 55%/39%/26%**,0 孤兒、重心全內、格式合法。
@@ -96,6 +102,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-14:**成果發表 A/B(端到端最佳化)** — 應使用者要求「以 spine 動畫發表成果」,把 S3 生成器+deform
+  場轉移+幾何閘串成 pipeline,對 main_draw 4 片會變形網格自動升級,產 `delivery/{A,B}/` 供預覽器對比。
+  B 忠實(IoU 0.96~0.99)、更平滑(轉折角↓55%)、同級穩健(0 自交/翻面),時間軸/骨架不動。
+  踩雷:軟 alpha 不可當形狀源→改光柵化 mesh footprint;shadow2 非仿射 warp→RBF 重採樣。工具 `tools/demo/build_ab_demo.py`。
 - 2026-08-14:**S3×S4 端到端驗收(里程碑)** — PSD 件→`generate_mesh_v2`→對照 Award 真實 mesh。
   機器人 3 mesh 件(光暈/身體/左手)auto 全過:覆蓋 IoU 0.93~0.97(≥藝術家-0.03)、頂點省 26~55%、0 孤兒。
   發現 Award uvs 為 region-local(推翻 s4 過度保守假設);auto 正確全路由 v1(blob 非 strip)。

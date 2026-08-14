@@ -35,6 +35,8 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [成果發表 A/B:網格升級最佳化](s3-mesh-upgrade-ab-demo.md) — **端到端展示**:把 S3 生成器+deform 場轉移+幾何閘串成 pipeline,對 main_draw 4 片會變形網格自動升級。B 忠實重現 A 動畫(IoU 0.96~0.99)、更平滑(轉折角↓~55%)、同級穩健(0 自交/翻面),時間軸/骨架不動。踩雷修正:軟 alpha 不能當形狀源(改光柵化 mesh footprint)、shadow2 非仿射 warp(RBF 重採樣)、deform 綁死拓樸須逐格重建。產物 `delivery/{A,B}/`。
+
 - [S3 端到端:PSD 件→mesh→對照真實 Award mesh](s3-psd-to-mesh-real.md) — **里程碑**:機器人 3 個 mesh 件(光暈/身體/左手)`generate_mesh_v2` 對真實藝術家 mesh(ground truth)全 `overall_pass`:同級覆蓋 IoU(0.93~0.97)但頂點省 26~55%。發現 Award uvs 為 region-local(推翻 s4「需轉 atlas UV」假設);auto 正確全路由 v1(blob 類非 strip)。**誠實界定:只驗靜態拓樸+覆蓋,未驗 deform(件為 weighted 無 deform timeline)**。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
