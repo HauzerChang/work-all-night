@@ -112,7 +112,11 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.002, min_dist=14, margin=6):
+    # epsilon_frac 0.008→0.002(2026-08-14,Award 機器人件校準):0.008 對有機件(機器人身體/
+    # 左手/光暈)Douglas-Peucker 過度簡化 → hull 只 14~21 點,IoU 落在藝術家基準下。0.002 使
+    # hull 密度接近藝術家(37~43 點),3 件全過 artist IoU 基準,且 curtain_left v1 deform 仍乾淨
+    # (curtain_right 在兩 eps 都自交 → 屬 v1 已知不通用,由 v2 strip 覆蓋,非本次回歸)。
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
@@ -126,7 +130,7 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", type=float, default=0.002)
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
     mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)
