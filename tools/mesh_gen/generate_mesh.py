@@ -35,13 +35,19 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
-def boundary_points(mask, epsilon_frac):
+def boundary_points(mask, epsilon_frac, epsilon_abs=None):
+    """Douglas-Peucker 邊界簡化。
+    epsilon_abs(px)若給定 → 用絕對像素容差(隨件大小自適應:大而柔邊的件自動取更多點,
+    小件仍精簡)。否則用 epsilon_frac × perimeter(相對,原窗簾預設行為)。
+    發現(2026-08-14):相對 0.008 對窗簾 strip 合適,但對柔邊 blob(光暈)過粗、覆蓋率掉;
+    絕對 ~2px 容差對機器人 3 件皆達藝術家覆蓋率且更精簡。詳見 knowledge/s3-blob-generalization.md。"""
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
     peri = cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
+    eps = epsilon_abs if epsilon_abs is not None else epsilon_frac * peri
+    approx = cv2.approxPolyDP(cnt, eps, True)
     return approx.reshape(-1, 2).astype(np.float64)
 
 
@@ -112,9 +118,9 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6, epsilon_abs=None):
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
+    hull = boundary_points(mask, epsilon_frac, epsilon_abs)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)

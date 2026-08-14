@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 泛化到 blob 件](s3-blob-generalization.md) — 生成 mesh 對 Award 機器人 3 件(光暈/身體/左手,近方形 blob)達/超藝術家覆蓋率(IoU 0.988~0.993)且更精簡。發現邊界容差要「絕對像素(~2px)」非「相對周長」(0.008 對柔邊 blob 過粗);v2 Delaunay-fallback 改走 `epsilon_abs=2.0`,窗簾 strip 不受影響。再證 `stress_field` 對 blob 不可信(藝術家真值 0.06 就自交)→ 變形裕度降為診斷。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

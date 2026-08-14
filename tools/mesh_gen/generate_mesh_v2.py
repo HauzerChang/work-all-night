@@ -115,9 +115,11 @@ def generate(path, rows=10, cols=3, mode="auto"):
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # 非 strip(blob 類,如機器人光暈/身體/左手)→ v1 Delaunay,但用絕對像素邊界容差
+        # (~2px)以自適應柔邊,達藝術家覆蓋率。詳見 knowledge/s3-blob-generalization.md。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
-        m["_mode"] = "delaunay-v1"
+        m, _ = gen_v1(path, epsilon_abs=2.0)
+        m["_mode"] = "delaunay-v1-abs2px"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
     m = to_spine(pts, tris, n_hull, W, H)

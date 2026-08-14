@@ -37,15 +37,20 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
+**✅ 候選 1 完成(2026-08-14,里程碑):S3 mesh 對照 Award 真實 blob 件 3/3 過**。
+`compare_award_mesh.py` 對機器人 光暈/身體/左手(Award 中皆 mesh)端到端「切件→生成 mesh→對藝術家真值」:
+AC1 覆蓋率 / AC2 頂點預算 / AC3 靜態拓樸 三閘全過(IoU 0.988~0.993 ≥ 藝術家;頂點 0.76~1.15×)。
+關鍵修正:邊界容差改「絕對像素 ~2px」(相對 0.008 對柔邊 blob 過粗);v2 Delaunay-fallback 走 `epsilon_abs=2.0`
+(窗簾 strip 分支不受影響,4 mesh 重驗全過)。再證 `stress_field` 對 blob 不可信 → 變形裕度降為診斷。
+詳見 `knowledge/s3-blob-generalization.md`。**S3 現對 strip + blob 兩種拓樸皆對真值收斂。**
+
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
-   寫出工具(SkelToJson),端到端產 Spine JSON。
-3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
-4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
-5. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
+1. **❗最高優先:切圖→Spine JSON 組裝(SkelToJson)** — 把 `<PSD檔名>/<圖層名>` 命名 + size+2px padding +
+   mesh/region 分派固化成「件→Spine attachment」寫出工具,端到端產可載入 Spine JSON;對照 Award 結構自驗。
+   這是 S3+S4 端到端的最後一哩(生成 mesh 已對真值收斂、切件已對 Award 逐件吻合)。
+2. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+3. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
+4. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
 > S4 已對真實檔驗收通過。建議下一步:(1) 用機器人件跑 S3 並對照 Award 真實 mesh(有真值、純 CPU 可自驅),
 > 把 S3+S4 串成端到端。Award.png 貼圖若之後拿到,可再做 texture/實機驗。
@@ -93,6 +98,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-14:**S3 泛化到 blob 件(里程碑)** — `compare_award_mesh.py` 對 Award 機器人 3 件(光暈/身體/左手,
+  近方形 blob)端到端「切件→生成 mesh→對藝術家真值」3/3 過(IoU 0.988~0.993 ≥ 藝術家、頂點更精簡、靜態拓樸乾淨)。
+  修:邊界容差改絕對像素(v1 加 `epsilon_abs`;v2 fallback 走 2px);窗簾 strip 不受影響(4 mesh 重驗全過)。
+  再證 `stress_field` 對 blob 不可信(藝術家真值 0.06 就自交)→ 變形裕度降診斷。見 `knowledge/s3-blob-generalization.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
