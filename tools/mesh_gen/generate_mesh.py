@@ -112,7 +112,7 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.002, min_dist=14, margin=6):
     mask, gray, W, H = load_mask(path)
     hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
@@ -126,7 +126,7 @@ def main():
     ap.add_argument("image")
     ap.add_argument("-o", "--out", default=None)
     ap.add_argument("--max-interior", type=int, default=40)
-    ap.add_argument("--epsilon", type=float, default=0.008)
+    ap.add_argument("--epsilon", type=float, default=0.002)
     ap.add_argument("--min-dist", type=float, default=14)
     args = ap.parse_args()
     mesh, _ = generate(args.image, args.max_interior, args.epsilon, args.min_dist)
