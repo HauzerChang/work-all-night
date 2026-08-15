@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3×S4 端到端驗收(對照 Award 真值)](s3-award-endtoend.md) — PSD 件→`generate_mesh_v2`→對照 Award 藝術家 mesh:光暈/身體/左手 3 件全 overall_pass;生成 mesh 頂點少 25~55%、三角品質不輸(甚至優於)真值;負對照第四次確認閘鑑別力。這 3 件 weighted 無 deform,deform 閘 N/A(與 curtain/shadow 互補)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
