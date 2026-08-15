@@ -31,7 +31,27 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3+S4 端到端閉環(里程碑,2026-08-15)**:PSD 切件 → 生成 mesh → 對照 Award 真實藝術家 mesh。
+- 機器人 3 mesh 件(光暈/身體/左手)生成 mesh **覆蓋率全達藝術家等級**(gen_iou ≥ artist − 0.03),
+  且**頂點更少**(35/60/59 vs 78/98/80);身體甚至反超藝術家覆蓋率。全 `overall_pass`。
+- **新發現:Spine mesh `uvs` 存「上正立作圖框」,非 atlas 旋轉框**(朝向自證 3 件全 rot0,含 atlas
+  rotate 的光暈/身體)→ 未來 SkelToJson 可直接 `u·W,v·H` 疊上正立切件,不需為 atlas rotate 逆旋轉。
+- 附加變形壓力(轉移真實窗簾位移場,非門檻):光暈/身體乾淨;左手 blobby Delaunay 極端拉伸自交
+  (左手實無 deform,不影響驗收;標記 blobby 大 deform 需補強)。
+- 工具 `tools/mesh_gen/validate_psd_to_award.py`;證據圖 `knowledge/figures/psd-to-award-mesh.png`;
+  詳見 `knowledge/s3s4-psd-to-award-endtoend.md`。標準指令 `validate_psd_to_award.py --gen v2`(exit 0)。
+
+下一個 bounded chunk 候選:
+1. **❗最高優先:SkelToJson 組裝工具**。本次已把「件→mesh」對真值驗過,且釐清 uvs=上正立框。
+   把它 + `PSD名/圖層名` slot 命名 + size+2px padding 固化成工具,端到端由 PSD 產出可載入 Spine
+   JSON attachment(region+mesh 皆可),達成 PLAN S3「寫入 Spine JSON」完成條件。
+2. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+3. blobby 件 deform 穩健度補強(僅在確有大 deform 需求時)。
+4. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產)。
+
+---
+
+### (歷史)S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26):整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -93,6 +113,9 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-15:**S3+S4 端到端閉環(里程碑)** — PSD 切件→生成 mesh→對照 Award 真實藝術家 mesh。
+  機器人 3 mesh 件覆蓋率全達藝術家等級(頂點更少);釐清 **Spine mesh uvs = 上正立作圖框**(朝向自證全 rot0)。
+  新工具 `validate_psd_to_award.py`。下一步定為 SkelToJson 組裝(由 PSD 直接產 Spine JSON)。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

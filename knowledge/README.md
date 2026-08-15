@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3+S4 端到端(PSD→mesh→Award 真值)](s3s4-psd-to-award-endtoend.md) — **里程碑:S3+S4 串接對真實生產標的閉環**。機器人 3 mesh 件生成 mesh 覆蓋率全達藝術家等級(gen_iou ≥ artist − 0.03)且頂點更少(35/60/59 vs 78/98/80)。**新發現:Spine mesh `uvs` 存上正立作圖框、非 atlas 旋轉框**(朝向自證 3 件全 rot0,含 atlas rotate 件)→ region 局部 = 上正立框。工具 `validate_psd_to_award.py`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
