@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3+S4 端到端:Award 件→S3 mesh→對照藝術家](s3-s4-award-piece-to-mesh.md) — 3 個 Award 機器人 mesh(光暈/左手/身體)自動生成全過「覆蓋 IoU ≥ 藝術家基準 + 頂點預算 + 靜態乾淨」。**發現**:這些是 bone-weighted rig、**零 deform timeline** → 真實位移場閘 N/A(變形品質在權重不在拓樸);覆蓋率由邊界密度 `epsilon_frac` 決定,大件需 0.002(舊 0.008 過疏)→ 設為 v2 新預設,main_draw 4 mesh 回歸不受影響。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

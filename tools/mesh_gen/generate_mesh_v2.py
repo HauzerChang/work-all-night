@@ -110,13 +110,17 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto", epsilon_frac=0.002):
+    """epsilon_frac:delaunay 回退時的邊界簡化容差(佔周長比例)。
+    覆蓋 IoU 由邊界取樣密度決定(與 strip 的 rows 同理);production 尺度的
+    blobby 件(如 Award 機器人拆件)用 0.002 才追上藝術家覆蓋基準(2026-08-16 驗)。
+    舊預設 0.008 對小合成遮罩/窗簾夠,對大件過疏。"""
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, epsilon_frac=epsilon_frac)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)
