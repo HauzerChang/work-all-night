@@ -95,6 +95,20 @@ def filter_triangles(pts, tris, mask):
     return np.array(keep, dtype=np.int32) if keep else np.zeros((0, 3), np.int32)
 
 
+def compact_vertices(pts, tris, n_hull):
+    """丟掉 filter_triangles 後不再被任何三角引用的孤兒頂點,並重編索引。
+    保序壓縮 → hull 頂點(原 index < n_hull)自然仍排最前;新 hull = 存活的 hull 頂點數。
+    (修:凹形區三角被濾掉後,其獨占頂點會變孤兒,違反 Spine 格式清潔度 AC2c。)"""
+    if len(tris) == 0:
+        return pts, tris, n_hull
+    used = sorted(set(int(i) for t in tris for i in t))
+    remap = {old: new for new, old in enumerate(used)}
+    new_pts = pts[used]
+    new_tris = np.array([[remap[int(i)] for i in t] for t in tris], dtype=np.int32)
+    new_hull = sum(1 for old in used if old < n_hull)
+    return new_pts, new_tris, new_hull
+
+
 def to_spine(pts, tris, n_hull, W, H):
     # y 上翻 + 置中(Spine y-up);uv 用影像座標正規化
     verts, uvs = [], []
@@ -118,6 +132,7 @@ def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)
+    pts, tris, n_hull = compact_vertices(pts, tris, n_hull)
     return to_spine(pts, tris, n_hull, W, H), mask
 
 

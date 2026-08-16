@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端 PSD件→mesh 對照 Award 真實 mesh](s3-psd-to-mesh-award.md) — **里程碑:S3×S4 端到端對真實生產標的驗收**。光暈/身體/左手 3 件 production-critical 全過(自動 mesh 以約半數頂點達藝術家覆蓋率)。修生成器孤兒頂點 bug(`compact_vertices`);deform 韌性 gate 第 4 次 miscalibration(絕對位移未依件尺寸縮放→連藝術家真值都撕裂)→ 依目標件等比縮放校正後可信,鑑別出光暈(blob→v1 散點)韌性缺口。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
