@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3→Award 端到端 mesh 驗收](s3-psd-to-award-mesh.md) — **PSD 件→generate_mesh_v2→對照 Award 生產 mesh**:3 mesh 件(光暈/身體/左手)覆蓋 IoU 全在藝術家 baseline ±0.02 內過關(疊圖確認對齊)。發現:這些件無 deform timeline(bone-weighted)→ 相關閘是覆蓋率非 deform;生成頂點更少卻打平(藝術家多頂點是為 S5 權重密度、非覆蓋);光暈細長突起 → v1 輪廓取樣密度是改進槓桿。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
