@@ -31,7 +31,25 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3+S4 端到端對真實生產標的驗收通過(里程碑,2026-08-17)** — `robot_parts.psd` 的光暈/身體/左手 3 件
+→ `generate_mesh_v2` → 對照 Award 真實 mesh:**IoU 全 ≥ 藝術家、頂點數全 ≤ 藝術家**,拓樸全乾淨。
+- 修 delaunay 回退缺陷:固定 `epsilon_frac=0.008` 對真實羽化軟邊 under-cover(合成 fixture 掩蓋)
+  → 加**自適應 hull 覆蓋目標**(`boundary_points(cover_target=)`,v2 回退用 0.99),asset-independent。
+- deform 閘對這 3 件 **N/A**(Award 這些件無 deform timeline、靠加權骨骼驅動)→ 誠實標註,不讓零位移 vacuous pass。
+- 無回歸:4 個 main_draw mesh 全走 strip 模式,`validate_against_real --gen v2` 重驗全 overall_pass。
+- 驅動:`tools/mesh_gen/validate_robot_parts.py`。詳見 `knowledge/s3-robot-parts-vs-award.md`。
+
+下一個 bounded chunk 候選:
+1. **加權骨骼驅動的耐變形驗收**:Award 機器人 mesh 靠 bone weights warp(非 deform timeline)。
+   讀 Award 骨架 + 加權,重現骨骼驅動下的頂點位移,驗證生成 mesh(需先補加權)在真實骨骼運動下 0 自交。
+   —— 補上「無 deform timeline 件」的變形閘缺口。
+2. **件→Spine JSON 組裝(SkelToJson)**:把 `<PSD檔名>/<圖層名>` + size+2px padding + mesh/region 分配
+   固化成工具,端到端產可用 Spine JSON(把 S3 生成的 mesh 塞回 attachment)。
+3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **S1 反推分析器**:需 benchmark 影片(repo 無影片資產)。
+
+---
+**先前里程碑:S3 已推廣到全部 4 個 mesh(2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
@@ -97,3 +115,8 @@
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
   升級 atlas_crop 多頁 + 修方向 + 修 evaluate_slicing.repack;main_draw 4 mesh + slicing 重驗全過(rotate=false 不受影響)。
+- 2026-08-17:**S3+S4 端到端對真實生產 mesh 驗收(里程碑)** — 機器人 3 件(光暈/左手/身體)→ generate_mesh_v2
+  → 對照 Award 真實 mesh:IoU 全 ≥ 藝術家(0.985/0.985/0.988 vs 0.980/0.968/0.976)、頂點全 ≤ 藝術家、拓樸乾淨。
+  **發現+修 delaunay 回退缺陷**:固定 epsilon 對真實羽化軟邊 under-cover(合成掩蓋)→ 自適應 hull 覆蓋目標
+  (cover_target,v2 回退 0.99,asset-independent)。deform 閘對這 3 件誠實標 N/A(無 deform timeline、骨骼驅動)。
+  新增 `validate_robot_parts.py`;無回歸(4 mesh 全 strip,重驗全過)。見 `knowledge/s3-robot-parts-vs-award.md`。

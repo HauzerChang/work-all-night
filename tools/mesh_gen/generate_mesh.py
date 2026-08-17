@@ -35,14 +35,37 @@ def load_mask(path):
     return mask, rgb, img.shape[1], img.shape[0]
 
 
-def boundary_points(mask, epsilon_frac):
+def boundary_points(mask, epsilon_frac, cover_target=None):
+    """Douglas-Peucker 簡化外輪廓為 hull 點。
+
+    cover_target=None → 舊行為:固定 epsilon_frac(相容既有呼叫)。
+    cover_target 設定(0..1)→ **自適應**:從 epsilon_frac 起,每次 ×0.8 縮小容差,
+      直到 hull 多邊形填滿面積 ≥ cover_target×mask 面積(或頂點>200 安全上限)。
+      這讓「覆蓋率」成為 asset-independent 的旋鈕 —— 真實生產件(羽化光暈等)
+      軟邊需更細 hull,粗糙固定 epsilon 會切進 silhouette 造成 under-coverage
+      (2026-08-17 對 Award 機器人件實測:固定 0.008 → IoU 低於藝術家;自適應 0.99 覆蓋 → 全過)。
+    """
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not cnts:
         raise SystemExit("找不到輪廓(mask 全空?)")
     cnt = max(cnts, key=cv2.contourArea)
     peri = cv2.arcLength(cnt, True)
-    approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
-    return approx.reshape(-1, 2).astype(np.float64)
+    if cover_target is None:
+        approx = cv2.approxPolyDP(cnt, epsilon_frac * peri, True)
+        return approx.reshape(-1, 2).astype(np.float64)
+    H, W = mask.shape
+    area = float(mask.sum())
+    eps = epsilon_frac
+    approx = cv2.approxPolyDP(cnt, eps * peri, True).reshape(-1, 2)
+    for _ in range(40):
+        recon = np.zeros((H, W), np.uint8)
+        cv2.fillPoly(recon, [approx.astype(np.int32)], 1)
+        cov = float(np.logical_and(recon, mask).sum()) / area if area else 1.0
+        if cov >= cover_target or len(approx) > 200:
+            break
+        eps *= 0.8
+        approx = cv2.approxPolyDP(cnt, eps * peri, True).reshape(-1, 2)
+    return approx.astype(np.float64)
 
 
 def interior_points(mask, gray, hull_pts, max_interior, min_dist, margin):
@@ -112,9 +135,10 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6,
+             cover_target=None):
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
+    hull = boundary_points(mask, epsilon_frac, cover_target)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)

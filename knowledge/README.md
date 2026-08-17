@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端:機器人件 vs Award 真實 mesh](s3-robot-parts-vs-award.md) — **PSD件→generate_mesh_v2→對照 Award 生產 mesh 端到端 PASS**;3 件 IoU 全 ≥ 藝術家、頂點 ≤ 藝術家。發現 delaunay 固定 epsilon 對真實羽化軟邊 under-cover(合成掩蓋)→ 加**自適應 hull 覆蓋目標(0.99)**修正,asset-independent。deform 閘對這 3 件 N/A(骨骼驅動、無 deform timeline),誠實標註不 vacuous pass。無回歸(4 mesh 全 strip)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
