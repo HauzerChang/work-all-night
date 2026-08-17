@@ -45,6 +45,38 @@ def boundary_points(mask, epsilon_frac):
     return approx.reshape(-1, 2).astype(np.float64)
 
 
+def _hull_coverage(hull_pts, mask):
+    """填滿 hull 多邊形對 mask 的覆蓋率(IoU),量化邊界取樣是否夠密。"""
+    H, W = mask.shape
+    fill = np.zeros((H, W), np.uint8)
+    cv2.fillPoly(fill, [np.round(hull_pts).astype(np.int32)], 1)  # 凹形 hull 用 fillPoly
+    m = (mask > 0).astype(np.uint8)
+    inter = int(np.logical_and(fill, m).sum()); union = int(np.logical_or(fill, m).sum())
+    return inter / union if union else 0.0
+
+
+def auto_boundary(mask, cover_target, max_hull, eps_grid):
+    """自適應 epsilon:由粗到細掃 approxPolyDP,取「達到覆蓋目標且 hull 頂點 ≤ 上限」的最粗解。
+    產生資產尺度無關的邊界取樣(main_draw 小件與 Award 大件同一策略);
+    若無 eps 同時達標,取覆蓋率最高、頂點數不超上限者(退而求其次)。回傳 (hull_pts, eps_used)。"""
+    best = None  # (coverage, -nhull, pts, eps) 供無達標時挑選
+    for eps in eps_grid:
+        pts = boundary_points(mask, eps)
+        nh = len(pts)
+        cov = _hull_coverage(pts, mask)
+        if nh <= max_hull and cov >= cover_target:
+            return pts, eps
+        if nh <= max_hull:
+            key = (cov, -nh)
+            if best is None or key > best[0]:
+                best = (key, pts, eps)
+    if best is not None:
+        return best[1], best[2]
+    # 全部超過 hull 上限 → 用最粗的 eps(頂點最少)保底
+    pts = boundary_points(mask, eps_grid[0])
+    return pts, eps_grid[0]
+
+
 def interior_points(mask, gray, hull_pts, max_interior, min_dist, margin):
     h, w = mask.shape
     eroded = cv2.erode(mask, np.ones((margin, margin), np.uint8))
@@ -112,9 +144,16 @@ def to_spine(pts, tris, n_hull, W, H):
     }
 
 
-def generate(path, max_interior=40, epsilon_frac=0.008, min_dist=14, margin=6):
+def generate(path, max_interior=40, epsilon_frac="auto", min_dist=14, margin=6,
+             cover_target=0.98, max_hull=64):
+    """epsilon_frac="auto":自適應邊界取樣(達覆蓋目標的最粗解,資產尺度無關)。
+    傳數值則沿用固定 epsilon(向後相容)。"""
     mask, gray, W, H = load_mask(path)
-    hull = boundary_points(mask, epsilon_frac)
+    if epsilon_frac == "auto":
+        hull, _ = auto_boundary(mask, cover_target, max_hull,
+                                eps_grid=(0.008, 0.006, 0.004, 0.003, 0.002, 0.0015, 0.001))
+    else:
+        hull = boundary_points(mask, epsilon_frac)
     inter = interior_points(mask, gray, hull, max_interior, min_dist, margin)
     pts, tris, n_hull = triangulate(hull, inter)
     tris = filter_triangles(pts, tris, mask)

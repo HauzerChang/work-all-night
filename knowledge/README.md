@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 泛化到 Award(weighted mesh)+ 自適應邊界](s3-award-robot-generalization.md) — v2 泛化到**第二份生產資產** Award 的 3 個 **weighted** 機器人 mesh(光暈/左手/身體):靜態 IoU 全達/超藝術家且頂點更省。塊狀件正確回退 v1;**v1 改自適應 epsilon(cover_target 0.98,尺度無關)**修掉舊 0.008 對複雜輪廓過粗的 5% 覆蓋缺口。main_draw(strip)不受影響、v1 curtain deform 仍乾淨。⚠️ weighted deform 閘待補。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
