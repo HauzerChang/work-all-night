@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 第二個真實資產(Award)靜態驗收 + v1 修正](s3-award-static-generalization.md) — S3 首次對 **weighted/無 deform/blob** 真實 mesh 驗收(走 v1 Delaunay 路徑,`validate_award_static.py`)。揪出 v1 的 DP epsilon 用周長比例 → 大平滑件(光暈)欠取樣覆蓋率不足;預設 0.008→0.005 修正,3 件全過(覆蓋率對藝術家 baseline),main_draw 4 strip 無回歸。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
