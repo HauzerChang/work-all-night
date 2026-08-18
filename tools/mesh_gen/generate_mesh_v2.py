@@ -110,13 +110,20 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
-def generate(path, rows=10, cols=3, mode="auto"):
+def generate(path, rows=10, cols=3, mode="auto",
+             epsilon_frac=0.002, max_interior=40, min_dist=10):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
+        # blob(非高瘦/非 row-convex)件走 v1 Delaunay。
+        # 參數校準(2026-08-18,對 Award 3 真實 mesh 件):IoU 由 epsilon(hull 密度)決定,
+        # max_interior 不影響覆蓋率(對照 strip 的『IoU 由 rows 決定、cols 不影響』)。
+        # epsilon=0.002 / max_interior=40 → 3 件 IoU 全過且 ≥ 藝術家,頂點數 ≤ 藝術家(精簡)。
+        # 見 knowledge/s3-award-mesh-comparison.md。
         from generate_mesh import generate as gen_v1
-        m, _ = gen_v1(path)
+        m, _ = gen_v1(path, max_interior=max_interior, epsilon_frac=epsilon_frac,
+                      min_dist=min_dist)
         m["_mode"] = "delaunay-v1"
         return m
     pts, tris, n_hull = gen_strip(mask, W, H, rows, cols)

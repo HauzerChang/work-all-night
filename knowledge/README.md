@@ -35,4 +35,6 @@
 
 - [S4 真實驗收 + PSD→spine 對應](s4-psd-to-spine-real.md) — 2 份生產 PSD 切圖無損 PASS;機器人拆件 5 圖層 ⇄ Award spine slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。揭示真實命名慣例、mesh/region 分配。閘第三次 miscalibration(透明區白底)→ 改 premultiplied 比對校正。
 
+- [S3 端到端對照 Award 真實 mesh](s3-award-mesh-comparison.md) — **里程碑**:PSD 件→generate_mesh_v2→對照 Award 藝術家 mesh。3 件(光暈/身體/左手)靜態 IoU **全 ≥ 藝術家且更精簡**(eps=0.002/mi=40)。發現 Award uvs 為 region-local(無需轉換)、v1 IoU 由 epsilon 決定(對應 strip 的 rows)。誠實限制:weighted+無 deform timeline,靜態量不到藝術家的 deform 驅動內部佈局。雙負對照確認鑑別力。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
