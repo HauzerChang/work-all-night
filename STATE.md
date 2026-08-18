@@ -31,17 +31,28 @@
 
 ## 下一步動作 (next action)
 
-**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
+**S3×S4 端到端驗收通過(里程碑,2026-08-18)**:`compare_to_award.py` 把 PSD 切件 →
+`generate_mesh_v2` → 對照 Award 真實生產 mesh。光暈/身體/左手 3 件覆蓋 IoU 全落藝術家
+baseline−0.02 內(0.933/0.966/0.964 vs 0.949/0.948/0.977),格式閘全過,負對照(收縮 0.7→0.48)
+確認鑑別力。**關鍵更正:Award mesh uvs 是 region-local 0..1(標準 Spine 格式),非先前記的
+atlas UV**(見 `knowledge/s3-psd-to-award-mesh.md`)。3 件近方形 → auto 回退 v1 Delaunay;生成
+mesh 更精簡(v 為藝術家 45–75%);deform 閘不適用(無 deform timeline,靠 weighted bone)。
+
+下一個 bounded chunk:**件→Spine JSON 組裝(SkelToJson)** —— 把 `PSD名/圖層名` 命名、
+region-local uvs、size+2px、mesh/region 分配固化成工具,端到端產出可載入 Spine 的 JSON
+(生成 mesh 目前 unweighted;有骨骼變形的件需接權重 S5,待建)。
+
+---
+（歷史）**S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-1. **❗最高優先(有真值可比):PSD件→S3 mesh→對照 Award 真實 mesh**。用 `robot_parts.psd` 的
-   光暈/身體/左手 3 件(Award 中為 mesh)跑 `generate_mesh_v2`,與 Award 真實 mesh 做 IoU/deform 對照
-   → 端到端「PSD→件→mesh」對真實生產標的驗收。純 CPU 可自驅(Award.png 缺,用 alpha 來源:切件 PNG 本身)。
-2. **切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
+1. ~~**PSD件→S3 mesh→對照 Award 真實 mesh**~~ ✅ **完成(2026-08-18)** — 見上「下一步動作」與
+   `knowledge/s3-psd-to-award-mesh.md`。3 件覆蓋 IoU 全過藝術家 baseline−0.02;工具 `compare_to_award.py`。
+2. **❗現最高優先:切圖→Spine JSON 組裝**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding 固化成「件→Spine attachment」
    寫出工具(SkelToJson),端到端產 Spine JSON。
 3. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 4. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
