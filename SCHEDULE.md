@@ -10,7 +10,13 @@
 - ✅ `prompts/run.md` — 每次執行要做什麼。
 - ✅ `RULES.md` / `PLAN.md` / `STATE.md` — 守則、路線圖、續跑狀態。
 
-> ⚠️ **分支機制(2026-06-26 更正,依官方文件 /en/routines)**:Claude Code **Routines 沒有「選 branch」欄位**,
+> 🔁 **分支現況(2026-08-19 更新)**:目前實際開發分支為 **`claude/vibrant-franklin-3urh59`**(近期 S1/S3 工作都在此)。
+> repo default 仍為 `claude/zealous-noether-y2ecwu`。**已把兩條分支 fast-forward 同步**(vibrant 內容 = zealous 內容),
+> 故不論 Routine 從 default(zealous)clone 或設定用 vibrant,都讀得到最新 `STATE.md`,排程可無縫接續。
+> **建議(擇一,一次性)**:把 GitHub default branch 設為你希望排程長期跑的那條(vibrant 或 zealous)並固定用它,
+> 避免日後兩分支再度分歧。`prompts/run.md` 收尾已改為「push 回啟動分支 + 同步 default」。
+>
+> ⚠️ **分支機制(2026-06-26,依官方文件 /en/routines)**:Claude Code **Routines 沒有「選 branch」欄位**,
 > 每次執行**一律從 repo 的 default branch clone**(文件原文:"cloned ... starting from the default branch ...
 > unless your prompt specifies otherwise")。預設只能 push 到 `claude/` 開頭的分支。
 > 因此要讓排程跑在開發分支 `claude/zealous-noether-y2ecwu` 上,二選一(見下)。

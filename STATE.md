@@ -33,6 +33,11 @@
   (B) `genre_priors.py`+`validate_priors.py`:先驗庫 `slot_bigwin`(Award)、`slot_reveal`(main_draw)
   覆蓋率皆 **1.0** + 2 未驗證類型。修 2 bug(decomposability 反向、動畫名子字串誤判)。
   見 `knowledge/s1-flat-pipeline-and-priors.md`。
+- **S1 端到端「目標圖→可載入 Spine 素材」打通(里程碑,2026-08-19)** —
+  `build_spine.py`(analyze_target+psd_slice+generate_mesh_v2 → Spine 3.8 json+atlas+png)+
+  `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
+  **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
+  誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -54,10 +59,12 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-0. **S1 分析器接續**:(a) 規格 → 實際素材:把 #4 判 mesh 的件串 `generate_mesh_v2`、region 件串
-   `psd_slice`,端到端「目標圖 → 可載入 spine 素材」(**最高優先,純 CPU 可自驅**);
-   (b) ~~平圖流程~~ ✅ baseline 完成(結論:CPU 到頂,升級需 GPU 語意分層 SAM/See-Through,屬資源決策);
+0. **S1 分析器接續**:(a) ~~規格 → 實際素材~~ ✅ 完成(`build_spine.py`+`validate_build.py`,round-trip 全 PASS);
+   (b) ~~平圖流程~~ ✅ baseline 完成(CPU 到頂,升級需 GPU 語意分層,屬資源決策);
    (c) ~~分鏡先驗庫~~ ✅ 2 類型已驗證;續補需**有真值**的類型 spine。
+   **下一個最高優先**:(d) **分鏡 → 動畫 keyframe**:把 #3 storyboard(尤其 Loop 呼吸)轉成 Spine `animations`
+   timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
+   (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
 2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
    本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
@@ -111,6 +118,8 @@
 - 2026-06-26:**分支策略定案** — 排程 trigger 改**直接指向開發分支 `claude/zealous-noether-y2ecwu`**,
   不再走 PR/merge(零摩擦)。更新 `prompts/run.md`(分支說明 + 移除過時快照,改以 STATE 為準)、`SCHEDULE.md`。
   PR #1 已 merge;PR #2 關閉(改用分支直讀)。
+- 2026-08-19:**S1 端到端「目標圖→可載入 Spine 素材」(里程碑)** — `build_spine.py`+`validate_build.py`;
+  robot/Symbol_Ww round-trip 重建 == 原圖 全 PASS。規格→素材打通。下一步定為分鏡→動畫 keyframe。
 - 2026-08-19:**S1 擴充:平圖流程 + 分鏡先驗庫(使用者指定)** — (A) 平圖純 CPU 拆件 baseline + 真值召回閘
   (同材質角色 0/5、0/18 語意召回,僅不相連塊可靠 → 佐證 PSD-first);(B) 先驗庫 slot_bigwin/slot_reveal
   對 Award/main_draw 覆蓋率 1.0。修 2 評估器 bug(decomposability 反向、動畫名子字串誤判)。

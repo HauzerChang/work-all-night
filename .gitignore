@@ -3,3 +3,5 @@ __pycache__/
 # 測試 fixture(可由 tools/mesh_gen/make_test_psd.py 重生)+ 切圖輸出
 assets/test_layered.psd
 psd_parts/
+# S1 build_spine 產出(可由 build_spine.py 重生,不進版控)
+specs/*_spine/
