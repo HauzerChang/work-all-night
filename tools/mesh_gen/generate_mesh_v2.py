@@ -110,12 +110,31 @@ def to_spine(pts, tris, n_hull, W, H):
             "hull": int(n_hull), "width": int(W), "height": int(H)}
 
 
+def soft_band_frac(path):
+    """部分透明(羽化)像素佔前景比例;高 → 軟邊 blob(如光暈),需密邊界描邊。"""
+    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    if img is None or img.ndim != 3 or img.shape[2] != 4:
+        return 0.0
+    a = img[:, :, 3]
+    fg = (a > 8).sum()
+    if fg == 0:
+        return 0.0
+    return float(((a > 8) & (a < 250)).sum()) / float(fg)
+
+
 def generate(path, rows=10, cols=3, mode="auto"):
     mask, W, H = load_mask(path)
     aspect = H / max(W, 1)
     use_strip = (mode == "strip") or (mode == "auto" and aspect >= 1.2 and is_row_convex(mask))
     if not use_strip:
         from generate_mesh import generate as gen_v1
+        # 軟邊 blob(如光暈,羽化帶佔比高):美術用密集「純邊界」多邊形描平滑外緣。
+        # 預設 epsilon=0.008 對軟邊過度簡化(hull 太疏 → 覆蓋率不足),且內部點會產生孤兒。
+        # auto 下偵測到高羽化帶 → 改密邊界(eps=0.002)、不放內部點(max_interior=0)。
+        if mode == "auto" and soft_band_frac(path) >= 0.20:
+            m, _ = gen_v1(path, max_interior=0, epsilon_frac=0.002, min_dist=8)
+            m["_mode"] = "boundary-dense-v1"
+            return m
         m, _ = gen_v1(path)
         m["_mode"] = "delaunay-v1"
         return m
