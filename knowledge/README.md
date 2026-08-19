@@ -37,4 +37,6 @@
 
 - [S3 端到端 → 對照 Award 真實美術 mesh](s3-robot-mesh-vs-award.md) — **S3 首次對真實生產美術 mesh 驗收**:機器人 3 mesh 件(光暈/左手/身體)靜態覆蓋率達美術基準且頂點更省(37~48 vs 78~98),3 件全 PASS。發現:**mesh uvs 是 region-local(非 atlas 分數)**;新增 `boundary-dense` 軟邊 blob 模式(光暈 0.92→0.98)+ 通用 `prune_orphans` 修正。誠實限制:靜態 IoU PASS ≠ weighted 骨骼變形平滑度對等(需 BBW 權重能力補齊)。
 
+- [S1 目標圖反推分析器](s1-target-image-analyzer.md) — **落實使用者新增研究項目 + 具體化 S1**:分層 PSD → 五段規格(運動構件/周邊特效/動作分鏡/拆圖策略/補圖項目)。`tools/analyzer/`;對 `robot_parts.psd ⇄ Award` 真值 **5 項校驗全 PASS**(件召回 1.0、特效 5/5、幾何無 mismatch、分鏡 beats+4 檔位全中、露出 4/4)。誠實界定:**補圖需求是輸入契約相依**(分層 PSD 0 封閉破洞 → PSD-first 繞開補圖);#3 分鏡為類型先驗提案。範例:`s1-example-robot-spec.md`、`specs/robot_parts.spec.json`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

@@ -1,0 +1,390 @@
+{
+  "source": "robot_parts.psd",
+  "canvas": [
+    713,
+    693
+  ],
+  "genre": "slot_bigwin",
+  "1_movable_parts": [
+    {
+      "name": "光暈",
+      "z": 0,
+      "bbox": [
+        6,
+        10,
+        712,
+        693
+      ],
+      "area": 224277,
+      "centroid": [
+        381.0,
+        386.1
+      ]
+    },
+    {
+      "name": "右手",
+      "z": 1,
+      "bbox": [
+        23,
+        16,
+        618,
+        500
+      ],
+      "area": 46050,
+      "centroid": [
+        297.0,
+        283.5
+      ]
+    },
+    {
+      "name": "頭",
+      "z": 2,
+      "bbox": [
+        301,
+        198,
+        421,
+        301
+      ],
+      "area": 6405,
+      "centroid": [
+        360.8,
+        258.6
+      ]
+    },
+    {
+      "name": "身體",
+      "z": 3,
+      "bbox": [
+        204,
+        253,
+        583,
+        678
+      ],
+      "area": 80169,
+      "centroid": [
+        347.9,
+        478.0
+      ]
+    },
+    {
+      "name": "左手",
+      "z": 4,
+      "bbox": [
+        429,
+        177,
+        686,
+        392
+      ],
+      "area": 37748,
+      "centroid": [
+        559.1,
+        300.0
+      ]
+    }
+  ],
+  "2_effects": [
+    {
+      "name": "光暈",
+      "is_effect": true,
+      "subtype": "glow/radial(背景放射光,包住主體)",
+      "score": 0.999,
+      "signals": {
+        "name_kw": 1.0,
+        "feather": 1.0,
+        "coverage": 1.0,
+        "envelop": 1.0,
+        "low_detail": 0.993,
+        "z_extreme": 1.0
+      },
+      "struct_role": null
+    },
+    {
+      "name": "右手",
+      "is_effect": false,
+      "subtype": null,
+      "score": 0.115,
+      "signals": {
+        "name_kw": 0.0,
+        "feather": 0.235,
+        "coverage": 0.232,
+        "envelop": 0.25,
+        "low_detail": 0.0,
+        "z_extreme": 0.0
+      },
+      "struct_role": "limb"
+    },
+    {
+      "name": "頭",
+      "is_effect": false,
+      "subtype": null,
+      "score": 0.077,
+      "signals": {
+        "name_kw": 0.0,
+        "feather": 0.4,
+        "coverage": 0.032,
+        "envelop": 0.0,
+        "low_detail": 0.0,
+        "z_extreme": 0.0
+      },
+      "struct_role": "head"
+    },
+    {
+      "name": "身體",
+      "is_effect": false,
+      "subtype": null,
+      "score": 0.115,
+      "signals": {
+        "name_kw": 0.0,
+        "feather": 0.1,
+        "coverage": 0.405,
+        "envelop": 0.25,
+        "low_detail": 0.007,
+        "z_extreme": 0.0
+      },
+      "struct_role": "body"
+    },
+    {
+      "name": "左手",
+      "is_effect": false,
+      "subtype": null,
+      "score": 0.131,
+      "signals": {
+        "name_kw": 0.0,
+        "feather": 0.135,
+        "coverage": 0.19,
+        "envelop": 0.0,
+        "low_detail": 0.0,
+        "z_extreme": 1.0
+      },
+      "struct_role": "limb"
+    }
+  ],
+  "3_motion_storyboard": {
+    "genre": "slot_bigwin",
+    "tier_variants": [
+      "Super",
+      "Mega",
+      "Omg",
+      "Legend"
+    ],
+    "note": "大獎主角常見結構:每檔位一組 In/Loop/Out(觀測到 Award 即 4 檔×3 = 12 支)",
+    "beats": [
+      {
+        "beat": "In",
+        "desc": "入場爆發:主體放大/彈入,肢體大幅甩入,特效炸開(旋轉+放大+亮度峰值)",
+        "parts": [
+          {
+            "part": "光暈",
+            "role": "特效",
+            "action": "炸開:放大+旋轉+亮度峰值"
+          },
+          {
+            "part": "右手",
+            "role": "limb",
+            "action": "大幅甩入(旋轉+位移+放大)"
+          },
+          {
+            "part": "頭",
+            "role": "head",
+            "action": "隨身體彈入+回正"
+          },
+          {
+            "part": "身體",
+            "role": "body",
+            "action": "彈入+輕微 overshoot 縮放"
+          },
+          {
+            "part": "左手",
+            "role": "limb",
+            "action": "大幅甩入(旋轉+位移+放大)"
+          }
+        ]
+      },
+      {
+        "beat": "Loop",
+        "desc": "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉",
+        "parts": [
+          {
+            "part": "光暈",
+            "role": "特效",
+            "action": "脈動/緩轉(alpha/scale 微幅循環)"
+          },
+          {
+            "part": "右手",
+            "role": "limb",
+            "action": "末梢小幅擺盪(相位錯開)"
+          },
+          {
+            "part": "頭",
+            "role": "head",
+            "action": "微點頭/傾"
+          },
+          {
+            "part": "身體",
+            "role": "body",
+            "action": "呼吸(±小幅縮放/位移)"
+          },
+          {
+            "part": "左手",
+            "role": "limb",
+            "action": "末梢小幅擺盪(相位錯開)"
+          }
+        ]
+      },
+      {
+        "beat": "Out",
+        "desc": "退場:主體縮出/淡出,特效收斂",
+        "parts": [
+          {
+            "part": "光暈",
+            "role": "特效",
+            "action": "收斂淡出"
+          },
+          {
+            "part": "右手",
+            "role": "limb",
+            "action": "縮出/淡出"
+          },
+          {
+            "part": "頭",
+            "role": "head",
+            "action": "縮出/淡出"
+          },
+          {
+            "part": "身體",
+            "role": "body",
+            "action": "縮出/淡出"
+          },
+          {
+            "part": "左手",
+            "role": "limb",
+            "action": "縮出/淡出"
+          }
+        ]
+      }
+    ],
+    "status": "PROPOSAL(先驗提案,待真值校驗)"
+  },
+  "4_slicing_strategy": {
+    "convention": "slot=<檔名>/<圖層名>;件尺寸=原始邏輯尺寸;atlas 可 0.70 縮小打包",
+    "parts": [
+      {
+        "part": "光暈",
+        "slot_name": "robot_parts/光暈",
+        "cut": "獨立切件 + 每邊 1px(atlas 2px)padding",
+        "geometry": "mesh(軟邊/大面積/易形變)",
+        "pivot_hint": [
+          381.0,
+          386.1
+        ],
+        "note": "特效件"
+      },
+      {
+        "part": "右手",
+        "slot_name": "robot_parts/右手",
+        "cut": "獨立切件 + 每邊 1px(atlas 2px)padding",
+        "geometry": "region(剛體;旋轉/位移即可)或按需 mesh",
+        "pivot_hint": [
+          297.0,
+          283.5
+        ],
+        "note": "結構件/limb"
+      },
+      {
+        "part": "頭",
+        "slot_name": "robot_parts/頭",
+        "cut": "獨立切件 + 每邊 1px(atlas 2px)padding",
+        "geometry": "region(剛體;旋轉/位移即可)或按需 mesh",
+        "pivot_hint": [
+          360.8,
+          258.6
+        ],
+        "note": "結構件/head"
+      },
+      {
+        "part": "身體",
+        "slot_name": "robot_parts/身體",
+        "cut": "獨立切件 + 每邊 1px(atlas 2px)padding",
+        "geometry": "mesh(軟邊/大面積/易形變)",
+        "pivot_hint": [
+          347.9,
+          478.0
+        ],
+        "note": "結構件/body"
+      },
+      {
+        "part": "左手",
+        "slot_name": "robot_parts/左手",
+        "cut": "獨立切件 + 每邊 1px(atlas 2px)padding",
+        "geometry": "region(剛體;旋轉/位移即可)或按需 mesh",
+        "pivot_hint": [
+          559.1,
+          300.0
+        ],
+        "note": "結構件/limb"
+      }
+    ]
+  },
+  "5_occlusion": {
+    "verdict": "分層完整,補圖需求極低(0 封閉破洞)——PSD-first 契約成立",
+    "reveal_on_move": [
+      {
+        "revealed_part": "右手",
+        "hidden_by": "頭",
+        "mover_role": "head",
+        "area_px": 2978,
+        "frac_of_part": 0.065,
+        "region_bbox": [
+          301,
+          202,
+          407,
+          287
+        ],
+        "note": "『頭』(head)移開後露出『右手』此區;下層已完整 → 不需補圖"
+      },
+      {
+        "revealed_part": "身體",
+        "hidden_by": "左手",
+        "mover_role": "limb",
+        "area_px": 2538,
+        "frac_of_part": 0.032,
+        "region_bbox": [
+          433,
+          299,
+          486,
+          376
+        ],
+        "note": "『左手』(limb)移開後露出『身體』此區;下層已完整 → 不需補圖"
+      },
+      {
+        "revealed_part": "右手",
+        "hidden_by": "身體",
+        "mover_role": "body",
+        "area_px": 1956,
+        "frac_of_part": 0.042,
+        "region_bbox": [
+          251,
+          289,
+          328,
+          393
+        ],
+        "note": "『身體』(body)移開後露出『右手』此區;下層已完整 → 不需補圖"
+      },
+      {
+        "revealed_part": "頭",
+        "hidden_by": "身體",
+        "mover_role": "body",
+        "area_px": 829,
+        "frac_of_part": 0.129,
+        "region_bbox": [
+          330,
+          281,
+          391,
+          300
+        ],
+        "note": "『身體』(body)移開後露出『頭』此區;下層已完整 → 不需補圖"
+      }
+    ],
+    "inpaint_candidates": []
+  }
+}
