@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S3 weighted mesh 骨綁權重 + 變形平滑度真值閘](s3-weighted-mesh-bbw.md) — **補上 S3 唯一未驗維度**(靜態 IoU≠變形品質):新增有界調和權重(BBW 純 CPU 可證有界+單位分解主幹)`weighted_mesh.py` + 真值閘 `validate_weights.py`。對 Award 3 真實藝術家 weighted mesh(光暈/左手/身體)**5 AC × 3 件全 PASS**:自一致 5.7e-14、有界+單位分解 1e-16、平滑度 Dirichlet 相當或更優(身體 −30%)、變形一致 RMS/diag 0.018~0.038、負對照隨機權重 5~8 倍誤差。FK 重建 span ≈ 宣告 w/h 順帶驗 FK。誠實界定 anchor(方法驗證)vs auto(實際使用,seed=最近骨原點)兩模式。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
