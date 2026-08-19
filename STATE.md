@@ -27,6 +27,12 @@
   + `validate_analyzer_award.py`(對 `robot_parts.psd ⇄ Award` 真值)**5 項校驗全 PASS**
   (件召回 1.0、特效 5/5、幾何無 mismatch、分鏡 In/Loop/Out+4 檔位全中、露出 4/4)。
   誠實界定:補圖需求**輸入契約相依**(分層 PSD 0 封閉破洞);#3 分鏡為類型先驗提案。見 `knowledge/s1-target-image-analyzer.md`。
+- **S1 擴充:平圖流程 + 分鏡先驗庫(2026-08-19,使用者指定)** —
+  (A) `segment_flat.py`+`validate_flat_recall.py`:平圖純 CPU 自動拆件 baseline;壓平 PSD 對真值召回顯示
+  同材質/重疊角色 **0/5、0/18 語意召回**,僅「不相連塊」可靠(正對照 3/3)→ 佐證 PSD-first。
+  (B) `genre_priors.py`+`validate_priors.py`:先驗庫 `slot_bigwin`(Award)、`slot_reveal`(main_draw)
+  覆蓋率皆 **1.0** + 2 未驗證類型。修 2 bug(decomposability 反向、動畫名子字串誤判)。
+  見 `knowledge/s1-flat-pipeline-and-priors.md`。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -48,9 +54,10 @@
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
 下一個 bounded chunk 候選:
-0. **S1 分析器接續(使用者新增研究項目,已起步)**:(a) 規格 → 實際素材:把 #4 判 mesh 的件串
-   `generate_mesh_v2`、region 件串 `psd_slice`,端到端「目標圖 → 可載入 spine 素材」;(b) 平圖(未分層)
-   流程:無 PSD 時 rembg/SAM 粗切產候選件再跑同一分析器(補圖需求會上升,接補圖分級);(c) 分鏡先驗庫擴充。
+0. **S1 分析器接續**:(a) 規格 → 實際素材:把 #4 判 mesh 的件串 `generate_mesh_v2`、region 件串
+   `psd_slice`,端到端「目標圖 → 可載入 spine 素材」(**最高優先,純 CPU 可自驅**);
+   (b) ~~平圖流程~~ ✅ baseline 完成(結論:CPU 到頂,升級需 GPU 語意分層 SAM/See-Through,屬資源決策);
+   (c) ~~分鏡先驗庫~~ ✅ 2 類型已驗證;續補需**有真值**的類型 spine。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
 2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
    本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
@@ -104,6 +111,9 @@
 - 2026-06-26:**分支策略定案** — 排程 trigger 改**直接指向開發分支 `claude/zealous-noether-y2ecwu`**,
   不再走 PR/merge(零摩擦)。更新 `prompts/run.md`(分支說明 + 移除過時快照,改以 STATE 為準)、`SCHEDULE.md`。
   PR #1 已 merge;PR #2 關閉(改用分支直讀)。
+- 2026-08-19:**S1 擴充:平圖流程 + 分鏡先驗庫(使用者指定)** — (A) 平圖純 CPU 拆件 baseline + 真值召回閘
+  (同材質角色 0/5、0/18 語意召回,僅不相連塊可靠 → 佐證 PSD-first);(B) 先驗庫 slot_bigwin/slot_reveal
+  對 Award/main_draw 覆蓋率 1.0。修 2 評估器 bug(decomposability 反向、動畫名子字串誤判)。
 - 2026-08-19:**S1 目標圖反推分析器(里程碑,使用者新增研究項目)** — 分層 PSD → 五段規格
   (運動構件/周邊特效/動作分鏡/拆圖策略/補圖項目);`tools/analyzer/` + 對 Award 真值 5 項校驗全 PASS
   (件召回 1.0)。誠實界定補圖需求為輸入契約相依(分層 PSD 0 破洞)、#3 分鏡為類型先驗提案。

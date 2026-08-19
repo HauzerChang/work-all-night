@@ -21,26 +21,17 @@ import numpy as np
 import cv2
 from PIL import Image
 
+sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mesh_gen"))
 from psd_slice import slice_psd  # 重用 PSD 抽層(offset/size/opacity/z)
+import genre_priors as GP
 
 # 美術命名先驗:出現這些字樣 → 強烈暗示特效件(藝術家命名是最可靠的真實訊號)
 EFFECT_KW = ["光暈", "光晕", "glow", "光", "粒子", "particle", "放射", "radial",
              "star", "星", "spark", "火花", "ray", "光線", "flare", "發光", "halo",
              "圈", "circle_light", "光球", "ball", "亮", "shine", "lens", "bloom"]
 
-# 類型先驗:slot 大獎角色動畫的分鏡骨架(In → Loop → Out,常有多檔位變體)
-GENRE_PRIORS = {
-    "slot_bigwin": {
-        "beats": [
-            ("In", "入場爆發:主體放大/彈入,肢體大幅甩入,特效炸開(旋轉+放大+亮度峰值)"),
-            ("Loop", "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉"),
-            ("Out", "退場:主體縮出/淡出,特效收斂"),
-        ],
-        "tier_variants": ["Super", "Mega", "Omg", "Legend"],  # 常見獎項階梯
-        "note": "大獎主角常見結構:每檔位一組 In/Loop/Out(觀測到 Award 即 4 檔×3 = 12 支)",
-    }
-}
+# 類型先驗庫已抽到 genre_priors.py(可驗證、可擴充)。
 
 
 def part_metrics(entry, im, W, H):
@@ -134,33 +125,23 @@ def label_structural_role(part, name, W, H, all_struct):
 
 
 def build_storyboard(parts_out, genre):
-    prior = GENRE_PRIORS.get(genre, GENRE_PRIORS["slot_bigwin"])
+    prior = GP.get(genre)
     beats = []
-    for beat, desc in prior["beats"]:
+    for b in prior["beats"]:
+        rolemap = prior.get("roles", {}).get(b["key"], {})
         rows = []
         for p in parts_out:
-            if p["classification"]["is_effect"]:
-                role = "特效"
-                if beat == "In":
-                    act = "炸開:放大+旋轉+亮度峰值"
-                elif beat == "Loop":
-                    act = "脈動/緩轉(alpha/scale 微幅循環)"
-                else:
-                    act = "收斂淡出"
-            else:
-                role = p.get("struct_role", "limb")
-                if beat == "In":
-                    act = {"body": "彈入+輕微 overshoot 縮放", "head": "隨身體彈入+回正",
-                           "limb": "大幅甩入(旋轉+位移+放大)"}.get(role, "甩入")
-                elif beat == "Loop":
-                    act = {"body": "呼吸(±小幅縮放/位移)", "head": "微點頭/傾",
-                           "limb": "末梢小幅擺盪(相位錯開)"}.get(role, "微擺")
-                else:
-                    act = "縮出/淡出"
-            rows.append({"part": p["name"], "role": role, "action": act})
-        beats.append({"beat": beat, "desc": desc, "parts": rows})
-    return {"genre": genre, "tier_variants": prior.get("tier_variants"),
-            "note": prior.get("note"), "beats": beats, "status": "PROPOSAL(先驗提案,待真值校驗)"}
+            role = "effect" if p["classification"]["is_effect"] else p.get("struct_role", "limb")
+            act = rolemap.get(role) or rolemap.get("limb") or "(依先驗未定義)"
+            rows.append({"part": p["name"], "role": "特效" if role == "effect" else role,
+                         "action": act})
+        beats.append({"beat": b["key"], "desc": b["desc"], "parts": rows})
+    validated = prior.get("validated_against")
+    status = (f"PROPOSAL(先驗已對真值 {validated} 驗證覆蓋)" if validated
+              else "PROPOSAL(⚠️ 未驗證先驗,無對應真值 spine)")
+    return {"genre": genre, "genre_desc": prior.get("desc"),
+            "tier_variants": prior.get("tiers"),
+            "validated_against": validated, "beats": beats, "status": status}
 
 
 def _canvas_mask(part, W, H):
@@ -307,7 +288,7 @@ def to_markdown(spec):
                  f"| {p['score']} | {p['struct_role'] or '-'} |")
     L.append("\n## 3. 動作腳本 / 分鏡(先驗提案)")
     sb = spec["3_motion_storyboard"]
-    L.append(f"> {sb['note']}  檔位變體:{sb['tier_variants']}  狀態:{sb['status']}")
+    L.append(f"> 類型:{sb['genre_desc']}  檔位變體:{sb['tier_variants']}  狀態:{sb['status']}")
     for b in sb["beats"]:
         L.append(f"\n### {b['beat']} — {b['desc']}")
         L.append("| 件 | 角色 | 動作 |")

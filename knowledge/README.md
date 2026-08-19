@@ -39,4 +39,6 @@
 
 - [S1 目標圖反推分析器](s1-target-image-analyzer.md) — **落實使用者新增研究項目 + 具體化 S1**:分層 PSD → 五段規格(運動構件/周邊特效/動作分鏡/拆圖策略/補圖項目)。`tools/analyzer/`;對 `robot_parts.psd ⇄ Award` 真值 **5 項校驗全 PASS**(件召回 1.0、特效 5/5、幾何無 mismatch、分鏡 beats+4 檔位全中、露出 4/4)。誠實界定:**補圖需求是輸入契約相依**(分層 PSD 0 封閉破洞 → PSD-first 繞開補圖);#3 分鏡為類型先驗提案。範例:`s1-example-robot-spec.md`、`specs/robot_parts.spec.json`。
 
+- [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
