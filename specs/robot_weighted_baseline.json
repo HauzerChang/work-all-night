@@ -1,0 +1,556 @@
+{
+  "skeleton": "Award.json",
+  "meshes": {
+    "機器人拆件/光暈": {
+      "nv": 78,
+      "tris": 76,
+      "hull": 78,
+      "influence_bones": [
+        "4_LEG3",
+        "4_LEG4",
+        "4_LEG5",
+        "4_LEG6"
+      ],
+      "anims": {
+        "Award_Legend_In": {
+          "frames_sampled": 34,
+          "max_self_intersections": 71,
+          "max_triangle_flips": 7,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            0.877,
+            1.982
+          ],
+          "max_edge_stretch": 10.112,
+          "clean": false
+        },
+        "Award_Legend_Loop": {
+          "frames_sampled": 19,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            0.997,
+            1.002
+          ],
+          "max_edge_stretch": 1.151,
+          "clean": true
+        },
+        "Award_Legend_Out": {
+          "frames_sampled": 7,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            0.169,
+            1.075
+          ],
+          "max_edge_stretch": 1.037,
+          "clean": true
+        },
+        "Award_Mega_In": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Mega_Loop": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Mega_Out": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Omg_In": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Omg_Loop": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Omg_Out": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Super_In": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Super_Loop": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Super_Out": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        }
+      },
+      "worst": {
+        "self_intersections": 71,
+        "triangle_flips": 7,
+        "degenerate": 0,
+        "max_area_ratio": 1.982,
+        "max_edge_stretch": 10.112
+      },
+      "all_clean": false
+    },
+    "機器人拆件/左手": {
+      "nv": 80,
+      "tris": 116,
+      "hull": 42,
+      "influence_bones": [
+        "4_LEG5",
+        "4_LEG9"
+      ],
+      "anims": {
+        "Award_Legend_In": {
+          "frames_sampled": 25,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            0.743,
+            1.014
+          ],
+          "max_edge_stretch": 1.007,
+          "clean": true
+        },
+        "Award_Legend_Loop": {
+          "frames_sampled": 16,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            0.975,
+            1.0
+          ],
+          "max_edge_stretch": 1.76,
+          "clean": true
+        },
+        "Award_Legend_Out": {
+          "frames_sampled": 7,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            0.169,
+            1.075
+          ],
+          "max_edge_stretch": 1.037,
+          "clean": true
+        },
+        "Award_Mega_In": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Mega_Loop": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Mega_Out": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Omg_In": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Omg_Loop": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Omg_Out": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Super_In": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Super_Loop": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Super_Out": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        }
+      },
+      "worst": {
+        "self_intersections": 0,
+        "triangle_flips": 0,
+        "degenerate": 0,
+        "max_area_ratio": 1.075,
+        "max_edge_stretch": 1.76
+      },
+      "all_clean": true
+    },
+    "機器人拆件/身體": {
+      "nv": 98,
+      "tris": 154,
+      "hull": 40,
+      "influence_bones": [
+        "4_LEG3",
+        "4_LEG7",
+        "4_LEG8"
+      ],
+      "anims": {
+        "Award_Legend_In": {
+          "frames_sampled": 13,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            0.902,
+            1.014
+          ],
+          "max_edge_stretch": 1.007,
+          "clean": true
+        },
+        "Award_Legend_Loop": {
+          "frames_sampled": 7,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.001
+          ],
+          "max_edge_stretch": 1.394,
+          "clean": true
+        },
+        "Award_Legend_Out": {
+          "frames_sampled": 7,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            0.169,
+            1.075
+          ],
+          "max_edge_stretch": 1.037,
+          "clean": true
+        },
+        "Award_Mega_In": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Mega_Loop": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Mega_Out": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Omg_In": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Omg_Loop": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Omg_Out": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Super_In": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Super_Loop": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        },
+        "Award_Super_Out": {
+          "frames_sampled": 1,
+          "max_self_intersections": 0,
+          "max_triangle_flips": 0,
+          "max_degenerate": 0,
+          "area_ratio_range": [
+            1.0,
+            1.0
+          ],
+          "max_edge_stretch": 1.0,
+          "clean": true
+        }
+      },
+      "worst": {
+        "self_intersections": 0,
+        "triangle_flips": 0,
+        "degenerate": 0,
+        "max_area_ratio": 1.075,
+        "max_edge_stretch": 1.394
+      },
+      "all_clean": true
+    }
+  },
+  "AC3a_setup_clean": {
+    "pass": true
+  },
+  "AC3b_artist_baseline": {
+    "機器人拆件/光暈": {
+      "worst_self_intersections": 71,
+      "worst_flips": 7,
+      "worst_degenerate": 0,
+      "max_area_ratio": 1.982,
+      "max_edge_stretch": 10.112
+    },
+    "機器人拆件/左手": {
+      "worst_self_intersections": 0,
+      "worst_flips": 0,
+      "worst_degenerate": 0,
+      "max_area_ratio": 1.075,
+      "max_edge_stretch": 1.76
+    },
+    "機器人拆件/身體": {
+      "worst_self_intersections": 0,
+      "worst_flips": 0,
+      "worst_degenerate": 0,
+      "max_area_ratio": 1.075,
+      "max_edge_stretch": 1.394
+    }
+  },
+  "AC4_negative_control": {
+    "機器人拆件/光暈": {
+      "any_break": true,
+      "worst": {
+        "self_intersections": 3416,
+        "triangle_flips": 11,
+        "degenerate": 0,
+        "max_area_ratio": 1.524,
+        "max_edge_stretch": 7.502
+      }
+    },
+    "機器人拆件/左手": {
+      "any_break": true,
+      "worst": {
+        "self_intersections": 4404,
+        "triangle_flips": 2,
+        "degenerate": 0,
+        "max_area_ratio": 1.075,
+        "max_edge_stretch": 1.1
+      }
+    },
+    "機器人拆件/身體": {
+      "any_break": true,
+      "worst": {
+        "self_intersections": 6777,
+        "triangle_flips": 0,
+        "degenerate": 0,
+        "max_area_ratio": 1.075,
+        "max_edge_stretch": 1.131
+      }
+    },
+    "_at_least_one_breaks": true
+  }
+}

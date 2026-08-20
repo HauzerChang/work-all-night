@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S3 weighted-mesh 骨骼變形評估器](s3-weighted-deform-evaluator.md) — **補齊 `compare_robot_mesh` 的變形品質限制**:Spine 3.8 LBS + bone timeline 取樣對 Award 機器人 3 mesh 逐 anim 逐頂點算 world,套幾何品質閘。**AC3a Setup 拓樸乾淨 + AC4 負對照打斷 全 PASS**;錄下藝術家真值 baseline(供未來 S3-weighted 生成器 candidate 2 對照)。發現 4 個 3.8 資料坑:祖先動畫傳遞、`transform=None`==normal、**scale kf 缺欄 default 是 1(其他 channel 是 0)**、軟邊 halo 藝術家實務容忍 → **絕對「0 缺陷」不是真理,ground-truth baseline 才是**。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

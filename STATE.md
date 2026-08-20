@@ -38,6 +38,14 @@
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
+- **S3 weighted-mesh 骨骼變形評估器(2026-08-20,補上 compare_robot_mesh 的變形維度)** —
+  `tools/mesh_gen/weighted_deform_eval.py`:Spine 3.8 LBS + bone timeline 取樣;對 Award 3 mesh(光暈/左手/身體)
+  跑完 12 anim × 每 anim 取樣 keyframe 聯集。**AC3a setup 拓樸乾淨 + AC4 負對照打斷 全 PASS**;
+  錄下藝術家真值 baseline(左手/身體全動畫全乾淨,area~1.07 edge≤1.76;光暈 halo Legend_In 前段有 71 SI/7 flips/2x
+  面積/10x 邊拉伸 —— 藝術家對半透明加成效果的實務容忍,已錄成 baseline)。發現 4 個 3.8 資料坑:祖先動畫傳遞、
+  `transform=None`==normal、**scale kf 缺欄 default 是 1**(其他 channel 為 0)、軟邊 halo 藝術家實務容忍
+  → 「絕對 0 缺陷」不是真理,ground-truth baseline 才是。**S3-weighted 生成器 candidate 2 的評估器樞紐已就位**。
+  baseline 存 `specs/robot_weighted_baseline.json`。見 `knowledge/s3-weighted-deform-evaluator.md`。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -66,10 +74,9 @@
    timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
    (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
-2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
-   本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
-   幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
-   才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+2. **S3-weighted 生成器 candidate**:評估器已就位(2026-08-20,`weighted_deform_eval.py` 錄下 3 件 baseline)。
+   下一個 bounded chunk:對藝術家 mesh 靜態拓樸 + 骨骼結構做 BBW(bounded biharmonic weights)自動綁權重,
+   對比藝術家權重(逐頂點主 bone + 權重分佈直方圖差異),再用 baseline 判 PASS。純 CPU 可自驅。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
@@ -93,6 +100,13 @@
 - ℹ️ spine_inspector 實機 round-trip 需瀏覽器自動化(headless),尚未設置。
 
 ## 進度摘要 (progress log)
+
+- 2026-08-20:**S3 weighted-mesh 骨骼變形評估器(補齊 compare_robot_mesh 變形維度)** —
+  `weighted_deform_eval.py`(Spine 3.8 LBS + bone timeline 取樣):對 Award 機器人 3 mesh 錄下藝術家 baseline
+  (左手/身體全動畫乾淨;光暈 halo Legend_In transient SI 為藝術家實務容忍,已錄成上限)。
+  AC3a setup 零缺陷 + AC4 負對照 全 PASS。踩到 4 個 3.8 資料坑並修:祖先動畫傳遞、`transform=None`==normal、
+  **scale kf 缺欄 default 是 1**、軟邊藝術家實務容忍。baseline `specs/robot_weighted_baseline.json`。
+  下一步:candidate 2 的生成器(BBW 權重自動綁定),用此評估器對照收斂。
 
 - 2026-06-24：建立自驅研究框架骨架(RULES/PLAN/STATE/knowledge/log/prompts)。
 - 2026-06-24：匯入「Spine mesh system analysis」完整交接;PLAN/RULES/STATE 依實際研究內容填妥,狀態轉 `ACTIVE`。
