@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S3 weighted-mesh 變形評估器](s3-weighted-deform-evaluator.md) — **補上 weighted mesh 唯一未驗維度**(骨骼+權重變形):新建前向蒙皮(Spine normal-mode)+ 拓樸閘。對 Award 3 件美術 weighted mesh `evaluator_validated: true` —— **正確性錨**(權重和=1、setup 乾淨、setup bbox 主軸 ≈ region 0.94~0.99,獨立佐證蒙皮數學)+ **折疊偵測力**(break-angle,calibration-free,光暈7°/左手24°/身體31°)。關鍵校正:**「平滑權重一定比硬指派耐變形」是錯的**,依驅動骨影響力而異(左手 hard-partition 反而剛體不破)。是 BBW 權重生成器的自我品質閘。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
