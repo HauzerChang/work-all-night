@@ -21,7 +21,14 @@
   機器人 3 mesh 件(光暈/左手/身體)生成 mesh,同 region 框內靜態覆蓋率 IoU **3 件全 PASS**
   (達美術基準 −0.03 內、0 孤兒),且頂點更省(37~48 vs 美術 78~98)。發現 **mesh uvs 是 region-local**;
   新增 `boundary-dense-v1` 軟邊 blob 模式(光暈 0.92→0.98)+ 通用 `prune_orphans`。
-  ⚠️ 限制:weighted mesh 骨骼變形平滑度未驗(靜態 IoU 不涵蓋)。見 `knowledge/s3-robot-mesh-vs-award.md`。
+  見 `knowledge/s3-robot-mesh-vs-award.md`。
+- **S3 weighted mesh 骨骼變形平滑度已驗(里程碑,2026-08-20,補齊 S3 最後未驗維度)** —
+  純 CPU biharmonic 權重求解器(`tools/mesh_gen/bbw_weights.py`)對 Award 3 件真實美術 weighted mesh
+  (光暈/左手/身體)**AC-A 全 PASS**:重現美術權重變形誤差 ≤6.8% 對角線,且**我方翻面數 ≤ 美術翻面**
+  在 pose battery(±10/±20/±35°)全成立(+35° 身體:我 0 / 美術 3 翻面)。閘 `validate_bbw.py`。
+  **關鍵發現**:0 翻面槓桿是**權重平滑度、非內部頂點密度**(密度掃描 nV 106→221 在 ≤35° 皆 0 翻面)
+  → 修正 `s3-robot-mesh-vs-award` 的「dense interior=smoothness」假設,可保頂點經濟度。
+  見 `knowledge/s3-weighted-mesh-bbw.md`。
 - **S1 目標圖反推分析器:首個原型 + 真值驗收(里程碑,2026-08-19,使用者新增研究項目)** —
   `tools/analyzer/analyze_target.py`(分層 PSD → 五段規格:運動構件/周邊特效/動作分鏡/拆圖策略/補圖項目)
   + `validate_analyzer_award.py`(對 `robot_parts.psd ⇄ Award` 真值)**5 項校驗全 PASS**
@@ -66,10 +73,10 @@
    timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
    (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
-2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
-   本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
-   幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
-   才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+2. ~~S3 weighted mesh + 內部取樣密度 + BBW 權重~~ **✅ 已完成(2026-08-20,見上)**。biharmonic 權重
+   對 3 件美術真值 AC-A 全 PASS;發現 0 翻面槓桿是權重平滑度非頂點密度。**下一步(端到端)**:把
+   `generate_mesh_v2` 自產輪廓 + 內部取樣 + `bbw_weights` 對映進骨架世界空間 → 寫回 Spine weighted
+   attachment(`to_spine_vertices` 已備),跑同一 flip 閘;或升級 handle 為骨線段(非點)降一致性誤差。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
@@ -135,6 +142,11 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-20:**S3 weighted mesh 骨骼變形平滑度(里程碑,補齊 S3 最後未驗維度)** —
+  純 CPU biharmonic 權重求解器 `bbw_weights.py`(cotangent Laplacian 的 BBW 鬆弛版)+ 閘 `validate_bbw.py`;
+  對 Award 3 件美術 weighted mesh AC-A 全 PASS(一致性誤差 ≤6.8% 對角線、我方翻面 ≤ 美術翻面全 pose 成立)。
+  發現 0 翻面槓桿是**權重平滑度非內部頂點密度**(密度掃描 ≤35° 全 0 翻面)→ 修正舊「dense interior=smoothness」
+  假設。圖 `s3_bbw_weights_body.png`。requirements 加 matplotlib。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

@@ -41,6 +41,8 @@
 
 - [S1 端到端 → 可載入 Spine 素材(SkelToJson)](s1-build-spine-end-to-end.md) — **規格→實際素材端到端打通**:`build_spine.py` 串 analyze_target+psd_slice+generate_mesh_v2 → Spine 3.8 json+atlas+png;`validate_build.py` round-trip(重建 setup pose==原圖)對 robot(5件)/Symbol_Ww(18件)**全 PASS**(MAE 0.03/0.24、0 孤兒、0 未解析)。誠實界定:只驗靜態幾何/貼圖編碼,動畫 keyframe/mesh 變形/關節 pivot 屬後續。
 
+- [S3 weighted mesh 骨骼變形平滑度(BBW 權重)](s3-weighted-mesh-bbw.md) — **補齊 S3 最後未驗維度**:純 CPU biharmonic 權重求解器對 Award 3 件真實美術 weighted mesh(光暈/左手/身體)**AC-A 全 PASS** —— 重現美術權重變形誤差 ≤6.8% 對角線,且**我方翻面數 ≤ 美術翻面**在所有 pose 成立(+35° 身體:我 0 / 美術 3)。**關鍵發現**:0 翻面的槓桿是**權重平滑度非內部頂點密度**(密度掃描 nV 106→221 在 ≤35° 皆 0 翻面)→ 修正 `s3-robot-mesh-vs-award` 的「dense interior=smoothness」假設,可保頂點經濟度。工具 `bbw_weights.py`+`validate_bbw.py`。
+
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
