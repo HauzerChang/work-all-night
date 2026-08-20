@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mesh_gen"))
 from psd_slice import slice_psd
 from generate_mesh_v2 import generate as gen_mesh
 from analyze_target import analyze
+from gen_animation import synth_animations
 
 
 def safe(name):
@@ -45,7 +46,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
     return placements, (W, H)
 
 
-def build(psd_path, out_dir, genre="slot_bigwin"):
+def build(psd_path, out_dir, genre="slot_bigwin", animate=True):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
     psd, manifest, parts = slice_psd(psd_path, parts_dir)     # 切件 PNG(裁到 bbox)+ manifest
@@ -108,16 +109,21 @@ def build(psd_path, out_dir, genre="slot_bigwin"):
             att = {"x": 0, "y": 0, "width": w, "height": h}   # region;bone 已在件中心
         skin[nm] = {nm: att}
 
+    # 分鏡 → 動畫 keyframe(#3 storyboard → Spine animations;讓素材「會動」)。
+    bone_names = {b["name"] for b in bones}
+    slot_names = {s["name"] for s in slots}
+    animations = synth_animations(spec, W, H, bone_names, slot_names) if animate else {}
+
     skeleton = {
         "skeleton": {"hash": "gen", "spine": "3.8.75", "x": 0, "y": 0,
                      "width": W, "height": H, "images": "./"},
         "bones": bones, "slots": slots,
-        "skins": {"default": skin}, "animations": {},
+        "skins": {"default": skin}, "animations": animations,
     }
     json.dump(skeleton, open(os.path.join(out_dir, "skeleton.json"), "w"),
               ensure_ascii=False, indent=1)
     summary = {"out": out_dir, "canvas": [W, H], "atlas_page": [PW, PH],
-               "parts": len(parts),
+               "parts": len(parts), "animations": list(animations.keys()),
                "mesh_parts": [names[i] for i in order if geo.get(metas[i]["name"], "").startswith("mesh")],
                "region_parts": [names[i] for i in order if not geo.get(metas[i]["name"], "").startswith("mesh")]}
     return summary
@@ -128,9 +134,10 @@ def main():
     ap.add_argument("psd")
     ap.add_argument("--out", default=None)
     ap.add_argument("--genre", default="slot_bigwin")
+    ap.add_argument("--no-animate", action="store_true", help="只產 setup pose,不生動畫")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
-    s = build(a.psd, out, a.genre)
+    s = build(a.psd, out, a.genre, animate=not a.no_animate)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

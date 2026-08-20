@@ -38,6 +38,13 @@
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
+- **S1 分鏡 → 動畫 keyframe:素材「會動」(里程碑,2026-08-20)** — `gen_animation.py` 把 #3 分鏡
+  beat(In/Loop/Out …)× 結構角色(body/head/limb/effect)**確定性**合成 Spine 3.8 bone/slot timeline;
+  `validate_animation.py` 量化閘(AC1 結構合法 / AC2 語意幅度分帶 / Loop seamless / AC3 角色分化 / AC4 非平凡,
+  含 5 負對照+1 正對照 self-test)。robot(5件)+Symbol_Ww(18件)× slot_bigwin/slot_symbol **動畫閘全 PASS**,
+  round-trip 靜態 setup pose 不受影響(MAE 0.031)。已整合進 `build_spine.py`(預設 animate,`--no-animate` 關)。
+  閘 metrics 揪出並修 2 退化 bug(Loop 首 limb 零幅、多 limb In 中幀時刻碰撞)。誠實界定:動作幅度/相位是
+  類型先驗參數(非影片觀測),實機播放視覺未驗(CDN 被擋)。見 `knowledge/s1-storyboard-to-animation.md`。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -62,9 +69,10 @@
 0. **S1 分析器接續**:(a) ~~規格 → 實際素材~~ ✅ 完成(`build_spine.py`+`validate_build.py`,round-trip 全 PASS);
    (b) ~~平圖流程~~ ✅ baseline 完成(CPU 到頂,升級需 GPU 語意分層,屬資源決策);
    (c) ~~分鏡先驗庫~~ ✅ 2 類型已驗證;續補需**有真值**的類型 spine。
-   **下一個最高優先**:(d) **分鏡 → 動畫 keyframe**:把 #3 storyboard(尤其 Loop 呼吸)轉成 Spine `animations`
-   timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
-   (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
+   (d) ~~分鏡 → 動畫 keyframe~~ ✅ **完成(2026-08-20)**:`gen_animation.py`+`validate_animation.py`,
+   In/Loop/Out timeline 對 robot+Symbol_Ww×2 類型量化閘全 PASS,已整合進 build_spine。素材現在「會動」。
+   **下一個最高優先**:(e) **關節 pivot 推斷**(件中心→相鄰件關節),讓 limb 動作繞真實關節旋轉
+   (現為件中心),同時供 S5;或 (f) **mesh 件 deform timeline**(呼吸讓軟邊 mesh 形變,接 S3 的變形評估器)。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
 2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
    本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
@@ -76,8 +84,9 @@
 5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S3+S4 已端到端串通並對真實生產美術 mesh 驗收(靜態層級)。建議下一步:候選 2(weighted+BBW),
-> 補上「weighted mesh 骨骼變形平滑度」這唯一未驗維度;真值(權重/骨架)已在 `Award.json`,純 CPU 可自驅。
+> S3+S4 已端到端串通並對真實生產美術 mesh 驗收(靜態層級);S1 pipeline 現已「會動」(0d 完成)。
+> 建議下一步二選一:**候選 2(S3 weighted+BBW)** 補「weighted mesh 骨骼變形平滑度」唯一未驗維度
+> (真值權重/骨架已在 `Award.json`);或 **候選 0e(關節 pivot 推斷)** 讓 limb 動作繞真實關節旋轉、並解鎖 S5。皆純 CPU 可自驅。
 
 ## 環境前置(已驗證可用)
 
@@ -123,6 +132,9 @@
 - 2026-08-19:**S1 擴充:平圖流程 + 分鏡先驗庫(使用者指定)** — (A) 平圖純 CPU 拆件 baseline + 真值召回閘
   (同材質角色 0/5、0/18 語意召回,僅不相連塊可靠 → 佐證 PSD-first);(B) 先驗庫 slot_bigwin/slot_reveal
   對 Award/main_draw 覆蓋率 1.0。修 2 評估器 bug(decomposability 反向、動畫名子字串誤判)。
+- 2026-08-20:**S1 分鏡 → 動畫 keyframe:素材「會動」(里程碑)** — `gen_animation.py`(#3 分鏡
+  beat×角色 → Spine 3.8 bone/slot timeline)+ `validate_animation.py`(量化閘 14~15 檢查,含負對照 self-test)。
+  robot+Symbol_Ww×2 類型全 PASS;round-trip 靜態不受影響。整合進 build_spine(預設 animate)。閘 metrics 揪修 2 退化 bug。
 - 2026-08-19:**S1 目標圖反推分析器(里程碑,使用者新增研究項目)** — 分層 PSD → 五段規格
   (運動構件/周邊特效/動作分鏡/拆圖策略/補圖項目);`tools/analyzer/` + 對 Award 真值 5 項校驗全 PASS
   (件召回 1.0)。誠實界定補圖需求為輸入契約相依(分層 PSD 0 破洞)、#3 分鏡為類型先驗提案。
