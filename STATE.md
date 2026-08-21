@@ -70,10 +70,11 @@
 
 > 🎯 **使用者定案排序(2026-08-21):先研究「物理世界」。** 排程接手時**依此順序**挑一個 bounded chunk:
 >
-> **【P1 最高】分鏡 → 動畫 keyframe(原 S1 候選 0d)** — 讓 `build_spine` 產物「會動」:把 storyboard
->   (尤其 Loop 呼吸)轉成 Spine `animations` timeline。這是物理注入的**基底**(要有 keyframe 才能注入物理)。
->   純 CPU;自驗:幾何量化(bone 位移/旋轉範圍)+ `motion_physics.py` 量產出動畫的物理簽名。
-> **【P2】物理注入生成端 v1(P/S6)** — 把「機械」keyframe 自動加 ease(依質量)+ overshoot(依阻尼)
+> **【P1 最高】分鏡 → 動畫 keyframe** — ✅ **v1 完成(2026-08-21)**:`storyboard_to_anim.py` 生成無縫
+>   待機呼吸 Loop,讓 `build_spine` 產物會動;對 main_draw + robot 產物 4 AC 全 PASS
+>   (loop 閉合/有界/inertia_index=1.0/round-trip)。揪出 build_spine 為扁平 rig(名稱關鍵字選軀幹)。
+>   見 `knowledge/p2-storyboard-to-keyframe.md`。續:其餘 beat(comeout/open/hit/close)+ 階層 rig 的 follow-through。
+> **【P2 現在最高】物理注入生成端 v1(P/S6)** — 把「機械」keyframe 自動加 ease(依質量)+ overshoot(依阻尼)
 >   + 末梢 follow-through lag;用 `motion_physics.py` 量注入後 inertia_index/overshoot **上升**,
 >   並用 `weighted_deform_eval.py`/`deform_eval.py` 確認**拓樸不壞**。掛在 P1 之上 → 產出「會動且動得自然」。
 > **【P3】材質分類器(P/S6)** — 用物理簽名把件/動畫判 rigid/cloth/jelly;對窗簾(cloth)有真值可對照。
@@ -160,6 +161,9 @@
 - 2026-08-19:**S1 擴充:平圖流程 + 分鏡先驗庫(使用者指定)** — (A) 平圖純 CPU 拆件 baseline + 真值召回閘
   (同材質角色 0/5、0/18 語意召回,僅不相連塊可靠 → 佐證 PSD-first);(B) 先驗庫 slot_bigwin/slot_reveal
   對 Award/main_draw 覆蓋率 1.0。修 2 評估器 bug(decomposability 反向、動畫名子字串誤判)。
+- 2026-08-21:**P1 分鏡→動畫 keyframe 生成器 v1(物理主線第一步)** — `storyboard_to_anim.py` 生成
+  無縫待機呼吸 Loop(scaleY 主導、bezier ease-in-out、校準自 main_draw.main_idle2),讓 build_spine 產物會動;
+  4 AC 對 main_draw+robot 全 PASS(inertia_index=1.0)。揪出 build_spine 為扁平 rig。見 `knowledge/p2-storyboard-to-keyframe.md`。
 - 2026-08-21:**P/S6 物理可信度 v1 分析器 + 評估器(里程碑,使用者新增研究項目)** —
   「spine 動畫中的物理世界」落成可量測運動學簽名(ease/follow-through/overshoot/squash/soft-body);
   `motion_physics.py` 雙控驗證(負對照線性化 + 正對照相位延遲,抓修符號 bug),兩資產 selftest validated。
