@@ -41,6 +41,8 @@
 
 - [S1 端到端 → 可載入 Spine 素材(SkelToJson)](s1-build-spine-end-to-end.md) — **規格→實際素材端到端打通**:`build_spine.py` 串 analyze_target+psd_slice+generate_mesh_v2 → Spine 3.8 json+atlas+png;`validate_build.py` round-trip(重建 setup pose==原圖)對 robot(5件)/Symbol_Ww(18件)**全 PASS**(MAE 0.03/0.24、0 孤兒、0 未解析)。誠實界定:只驗靜態幾何/貼圖編碼,動畫 keyframe/mesh 變形/關節 pivot 屬後續。
 
+- [S3 weighted mesh 骨骼驅動變形評估器](s3-weighted-mesh-deform-eval.md) — **補上 `s3-robot-mesh-vs-award.md` 的唯一未驗維度(weighted 骨骼變形平滑度)**:`weighted_deform_eval.py` 對 Award 3 美術 weighted mesh(光暈/左手/身體)做**真實骨動** skinning(含緊湊 bezier easing)+ 拓樸閘。**穩態 `*_Loop` 3 件全 0 自交/0 翻面 + setup 乾淨**(`_checker_validated=True`);負對照雙向抓得到(bind 打亂 6804 / glow In 未遮罩 71)。⭐ **更正 STATE 舊假設**「這 3 件無變形動畫」——腿骨在 Legend 家族有 timeline。⭐⭐ 最重要:**weighted 變形閘必須做 alpha 可見度遮罩**(glow In 全幀 71 自交全發生在 alpha=0 進場段,一開透明就乾淨;CLAUDE.md 雷點 #2/#3 的 weighted 版)。相位分閘:Loop=硬閘、In/Out 微觀瞬時折疊=診斷。誠實界定:評估器已就位,**我方 BBW 生成器對照是下一 chunk**。
+
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
