@@ -41,6 +41,8 @@
 
 - [S1 端到端 → 可載入 Spine 素材(SkelToJson)](s1-build-spine-end-to-end.md) — **規格→實際素材端到端打通**:`build_spine.py` 串 analyze_target+psd_slice+generate_mesh_v2 → Spine 3.8 json+atlas+png;`validate_build.py` round-trip(重建 setup pose==原圖)對 robot(5件)/Symbol_Ww(18件)**全 PASS**(MAE 0.03/0.24、0 孤兒、0 未解析)。誠實界定:只驗靜態幾何/貼圖編碼,動畫 keyframe/mesh 變形/關節 pivot 屬後續。
 
+- [S1 分鏡 → 動畫 keyframe(待機/呼吸循環)](s1-storyboard-to-animation.md) — **讓產出素材會動**:`build_spine` 自動配一支無縫循環待機動畫(body 呼吸/head 微傾/limb 相位錯開擺盪/effect alpha 脈動),由結構角色驅動。`storyboard_anim.py`(生成)+ `validate_anim.py`(純 Python Spine 3.8 timeline 取樣器 + 5 條 AC)。robot(5件)/Symbol_Ww(18件)**5 AC 全 PASS**,round-trip 不受影響。取樣器對 main_draw 386 keyframe 自驗 error=0 + 4 項負對照全鑑別。修 2 評估器 bug(per-field 誤殺 no-op、`|angle|` 對 π 相位差不敏感)。誠實界定:只生循環待機、幅度為通用先驗(待影片校準)、bone 為 root 直接子(關節鏈屬 S5)。
+
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

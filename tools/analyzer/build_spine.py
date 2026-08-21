@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mesh_gen"))
 from psd_slice import slice_psd
 from generate_mesh_v2 import generate as gen_mesh
 from analyze_target import analyze
+from storyboard_anim import build_loop_animation
 
 
 def safe(name):
@@ -108,16 +109,18 @@ def build(psd_path, out_dir, genre="slot_bigwin"):
             att = {"x": 0, "y": 0, "width": w, "height": h}   # region;bone 已在件中心
         skin[nm] = {nm: att}
 
+    # 分鏡 → 待機/呼吸循環動畫(S1 #3d);由結構角色驅動,無縫 loop
+    anim_name, anim, anim_meta = build_loop_animation(spec, safe)
     skeleton = {
         "skeleton": {"hash": "gen", "spine": "3.8.75", "x": 0, "y": 0,
                      "width": W, "height": H, "images": "./"},
         "bones": bones, "slots": slots,
-        "skins": {"default": skin}, "animations": {},
+        "skins": {"default": skin}, "animations": {anim_name: anim},
     }
     json.dump(skeleton, open(os.path.join(out_dir, "skeleton.json"), "w"),
               ensure_ascii=False, indent=1)
     summary = {"out": out_dir, "canvas": [W, H], "atlas_page": [PW, PH],
-               "parts": len(parts),
+               "parts": len(parts), "animation": anim_meta,
                "mesh_parts": [names[i] for i in order if geo.get(metas[i]["name"], "").startswith("mesh")],
                "region_parts": [names[i] for i in order if not geo.get(metas[i]["name"], "").startswith("mesh")]}
     return summary
