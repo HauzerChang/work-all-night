@@ -13,6 +13,12 @@
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
+- **S3 weighted-mesh 變形評估器完成(里程碑,2026-08-21)** — 補上 S3 唯一未驗維度(weighted 骨骼變形平滑度)。
+  `tools/mesh_gen/weighted_deform.py`(Spine 3.8 FK normal 模式 + weighted 頂點 + 平滑度度量:翻面/自交/面積畸變/邊長拉伸CV)
+  + `validate_weighted_award.py` 對 Award 3 件真實美術 weighted mesh **4 道 AC 全 PASS**:AC1 setup 保真、
+  **AC2 剛體不變性(旋轉共同祖先骨→area=1/cv=0,證 FK 數學正確)**、AC3 關節彎折簽章(身體30°/左手20°/光暈5°)、
+  **AC4 隨機權重負對照鑑別力(break 74/37/10 vs 藝術家 0、拉伸CV 3~4×)**。發現:父骨帶動=剛體、子骨相對彎折才是真變形;
+  各件變形容忍度差很多需逐件比對。**這是評判 BBW 生成 weighted mesh 品質的前置閘。** 見 `knowledge/s3-weighted-deform-evaluator.md`。
 - **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
@@ -66,10 +72,13 @@
    timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
    (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
-2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
-   本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
-   幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
-   才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+2. **❗最高優先:S3 weighted mesh + 內部取樣密度 + BBW 權重**。
+   ✅ **評估器先行部分已完成(2026-08-21)** — weighted 變形評估器可信度 4 AC 全 PASS
+   (`weighted_deform.py`+`validate_weighted_award.py`,見 `knowledge/s3-weighted-deform-evaluator.md`)。
+   **剩下的生成部分(下一個 bounded chunk)**:對機器人某件(建議身體,綁 4_LEG3/7/8)自動生成
+   內部取樣頂點 + 自動骨綁權重(先骨-熱/距離平滑 baseline,差距大再升 BBW biharmonic),
+   用評估器 AC2/AC3/AC4 度量**逐件對藝術家簽章比對**(乾淨角包絡 ≥ 藝術家、拉伸 CV ≤ 藝術家×合理係數)。
+   純 CPU 可自驅。關鍵測試法:驅動子骨相對父骨彎關節(見 knowledge 的「父骨帶動=剛體」發現)。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
@@ -94,6 +103,11 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-08-21:**S3 weighted-mesh 變形評估器(里程碑)** — 補上 S3 唯一未驗維度。`weighted_deform.py`
+  (Spine 3.8 normal FK + weighted 頂點 + 平滑度度量)+ `validate_weighted_award.py` 對 Award 3 件真實
+  美術 weighted mesh **4 AC 全 PASS**(setup 保真 / 剛體不變性=FK 數學正確 / 關節彎折簽章 / 隨機權重負對照
+  break 74/37/10 vs 0)。發現父骨帶動=剛體、子骨相對彎折才是真變形;各件容忍度差很多(30°/20°/5°)。
+  解鎖 BBW 生成品質評判。見 `knowledge/s3-weighted-deform-evaluator.md`。
 - 2026-06-24：建立自驅研究框架骨架(RULES/PLAN/STATE/knowledge/log/prompts)。
 - 2026-06-24：匯入「Spine mesh system analysis」完整交接;PLAN/RULES/STATE 依實際研究內容填妥,狀態轉 `ACTIVE`。
 - 2026-06-24：**S3 第一輪** — 探測並安裝 CPU 套件;完成 mesh 生成器 + 評估器 + 合成測試;6 條 AC 全過(IoU 0.99)。

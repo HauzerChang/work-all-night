@@ -40,14 +40,18 @@
 - 目標：為四能力各寫「自我品質閘」(可機讀判準)。**樞紐：沒它自主迴圈無法收斂**。
 - 完成條件：四個評估器都能對既有 `main_draw` 產出 pass/fail + 量化差距。
 - 環境：純 CPU(含 vision 比對)。
-- 狀態：⬜ 未開始
+- 狀態：🟡 **切圖閘 + mesh weighted 變形閘完成**。切圖閘 `evaluate_slicing.py`(main_draw 45/45 全過);
+  weighted-mesh 變形閘 `weighted_deform.py`+`validate_weighted_award.py`(Award 3 件 4 AC 全 PASS,
+  含剛體不變性與隨機權重負對照)。尚缺:補圖閘、骨架閘。
 
 ### S3 mesh 生成器  ★建議先做
 - 目標：SpriteToMesh 式拓樸(findContours+多通道 Canny+Delaunay) + BBW 權重 + SkelToJson 讀寫。
 - 完成條件：對一張 PNG 自動產出可用 mesh，寫入 Spine JSON，在 inspector 極端 deform 幀
   0 自交 / 0 撕裂 / 頂點數在預算內 / 輪廓吻合。
 - 環境：純 CPU，可全自動(2026 SpriteToMesh 已驗證)。
-- 狀態：⬜ 未開始
+- 狀態：🟢 **生成器 + 靜態/deform/weighted-變形評估器就緒**。v2 strip 對 4 unweighted mesh 全 deform 乾淨;
+  對 Award 3 件美術 mesh 靜態覆蓋率全 PASS;**weighted 骨骼變形平滑度評估器已驗收(唯一未驗維度補上)**。
+  剩:weighted mesh **生成**(內部取樣密度 + 自動骨綁權重/BBW),用 weighted 變形評估器逐件對藝術家簽章比對。
 
 ### S4 切圖 + 補圖
 - 目標：PSD-first 契約(psd-tools) + CPU 半自動 fallback；補圖分級降階(外擴→cv2→LaMa→GPU/人工)。
