@@ -61,6 +61,18 @@
 - 環境：人形 CPU；非人形 CPU/GPU。**唯一卡死環節 — 人力集中於此**。
 - 狀態：⬜ 未開始
 
+### P(S6)物理可信度 / Motion Physics ★使用者新增(2026-08-21)
+- 目標:讓產出動畫**更具說服力、動態更自然**。三子項:①認知材質與其運動(rigid/cloth/jelly)
+  ②認知質量/面積/空氣阻力/慣性等物理屬性 ③以上化為可信度提升。
+- 方法(依 RULES:確定性 + 評估器,不用 ML):把物理落成**可量測運動學簽名** —— ease(慣性/重量)、
+  follow-through(末梢跟隨)、overshoot(回穩)、squash 體積守恆、soft-body 形變波。
+- 完成條件:(a) 可信度評估器對真實動畫給量化簽名且經雙控驗證;(b) 生成端能「注入物理」使評估器分數上升
+  且拓樸不壞(接 S3 deform 閘 / weighted_deform_eval);(c) 材質分類對真值達標。
+- 狀態:🟡 **v1 分析器 + 評估器完成(2026-08-21)** — `tools/analyzer/motion_physics.py`;
+  對 main_draw / Award 抽物理簽名,`--selftest` 負對照(線性化)+ 正對照(相位延遲)皆 `validated`。
+  發現:此風格物理詞彙 = **ease + overshoot 為主、體積守恆 S&S 幾乎不用**;正對照抓修一個相位符號 bug。
+  見 `knowledge/p1-motion-physics-analyzer.md`。待續:材質分類器 / 物理注入生成端 / squash 正對照。
+
 ## 關鍵策略結論(別忘)
 
 - **改輸入契約比硬攻演算法划算**：能要到分層 PSD 就要，切圖+補圖兩大難題大半消失。

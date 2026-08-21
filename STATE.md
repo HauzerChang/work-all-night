@@ -47,6 +47,14 @@
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
 - S5 尚未開始。
+- **P/S6 物理可信度:v1 分析器 + 評估器完成(里程碑,2026-08-21,使用者新增研究項目)** —
+  新研究項目「spine 動畫中的物理世界」(材質→運動、質量/面積/空阻/慣性、目標=更自然更有說服力)。
+  `tools/analyzer/motion_physics.py`:把物理落成**可量測運動學簽名**(ease 慣性/重量、follow-through 末梢跟隨、
+  overshoot 回穩、squash 體積守恆、soft-body 形變波),從真實動畫抽取。**雙控驗證**:負對照(線性化→
+  inertia_index 0)+ 正對照(相位延遲精確回收,**抓修一個相位符號 bug**),兩資產 `--selftest` 皆 validated。
+  發現:此風格物理詞彙 = **ease + overshoot 為主、體積守恆 S&S 幾乎不用**;follow-through 視關節度
+  (Award 腿鏈 0.58 > main_draw 窗簾 0.32);窗簾=cloth(deform 行進波)。見 `knowledge/p1-motion-physics-analyzer.md`。
+  待續:材質分類器 / 物理注入生成端(接 S3 deform 閘)/ squash 正對照。
 
 ## 真實資產(已收進 `assets/`)
 
@@ -136,6 +144,10 @@
 - 2026-08-19:**S1 擴充:平圖流程 + 分鏡先驗庫(使用者指定)** — (A) 平圖純 CPU 拆件 baseline + 真值召回閘
   (同材質角色 0/5、0/18 語意召回,僅不相連塊可靠 → 佐證 PSD-first);(B) 先驗庫 slot_bigwin/slot_reveal
   對 Award/main_draw 覆蓋率 1.0。修 2 評估器 bug(decomposability 反向、動畫名子字串誤判)。
+- 2026-08-21:**P/S6 物理可信度 v1 分析器 + 評估器(里程碑,使用者新增研究項目)** —
+  「spine 動畫中的物理世界」落成可量測運動學簽名(ease/follow-through/overshoot/squash/soft-body);
+  `motion_physics.py` 雙控驗證(負對照線性化 + 正對照相位延遲,抓修符號 bug),兩資產 selftest validated。
+  發現此風格 = ease+overshoot 為主、體積守恆 S&S 幾乎不用。見 `knowledge/p1-motion-physics-analyzer.md`。
 - 2026-08-21:**S3 weighted mesh 骨骼驅動變形評估器(里程碑)** — 補上「weighted 骨骼變形平滑度」唯一未驗維度。
   `weighted_deform_eval.py`:真實骨動 skinning(normal 世界矩陣 + 緊湊 bezier)+ 拓樸閘;Award 3 件穩態 Loop
   全 0 自交/0 翻面 + setup 乾淨,負對照雙向抓得到。**更正舊假設「這 3 件無變形動畫」**(腿骨在 Legend 家族有 timeline);
