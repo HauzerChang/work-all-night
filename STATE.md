@@ -68,6 +68,24 @@
 
 ## 下一步動作 (next action)
 
+> 🎯 **使用者定案排序(2026-08-21):先研究「物理世界」。** 排程接手時**依此順序**挑一個 bounded chunk:
+>
+> **【P1 最高】分鏡 → 動畫 keyframe(原 S1 候選 0d)** — 讓 `build_spine` 產物「會動」:把 storyboard
+>   (尤其 Loop 呼吸)轉成 Spine `animations` timeline。這是物理注入的**基底**(要有 keyframe 才能注入物理)。
+>   純 CPU;自驗:幾何量化(bone 位移/旋轉範圍)+ `motion_physics.py` 量產出動畫的物理簽名。
+> **【P2】物理注入生成端 v1(P/S6)** — 把「機械」keyframe 自動加 ease(依質量)+ overshoot(依阻尼)
+>   + 末梢 follow-through lag;用 `motion_physics.py` 量注入後 inertia_index/overshoot **上升**,
+>   並用 `weighted_deform_eval.py`/`deform_eval.py` 確認**拓樸不壞**。掛在 P1 之上 → 產出「會動且動得自然」。
+> **【P3】材質分類器(P/S6)** — 用物理簽名把件/動畫判 rigid/cloth/jelly;對窗簾(cloth)有真值可對照。
+> **【P4】S3 weighted BBW 生成器半** — 收斂既有線(評估器 + 真值就緒);非物理主線,排其後。
+> **【P5+】S2 補圖/骨架閘 → S5 pivot 推斷 →(BLOCKED)影片輸入 / 實機 round-trip。**
+>
+> 理由:物理主線 P1→P2 串起來 = 「產出會動、且動得自然」的最短路徑,對目標「更有說服力」最直接;
+> 評估器(`motion_physics.py`)已就位可全程自驗。P4(S3 BBW)雖收斂既有線但非物理主線 → 讓位。
+> (下方保留原始候選細節供參,順序以本框為準。)
+
+---
+
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -95,10 +113,8 @@
 5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S3+S4 已端到端串通並對真實生產美術 mesh 驗收(靜態 + 現在含 weighted 骨動拓樸)。
-> **建議下一步:候選 2 的生成器半** — 加內部取樣密度控制 + BBW 權重,產我方 weighted mesh,
-> 用 `weighted_deform_eval.py`(本 session 完成的評估器)量「我方 vs 美術」變形品質。純 CPU 可自驅。
-> 另一候選:0d 分鏡→動畫 keyframe(讓 build_spine 產物會動)。
+> ⚠️ 順序以本節開頭「使用者定案排序」框為準:**P1 分鏡→keyframe → P2 物理注入** 優先(先研究物理世界)。
+> 上列 0~6 為原始候選細節,S3 BBW(候選 2)已降為 P4(收斂既有線但非物理主線)。
 
 ## 環境前置(已驗證可用)
 

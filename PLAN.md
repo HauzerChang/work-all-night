@@ -71,7 +71,9 @@
 - 狀態:🟡 **v1 分析器 + 評估器完成(2026-08-21)** — `tools/analyzer/motion_physics.py`;
   對 main_draw / Award 抽物理簽名,`--selftest` 負對照(線性化)+ 正對照(相位延遲)皆 `validated`。
   發現:此風格物理詞彙 = **ease + overshoot 為主、體積守恆 S&S 幾乎不用**;正對照抓修一個相位符號 bug。
-  見 `knowledge/p1-motion-physics-analyzer.md`。待續:材質分類器 / 物理注入生成端 / squash 正對照。
+  見 `knowledge/p1-motion-physics-analyzer.md`。
+- **🎯 使用者定案(2026-08-21):物理世界為當前主線,排序** P1 分鏡→keyframe(基底)→ P2 物理注入生成端
+  → P3 材質分類器;S3 BBW 生成器降為 P4(收斂既有線但非物理主線)。詳見 `STATE.md` 下一步動作框。
 
 ## 關鍵策略結論(別忘)
 
