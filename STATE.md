@@ -38,6 +38,14 @@
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
+- **S3 weighted-mesh 變形評估器完成(里程碑,2026-08-22)** — `tools/mesh_gen/weighted_mesh.py`
+  純 CPU 重現 Spine 3.8 骨世界變換(normal mode)+ LBS,**補上 candidate 2 唯一未驗維度
+  (bone-driven 變形品質)**。對 Award 三真值件(身體 58 internal/左手 38/光暈 0)三軸驗收全 PASS:
+  AC1 bind-consistency(多骨頂點 setup 世界點離散 <0.02px,用藝術家真值驗引擎)+ AC2 baseline bend clean
+  + 負對照(斷階層 168px)+ 剛體校準(strain-smoothness=0)。指標:bend-tolerance(對抗式最大乾淨角)、
+  strain-smoothness(相鄰三角變形梯度差,剛體=0)。發現:光暈 0 internal → tolerance 僅 18°(最脆),
+  量化佐證「內部密度→變形穩健度」。**這是 weighted 生成器的前置評估閘(RULES:每能力必配評估器)**。
+  誠實限制:只驗 normal mode;用合成骨 pose(未逐幀比對 Award 動畫實際驅動角)。見 `knowledge/s3-weighted-mesh-evaluator.md`。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -66,10 +74,12 @@
    timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
    (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
-2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
-   本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
-   幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
-   才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+2. **S3 weighted mesh + 內部取樣密度 + BBW 權重** — **評估器半邊✅完成(2026-08-22)**:
+   `weighted_mesh.py` 能量化 bone-driven 變形(strain-smoothness/bend-tolerance,對 Award 真值全 PASS)。
+   **❗下一個最高優先=生成器半邊**:給一件 alpha + 骨骼結構,自動放內部取樣點(密度可控)+
+   Delaunay + BBW/熱擴散骨權重 → 輸出 flattened weighted vertices;用 `weighted_mesh.py` 對照
+   藝術家身體/左手件:同 pose strain-smoothness ≤ baseline(+margin)、bend-tolerance ≥ 藝術家、頂點經濟。
+   純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
