@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S3 weighted mesh 骨骼變形品質閘](s3-weighted-deform-gate.md) — **補上唯一未驗維度**:`weighted_deform.py` 重現 Spine weighted skinning,對 Award 3 件在真實 `Legend_In/Loop` 骨骼 pose 下驗變形,3 AC 全 PASS(AC1 setup 自一致錨定數學、AC2 硬不變量 0 翻面/0 退化、AC3 負對照鑑別)。2 大發現:①**可見性 gating 必要**(光暈 alpha=0 期間骨骼劇烈位移不算數,71→4 自交);②**軟邊件自交用藝術家基準非硬 0**(光暈單一 keyframe 4 自交是出貨資產可容忍值)。下一步:BBW 生成 weighted mesh 對照此基準。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
