@@ -38,6 +38,15 @@
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
+- **S3 weighted mesh 骨骼變形器 + 真值變形場(里程碑,2026-08-22)** — 補上 `compare_robot_mesh`
+  明列的**唯一未驗維度:weighted 骨骼變形品質**。`weighted_deform.py`(CPU 版 LBS + Spine 3.8 骨骼
+  世界變換 + 緊湊 bezier timeline)+ `validate_weighted_deform.py`。變形器以**封閉解自驗**
+  (剛體不變性 **1.7e-13**、setup identity **0.0**)確認可信,再對 Award 3 件抽真值變形場。
+  **AC1–AC4 全 PASS**。發現:**持續 idle `Award_Legend_Loop` 是平滑真值基準**(3 件全 clean、
+  disp≤36px、area≈1);入場 `Award_Legend_In` burst 下**光暈極端非剛體縮放自交**(candy-wrapper,
+  disp≤611px;additive soft glow 視覺無害 → 屬 soft-blend 類,**不納平滑基準**),身體/左手即使
+  burst 下仍 clean。誠實界定:本次驗「藝術家 mesh 在真動畫下拓樸品質」+ 提供真值場;
+  **尚未評我方生成 weighted mesh**(需 BBW 生成器)。見 `knowledge/s3-weighted-mesh-deform.md`。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -66,18 +75,21 @@
    timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
    (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
-2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
-   本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
-   幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
-   才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+2. ✅ **真值變形場已備妥(2026-08-22)**:`weighted_deform.py` 變形器經封閉解自驗(剛體 1.7e-13),
+   對 Award 3 件抽出**真值變形場**(平滑基準 = idle Loop,3 件全 clean)。剩下的一半 —
+   **S3 weighted mesh 生成器(內部取樣密度控制 + BBW 骨綁權重)**尚未做 → **這是下一個最高優先**:
+   對身體/左手這類結構件生成 weighted mesh、綁上同一 LEG 骨群,用 `weighted_deform` 的 **Loop 場**
+   驅動,對照真值場(位移/面積/自交,可再加相鄰三角法向變化率)量平滑度差距。純 CPU 可自驅
+   (真值權重/骨架在 `Award.json`;變形器+真值場在 `knowledge/figures/weighted_deform_field.json`)。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S3+S4 已端到端串通並對真實生產美術 mesh 驗收(靜態層級)。建議下一步:候選 2(weighted+BBW),
-> 補上「weighted mesh 骨骼變形平滑度」這唯一未驗維度;真值(權重/骨架)已在 `Award.json`,純 CPU 可自驅。
+> **建議下一步:候選 2 的後半 — S3 weighted mesh 生成器(內部取樣密度 + BBW 權重)**。
+> 真值變形場已在 2026-08-22 備妥(`weighted_deform.py` + `weighted_deform_field.json`,平滑基準=idle Loop)。
+> 下一步 = 生成我方 weighted mesh → 綁 LEG 骨群 → 用 Loop 場驅動 → 對照真值場量平滑度差距。純 CPU 可自驅。
 
 ## 環境前置(已驗證可用)
 
@@ -135,6 +147,11 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-22:**S3 weighted mesh 骨骼變形器 + 真值變形場(里程碑)** — `weighted_deform.py`(CPU LBS +
+  Spine 3.8 骨骼世界變換 + 緊湊 bezier)+ `validate_weighted_deform.py`;封閉解自驗(剛體 1.7e-13、
+  setup identity 0.0)確認變形器可信,對 Award 3 件抽真值變形場,AC1–AC4 全 PASS。發現平滑真值基準=idle Loop
+  (3 件全 clean);入場 In burst 下光暈極端縮放自交(soft glow 視覺無害,不納基準)。補上 compare_robot_mesh
+  的唯一未驗維度;下一步定為 S3 weighted 生成器(內部密度+BBW)對照本真值場。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;

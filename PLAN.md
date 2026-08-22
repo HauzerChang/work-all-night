@@ -47,7 +47,10 @@
 - 完成條件：對一張 PNG 自動產出可用 mesh，寫入 Spine JSON，在 inspector 極端 deform 幀
   0 自交 / 0 撕裂 / 頂點數在預算內 / 輪廓吻合。
 - 環境：純 CPU，可全自動(2026 SpriteToMesh 已驗證)。
-- 狀態：⬜ 未開始
+- 狀態：🟢 **推進中**。unweighted 拓樸生成 v2(strip)對 4 真實 mesh 全 deform 乾淨;對 Award 3 美術 mesh
+  靜態覆蓋率全 PASS(頂點更省)。**weighted 骨骼變形維度已備真值變形場**(2026-08-22,`weighted_deform.py`
+  變形器封閉解自驗 1.7e-13;平滑基準=idle Loop)。**剩:weighted mesh 生成器(內部取樣密度 + BBW 權重)**
+  對照真值場。見 `knowledge/s3-*.md`。
 
 ### S4 切圖 + 補圖
 - 目標：PSD-first 契約(psd-tools) + CPU 半自動 fallback；補圖分級降階(外擴→cv2→LaMa→GPU/人工)。

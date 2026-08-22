@@ -41,6 +41,8 @@
 
 - [S1 端到端 → 可載入 Spine 素材(SkelToJson)](s1-build-spine-end-to-end.md) — **規格→實際素材端到端打通**:`build_spine.py` 串 analyze_target+psd_slice+generate_mesh_v2 → Spine 3.8 json+atlas+png;`validate_build.py` round-trip(重建 setup pose==原圖)對 robot(5件)/Symbol_Ww(18件)**全 PASS**(MAE 0.03/0.24、0 孤兒、0 未解析)。誠實界定:只驗靜態幾何/貼圖編碼,動畫 keyframe/mesh 變形/關節 pivot 屬後續。
 
+- [S3 weighted mesh 骨骼變形器 + 真值變形場](s3-weighted-mesh-deform.md) — **補上 compare_robot_mesh 明列的唯一未驗維度(weighted 骨骼變形品質)**:實作 CPU 版 LBS + Spine 3.8 骨骼世界變換 + 緊湊 bezier timeline,對 Award 3 件抽真值變形場。變形器以封閉解自驗(剛體不變性 **1.7e-13**、setup identity **0.0**)。發現:**持續 idle Loop 是平滑真值基準(3 件全 clean、disp≤36px)**;入場 In burst 下**光暈極端縮放自交**(candy-wrapper,additive glow 視覺無害 → 屬 soft-blend 類,不納平滑基準),身體/左手即使 burst 下仍 clean。誠實界定:本次驗「藝術家 mesh 在真動畫下拓樸品質」+ 提供真值場;**尚未評我方生成 weighted mesh**(需 BBW 生成器,下一步)。
+
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

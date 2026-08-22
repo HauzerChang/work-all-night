@@ -1,0 +1,103 @@
+{
+  "asset": "Award.json",
+  "pieces": [
+    "機器人拆件/光暈",
+    "機器人拆件/左手",
+    "機器人拆件/身體"
+  ],
+  "smoothness_ground_truth_anim": "Award_Legend_Loop",
+  "AC1_rigid_invariance": {
+    "pass": true,
+    "max_vertex_err": 1.7053025658242404e-13,
+    "max_pairdist_err": 2.2737367544323206e-13,
+    "raw_weight_sum_dev": 1.0000000000065512e-05
+  },
+  "AC2_setup_identity": {
+    "pass": true,
+    "max_vertex_err": 0.0
+  },
+  "AC3_loop_nontrivial": true,
+  "AC4_loop_topology_clean": true,
+  "per_piece_per_anim": {
+    "機器人拆件/光暈": {
+      "Award_Legend_In": {
+        "nv": 78,
+        "tris": 76,
+        "hull": 78,
+        "max_self_intersections": 71,
+        "max_triangle_flips": 7,
+        "max_degenerate": 0,
+        "max_disp_px": 610.686,
+        "area_ratio_min": 0.916,
+        "area_ratio_max": 1.845,
+        "clean": false
+      },
+      "Award_Legend_Loop": {
+        "nv": 78,
+        "tris": 76,
+        "hull": 78,
+        "max_self_intersections": 0,
+        "max_triangle_flips": 0,
+        "max_degenerate": 0,
+        "max_disp_px": 28.99,
+        "area_ratio_min": 0.997,
+        "area_ratio_max": 1.003,
+        "clean": true
+      }
+    },
+    "機器人拆件/左手": {
+      "Award_Legend_In": {
+        "nv": 80,
+        "tris": 116,
+        "hull": 42,
+        "max_self_intersections": 0,
+        "max_triangle_flips": 0,
+        "max_degenerate": 0,
+        "max_disp_px": 241.347,
+        "area_ratio_min": 0.743,
+        "area_ratio_max": 1.014,
+        "clean": true
+      },
+      "Award_Legend_Loop": {
+        "nv": 80,
+        "tris": 116,
+        "hull": 42,
+        "max_self_intersections": 0,
+        "max_triangle_flips": 0,
+        "max_degenerate": 0,
+        "max_disp_px": 36.395,
+        "area_ratio_min": 0.975,
+        "area_ratio_max": 1.0,
+        "clean": true
+      }
+    },
+    "機器人拆件/身體": {
+      "Award_Legend_In": {
+        "nv": 98,
+        "tris": 154,
+        "hull": 40,
+        "max_self_intersections": 0,
+        "max_triangle_flips": 0,
+        "max_degenerate": 0,
+        "max_disp_px": 172.002,
+        "area_ratio_min": 0.932,
+        "area_ratio_max": 1.014,
+        "clean": true
+      },
+      "Award_Legend_Loop": {
+        "nv": 98,
+        "tris": 154,
+        "hull": 40,
+        "max_self_intersections": 0,
+        "max_triangle_flips": 0,
+        "max_degenerate": 0,
+        "max_disp_px": 11.979,
+        "area_ratio_min": 1.0,
+        "area_ratio_max": 1.001,
+        "clean": true
+      }
+    }
+  },
+  "note": "Loop=持續 idle,3 件全 clean → 平滑變形真值基準;In=入場 burst,光暈極端縮放自交(additive glow 視覺無害),身體/左手仍 clean。",
+  "overall_pass": true
+}
