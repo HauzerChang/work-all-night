@@ -38,6 +38,14 @@
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
+- **S3 weighted-mesh (LBS) deform 評估器完成(里程碑,2026-08-22)** — 補上先前唯一未驗維度
+  「weighted mesh 骨骼變形品質」。`weighted_deform_eval.py`:自建 LBS(骨階層+動畫 rotate/translate/scale
+  timeline → world transform → Spine 3.8 weighted computeWorldVertices)+ 幾何閘。對 Award 機器人 3 件
+  **AC1/AC2/AC3 全 PASS**:AC1 LBS setup 乾淨;AC2 結構件(身體/左手)全真實動畫 0 自交/翻面;
+  AC3 joint-bend 掃描證鑑別力(身體 bend LEG7:smooth 80° vs hard 單骨 50° 才首次撕裂)。
+  **校準發現**:『0 自交』非通用閘 — 軟光暈在 In streak 刻意重疊(單骨 4_LEG6 飛 470px),故閘分
+  structural/soft-effect 兩級;拓樸閘量撕裂不量彎折平滑度(骨區可分離件 hard 也不撕裂 → 需 seam
+  連續性指標,後續)。閘先於 BBW 生成器(RULES「每能力必配評估器」)。見 `knowledge/s3-weighted-deform-evaluator.md`。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -66,10 +74,13 @@
    timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
    (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
-2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
-   本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
-   幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
-   才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+2. **S3 weighted mesh + BBW 權重**:
+   (a) ~~weighted-mesh 變形品質評估器(閘)~~ **✅ 完成(2026-08-22,`weighted_deform_eval.py`,AC1/2/3 全 PASS)**。
+   **下一步(最高優先)**:(b) **BBW 權重生成器** — 對一個件的 mesh 頂點 + 給定骨骼,用確定性
+   Bounded Biharmonic Weights(或 heat-diffusion 近似)算平滑骨綁權重,寫成 Spine weighted vertices;
+   用 (a) 的 joint-bend 掃描自動收斂(目標:smooth 首次撕裂彎角 ≥ 藝術家基準)。真值:Award 3 件權重/骨架。
+   (c) 內部取樣密度控制(目前 boundary-dense 幾乎只有邊界點 → 服務骨骼變形需密集內部頂點,身體美術 98v)。
+   (d) 補「彎折平滑度」指標(seam 連續性/應變)—— 拓樸閘不量此(見校準發現 #2)。純 CPU 可自驅。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。

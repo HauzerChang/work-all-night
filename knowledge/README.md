@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S3 weighted-mesh (LBS) deform 評估器](s3-weighted-deform-evaluator.md) — **補上唯一未驗維度「weighted mesh 骨骼變形品質」的自我品質閘**:自建 LBS(骨階層+動畫 timeline→world transform→Spine 3.8 weighted computeWorldVertices)+ 幾何閘。對 Award 機器人 3 件 AC1/AC2/AC3 全 PASS(結構件真實動畫 0 自交/翻面;joint-bend 掃描 smooth 80° > hard 50° 證鑑別力)。校準發現:『0 自交』非通用閘(軟光暈 streak 刻意重疊,需依件角色分級);拓樸閘量撕裂不量彎折平滑度(可分離件 hard 也不撕裂→需 seam 連續性指標)。閘先於 BBW 生成器。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
