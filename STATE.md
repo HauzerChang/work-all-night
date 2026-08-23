@@ -33,6 +33,15 @@
   (B) `genre_priors.py`+`validate_priors.py`:先驗庫 `slot_bigwin`(Award)、`slot_reveal`(main_draw)
   覆蓋率皆 **1.0** + 2 未驗證類型。修 2 bug(decomposability 反向、動畫名子字串誤判)。
   見 `knowledge/s1-flat-pipeline-and-priors.md`。
+- **S3 weighted mesh 骨綁權重 + 變形穩健閘(里程碑,2026-08-23)** — 補上此前 S3 唯一未驗維度
+  (weighted mesh 骨骼變形平滑度)。`tools/mesh_gen/bone_weights.py`(Spine FK + heat-diffusion 權重,
+  尺度不變、PoU 數學保證、純 CPU)+ `validate_bone_weights.py`(對 Award 3 mesh 件,用 **Award 真實骨骼
+  動畫**驅動 LBS 變形量幾何)。**3 件全 PASS**:真實動畫下 gen 權重 **0 自交/翻面/退化**且不比美術差
+  (光暈 gen 0 vs 美術 35;身體 gen 0 vs 美術 6);硬最近骨負對照必壞(鑑別力)。
+  **關鍵發現**:美術權重 = **rig 意圖非幾何**(左手 80 頂點全以骨62 主導,幾何卻 44 頂點最近骨66)→
+  逐值比對美術權重是錯的閘,改量「變形品質」。運動源用真實動畫(延續 stress_field miscalibration 教訓)。
+  誠實界定:身體無真實骨旋轉(LEG3 剛體根/LEG7-8 零長輔助)→ 退回合成 sweep;heat 近似非嚴格 BBW。
+  見 `knowledge/s3-weighted-mesh-bone-weights.md`。
 - **S1 端到端「目標圖→可載入 Spine 素材」打通(里程碑,2026-08-19)** —
   `build_spine.py`(analyze_target+psd_slice+generate_mesh_v2 → Spine 3.8 json+atlas+png)+
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
@@ -66,18 +75,20 @@
    timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
    (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
-2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
-   本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
-   幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
-   才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+2. ~~**S3 weighted mesh + BBW 權重**~~ **✅ 已完成(里程碑,2026-08-23,見上)**。heat-diffusion 權重生成器
+   + 變形穩健閘,對 Award 3 mesh 件用真實動畫驅動,3 件全 PASS(gen 0 artifacts、不劣於美術、負對照鑑別)。
+   **殘留**:(a) heat 近似 vs 嚴格 BBW(bounded QP)未比較;(b) 生成權重尚未接進 `build_spine.py`
+   (下一步最高優先,見下)。內部取樣密度控制仍待做(目前用美術幾何驗權重演算法,尚未自產密集內部頂點)。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S3+S4 已端到端串通並對真實生產美術 mesh 驗收(靜態層級)。建議下一步:候選 2(weighted+BBW),
-> 補上「weighted mesh 骨骼變形平滑度」這唯一未驗維度;真值(權重/骨架)已在 `Award.json`,純 CPU 可自驅。
+> **weighted mesh 骨骼變形平滑度**(候選 2)已於 2026-08-23 補齊驗收。**建議下一步(最高優先)**:
+> 把 `bone_weights.heat_weights`+`emit_weighted_vertices` 接進 `build_spine.py`,讓「需骨變形的件」
+> 端到端直接產 weighted mesh(目前只出 unweighted/region)。前置:build_spine 需先有骨架 → 與候選 0(e)
+> 關節 pivot 推斷 / S5 骨架綁定相依。另一純 CPU 自驅選項:候選 0(d) 分鏡→動畫 keyframe(讓素材會動)。
 
 ## 環境前置(已驗證可用)
 

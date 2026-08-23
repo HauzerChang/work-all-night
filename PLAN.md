@@ -47,7 +47,10 @@
 - 完成條件：對一張 PNG 自動產出可用 mesh，寫入 Spine JSON，在 inspector 極端 deform 幀
   0 自交 / 0 撕裂 / 頂點數在預算內 / 輪廓吻合。
 - 環境：純 CPU，可全自動(2026 SpriteToMesh 已驗證)。
-- 狀態：⬜ 未開始
+- 狀態：🟢 **拓樸(v2 strip)+ 靜態 IoU + unweighted deform + weighted 骨綁權重 全數對真值驗收**。
+  拓樸/靜態見 `s3-four-mesh-generalization.md`/`s3-robot-mesh-vs-award.md`;**weighted 骨綁權重(2026-08-23)**:
+  heat-diffusion 權重(PoU 保證、純 CPU)對 Award 3 mesh 件用真實動畫驅動變形 3 件全 PASS
+  (`s3-weighted-mesh-bone-weights.md`)。待續:heat 權重接進 build_spine 端到端、內部取樣密度自產。
 
 ### S4 切圖 + 補圖
 - 目標：PSD-first 契約(psd-tools) + CPU 半自動 fallback；補圖分級降階(外擴→cv2→LaMa→GPU/人工)。
