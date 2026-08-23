@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S3 weighted-mesh 骨骼變形評估器](s3-weighted-deform-evaluator.md) — **補上唯一未驗維度**:FK+LBS 純 Python 重現 Spine weighted mesh 世界頂點,套幾何閘。評估器自檢三閘(t0中性/setup乾淨/負對照)全 PASS;對 Award 3 件跑出藝術家變形基準(Loop 全乾淨、面積≈1.0)。關鍵:**變形判定須做 slot-alpha 可見度閘**(進場 alpha=0 的擠壓不算破圖,原報 71 自交→可見僅 4);軟邊光暈容忍度非 0(標竿是 sustained Loop)。下一步:生成 weighted mesh + BBW 權重,同骨同動畫對照。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

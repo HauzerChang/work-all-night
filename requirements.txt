@@ -6,3 +6,5 @@ scipy
 # S4 PSD-first 切圖(psd-tools 純 CPU;Pillow 為其影像後端)。
 psd-tools
 Pillow
+# 圖表輸出(knowledge/figures/,mesh 疊圖視覺證據)。
+matplotlib
