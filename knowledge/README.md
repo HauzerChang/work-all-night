@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S3 weighted-mesh 骨骼變形評估器](s3-weighted-deform-evaluator.md) — **補上 compare_robot_mesh 唯一未驗維度(bone-driven 變形品質)**:`weighted_deform_eval.py` 內建最小 Spine 3.8 FK+LBS 引擎,用真實動畫(`Award_Legend_In/Loop/Out`)驅動 Award 機器人 3 weighted mesh 件。**三項可信度閘全過**:G1 剛體不變性 ~1e-13(數學正確)、G2 正對照(身體/左手 3 動畫全乾淨、3 件穩態 loop 全乾淨)、G3 負對照(破壞權重全抓到);+ 第三獨立校驗(setup bbox vs `atlas region÷0.70`,左手<2%/光暈<5%)證絕對空間正確。**發現**:平滑度目標是穩態 loop,In/Out 是暫態;光暈 In 自交(面積1.98x/676px)為真實但無害(加法軟 blob 自疊不可見)→ 列觀察值不判失敗。副產真實位移場供 BBW 對照。下一步:內部取樣密度 + BBW 權重生成。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
