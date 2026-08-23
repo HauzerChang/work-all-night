@@ -38,6 +38,15 @@
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
+- **S3 weighted mesh 骨綁權重 + 變形品質閘(里程碑,2026-08-23,補上唯一未驗維度)** —
+  `weighted_mesh.py`(Spine 3.8 re-pose 基礎件,自一致 MAE=0)+ `bbw_weights.py`(bone-heat 權重生成器,
+  partition-of-unity/bounded 實測)+ `validate_weights.py`(變形品質閘 + Award 3 件真值驗收)。
+  **3 件 overall_pass**:生成權重**有效**(partition/bounded/非負)且在「美術自校準包絡」內**變形 0 自交/0 翻面**。
+  三關鍵教訓:①權重相符=部分主觀美術決定 → 只 gate 客觀性質、與美術相似度僅**報告不 gating**
+  (幾何 bone-heat 對軟/廣件光暈相對位移發散 33.6,對左手/身體接近);②變形閘須**對美術真值自校準包絡**
+  (單骨孤立旋轉到真實動畫範圍端點連美術都自交 → auto-clamp 到美術-clean);③相似度用**相對位移**
+  (對角線正規化被大件稀釋 → 連全綁單骨壞 rig 都過,無鑑別力)。雙負對照(破壞單位分割/撕裂 rig)皆抓到。
+  誠實限制:身體無旋轉骨(剛性蒙皮),件內彎折未受測;未驗變形下貼圖 UV 視覺。見 `knowledge/s3-weighted-mesh-binding.md`。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -66,10 +75,12 @@
    timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
    (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
-2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
-   本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
-   幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
-   才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+2. ~~**S3 weighted mesh + 骨綁權重(BBW)**~~ **✅ 已完成(2026-08-23,見上里程碑)**。
+   bone-heat 權重生成器 + 變形品質閘,對 Award 3 件全 PASS(有效權重 + 變形 0 自交)。
+   **本次剩下的續補(下一個最高優先)**:**端到端 weighted mesh 生成** —— 把 S3 拓樸生成
+   (`generate_mesh_v2` boundary-dense/strip)接上 `bbw_weights` bone-heat 權重 + **內部取樣密度控制**
+   (美術身體用 98 密內部頂點服務彎折平滑度,我方拓樸偏邊界),對「自產拓樸 + 自產權重」跑
+   `validate_weights` 的變形平滑度閘。純 CPU 可自驅;真值仍為 Award 3 件。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
@@ -135,6 +146,10 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-23:**S3 weighted mesh 骨綁權重 + 變形品質閘(里程碑)** — 補上唯一未驗維度(weighted 骨骼變形品質)。
+  re-pose 基礎件(自一致 MAE=0)+ bone-heat 權重生成器(partition/bounded 實測)+ 變形閘;Award 3 件全 PASS。
+  三教訓:①權重相符=部分主觀美術決定(只 gate 客觀、相似度僅報告);②變形閘須對美術真值自校準包絡;
+  ③相似度用相對位移(對角線正規化無鑑別力)。雙負對照皆抓到。見 `knowledge/s3-weighted-mesh-binding.md`。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
