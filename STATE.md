@@ -67,12 +67,21 @@
 - 關鍵副產:**IoU 由 rows 決定、cols 不影響覆蓋率**;評估器先以藝術家真值自一致性(4 mesh si=0)確認可信。
 - 詳見 `knowledge/s3-four-mesh-generalization.md`。標準指令 `validate_against_real.py --gen v2` 對 4 mesh 全 overall_pass。
 
+**使用者新增研究方向(2026-08-24):動畫律動「各部位時間差」(overlapping action / 慣性)** —
+利用各部位移動時間差(相位延遲 + 末梢過衝/回穩,阻尼彈簧慣性)讓律動鮮活,對治「全身同步紙板感/待機僵硬」。
+**已在 Award_Legend_Loop 真實資產量測到時間差**(大腿鏈谷底 0.5→0.6→0.667、末梢落後 lag +0.083s、通道解耦、特效錯拍)。
+併入候選 0d(分鏡→keyframe):生成呼吸 loop 時套用時間差模型 + 相位延遲剖面評估器。
+見 `knowledge/anim-overlapping-action-timing-offset.md`。
+
 下一個 bounded chunk 候選:
 0. **S1 分析器接續**:(a) ~~規格 → 實際素材~~ ✅ 完成(`build_spine.py`+`validate_build.py`,round-trip 全 PASS);
    (b) ~~平圖流程~~ ✅ baseline 完成(CPU 到頂,升級需 GPU 語意分層,屬資源決策);
    (c) ~~分鏡先驗庫~~ ✅ 2 類型已驗證;續補需**有真值**的類型 spine。
    **下一個最高優先**:(d) **分鏡 → 動畫 keyframe**:把 #3 storyboard(尤其 Loop 呼吸)轉成 Spine `animations`
    timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
+   **⭐併入使用者新增方向:各部位「時間差」(overlapping action / 慣性)** —— 生成時對每骨套用相位延遲
+   (τ∝骨鏈深度)+ 末梢過衝/回穩(阻尼彈簧),避免全身同步的紙板感;用相位延遲剖面評估器對 Award loop
+   對照(已量測到真實時間差為真值基準)。見 `knowledge/anim-overlapping-action-timing-offset.md`。
    (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
 2. ~~S3 weighted mesh + 內部取樣密度 + BBW 權重~~ **✅ 已完成(2026-08-24,見上里程碑)**。
@@ -134,6 +143,10 @@
 - 2026-08-19:**S1 擴充:平圖流程 + 分鏡先驗庫(使用者指定)** — (A) 平圖純 CPU 拆件 baseline + 真值召回閘
   (同材質角色 0/5、0/18 語意召回,僅不相連塊可靠 → 佐證 PSD-first);(B) 先驗庫 slot_bigwin/slot_reveal
   對 Award/main_draw 覆蓋率 1.0。修 2 評估器 bug(decomposability 反向、動畫名子字串誤判)。
+- 2026-08-24:**使用者新增研究方向:動畫律動「各部位時間差」** — overlapping action / 慣性(阻尼彈簧模型)。
+  用 spine_skeleton FK 在 Award_Legend_Loop **量測到真實時間差**(大腿鏈谷底 0.5→0.6→0.667、末梢落後
+  lag +0.083s、通道解耦、特效錯拍)。寫 `knowledge/anim-overlapping-action-timing-offset.md`(含生成模型 +
+  評估器構想);併入候選 0d。
 - 2026-08-24:**S3 weighted mesh 骨骼變形驗收(里程碑)** — 補上唯一未驗維度。建 Spine 3.8 骨架 FK+蒙皮
   (`spine_skeleton.py`)+ 可見性 gating 變形評估器(`weighted_deform_eval.py`)+ weighted 生成器
   (`generate_weighted_mesh.py`)+ 整合閘(`validate_weighted_gen.py`)。評估器經美術 mesh 校準

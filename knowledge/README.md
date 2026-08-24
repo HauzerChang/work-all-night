@@ -45,4 +45,6 @@
 
 - [S3 weighted mesh 骨骼變形 FK 評估器 + 生成器對照](s3-weighted-mesh-deform.md) — **補上唯一未驗維度(weighted mesh 骨骼變形平滑度)**:新建 Spine 3.8 骨架 FK + weighted 蒙皮 + **可見性 gating** 變形評估器,經生產美術 mesh 校準(`_checker_validated=True`)+ 負對照(3702 自交,有鑑別力)。我方生成 weighted mesh(拓樸+內部密度+BBW 代理權重)在真實動畫骨 pose 下 **3 件變形全乾淨(AC-W1 PASS)**。**校正 STATE 舊假設:這 3 件其實有 bone 變形動畫(Legend_In/Loop)**;**雷點 #2/#3 實證:光暈爆開折疊發生在 alpha=0 不可見幀 → 變形閘必須先過 attachment+alpha gating**。誠實限制:骨集合用真值、權重為 inverse-distance 代理、AC-W2 CV 為弱代理(嚴格閘是 AC-W1)。
 
+- [動畫律動:各部位時間差(overlapping action / 慣性)](anim-overlapping-action-timing-offset.md) — **使用者新增研究方向(2026-08-24)**:利用各部位移動**時間差**(相位延遲 + 末梢過衝/回穩,阻尼彈簧慣性模型)讓律動鮮活,對治「全身同步紙板感/待機僵硬」。**已在 Award_Legend_Loop 真實資產量測到**:大腿鏈 rotate 谷底逐節後移(0.500→0.600→0.667)、末梢骨落後父骨 lag=+0.083s、同骨 rotate/translate 通道解耦、特效元件錯拍 → 證明美術確用時間差。附可操作生成模型(τ∝骨鏈深度 + 阻尼彈簧 follow-through)+ 評估器構想(相位延遲剖面/非同步度/末梢振幅比)。直接服務候選 0d 分鏡→keyframe。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
