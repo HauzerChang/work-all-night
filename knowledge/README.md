@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S3 weighted mesh 骨骼變形 FK 評估器 + 生成器對照](s3-weighted-mesh-deform.md) — **補上唯一未驗維度(weighted mesh 骨骼變形平滑度)**:新建 Spine 3.8 骨架 FK + weighted 蒙皮 + **可見性 gating** 變形評估器,經生產美術 mesh 校準(`_checker_validated=True`)+ 負對照(3702 自交,有鑑別力)。我方生成 weighted mesh(拓樸+內部密度+BBW 代理權重)在真實動畫骨 pose 下 **3 件變形全乾淨(AC-W1 PASS)**。**校正 STATE 舊假設:這 3 件其實有 bone 變形動畫(Legend_In/Loop)**;**雷點 #2/#3 實證:光暈爆開折疊發生在 alpha=0 不可見幀 → 變形閘必須先過 attachment+alpha gating**。誠實限制:骨集合用真值、權重為 inverse-distance 代理、AC-W2 CV 為弱代理(嚴格閘是 AC-W1)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
