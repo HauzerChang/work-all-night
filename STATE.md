@@ -38,6 +38,15 @@
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
+- **S3 weighted-mesh deform 評估器(里程碑,2026-08-24)** — `tools/mesh_gen/weighted_deform.py`
+  純 CPU 重現 Spine 3.8 骨骼 world-transform + 動畫 bone timeline(rotate/translate/scale+緊湊bezier)
+  + weighted `computeWorldVertices`,對 Award 3 weighted 件(光暈/左手/身體)在真實動畫逐幀量化。
+  **補上 `s3-robot-mesh-vs-award.md` 標記的唯一未驗維度(靜態 IoU≠骨骼變形品質)**。可信度雙證:
+  **frame-invariant 多骨 bind 一致性 0.014~0.037px**(不需外部真值、對全域框不變)+ **負對照**
+  (打亂權重→287~654px)。發現 **自交是每件校準閘非通用硬閘**:藝術家軟光暈入場刻意大幅重疊
+  自交(si=71,4_LEG6 起手1.667×,additive 視覺無害),不透明件全乾淨→以藝術家自身變形包絡當
+  每件 baseline(同 compare_robot_mesh 的『不劣於藝術家』哲學)。`--negative` AC1+AC3+AC4 全過。
+  見 `knowledge/s3-weighted-deform-evaluator.md`。標準指令 `weighted_deform.py --negative` → exit 0。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -70,6 +79,12 @@
    本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
    幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
    才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+   - **2a 評估器 ✅ 完成(2026-08-24)**:`weighted_deform.py` 重現 Spine 骨骼+權重變形,
+     可信度雙證(多骨一致性+負對照),記錄藝術家變形包絡當 baseline。見上/knowledge。
+   - **2b(下一個 bounded chunk,最高優先)**:**權重生成器(heat / BBW)**。對這 3 件用相同
+     setup 頂點 + 相同綁定骨自動算每頂點權重(≤4 影響、和=1、平滑),用 `weighted_deform.py`
+     對照藝術家包絡:不透明件(左手/身體)要 si/flip=0 且 area 落在藝術家 range;光暈要回 setup+
+     area 連續。先做最簡「骨段反距離熱擴散」baseline 再視需要上 BBW(biharmonic)。純 CPU 可自驅。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
@@ -135,6 +150,11 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-24:**S3 weighted-mesh deform 評估器(里程碑,補上唯一未驗維度)** — `weighted_deform.py`
+  純 CPU 重現 Spine 3.8 骨骼 world-transform + 動畫 bone timeline + weighted computeWorldVertices;
+  對 Award 3 weighted 件真實動畫逐幀量化變形。可信度雙證(frame-invariant 多骨一致性 0.014~0.037px
+  + 負對照 287~654px)。發現自交是每件校準閘(藝術家軟光暈刻意大幅重疊,不透明件全乾淨)→ 以藝術家
+  變形包絡當 baseline。下一步定為 2b 權重生成器(heat/BBW)。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
