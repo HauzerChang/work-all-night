@@ -38,6 +38,13 @@
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
+- **S1 分鏡 → 動畫 keyframe「讓素材會動」(里程碑,2026-08-24)** — `tools/analyzer/build_animation.py`
+  把 `analyze_target` #3 分鏡(In/Loop/Out × role)用確定性規則轉成 Spine 3.8 `animations`
+  (bone rotate/translate/scale + slot color alpha),寫回 `build_spine` 的 skeleton.json;
+  配套閘 `validate_animation.py` **9 檢查全 PASS + 4 負對照全抓**(零運動/斷loop縫/中段scale=0塌陷/缺件)。
+  校準真值取自真實 `main_draw_loop`(身體呼吸~6%、末梢~10°、循環~0.67s)。robot(5件)/Symbol_Ww(18件)全 PASS;
+  build round-trip 回歸仍 PASS。誠實界定:驗幾何/結構品質(會動/無縫/幅度/不退化)非藝術手感;
+  role 對非角色符號僅近似;未做真機回放(CDN 擋)與 mesh deform 動畫。見 `knowledge/s1-storyboard-to-animation.md`。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -62,9 +69,11 @@
 0. **S1 分析器接續**:(a) ~~規格 → 實際素材~~ ✅ 完成(`build_spine.py`+`validate_build.py`,round-trip 全 PASS);
    (b) ~~平圖流程~~ ✅ baseline 完成(CPU 到頂,升級需 GPU 語意分層,屬資源決策);
    (c) ~~分鏡先驗庫~~ ✅ 2 類型已驗證;續補需**有真值**的類型 spine。
-   **下一個最高優先**:(d) **分鏡 → 動畫 keyframe**:把 #3 storyboard(尤其 Loop 呼吸)轉成 Spine `animations`
-   timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
-   (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
+   (d) ~~分鏡 → 動畫 keyframe~~ ✅ **完成(2026-08-24)**:`build_animation.py`+`validate_animation.py`,
+   In/Loop/Out 生成 + 9 檢查閘 + 4 負對照,robot/Symbol_Ww 全 PASS(見 `knowledge/s1-storyboard-to-animation.md`)。
+   **下一個最高優先**:(e) **關節 pivot 推斷**(件中心→相鄰件關節,如 hand↔body),供 S5;
+   目前 bone pivot 取件中心 → limb 旋轉繞件中心而非關節,動作不自然。純 CPU 可先出草案(真值:Award.json 骨架)。
+   (f) mesh deform 動畫(窗簾式 deform timeline),讓 mesh 件不只剛體移動。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
 2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
    本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
@@ -123,6 +132,10 @@
 - 2026-08-19:**S1 擴充:平圖流程 + 分鏡先驗庫(使用者指定)** — (A) 平圖純 CPU 拆件 baseline + 真值召回閘
   (同材質角色 0/5、0/18 語意召回,僅不相連塊可靠 → 佐證 PSD-first);(B) 先驗庫 slot_bigwin/slot_reveal
   對 Award/main_draw 覆蓋率 1.0。修 2 評估器 bug(decomposability 反向、動畫名子字串誤判)。
+- 2026-08-24:**S1 分鏡→動畫 keyframe「讓素材會動」(里程碑)** — `build_animation.py`(In/Loop/Out×role
+  → Spine 3.8 animations)+ `validate_animation.py`(9 檢查 + 4 負對照,校準自 `main_draw_loop`)。
+  robot/Symbol_Ww 全 PASS、負對照全抓、round-trip 回歸不破。誠實界定:驗結構/幾何非藝術手感、
+  role 對非角色符號僅近似。下一步定為關節 pivot 推斷(e)。
 - 2026-08-19:**S1 目標圖反推分析器(里程碑,使用者新增研究項目)** — 分層 PSD → 五段規格
   (運動構件/周邊特效/動作分鏡/拆圖策略/補圖項目);`tools/analyzer/` + 對 Award 真值 5 項校驗全 PASS
   (件召回 1.0)。誠實界定補圖需求為輸入契約相依(分層 PSD 0 破洞)、#3 分鏡為類型先驗提案。
