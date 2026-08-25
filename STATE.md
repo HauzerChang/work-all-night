@@ -38,6 +38,14 @@
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
+- **S3 weighted-mesh 骨骼變形評估器完成(里程碑,2026-08-25)** — 補上「唯一未驗維度」weighted mesh 骨骼變形平滑度。
+  `tools/mesh_gen/weighted_deform.py`(重現 Spine 3.8 FK bone SRT 階層 + 動畫 timeline + weighted 蒙皮)+
+  `validate_weighted.py`(標準指令,exit 0/1)。對 Award 機器人 3 件真實美術 weighted mesh **三條 AC 全 PASS**:
+  AC1 蒙皮數值正確(光暈 Award_Legend_In 末幀 area 1.000/strain 0.000 精確回到獨立 setup → 浮點級證明 FK+蒙皮);
+  AC2 藝術家基線 Loop 全 foldover-clean(光暈 In 的「glow 爆入」自我重疊為真實軟性加法貼圖行為,誠實界定不計);
+  AC3 複合閘鑑別力(光暈 4骨:應變 10×+破裂 k 12>6;身體 3骨:破裂 k 6>4;左手單骨主導 → N/A)。
+  **方法論結論**:weighted 品質需**複合閘(foldover + 應變平滑度)**,foldover 單獨盲於「剛體單骨不關節化」。
+  見 `knowledge/s3-weighted-deform-evaluator.md`。⚠️ 尚未生成我方 BBW 權重(僅評估器);下一步見 candidate 2b。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -66,10 +74,14 @@
    timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
    (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
-2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
-   本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
-   幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
-   才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+2. **S3 weighted mesh + 內部取樣密度 + BBW 權重** —
+   (a) ~~weighted 變形**評估器**~~ ✅ **完成(2026-08-25)**:`weighted_deform.py`+`validate_weighted.py`,
+       對 Award 3 件三條 AC 全 PASS;方法論結論=複合閘(foldover+應變平滑度)。見 `knowledge/s3-weighted-deform-evaluator.md`。
+   (b) **❗下一個最高優先:BBW 權重生成器 + 內部取樣密度控制**。評估器(閘)已就緒,現在要「生成我方權重」:
+       對同一骨架(Award 4_LEG* 骨鏈),在生成的 mesh 上算 BBW(Bounded Biharmonic Weights,純 CPU:
+       離散拉普拉斯 + 有界二次規劃/heat-geodesic 近似)+ 加「內部取樣密度」讓 mesh 有服務變形的內部頂點,
+       再用 `validate_weighted.py` 量化「我方 weighted mesh 變形 ≈ 藝術家」(strain 平滑度 + foldover 韌性達基線)。
+       真值:Award 這 3 件的權重/骨架已在 `Award.json`。純 CPU 可自驅。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。

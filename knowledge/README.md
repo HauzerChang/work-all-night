@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S3 weighted-mesh 骨骼變形評估器](s3-weighted-deform-evaluator.md) — **補上「唯一未驗維度」weighted mesh 骨骼變形平滑度**:重現 Spine 3.8 FK(bone SRT 階層)+ weighted 蒙皮,對 Award 機器人 3 件真實美術 weighted mesh 三條 AC 全 PASS(`validate_weighted.py`,exit 0)。AC1 蒙皮數值正確性經浮點級獨立驗證(光暈 In 末幀 area 1.000/strain 0.000 回到獨立 setup);AC2 藝術家基線 Loop 全 foldover-clean(光暈 In 的 glow 爆入自我重疊為真實軟性貼圖行為,誠實界定);AC3 複合閘鑑別力(光暈/身體多骨件過,左手單骨主導標 N/A)。**方法論結論:weighted 品質需複合閘(foldover + 應變平滑度),foldover 單獨盲於剛體不關節化**。下一步:BBW 權重生成器 + 內部取樣密度,用本閘量化我方權重 ≈ 藝術家。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
