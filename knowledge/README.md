@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S1 分鏡 → 動畫 keyframe(Loop 待機呼吸)](s1-storyboard-to-animation.md) — **靜態素材開始「會動」**:`animate_spine.py` 把 analyzer #3 storyboard 的 Loop beat 確定性轉成 Spine 3.8 `animations.loop`(body 呼吸/head 點頭/limb 相位錯開擺盪/effect alpha 脈動,loop 無縫);`validate_animation.py` 反算量測 + 負對照。robot(12 檢查)/Symbol_Ww(18件,38 檢查)**全 PASS**。誠實界定:dense-linear 非 bezier、只做 Loop、limb 繞件中心(pivot 待 S5)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
