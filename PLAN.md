@@ -40,7 +40,9 @@
 - 目標：為四能力各寫「自我品質閘」(可機讀判準)。**樞紐：沒它自主迴圈無法收斂**。
 - 完成條件：四個評估器都能對既有 `main_draw` 產出 pass/fail + 量化差距。
 - 環境：純 CPU(含 vision 比對)。
-- 狀態：⬜ 未開始
+- 狀態：🟡 進行中 — 切圖閘(`evaluate_slicing`)✅;mesh 靜態閘(`evaluate_mesh`)✅;
+  mesh **變形閘**:unweighted(`deform_eval`)✅ + **weighted 骨骼變形(`weighted_deform_eval`,2026-08-25)✅**;
+  尚缺:補圖閘、骨架閘。
 
 ### S3 mesh 生成器  ★建議先做
 - 目標：SpriteToMesh 式拓樸(findContours+多通道 Canny+Delaunay) + BBW 權重 + SkelToJson 讀寫。
