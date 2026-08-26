@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S3 weighted-mesh 骨骼變形評估器 + 藝術家真值校準](s3-weighted-deform-evaluator.md) — **補上前一里程碑唯一未驗維度(weighted mesh 骨骼變形平滑度)**:`weighted_deform.py` 重現 Spine LBS(normal-inherit bone transform + 每頂點權重混合),checker 以**仿射協變達機器精度(2.3e-13)**證明數學正確。對 Award 7 個真實 weighted mesh × 12 動畫校準出容忍包絡:**有內部頂點的實心角色 mesh 即使 300px+ 位移仍 0 翻面(flip_area_frac=0)**→ 量化證實「內部取樣密度=變形平滑度槓桿」;binary 0-fold 閘對 weighted 是錯的(藝術家真值 superwin 也有 0.7% sliver 翻面),改用 `flip_area_frac` 嚴重度;additive glow(光暈 boundary-only)自交 13.9% 但視覺無害→不套折疊閘。建議門檻:實心件 `flip_area_frac≤0.01`。圖 `figures/weighted_deform_calibration.png`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
