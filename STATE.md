@@ -38,6 +38,16 @@
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
+- **S3/S2 weighted-mesh 骨骼變形評估器:完成(里程碑,2026-08-26)** — 補上先前反覆標記的**唯一未驗維度**
+  「weighted mesh 骨骼變形平滑度」(靜態 IoU 不涵蓋)。`weighted_deform_eval.py` 忠實重現 Spine 3.8
+  骨骼世界變換(77 骨全 normal/無 shear)+ linear blend skinning + 動畫 rotate/translate/scale timeline
+  + **可見性 gating(slot alpha/attachment,雷點 #3)**;向量化自交/翻面閘(掃全 pose 不 timeout)。
+  `validate_weighted_deform.py` 三 AC 全 PASS:AC1 setup skinning 7/7 有效(正確性硬自檢)、AC2 gating 生效
+  (alpha=0 fade-in 髒幀被排除、hero mesh 各自落在自己 tier)、AC3 負對照(身體 shift/jitter → 506/1602 自交被抓)。
+  **關鍵校準(誠實界定):並非所有藝術 weighted mesh 可見幀都乾淨** —— 5/7 乾淨,但 superwin hero(112v)
+  在其擠壓/縮放 In 可見階段真的自交(keyframe 上即有,非內插假象)、halo 亦殘 4 自交 → **不存在**
+  「所有藝術 mesh worst==0」的通用閘(同型於先前 stress_field miscalibration 陷阱);評估器可信度看
+  AC1+AC3,生成 mesh 應對照同部位同動畫乾淨率而非絕對 0。見 `knowledge/s3-weighted-deform-evaluator.md`。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -66,10 +76,15 @@
    timeline,讓產出的素材「會動」;可用 spine_inspector 或幾何量化(bone 位移/旋轉範圍)自驗。純 CPU 可自驅。
    (e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成(2026-08-19,見上)**。3 件靜態覆蓋率全 PASS。
-2. **❗最高優先(補上上一步的限制):S3 weighted mesh + 內部取樣密度 + BBW 權重**。
-   本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
-   幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
-   才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+2. **S3 weighted mesh + 內部取樣密度 + BBW 權重**。
+   - ✅ **評估器已完成(2026-08-26)**:`weighted_deform_eval.py`+`validate_weighted_deform.py`(見上里程碑),
+     已能量化 weighted mesh 骨骼變形(自交/翻面/可見性 gating);對 Award 7 真值三 AC 全 PASS。
+     「每能力必配評估器」前置已備齊 → 生成器可自驅收斂。
+   - **下一 chunk(最高優先):BBW 權重生成器**。有了評估器,實作「內部取樣密度控制 + BBW(Bounded
+     Biharmonic Weights)骨綁」:給定件 + 骨架子集(用 Award 該部位的骨綁為真值),生成 weighted mesh,
+     用評估器對照**同部位同動畫**可見乾淨率(乾淨部位如身體/左手要求 0 自交;hero/halo 要求不比藝術差)。
+     真值(權重/骨架)已在 `Award.json`,純 CPU(scipy 解 biharmonic)可自驅。
+     建議先從藝術乾淨的 `機器人拆件/身體`(98v,3/3 乾淨)或 `左手` 對照起。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
