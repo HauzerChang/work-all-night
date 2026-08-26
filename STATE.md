@@ -38,6 +38,15 @@
   `validate_build.py`(round-trip 重建 setup pose == 原 PSD composite)。robot(5件)/Symbol_Ww(18件)
   **全 PASS**(premult MAE 0.03/0.24、0 孤兒、0 未解析 attachment)。mesh/region 分派沿用分析器建議。
   誠實界定:只驗靜態幾何/貼圖編碼;動畫 keyframe / mesh 變形 / 關節 pivot 屬後續。見 `knowledge/s1-build-spine-end-to-end.md`。
+- **S3 weighted-mesh deform 評估器完成(里程碑,2026-08-26)** — 補上「weighted mesh 骨骼變形平滑度」
+  這唯一未驗維度的**前置閘**。`tools/mesh_gen/skinning_eval.py`:Spine 3.8 pose 引擎 + Linear Blend
+  Skinning,對任一 weighted mesh 在任一動畫任一時刻算變形後世界頂點 + 幾何閘(自交/翻面/面積比 +
+  平滑度 edge_cv/area_cv)。`validate_weighted_deform.py` 對 Award **7 件美術真值雙向自驗:正對照 7/7
+  自一致、負對照 7/7 抓到破壞(交換綁定,身體件 si 0→669)**。**核心校準教訓**:絕對「si==0&flips==0」
+  對 weighted 角色 mesh **miscalibrated**(光暈軟邊發光 si=71、superwin 蓄力擠壓 scale=0.396+idle
+  sliver 摺疊 si=76,美術真值本身非零且出貨正常)→ 改**校準式相對閘 `gate_against_baseline`**(生成 mesh
+  變形指標須不劣於該件美術基準線+margin,與 compare_robot_mesh 的 IoU−0.03 哲學一致)。
+  真值備妥(3 mesh 綁定 + Award_Legend_In/Loop 驅動)。見 `knowledge/s3-weighted-deform-evaluator.md`。
 - S5 尚未開始。
 
 ## 真實資產(已收進 `assets/`)
@@ -70,14 +79,19 @@
    本次發現靜態 IoU PASS 但美術用密集內部頂點服務骨骼變形平滑度(身體 98v),我方 boundary-dense
    幾乎只有邊界點 → 對 weighted/bone-變形件無法對照變形品質。加「內部取樣密度控制 + 骨綁權重(BBW)」
    才能量化 weighted mesh 變形。純 CPU 可自驅(真值:Award 這 3 件的權重 + 骨骼結構已在 `Award.json`)。
+   - **✅ 子步驟 2a 完成(2026-08-26):變形閘 `skinning_eval.py`+`validate_weighted_deform.py`**
+     (LBS pose 引擎 + 校準式相對閘,7 件雙向自驗)。**下一步 = 子步驟 2b:BBW/harmonic 權重生成**
+     (對 S3 生成 mesh 依骨骼位置算平滑權重 → weighted vertices → 用本閘對照美術基準線)
+     **+ 子步驟 2c:內部取樣密度旋鈕**(Poisson/格點,量 edge_cv/area_cv 逼近美術)。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
 4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
 5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> S3+S4 已端到端串通並對真實生產美術 mesh 驗收(靜態層級)。建議下一步:候選 2(weighted+BBW),
-> 補上「weighted mesh 骨骼變形平滑度」這唯一未驗維度;真值(權重/骨架)已在 `Award.json`,純 CPU 可自驅。
+> S3+S4 已端到端串通並對真實生產美術 mesh 驗收(靜態層級)。候選 2(weighted+BBW)進行中:
+> **子步驟 2a 變形閘已完成**(`skinning_eval.py`,7 件雙向自驗)。**建議下一步 = 子步驟 2b BBW/harmonic
+> 權重生成**(用本閘對照美術基準線量化變形品質)+ 2c 內部取樣密度旋鈕。純 CPU 可自驅。
 
 ## 環境前置(已驗證可用)
 
@@ -135,6 +149,11 @@
   psd_slice 對兩檔切圖無損 PASS;機器人 5 圖層 ⇄ Award slot `機器人拆件/<圖層名>` 逐件吻合(+2px)。
   抓修閘第三次 miscalibration(composite 透明區白底 → 改 premultiplied 比對 + 套圖層 opacity)。
   收 Award.json/atlas + 2 PSD 進 assets;校準契約。
+- 2026-08-26:**S3 weighted-mesh deform 評估器(里程碑,候選 2 子步驟 2a)** — 補上唯一未驗維度的前置閘。
+  `skinning_eval.py`(Spine 3.8 pose 引擎 + LBS)+ `validate_weighted_deform.py`;Award 7 件美術真值
+  **正對照 7/7 自一致、負對照 7/7 抓破壞**。**核心校準教訓**:絕對 si==0&flips==0 對 weighted 角色 mesh
+  miscalibrated(光暈軟邊/superwin 蓄力擠壓+sliver,美術真值本身非零且出貨正常)→ 改校準式相對閘
+  (不劣於美術基準線+margin)。引擎經視覺 wireframe + 負對照(身體 si 0→669)雙重確認正確。
 - 2026-06-26:**texture 級驗證 + atlas_crop 修正(里程碑)** — 收到 Award.png/Award2.png(雙頁,~0.70 縮小)。
   PSD 切件 ↔ atlas 切件 alpha-IoU 0.92~0.99 → 確認同素材,PSD↔spine↔atlas 閉環。
   **用 PSD 外部真值揪出 atlas_crop derotate 方向 bug(CCW→CW),被 round-trip 自洽掩蓋**;
