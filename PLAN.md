@@ -61,6 +61,19 @@
 - 環境：人形 CPU；非人形 CPU/GPU。**唯一卡死環節 — 人力集中於此**。
 - 狀態：⬜ 未開始
 
+## skill 化(階段性成果固化)
+
+> 研究成果分區塊、防半成品地固化成可觸發/可交付/可持續更新的 skill。完整策略見 `skills/README.md`;
+> **成熟度真相來源 = `tools/check_readiness.py`(實跑 validator),非靜態文字**。
+
+- **完成度機制**:成熟度階梯 L0 概念 → L1 原型 → L2 真值驗收 → L3 端到端 → L4 skill 固化。
+  **skill 化門檻**:區塊內所有核心能力 ≥ L2 GREEN 且 ≥1 條 L3。**評估器就緒 ≠ 生成器就緒**(防固化)。
+- **五區塊**:`spine-mesh-doctor`(品質閘,READY)、`spine-asset-forge`(素材鍛造,READY)、
+  `spine-slicing`(併 forge)、`spine-target-analysis`(折入 forge 前端)、`spine-weighted-forge`(HOLD:BBW 未做)。
+- **分工**:forge 從零生素材 · mesh-doctor 把關品質 · 既有 `spine-ai-editor` 讓素材動起來並落地 Cocos。
+- **維護/版本**:SemVer per skill;只有 ≥L2 GREEN 能力可進 skill;升版前跑 check_readiness,GREEN→RED 即迴歸擋版。
+- **人機邊界**:repo 只**備好** `skills/<id>/` 套件;打包/sync 到使用者帳號屬 C 類里程碑,需使用者拍板。
+
 ## 關鍵策略結論(別忘)
 
 - **改輸入契約比硬攻演算法划算**：能要到分層 PSD 就要，切圖+補圖兩大難題大半消失。

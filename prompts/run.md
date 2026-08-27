@@ -18,6 +18,10 @@
    評估器本身也要可信(對照藝術家真值 / 負對照)。
 5. **記錄**:新發現寫進 `knowledge/`(更新索引);更新 `STATE.md`(進度/下一步/未解);
    在 `log/YYYY-MM-DD-NNN.md` 新增一筆。
+4.5 **skill 化檢查(里程碑時)**:若本次是里程碑,跑 `python3 tools/check_readiness.py` 更新
+   `skills/READINESS.md`。若某 HOLD 區塊跨過 skill 化門檻 → 產出/更新 `skills/<id>/` 套件並升版
+   (SemVer;只有 ≥L2 GREEN 能力可進),並依 RULES **C 類**回報使用者拍板是否 sync。
+   ⚠️ **評估器就緒 ≠ 生成器就緒**:生成能力仍 L0/L1 的區塊保持 HOLD,勿打包。策略見 `skills/README.md`。
 6. **收尾**:用清楚訊息 commit & **push 回你啟動時所在的那條分支**(用 `git rev-parse --abbrev-ref HEAD`
    確認,不要硬編分支名),讓下次排程從同分支接手時能讀到更新後的 `STATE.md`。然後結束。
    **不要嘗試無限長跑。**
