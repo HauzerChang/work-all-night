@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mesh_gen"))
 from psd_slice import slice_psd
 from generate_mesh_v2 import generate as gen_mesh
 from analyze_target import analyze
+from storyboard_to_anim import build_animations
 
 
 def safe(name):
@@ -86,6 +87,7 @@ def build(psd_path, out_dir, genre="slot_bigwin"):
     # Spine skeleton JSON
     bones = [{"name": "root"}]
     slots, skin = [], {}
+    part_bone, part_slot = {}, {}   # 原始件名 → bone/slot 名(供動畫生成)
     # z 升序 = 由下而上繪製
     order = sorted(range(len(parts)), key=lambda i: metas[i]["z"])
     for i in order:
@@ -97,6 +99,8 @@ def build(psd_path, out_dir, genre="slot_bigwin"):
         bones.append({"name": bone, "parent": "root",
                       "x": round(cx, 2), "y": round(H - cy, 2)})
         slots.append({"name": nm, "bone": bone, "attachment": nm})
+        part_bone[e["name"]] = bone
+        part_slot[e["name"]] = nm
         use_mesh = geo.get(e["name"], "").startswith("mesh")
         if use_mesh:
             part_png = os.path.join(parts_dir, e["file"])
@@ -112,14 +116,16 @@ def build(psd_path, out_dir, genre="slot_bigwin"):
         "skeleton": {"hash": "gen", "spine": "3.8.75", "x": 0, "y": 0,
                      "width": W, "height": H, "images": "./"},
         "bones": bones, "slots": slots,
-        "skins": {"default": skin}, "animations": {},
+        "skins": {"default": skin},
+        "animations": build_animations(spec, part_bone, part_slot),
     }
     json.dump(skeleton, open(os.path.join(out_dir, "skeleton.json"), "w"),
               ensure_ascii=False, indent=1)
     summary = {"out": out_dir, "canvas": [W, H], "atlas_page": [PW, PH],
                "parts": len(parts),
                "mesh_parts": [names[i] for i in order if geo.get(metas[i]["name"], "").startswith("mesh")],
-               "region_parts": [names[i] for i in order if not geo.get(metas[i]["name"], "").startswith("mesh")]}
+               "region_parts": [names[i] for i in order if not geo.get(metas[i]["name"], "").startswith("mesh")],
+               "animations": list(skeleton["animations"].keys())}
     return summary
 
 
