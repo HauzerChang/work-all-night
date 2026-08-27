@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S1 分鏡 → 動畫 keyframe(candidate 0d)](s1-storyboard-to-animation.md) — **把 #3 動作分鏡(符號)確定性具體化為可載入、會動的 Spine 3.8 animations**(bone rotate/translate/scale + slot color)。純 Python Spine 3.8 timeline 取樣器(無 CDN)+ role→運動基元 + `beat_category` 跨 genre 歸類(intro/loop/outro/hold/pulse)。對 robot(slot_bigwin)/Symbol_Ww(slot_reveal)**4 AC 全 PASS + 負對照全偵測**;loop 無縫(err=0)、beat 以 setup identity 為介面可串接、limb 左右反相。build_spine `--animate` 端到端(round-trip 靜態幾何仍 PASS)。誠實界定:運動基元為先驗手感提案(非學自真值),Award 12 真實動畫幅度真值比對屬待續。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

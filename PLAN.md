@@ -34,7 +34,11 @@
   對 `robot_parts.psd ⇄ Award` 真值 5 項校驗全 PASS(件召回 1.0)。見 `knowledge/s1-target-image-analyzer.md`。
   **擴充(2026-08-19)**:平圖(未分層)純 CPU 拆件 baseline(結論:同材質角色語意召回 0,僅不相連塊可靠,
   升級需 GPU 語意分層)+ 分鏡先驗庫(slot_bigwin/slot_reveal 對 Award/main_draw 覆蓋率 1.0)。
-  見 `knowledge/s1-flat-pipeline-and-priors.md`。待續:接 S3/S4 端到端(最高優先)、影片輸入、更多有真值的先驗類型。
+  見 `knowledge/s1-flat-pipeline-and-priors.md`。
+  **端到端會動(2026-08-27,candidate 0d)**:`gen_animations.py`+`spine_anim.py`(純 Python Spine 3.8 timeline 取樣器)
+  +`validate_anim.py`;把 #3 分鏡具體化為 Spine `animations`,`beat_category` 跨 genre;robot/Symbol_Ww 4 AC 全 PASS+負對照;
+  `build_spine --animate` 端到端會動。見 `knowledge/s1-storyboard-to-animation.md`。
+  待續:Award 12 真實動畫幅度真值校準、mesh deform timeline、影片輸入、關節 pivot(S5)。
 
 ### S2 評估器套件
 - 目標：為四能力各寫「自我品質閘」(可機讀判準)。**樞紐：沒它自主迴圈無法收斂**。

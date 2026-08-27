@@ -45,7 +45,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
     return placements, (W, H)
 
 
-def build(psd_path, out_dir, genre="slot_bigwin"):
+def build(psd_path, out_dir, genre="slot_bigwin", animate=False):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
     psd, manifest, parts = slice_psd(psd_path, parts_dir)     # 切件 PNG(裁到 bbox)+ manifest
@@ -114,6 +114,10 @@ def build(psd_path, out_dir, genre="slot_bigwin"):
         "bones": bones, "slots": slots,
         "skins": {"default": skin}, "animations": {},
     }
+    if animate:
+        # candidate 0d:把 #3 分鏡具體化為 Spine timeline,讓素材「會動」
+        from gen_animations import build_animations
+        skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"])
     json.dump(skeleton, open(os.path.join(out_dir, "skeleton.json"), "w"),
               ensure_ascii=False, indent=1)
     summary = {"out": out_dir, "canvas": [W, H], "atlas_page": [PW, PH],
@@ -128,9 +132,10 @@ def main():
     ap.add_argument("psd")
     ap.add_argument("--out", default=None)
     ap.add_argument("--genre", default="slot_bigwin")
+    ap.add_argument("--animate", action="store_true", help="同時由 #3 分鏡生成 animations(candidate 0d)")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
-    s = build(a.psd, out, a.genre)
+    s = build(a.psd, out, a.genre, animate=a.animate)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 
