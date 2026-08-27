@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S1 分鏡→動畫 keyframe](s1-storyboard-to-animation.md) — **讓 build_spine 的靜態素材「會動」**:`build_animations.py` 把 genre 先驗 beats 轉成 Spine 3.8 `animations`(bone translate/scale/rotate + 特效 slot alpha),設計對應已知雷點(Loop 嚴格週期、有界非零振幅、**相位錯開破「全身同步紙板感」**、緊湊 bezier 平滑)。`validate_animations.py` 純 CPU 5 檢查閘(schema/loop_cyclic/amplitude/phase_div/world_motion)含 bone 世界變換重現 + bezier 取樣自驗;robot(5件 In/Loop/Out)/Symbol_Ww(18件 land/idle)**全 PASS**、setup round-trip 不破、負對照(flat 死圖 / synced 同步)兩者皆被抓。誠實界定:只驗客觀結構,手感(緩動/重量)主觀項留使用者;未接實機渲染(CDN blocker)。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
