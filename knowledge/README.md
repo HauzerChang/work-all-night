@@ -43,4 +43,6 @@
 
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
+- [S3 weighted mesh 變形評估器](s3-weighted-deform-evaluator.md) — **補上 deform_eval 只驗 unweighted 的缺口**:Python 重現 Spine 3.8 bone world transform + weighted skinning + timeline 取樣,對 Award 3 個機器人 weighted mesh 逐真實動畫量化自交/翻面/塌陷。`validate_weighted_deform.py` 三道校驗全 PASS(setup 自一致、藝術家不透明件 si=0、負對照放大分離 amp4 藝術家 si=0/打亂 si=54)。修 1 bug(scale timeline 缺 channel 預設應為 1 非 0)+ 相對面積 degeneracy(避免 big-win scale-from-0 誤判)。發現軟性加成件(光暈)容許重疊 → pass/fail 需依 attachment 語意分類。是 BBW 權重生成(候選 2)的前置閘。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

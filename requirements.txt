@@ -6,3 +6,5 @@ scipy
 # S4 PSD-first 切圖(psd-tools 純 CPU;Pillow 為其影像後端)。
 psd-tools
 Pillow
+# knowledge 圖表(mesh 變形線框可視化)。
+matplotlib
