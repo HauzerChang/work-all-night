@@ -140,6 +140,31 @@ def transform_point(w, px, py):
     return (a * px + b * py + x, c * px + d * py + y)
 
 
+def inverse_transform_point(w, px, py):
+    """世界點 → 該骨局部座標(用於算 weighted mesh 的 bind 座標)。"""
+    a, b, c, d, x, y = w
+    det = a * d - b * c
+    if abs(det) < 1e-12:
+        return (0.0, 0.0)
+    dx, dy = px - x, py - y
+    return ((d * dx - b * dy) / det, (-c * dx + a * dy) / det)
+
+
+def edge_length_cv(verts, tris):
+    """所有邊長的變異係數(std/mean)—— 變形平滑度指標之一(邊長分布越穩越平滑)。"""
+    seen = set(); L = []
+    for t in tris:
+        for a, b in ((t[0], t[1]), (t[1], t[2]), (t[2], t[0])):
+            e = (min(a, b), max(a, b))
+            if e in seen:
+                continue
+            seen.add(e)
+            L.append(float(np.hypot(*(verts[a] - verts[b]))))
+    L = np.array(L)
+    m = L.mean()
+    return float(L.std() / m) if m > 1e-9 else 0.0
+
+
 # ---------- 動畫 timeline 取樣 ----------
 def _curve_interp(kf, nkf, t):
     """回傳 [0,1] 的內插比例 alpha(對應時間段 kf.time..nkf.time)。
@@ -259,6 +284,66 @@ def affected_bones(sk, anim, mesh_bones, byname):
     return need, set(bt.keys()) & need
 
 
+def eval_pv(sk, bones, byname, order, bidx_to_name, pv, tris, mesh_bone_names,
+            anims=None, substeps=6, amplify=1.0):
+    """核心:對已解析的 (pv, tris) + 骨架 context 逐動畫逐幀評估(JSON 路徑與生成 mesh 共用)。
+    同時輸出變形平滑度指標(area_ratio 波動 std、edge-length CV 相對 setup 的增幅)。"""
+    world0 = bone_world_transforms(bones, byname, order, {})
+    setup_v = skin_vertices(pv, world0, bidx_to_name)
+    setup_signs = [signed_area(setup_v, t) > 0 for t in tris]
+    setup_area = sum(abs(signed_area(setup_v, t)) for t in tris)
+    setup_check = eval_pose_wm(setup_v, tris, setup_signs, setup_area)
+    setup_cv = edge_length_cv(setup_v, tris)
+
+    all_anims = anims or list(sk.get("animations", {}))
+    per_anim = {}
+    worst = {"self_intersections": 0, "triangle_flips": 0, "degenerate": 0}
+    ar_all, cvinc_all = [], []
+    for anim in all_anims:
+        chain_all, driven = affected_bones(sk, anim, mesh_bone_names, byname)
+        if not driven:
+            continue
+        dur = anim_duration(sk, anim)
+        posef = anim_local_pose(sk, anim, byname, chain_all, amplify=amplify)
+        npts = max(8, int(math.ceil(dur / 0.2)) * substeps)
+        results = []
+        for s in range(npts + 1):
+            t = dur * s / npts
+            world = bone_world_transforms(bones, byname, order, posef(t))
+            v = skin_vertices(pv, world, bidx_to_name)
+            r = eval_pose_wm(v, tris, setup_signs, setup_area)
+            r["_cv_inc"] = edge_length_cv(v, tris) - setup_cv  # 平滑度:邊長變異相對 setup 的增幅
+            results.append(r)
+        ars = [r["area_ratio"] for r in results]
+        cvs = [r["_cv_inc"] for r in results]
+        ar_all += ars; cvinc_all += cvs
+        agg = {
+            "driven_bones": sorted(driven), "duration": round(dur, 3),
+            "frames_sampled": len(results),
+            "max_self_intersections": max(r["self_intersections"] for r in results),
+            "max_triangle_flips": max(r["triangle_flips"] for r in results),
+            "max_degenerate": max(r["degenerate"] for r in results),
+            "area_ratio_range": [min(ars), max(ars)],
+            "all_clean": all(r["clean"] for r in results),
+        }
+        per_anim[anim] = agg
+        for k in worst:
+            worst[k] = max(worst[k], agg["max_" + k])
+
+    smooth = {
+        "edge_cv_setup": round(setup_cv, 4),
+        "edge_cv_increase_max": round(max(cvinc_all), 4) if cvinc_all else 0.0,
+        "area_ratio_std": round(float(np.std(ar_all)), 4) if ar_all else 0.0,
+        "area_ratio_span": [round(min(ar_all), 3), round(max(ar_all), 3)] if ar_all else [1.0, 1.0],
+    }
+    return {
+        "nv": len(pv), "tris": len(tris), "bones": mesh_bone_names,
+        "setup": setup_check, "anims": per_anim, "worst": worst, "smoothness": smooth,
+        "checker_validated": (worst["self_intersections"] == 0 and worst["triangle_flips"] == 0
+                              and worst["degenerate"] == 0 and setup_check["clean"]),
+    }
+
+
 def evaluate_weighted_mesh(path, slot, name=None, substeps=6, anims=None, mutate=None, amplify=1.0):
     """對單一 weighted mesh 逐動畫逐幀評估。mutate: 可選 (pv->pv) 破壞綁定做負對照。
     amplify>1:放大骨動畫 delta 做壓力測試(測綁定品質裕度)。"""
@@ -273,57 +358,10 @@ def evaluate_weighted_mesh(path, slot, name=None, substeps=6, anims=None, mutate
     mesh_bone_names = [bidx_to_name[i] for i in mesh_bones]
     if mutate:
         pv = mutate(pv, bidx_to_name)
-
-    # setup world verts(自一致性:靜態拓樸)
-    world0 = bone_world_transforms(bones, byname, order, {})
-    setup_v = skin_vertices(pv, world0, bidx_to_name)
-    setup_signs = [signed_area(setup_v, t) > 0 for t in tris]
-    setup_area = sum(abs(signed_area(setup_v, t)) for t in tris)
-    setup_check = eval_pose_wm(setup_v, tris, setup_signs, setup_area)
-
-    all_anims = anims or list(sk.get("animations", {}))
-    per_anim = {}
-    worst = {"self_intersections": 0, "triangle_flips": 0, "degenerate": 0}
-    for anim in all_anims:
-        chain_all, driven = affected_bones(sk, anim, mesh_bone_names, byname)
-        if not driven:
-            continue  # 該動畫沒驅動這 mesh 的任何骨
-        dur = anim_duration(sk, anim)
-        posef = anim_local_pose(sk, anim, byname, chain_all, amplify=amplify)
-        # 取樣:0..dur 均勻 substeps*ceil(dur/0.2) 段,至少 8 點
-        npts = max(8, int(math.ceil(dur / 0.2)) * substeps)
-        results = []
-        for s in range(npts + 1):
-            t = dur * s / npts
-            lp = posef(t)
-            world = bone_world_transforms(bones, byname, order, lp)
-            v = skin_vertices(pv, world, bidx_to_name)
-            results.append(eval_pose_wm(v, tris, setup_signs, setup_area))
-        agg = {
-            "driven_bones": sorted(driven),
-            "duration": round(dur, 3),
-            "frames_sampled": len(results),
-            "max_self_intersections": max(r["self_intersections"] for r in results),
-            "max_triangle_flips": max(r["triangle_flips"] for r in results),
-            "max_degenerate": max(r["degenerate"] for r in results),
-            "area_ratio_range": [min(r["area_ratio"] for r in results),
-                                 max(r["area_ratio"] for r in results)],
-            "all_clean": all(r["clean"] for r in results),
-        }
-        per_anim[anim] = agg
-        for k in worst:
-            worst[k] = max(worst[k], agg["max_" + k])
-
-    return {
-        "slot": slot, "name": name, "weighted": weighted,
-        "nv": len(pv), "tris": len(tris), "hull": hull,
-        "bones": mesh_bone_names,
-        "setup": setup_check,
-        "anims": per_anim,
-        "worst": worst,
-        "checker_validated": (worst["self_intersections"] == 0 and worst["triangle_flips"] == 0
-                              and worst["degenerate"] == 0 and setup_check["clean"]),
-    }
+    r = eval_pv(sk, bones, byname, order, bidx_to_name, pv, tris, mesh_bone_names,
+                anims=anims, substeps=substeps, amplify=amplify)
+    r.update({"slot": slot, "name": name, "weighted": weighted, "hull": hull})
+    return r
 
 
 # ---------- 負對照 mutators ----------

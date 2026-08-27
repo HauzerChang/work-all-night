@@ -99,14 +99,18 @@ BLOCKS = [
     {
         "id": "spine-weighted-forge",
         "title": "weighted mesh 生成 + BBW 權重(候選 2 主體)",
-        "target_skill": "HOLD(示範防固化):生成器未做,不可打包",
+        "target_skill": "HOLD:不透明件生成已 L2,待端到端 L3(接 build_spine 產完整可載入 spine)後併入 forge",
         "caps": [
             CAP("weighted_deform_eval", "變形品質閘(前置)", "L2",
                 "python3 tools/mesh_gen/validate_weighted_deform.py", "eval", heavy=True),
-            CAP("bbw_weights", "BBW/heat-diffusion 權重生成", "L0", None, "gen",
-                note="❗未做:閘就緒但生成能力缺 → 禁止 skill 化"),
-            CAP("interior_sampling", "內部取樣密度控制", "L1", None, "gen",
-                note="boundary-dense 已有;內部密度控制未做"),
+            CAP("bbw_weights", "heat-diffusion(BBW 近似)權重生成", "L2",
+                "python3 tools/mesh_gen/validate_weighted_gen.py", "gen", heavy=True,
+                note="不透明件(身體/左手)過閘 + 平滑度≈藝術家;軟性件(光暈極端 reveal)未追平,屬已知限制"),
+            CAP("interior_sampling", "內部取樣密度控制(triangle max-area)", "L2",
+                "python3 tools/mesh_gen/validate_weighted_gen.py", "gen", heavy=True,
+                note="body 調到 nv=98 == 藝術家"),
+            CAP("weighted_end2end", "接 build_spine 產完整可載入 spine", "L0", None, "pipeline",
+                note="下一步:把 weighted mesh 寫進 build_spine 的 skin,round-trip 驗"),
         ],
     },
 ]

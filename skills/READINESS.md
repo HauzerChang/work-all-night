@@ -1,7 +1,7 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-08-27。
+> 產生於 2026-08-27(session 003:候選 2 weighted mesh 生成器完成)。
 
 ```
 ==============================================================================
@@ -41,10 +41,11 @@ skill 化完成度矩陣(已實跑全部 validator)
 
 ■ spine-weighted-forge — weighted mesh 生成 + BBW 權重(候選 2 主體)
   區塊成熟度 L2 → HOLD ⛔
-  目標:HOLD(示範防固化):生成器未做,不可打包
+  目標:HOLD:不透明件生成已 L2,待端到端 L3(接 build_spine 產完整可載入 spine)後併入 forge
     [L2] 變形品質閘(前置)                              閘:GREEN (eval)
-    [L0] BBW/heat-diffusion 權重生成                閘:—     (gen)  «❗未做:閘就緒但生成能力缺 → 禁止 skill 化»
-    [L1] 內部取樣密度控制                               閘:—     (gen)  «boundary-dense 已有;內部密度控制未做»
+    [L2] heat-diffusion(BBW 近似)權重生成             閘:GREEN (gen)  «不透明件(身體/左手)過閘 + 平滑度≈藝術家;軟性件(光暈極端 reveal)未追平,屬已知限制»
+    [L2] 內部取樣密度控制(triangle max-area)            閘:GREEN (gen)  «body 調到 nv=98 == 藝術家»
+    [L0] 接 build_spine 產完整可載入 spine             閘:—     (pipeline)  «下一步:把 weighted mesh 寫進 build_spine 的 skin,round-trip 驗»
 
 ==============================================================================
 可 skill 化(達門檻): spine-mesh-doctor, spine-asset-forge

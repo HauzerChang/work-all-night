@@ -45,4 +45,6 @@
 
 - [S3 weighted mesh 變形評估器](s3-weighted-deform-evaluator.md) — **補上 deform_eval 只驗 unweighted 的缺口**:Python 重現 Spine 3.8 bone world transform + weighted skinning + timeline 取樣,對 Award 3 個機器人 weighted mesh 逐真實動畫量化自交/翻面/塌陷。`validate_weighted_deform.py` 三道校驗全 PASS(setup 自一致、藝術家不透明件 si=0、負對照放大分離 amp4 藝術家 si=0/打亂 si=54)。修 1 bug(scale timeline 缺 channel 預設應為 1 非 0)+ 相對面積 degeneracy(避免 big-win scale-from-0 誤判)。發現軟性加成件(光暈)容許重疊 → pass/fail 需依 attachment 語意分類。是 BBW 權重生成(候選 2)的前置閘。
 
+- [S3 weighted mesh 生成器(內部取樣 + heat-diffusion 權重)](s3-weighted-mesh-generator.md) — **候選 2 主體完成**:輪廓→triangle 三角化(max-area 控內部密度)→ heat-diffusion 骨綁權重(BBW 純 CPU 近似,`(L+H)W=HP` 天然 partition of unity)→ Spine weighted 格式。對 Award 不透明件(身體/左手)過同一道變形閘,4 AC 全 PASS(body nv 調到 == 藝術家 98、左手變形比藝術家更平滑)。誠實限制:軟性件(光暈極端 reveal)si 未追平藝術家手工非均勻拓樸(additive 無害,不列硬性 fail);尚未端到端接 build_spine。使 spine-weighted-forge 的生成能力 L0→L2。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
