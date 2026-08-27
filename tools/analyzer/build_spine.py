@@ -21,10 +21,72 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mesh_gen"))
 from psd_slice import slice_psd
 from generate_mesh_v2 import generate as gen_mesh
 from analyze_target import analyze
+import generate_weighted_mesh as gwm
 
 
 def safe(name):
     return name.replace("/", "_").replace("\\", "_").replace(" ", "_")
+
+
+def _boundary_world(part_png, ox, oy, H, approx_frac=0.012):
+    """由件 alpha 取外輪廓 → 簡化多邊形 → 轉 Spine 世界座標(y 上翻)。回傳 Nx2。"""
+    img = cv2.imread(part_png, cv2.IMREAD_UNCHANGED)
+    alpha = img[:, :, 3] if (img.ndim == 3 and img.shape[2] == 4) else \
+        (cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) > 0).astype(np.uint8) * 255
+    mask = (alpha > 8).astype(np.uint8)
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    c = max(cnts, key=cv2.contourArea)
+    eps = approx_frac * cv2.arcLength(c, True)
+    poly = cv2.approxPolyDP(c, eps, True).reshape(-1, 2).astype(np.float64)
+    # part-local (px,py,y-down) → world (ox+px, H-(oy+py))
+    world = np.column_stack([ox + poly[:, 0], H - (oy + poly[:, 1])])
+    return world, poly  # world 供三角化/骨;poly(part-local)供 uv
+
+
+def _axis_bones(world_pts, k=2):
+    """沿 PCA 主軸放 k 根控制骨(世界座標)。回傳 [(x,y),...]。"""
+    c = world_pts.mean(0)
+    u, s, vt = np.linalg.svd(world_pts - c, full_matrices=False)
+    axis = vt[0]
+    proj = (world_pts - c) @ axis
+    lo, hi = proj.min(), proj.max()
+    return [tuple(c + axis * (lo + (hi - lo) * (0.5 if k == 1 else (0.2 + 0.6 * j / (k - 1)))))
+            for j in range(k)]
+
+
+def _weighted_attachment(part_png, ox, oy, W, H, w, h, bone_base_idx, bone_names_start,
+                         max_area=1500.0, k_bones=2):
+    """生成 weighted mesh attachment + 該件的控制骨定義。
+    回傳 (attachment, new_bones)。new_bones 為 root 子骨(絕對世界座標、rotation 0),
+    故 setup skinning 用簡單 bind = 世界頂點 - 骨原點,partition of unity → 完美重建。"""
+    world, poly = _boundary_world(part_png, ox, oy, H)
+    V, F = gwm.triangulate_polygon(world, max_area=max_area, boundary_steiner=False)
+    n_hull = len(world)                                  # 前 N 頂點 == 邊界(Y 選項保證)
+    bone_pos = _axis_bones(world, k=k_bones)
+    segs = [(p, p) for p in bone_pos]                    # 點骨
+    Wg = gwm.prune_topk(gwm.heat_weights(V, F, segs), k=4)
+    # 組 weighted vertices(全域骨 index = bone_base_idx + j)+ uvs(part-local, top-left, v下)
+    verts, uvs = [], []
+    for i, (wx, wy) in enumerate(V):
+        entries = [(j, wx - bone_pos[j][0], wy - bone_pos[j][1], float(Wg[i, j]))
+                   for j in range(k_bones) if Wg[i, j] > 1e-6]
+        if not entries:
+            j = int(Wg[i].argmax())
+            entries = [(j, wx - bone_pos[j][0], wy - bone_pos[j][1], 1.0)]
+        s = sum(e[3] for e in entries)
+        verts.append(len(entries))
+        for (j, bx, by, wt) in entries:
+            verts += [bone_base_idx + j, round(bx, 3), round(by, 3), round(wt / s, 5)]
+        # uv:世界 → part-local px,py
+        px = wx - ox; py = H - wy - oy
+        uvs += [round(px / w, 5), round(py / h, 5)]
+    att = {"type": "mesh", "vertices": verts, "uvs": uvs,
+           "triangles": [int(x) for t in F for x in t],
+           "hull": int(n_hull), "width": int(w), "height": int(h)}
+    new_bones = [{"name": f"{bone_names_start}_c{j}", "parent": "root",
+                  "x": round(bone_pos[j][0], 2), "y": round(bone_pos[j][1], 2)}
+                 for j in range(k_bones)]
+    return att, new_bones
 
 
 def shelf_pack(sizes, pad=2, max_w=2048):
@@ -45,13 +107,16 @@ def shelf_pack(sizes, pad=2, max_w=2048):
     return placements, (W, H)
 
 
-def build(psd_path, out_dir, genre="slot_bigwin"):
+def build(psd_path, out_dir, genre="slot_bigwin", weighted=False):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
     psd, manifest, parts = slice_psd(psd_path, parts_dir)     # 切件 PNG(裁到 bbox)+ manifest
     W, H = psd.width, psd.height
     spec = analyze(psd_path, genre)
     geo = {r["part"]: r["geometry"] for r in spec["4_slicing_strategy"]["parts"]}
+    note = {r["part"]: r.get("note", "") for r in spec["4_slicing_strategy"]["parts"]}
+    def kind_of(part_name):  # 特效件=軟性加成(si 容忍);其餘=不透明結構件
+        return "effect" if "特效" in note.get(part_name, "") else "structural"
 
     # atlas 打包
     imgs, names, sizes, offsets, metas = [], [], [], [], []
@@ -86,6 +151,7 @@ def build(psd_path, out_dir, genre="slot_bigwin"):
     # Spine skeleton JSON
     bones = [{"name": "root"}]
     slots, skin = [], {}
+    build_meta = {}   # slot_safe -> {"kind": effect|structural}(供 weighted 閘依語意分類)
     # z 升序 = 由下而上繪製
     order = sorted(range(len(parts)), key=lambda i: metas[i]["z"])
     for i in order:
@@ -98,8 +164,12 @@ def build(psd_path, out_dir, genre="slot_bigwin"):
                       "x": round(cx, 2), "y": round(H - cy, 2)})
         slots.append({"name": nm, "bone": bone, "attachment": nm})
         use_mesh = geo.get(e["name"], "").startswith("mesh")
-        if use_mesh:
-            part_png = os.path.join(parts_dir, e["file"])
+        part_png = os.path.join(parts_dir, e["file"])
+        if use_mesh and weighted:
+            base = len(bones)                              # 控制骨的全域起始 index
+            att, ctrl = _weighted_attachment(part_png, ox, oy, W, H, w, h, base, bone)
+            bones += ctrl
+        elif use_mesh:
             m = gen_mesh(part_png, mode="auto")
             att = {"type": "mesh", "vertices": m["vertices"], "uvs": m["uvs"],
                    "triangles": m["triangles"], "hull": m["hull"],
@@ -107,6 +177,7 @@ def build(psd_path, out_dir, genre="slot_bigwin"):
         else:
             att = {"x": 0, "y": 0, "width": w, "height": h}   # region;bone 已在件中心
         skin[nm] = {nm: att}
+        build_meta[nm] = {"kind": kind_of(e["name"]), "mesh": use_mesh}
 
     skeleton = {
         "skeleton": {"hash": "gen", "spine": "3.8.75", "x": 0, "y": 0,
@@ -116,6 +187,7 @@ def build(psd_path, out_dir, genre="slot_bigwin"):
     }
     json.dump(skeleton, open(os.path.join(out_dir, "skeleton.json"), "w"),
               ensure_ascii=False, indent=1)
+    json.dump(build_meta, open(os.path.join(out_dir, "build_meta.json"), "w"), ensure_ascii=False, indent=1)
     summary = {"out": out_dir, "canvas": [W, H], "atlas_page": [PW, PH],
                "parts": len(parts),
                "mesh_parts": [names[i] for i in order if geo.get(metas[i]["name"], "").startswith("mesh")],
@@ -128,9 +200,10 @@ def main():
     ap.add_argument("psd")
     ap.add_argument("--out", default=None)
     ap.add_argument("--genre", default="slot_bigwin")
+    ap.add_argument("--weighted", action="store_true", help="mesh 件產 weighted(骨綁)mesh + 自動控制骨")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
-    s = build(a.psd, out, a.genre)
+    s = build(a.psd, out, a.genre, weighted=a.weighted)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

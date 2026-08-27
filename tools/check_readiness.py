@@ -99,7 +99,7 @@ BLOCKS = [
     {
         "id": "spine-weighted-forge",
         "title": "weighted mesh 生成 + BBW 權重(候選 2 主體)",
-        "target_skill": "HOLD:不透明件生成已 L2,待端到端 L3(接 build_spine 產完整可載入 spine)後併入 forge",
+        "target_skill": "READY:達門檻,可併入 spine-asset-forge(weighted 素材產線)",
         "caps": [
             CAP("weighted_deform_eval", "變形品質閘(前置)", "L2",
                 "python3 tools/mesh_gen/validate_weighted_deform.py", "eval", heavy=True),
@@ -109,8 +109,11 @@ BLOCKS = [
             CAP("interior_sampling", "內部取樣密度控制(triangle max-area)", "L2",
                 "python3 tools/mesh_gen/validate_weighted_gen.py", "gen", heavy=True,
                 note="body 調到 nv=98 == 藝術家"),
-            CAP("weighted_end2end", "接 build_spine 產完整可載入 spine", "L0", None, "pipeline",
-                note="下一步:把 weighted mesh 寫進 build_spine 的 skin,round-trip 驗"),
+            CAP("weighted_end2end", "build_spine --weighted 端到端產可載入 spine", "L3",
+                "python3 tools/analyzer/build_spine.py assets/robot_parts.psd --out specs/robot_weighted_spine --weighted >/dev/null && "
+                "python3 tools/analyzer/validate_weighted_build.py specs/robot_weighted_spine",
+                "pipeline", heavy=True,
+                note="round-trip + 輪廓 IoU + 合成變形閘;結構件 si=0、特效件 additive 容忍"),
         ],
     },
 ]

@@ -1,7 +1,7 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-08-27(session 003:候選 2 weighted mesh 生成器完成)。
+> 產生於 2026-08-27(session 004:weighted mesh 端到端接 build_spine,weighted-forge 達 L3)。
 
 ```
 ==============================================================================
@@ -40,14 +40,14 @@ skill 化完成度矩陣(已實跑全部 validator)
     [L0] 影片 → 規格                                閘:—     (gen)  «repo 無影片資產,未開始»
 
 ■ spine-weighted-forge — weighted mesh 生成 + BBW 權重(候選 2 主體)
-  區塊成熟度 L2 → HOLD ⛔
-  目標:HOLD:不透明件生成已 L2,待端到端 L3(接 build_spine 產完整可載入 spine)後併入 forge
+  區塊成熟度 L3 → READY ✅
+  目標:READY:達門檻,可併入 spine-asset-forge(weighted 素材產線)
     [L2] 變形品質閘(前置)                              閘:GREEN (eval)
     [L2] heat-diffusion(BBW 近似)權重生成             閘:GREEN (gen)  «不透明件(身體/左手)過閘 + 平滑度≈藝術家;軟性件(光暈極端 reveal)未追平,屬已知限制»
     [L2] 內部取樣密度控制(triangle max-area)            閘:GREEN (gen)  «body 調到 nv=98 == 藝術家»
-    [L0] 接 build_spine 產完整可載入 spine             閘:—     (pipeline)  «下一步:把 weighted mesh 寫進 build_spine 的 skin,round-trip 驗»
+    [L3] build_spine --weighted 端到端產可載入 spine   閘:GREEN (pipeline)  «round-trip + 輪廓 IoU + 合成變形閘;結構件 si=0、特效件 additive 容忍»
 
 ==============================================================================
-可 skill 化(達門檻): spine-mesh-doctor, spine-asset-forge
-HOLD(防固化半成品): spine-slicing, spine-target-analysis, spine-weighted-forge
+可 skill 化(達門檻): spine-mesh-doctor, spine-asset-forge, spine-weighted-forge
+HOLD(防固化半成品): spine-slicing, spine-target-analysis
 ```

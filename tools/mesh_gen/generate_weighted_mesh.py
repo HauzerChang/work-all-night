@@ -23,12 +23,14 @@ import weighted_deform_eval as W
 
 
 # ---------- 三角化(內部取樣密度控制) ----------
-def triangulate_polygon(poly, max_area, min_angle=28):
-    """poly: Nx2 邊界(有序)。max_area 越小內部點越密。回傳 (V Nx2, F Mx3)。"""
+def triangulate_polygon(poly, max_area, min_angle=28, boundary_steiner=True):
+    """poly: Nx2 邊界(有序)。max_area 越小內部點越密。回傳 (V Nx2, F Mx3)。
+    boundary_steiner=False(加 'Y'):禁止在邊界插點 → 前 N 個頂點 == 原邊界(順序不變),
+    供 Spine 'hull 必排最前' 的需求(build_spine 用)。"""
     n = len(poly)
     segs = [[i, (i + 1) % n] for i in range(n)]
     d = {"vertices": np.asarray(poly, dtype=np.float64), "segments": np.asarray(segs, dtype=np.int32)}
-    opts = f"pq{min_angle}a{max_area:.3f}"
+    opts = f"pq{min_angle}a{max_area:.3f}" + ("" if boundary_steiner else "Y")
     t = tr.triangulate(d, opts)
     return np.asarray(t["vertices"], dtype=np.float64), np.asarray(t["triangles"], dtype=np.int32)
 

@@ -55,8 +55,27 @@ PYTHONPATH=tools/mesh_gen python3 tools/mesh_gen/validate_weighted_gen.py       
 PYTHONPATH=tools/mesh_gen python3 tools/mesh_gen/generate_weighted_mesh.py assets/Award.json "機器人拆件/身體" 1500
 ```
 
+## 端到端接 build_spine(L3,2026-08-27)
+
+`build_spine.py --weighted`:mesh 件改產 **weighted mesh** —— 由件 alpha 取外輪廓(approxPolyDP)→
+`triangulate_polygon(boundary_steiner=False)`(禁邊界插點 → hull 首位合法)→ 沿 PCA 主軸自動放 2 根控制骨
+(root 子骨、絕對世界座標、rotation 0,故 bind = 世界頂點 − 骨原點,partition of unity → setup 完美重建)→
+heat-diffusion 權重 → 全域骨 index 寫進 Spine weighted vertices。並寫 `build_meta.json`(每件 kind:
+effect/structural,取自分析器 note「特效件」判定)。
+
+新閘 `validate_weighted_build.py`(4 AC):AC1 可載入合法 weighted、AC2 setup 重建乾淨、
+**AC3 輪廓 IoU**(mesh 三角光柵化 vs 件 alpha)、**AC4 合成骨變形乾淨**(±30° 旋轉 + 平移)。
+依 `build_meta` 語意分類:**結構件要 si=0、特效件 additive 容忍(只記錄)**。
+
+對 `robot_parts.psd --weighted` **OVERALL PASS ✅**:
+- 身體(structural,38v):AC1-4 全過,輪廓 IoU **0.937**、合成變形 si=0。
+- 光暈(effect,63v):AC1-3 過(IoU 0.877),AC4 si=6 只記錄(additive 無害)。
+- 舊 `validate_build` coarse round-trip 仍過(AC1 放寬為 ≥每件一骨+root);unweighted build 無迴歸。
+
+→ `spine-weighted-forge` 的 `weighted_end2end` 由 L0 → **L3**;**區塊達 skill 化門檻(READY)**。
+
 ## 下一步
 
-1. **端到端**:把 weighted mesh 生成接進 `build_spine`,產出含 weighted skin 的可載入 spine,round-trip 驗 → 讓 weighted-forge 達 L3。
-2. **軟件拓樸**:沿骨向非均勻取樣 + 各向異性權重,追平光暈類。
-3. 之後 weighted-forge 併入 `spine-asset-forge` skill。
+1. ~~端到端接 build_spine~~ ✅ 完成(L3)。**weighted-forge 已 READY** → 可併入 `spine-asset-forge` skill(C 類回報拍板)。
+2. **軟件拓樸**:沿骨向非均勻取樣 + 各向異性權重,追平光暈類(次要;目前 additive 容忍已足夠可用)。
+3. **自動 rig 升級**:目前 2 根 PCA 軸骨為佔位;真實 rig pivot 屬 S5(唯一需人微調環節)。

@@ -68,8 +68,9 @@ def validate(psd_path, build_dir, mae_thresh=3.0, orphan_thresh=0.01):
     orphan = float(np.logical_and(content, cover == 0).sum() / max(int(content.sum()), 1))
     n_parts = len(sk["slots"])
     checks = {
-        "AC1_parse_load": {"pass": len(sk["bones"]) == n_parts + 1 and n_parts > 0,
-                           "bones": len(sk["bones"]), "slots": n_parts},
+        "AC1_parse_load": {"pass": len(sk["bones"]) >= n_parts + 1 and n_parts > 0,
+                           "bones": len(sk["bones"]), "slots": n_parts,
+                           "note": "≥ 每件一骨 + root(weighted 件會有額外控制骨)"},
         "AC2_all_attach_resolve": {"pass": len(missing) == 0, "missing": missing},
         "AC3_roundtrip_recon": {"pass": rgb_mae < mae_thresh and alpha_mae < mae_thresh,
                                 "premult_rgb_mae": round(rgb_mae, 4),
