@@ -41,6 +41,8 @@
 
 - [S1 端到端 → 可載入 Spine 素材(SkelToJson)](s1-build-spine-end-to-end.md) — **規格→實際素材端到端打通**:`build_spine.py` 串 analyze_target+psd_slice+generate_mesh_v2 → Spine 3.8 json+atlas+png;`validate_build.py` round-trip(重建 setup pose==原圖)對 robot(5件)/Symbol_Ww(18件)**全 PASS**(MAE 0.03/0.24、0 孤兒、0 未解析)。誠實界定:只驗靜態幾何/貼圖編碼,動畫 keyframe/mesh 變形/關節 pivot 屬後續。
 
+- [S3 weighted-mesh 骨綁變形評估器](s3-weighted-deform-evaluator.md) — **補上「靜態 IoU PASS ≠ 骨綁變形平滑度對等」的唯一未驗維度(真值端)**:`weighted_deform.py` 忠實重現 Spine 3.8 bone FK(全繼承 + compact bezier)+ LBS,把 Award 機器人 3 件(weighted、無 deform timeline)在唯一驅動動畫 `Award_Legend_Loop` 下逐幀變形量化。3 件 × AC0–AC4 全 PASS:**AC0 reproducer 自信任**(Σw=1、動畫 t=0 逐頂點重合 setup 0.0000px)、真實變形乾淨(0 翻面/自交)、非平凡(位移 2.4~10.8% of diag)、負對照(30×)抓得到。下一步:自產 mesh 配 BBW/骨距權重套同閘,回答「內部取樣密度不足是否犧牲變形平滑度」。
+
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
