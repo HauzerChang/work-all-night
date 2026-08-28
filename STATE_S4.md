@@ -80,6 +80,17 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
   修正兩個真實 psd-tools 陷阱(中文圖層名寫入、composite() 合併預覽壞掉),對「身體」「左手」
   兩層端到端驗證 `overall_pass: true`。
 
+- ✅ **修正 `fill_cv2_inpaint` 的 edge 模式 alpha 處理(2026-08-28)** — 新增
+  `estimate_alpha_taper`(距離場×局部量測漸縮寬度):洞外已知背景當 0 端錨點算距離 `d_bg`,
+  漸縮寬度 `ell` 從洞周圍看得到的真實 AA 邊緣像素梯度量出(不是猜的常數),`alpha=clip(255*d_bg/ell,0,255)`。
+  實測發現兩個直覺解法(對 alpha 整顆跑 `cv2.inpaint`、alpha 單點最近鄰外推)反而更差(把洞中段
+  該有的高 alpha 拉低),予以排除。跨 3 個原始件 + 4 個新獨立件(`Symbol_Ww.psd`)、interior/edge
+  兩模式全跑:interior 持平(alpha_mae 仍 0),edge 全面改善,6 處 1a `pass` 判定翻盤(全部
+  False→True,無反向)。刻意不套用到 `fill_nearest`(Level 1)——同一函式會讓環形鏤空件
+  (`框`)的 ssim 判定從 PASS 翻成 FAIL,故只用在 RGB 走獨立通道的 `fill_cv2_inpaint`。順帶
+  發現 1b 的 `tone_gap` 校準在新材質上不成立(列為候選 8)。見
+  `knowledge/s4-inpaint-evaluator.md`、`log/s4-2026-08-28-008.md`。
+
 - ✅ **評分→採用→落地完整鏈路打通(里程碑,2026-08-28)** — `inpaint_eval.py` 新增
   `score_candidates()`/`select_best()`(對候選 baseline 各跑一次、用 1b 分數盲選,因為真實
   補圖沒有 gt 可用 1a 選);`psd_inplace_patch.py` 新增 `patch_layer_auto()`(真實情境入口,
@@ -99,11 +110,19 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
    天然 tone/alpha 變化範圍」當基準(而非整個件的內部區域),看能否收斂出可信判定。
 4. **探測 Level 3(LaMa)**:深度 inpaint 權重下載是否被網路政策擋?先探測可行性(注意:1b 已經解決
    了機械紋理 interior 案例的實用性問題,LaMa 現在的優先序降低,除非要解 1a 或 edge 模式)。
-5. **修正 `fill_cv2_inpaint` 的 edge 模式 alpha 處理**:目前洞區強制設不透明,與柔和邊緣真值 alpha
-   漸縮不符(`alpha_mae` 28~42)→ 應改為對 alpha 也跑 inpaint 或用距離場漸縮。
 6. 用本閘測 `Symbol_Ww.psd` 其他層(icon 類,可能有更多平面色塊),擴大樣本、交叉驗證邊界。
 7. **1b 閾值反向校準**:目前 1b 閾值靠正負對照的數值分野訂定,理想上應收集人工「這樣補看起來有沒有
    穿幫」的標註來反過來校準,目前這步驟還沒做(見 `s4-inpaint-1b-lenient-gate.md` 誠實界定)。
+8. **1b `tone_gap` 在新材質上重新校準**:本次(chunk 5)測 `Symbol_Ww.psd::框`/`臉部陰影` 時發現
+   1b 正對照(gt)自己的 `tone_gap` 就超標(81.75 / 57.3,遠高於門檻 28.0)——1b 目前只在
+   robot_parts.psd 三件上校準過,對這類內部色調變化大的材質不成立,需要重新檢視 `tone_gap` 門檻
+   或該指標本身的假設。見 `knowledge/s4-inpaint-evaluator.md`「順帶發現」。
+
+**本次(chunk,2026-08-28)已完成:**
+5. ✅ **修正 `fill_cv2_inpaint` 的 edge 模式 alpha 處理** — 原本洞區強制設不透明,與柔和邊緣真值
+   alpha 漸縮不符(`alpha_mae` 28~42)。實測兩個直覺解法(alpha 整顆跑 cv2.inpaint / alpha 單點
+   最近鄰外推)都更差,改用「距離場×局部量測漸縮寬度」(`estimate_alpha_taper`)全面改善,無回歸。
+   見下方「已完成」與 `knowledge/s4-inpaint-evaluator.md`。
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
@@ -140,3 +159,10 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
   interior 校準過,加 `applicable` 旗標避免 edge 洞被誤標高信心 pass_1b(左手 edge 案例驗證
   修正生效)。舊路徑與 psd_slice/inpaint_eval 回歸皆無影響。見
   `knowledge/s4-inpaint-auto-select-pipeline.md`、`log/s4-2026-08-28-007.md`。
+- 2026-08-28:**修正 `fill_cv2_inpaint` 的 edge 模式 alpha 處理** — 新增 `estimate_alpha_taper`
+  (距離場×局部量測漸縮寬度)取代「洞內強制拉滿不透明」。過程中排除了兩個更直覺但實測更差的
+  解法(alpha 整顆跑 cv2.inpaint、alpha 單點最近鄰外推),用量化證據記錄為何不能用。跨 7 個件
+  (3 舊 + 4 新獨立資產 `Symbol_Ww.psd`)、interior/edge 全跑回歸:interior 持平、edge 全面
+  改善、6 處判定翻盤皆正確方向。刻意不套用到 `fill_nearest`(會讓環形鏤空件判定翻盤變差)。
+  順帶發現 1b 的 `tone_gap` 校準對新材質不成立,列為新候選。見
+  `knowledge/s4-inpaint-evaluator.md`、`log/s4-2026-08-28-008.md`。

@@ -88,3 +88,11 @@
   `interior` 模式校準過,新增 `applicable` 旗標(呼叫端明確傳 `mode`)避免 `edge` 洞被誤標
   高信心的 `pass_1b`。自我驗證:合成挖洞模擬盲選情境,寫回後才揭曉 1a 分數驗證選擇邏輯誠實;
   edge 模式正確不再宣稱 pass_1b,舊 `--method` 路徑與 `psd_slice`/`inpaint_eval` 回歸無影響。
+
+- [S4 `fill_cv2_inpaint` edge 模式 alpha 修正](s4-inpaint-evaluator.md#fill_cv2_inpaint-edge-模式-alpha-修正2026-08-28見logs4-2026-08-28-008md) —
+  修正「洞內強制拉滿不透明」的舊缺陷。實測兩個直覺解法(alpha 整顆跑 cv2.inpaint / alpha 單點
+  最近鄰外推)反而更差;改用「距離場×局部量測漸縮寬度」(`estimate_alpha_taper`)全面改善,
+  跨 7 個真實件(3 舊+4 新)edge 模式 alpha_mae 一致下降、6 處 1a 判定翻盤方向皆正確
+  (False→True,無反向)。刻意不動 `fill_nearest`——同一顆函式套上去會讓環形鏤空件(`框`)
+  的 ssim 判定翻盤(PASS→FAIL),故只用在 RGB 本就獨立通道的 `fill_cv2_inpaint`。順帶發現
+  1b 的 `tone_gap` 校準在新材質(`框`/`臉部陰影`)上不成立(與本次改動無關,列為新候選)。

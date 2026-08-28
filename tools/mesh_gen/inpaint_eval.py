@@ -104,9 +104,60 @@ def fill_random(rgba_holed, gt, mask, seed=1):
     return out
 
 
+def estimate_alpha_taper(alpha_holed, mask):
+    """洞區 alpha 漸縮估計(距離場×局部量測寬度),取代「洞內強制拉滿不透明」。
+
+    背景(見 knowledge/s4-inpaint-evaluator.md「額外發現」):`edge` 洞跨出真實輪廓時,強制
+    alpha=255 對柔和邊緣(如光暈的放射漸層)明顯錯誤(alpha_mae 28~42)。但直接嘗試的兩個替代
+    方案都更差:(1) 對 alpha 通道整顆跑 `cv2.inpaint` 會把附近背景的 0 值大範圍擴散進洞內,連
+    洞中段本該不透明的像素都被拉低(光暈 edge alpha_mae 41.8→72.5,硬邊材質身體/左手更慘,
+    4~6→122~137);(2) 對 alpha 做單點最近鄰外推(`fill_nearest` 原本的作法)會抓到緊貼真實
+    輪廓的極薄 AA 邊緣像素(alpha 9~30)當「最近有效值」,把洞中段其實該接近 255 的硬邊材質
+    像素誤判為接近透明(身體 edge alpha_mae 4.18→21.9,反而更差)。
+
+    這裡改用「距離場 × 局部量測的漸縮寬度」:
+    1. 洞外「已知背景」(alpha<=8)當 0 端錨點,量每個洞內像素到最近已知背景的距離 `d_bg`。
+    2. 局部漸縮寬度 `ell` 不猜、從洞周圍**看得到的**真實邊緣量:在洞外環狀帶找「已知的
+       AA 邊緣像素」(8<alpha<250),取它們的 alpha 空間梯度幅值中位數,`ell = 255/中位梯度`
+       —— 材質邊緣本來就硬(身體/左手)量出的 ell≈2px,材質邊緣本來就軟(光暈)量出 ell≈32px,
+       是量出來的材質屬性而非固定假設。
+    3. `alpha_est = clip(255 * d_bg / ell, 0, 255)`——深入內部(遠離背景)飽和到 255,
+       貼近背景線性衰減到 0,衰減快慢跟隨量到的 `ell`。
+    量化驗證(3 真實件 × interior/edge,見 log/s4-2026-08-28-008.md):interior 全 0 誤差
+    (與舊法打平);edge 三件 alpha_mae 全面改善(光暈 41.8→8.6、身體 4.18→2.27、左手 5.55→2.98)。
+    """
+    known = ~mask
+    bg_known = (alpha_holed <= 8) & known
+    fringe_known = known & (alpha_holed > 8) & (alpha_holed < 250)
+
+    # 洞內先用最近鄰暫填,只為了讓 sobel 梯度在洞邊界不因洞內恆 0 產生假邊緣;真正的洞內值
+    # 之後整個被下面的距離場估計覆蓋,這裡的暫填值不會被採用。
+    a_fill = alpha_holed.astype(np.float64).copy()
+    if mask.any() and known.any():
+        _, ind = ndimage.distance_transform_edt(~known, return_distances=True, return_indices=True)
+        a_fill[mask] = alpha_holed[tuple(ind)][mask]
+
+    grad = np.sqrt(ndimage.sobel(a_fill, axis=0) ** 2 + ndimage.sobel(a_fill, axis=1) ** 2) / 8.0
+    ring = ndimage.binary_dilation(mask, iterations=15) & fringe_known
+    if ring.sum() < 5:
+        ring = fringe_known
+    local_grad = float(np.median(grad[ring])) if ring.sum() else 255.0
+    ell = 255.0 / max(local_grad, 1.0)
+
+    d_bg = ndimage.distance_transform_edt(~bg_known) if bg_known.any() else np.full_like(alpha_holed, 1e6)
+    return np.clip(255.0 * d_bg / ell, 0, 255)
+
+
 def fill_nearest(rgba_holed, gt, mask):
-    """Level 1:邊緣外擴 — 用最近有效像素(distance-transform nearest-fill)延伸填補。
-    純 CPU 最省,適合純色/漸層/規則紋理的小缺口。"""
+    """Level 1:邊緣外擴 — 用最近有效像素(distance-transform nearest-fill)延伸填補,
+    RGB 與 alpha 共用同一個最近鄰索引(不拆開來源)。純 CPU 最省,適合純色/漸層/規則紋理的小缺口。
+
+    曾試過把 alpha 改成 `estimate_alpha_taper`(和 `fill_cv2_inpaint` 一樣),但會讓 RGB 與 alpha
+    來自不同來源像素,對複雜拓樸(如 `框` 這種環形鏤空件)出現「RGB 對但 alpha 系統性偏移」的
+    premultiplied 誤差,實測 `Symbol_Ww.psd::框` 的 `ssim` 從 0.775(PASS)掉到 0.452(FAIL)——
+    真實的判定翻盤,故 Level 1 保留原本 RGB/alpha 同源的作法,taper 修正只用在
+    `fill_cv2_inpaint`(該處 RGB 本就走獨立的 `cv2.inpaint` 通道,不存在「同源」可保留)。
+    量化見 log/s4-2026-08-28-008.md。"""
     valid = (rgba_holed[..., 3] > 8) & (~mask)
     if not valid.any():
         return rgba_holed.copy()
@@ -120,14 +171,16 @@ def fill_nearest(rgba_holed, gt, mask):
 
 
 def fill_cv2_inpaint(rgba_holed, mask, method="telea", radius=3):
-    """Level 2:cv2.inpaint(Telea / Navier-Stokes),純 CPU,中等缺口/非結構性紋理。"""
+    """Level 2:cv2.inpaint(Telea / Navier-Stokes)補 RGB,純 CPU,中等缺口/非結構性紋理。
+    alpha 改用 `estimate_alpha_taper`(理由與量化見該函式 docstring;原本洞內強制拉滿不透明,
+    對柔和邊緣材質明顯錯誤)。"""
     rgb = np.clip(rgba_holed[..., :3], 0, 255).astype(np.uint8)
     m = (mask.astype(np.uint8)) * 255
     flag = cv2.INPAINT_TELEA if method == "telea" else cv2.INPAINT_NS
     inpainted = cv2.inpaint(rgb, m, radius, flag)
     out = rgba_holed.copy()
     out[..., :3][mask] = inpainted[mask].astype(np.float64)
-    out[..., 3][mask] = 255.0
+    out[..., 3][mask] = estimate_alpha_taper(rgba_holed[..., 3], mask)[mask]
     return out
 
 

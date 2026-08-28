@@ -59,10 +59,49 @@
   (本例:機器人身體/左手,任何洞尺寸皆 fail,SSIM 上限 ~0.5)。這類需要「知道洞裡本來畫了什麼形狀」
   的語意資訊,edge-aware 的 Telea/NS 只能沿既有梯度外插,對「洞內有全新結構」無能為力
   → **需升 Level 3(LaMa 等深度 inpaint)或 Level 4(人工/GPU 生成)**。
-- **額外發現(alpha 處理缺陷)**:`edge` 模式(洞跨出輪廓)下,`cv2_inpaint` 把整個洞區強制設為不透明,
-  但柔和邊緣的真值 alpha 本應隨半徑衰減 → `alpha_mae` 明顯偏高(28~42)。這是 baseline 實作本身的
-  簡化(未對 alpha 做漸層外推),不是 cv2 演算法的鍋;若要在生產用 edge 缺口,alpha 通道需要獨立於
-  RGB 的漸縮處理(如對 alpha 也跑 inpaint,或用距離場乘上真值輪廓形狀先驗)。
+- **額外發現(alpha 處理缺陷,已修正,見下方「`fill_cv2_inpaint` edge 模式 alpha 修正」節)**:
+  `edge` 模式(洞跨出輪廓)下,`cv2_inpaint` 原本把整個洞區強制設為不透明,但柔和邊緣的真值
+  alpha 本應隨半徑衰減 → `alpha_mae` 明顯偏高(28~42)。
+
+## `fill_cv2_inpaint` edge 模式 alpha 修正(2026-08-28,見 `log/s4-2026-08-28-008.md`)
+
+延續上面的發現,實測了三種替代「洞內強制拉滿不透明」的做法,**前兩種直覺解法反而更差**:
+
+| 做法 | 光暈 edge alpha_mae | 身體 edge alpha_mae | 左手 edge alpha_mae | 判定 |
+|---|---|---|---|---|
+| 原本:強制 255 | 41.8 | 4.18 | 5.55 | baseline |
+| ① 對 alpha 整顆跑 `cv2.inpaint` | 72.5(更差) | 136.5(更差) | 122.6(更差) | ❌ 洞外背景的 0 值被大範圍擴散進洞內,連該不透明的洞中段都被拉低 |
+| ② alpha 單點最近鄰外推(`fill_nearest` 原本作法) | 28.9(較好) | 21.9(更差) | 5.37(打平) | ❌ 硬邊材質會抓到緊貼輪廓的極薄 AA 邊緣像素(alpha 9~30)當最近值,把洞中段該有的高 alpha 拉低 |
+| ③ **距離場×局部量測漸縮寬度**(`estimate_alpha_taper`,採用) | **8.6** | **2.27** | **2.98** | ✅ 全面改善,無一惡化 |
+
+**③ 的方法**(`tools/mesh_gen/inpaint_eval.py::estimate_alpha_taper`):
+1. 洞外「已知背景」(alpha≤8)當 0 端錨點,算洞內每像素到最近已知背景的距離 `d_bg`。
+2. 局部漸縮寬度 `ell` 用洞周圍**看得到的**真實 AA 邊緣像素(8<alpha<250)量出來,不是猜的常數:
+   `ell = 255 / median(這些像素的 alpha 梯度幅值)`。材質邊緣硬(身體/左手)量出 `ell≈2px`,
+   邊緣軟(光暈放射漸層)量出 `ell≈32px`,是量測值而非固定假設。
+3. `alpha_est = clip(255 * d_bg / ell, 0, 255)` — 深入內部飽和到 255,貼近背景線性衰減到 0。
+
+**驗證範圍**:3 真實件(robot_parts.psd:光暈/身體/左手)+ 4 個新獨立件(`Symbol_Ww.psd`:頭/框/
+臉部陰影/底)、interior+edge 兩模式全跑;`interior` 模式全面持平(alpha_mae 仍 0,無回歸);`edge`
+模式跨全部 7 件 alpha_mae 一致改善,**1a `pass` 判定翻盤 6 處、全部方向正確(False→True,原本
+壓線/略差的案例變 PASS,無一從 True 翻成 False)**——光暈 edge(原 FAIL)、臉部陰影 interior
+(原 FAIL)、底 edge(原 FAIL)現在 PASS;身體/左手/框/頭仍正確 FAIL(這些案例的失敗原因是
+RGB 結構本身補不出來,不是 alpha)。校準(`calibration_check`)前後皆 PASS/FAIL 一致(見下方
+已知限制),改動不影響鑑別力。
+
+**刻意不動 `fill_nearest`(Level 1)**:同一顆 `estimate_alpha_taper` 若也套在 `fill_nearest`,
+會讓它的 RGB(仍用最近鄰)與新算出的 alpha 來自不同來源像素;在複雜拓樸件(`Symbol_Ww.psd::框`,
+環形鏤空)上實測讓 `ssim` 從 0.775(PASS)掉到 0.452(FAIL)——真實判定翻盤,故 revert,
+Level 1 保留原本「RGB/alpha 同一個最近鄰索引」的作法不動。`fill_cv2_inpaint` 沒有這個顧慮,
+因為它的 RGB 本就走獨立的 `cv2.inpaint` 通道,不存在「同源」可保留。
+
+**順帶發現(超出本次範圍,留待未來)**:對 `Symbol_Ww.psd` 新測的 `框`/`臉部陰影` 兩件,
+`calibration_check` 的 1b 正對照(`gt` 本身的 1b 分數)竟然 `tone_gap` 過高判定 fail
+(`框` interior `tone_gap=81.75`、`臉部陰影` interior `tone_gap=57.3`,皆遠高於
+`THRESH_1B["tone_gap"]=28.0`)——這與本次的 1a alpha 改動**無關**(改動前後數值完全相同,
+純粹是這兩個新材質本身內部色調變化大,1b 的「洞周圍本來沒有接縫」假設對它們不成立)。1b 目前
+只在原本測過的 robot_parts.psd 三件上校準過(見 `s4-inpaint-1b-lenient-gate.md`);要在更多材質
+類型上用 1b,需要先把這個 `tone_gap` 誤判抓出來重新校準,列為新候選,見 `STATE_S4.md`。
 
 ## 與 S4 契約策略的呼應
 
