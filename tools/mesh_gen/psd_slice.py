@@ -70,7 +70,15 @@ def reassemble(parts, W, H, skip=None):
         canvas = Image.alpha_composite(canvas, full)
         l, t = entry["offset"]; w, h = entry["size"]
         a = np.array(im.split()[-1]) > 8
-        cover[t:t + h, l:l + w] += a.astype(np.int32)
+        # 圖層 bbox 可能部份/完全超出畫布(如美術留在畫布外的參考圖層)→ 裁到畫布內再疊,
+        # 否則負 offset 會讓 numpy slice 用 Python 負索引語意,算出錯誤區塊甚至 shape 不合而 crash。
+        src_l, src_t = max(0, -l), max(0, -t)
+        dst_l, dst_t = max(0, l), max(0, t)
+        dst_r, dst_b = min(W, l + w), min(H, t + h)
+        if dst_r > dst_l and dst_b > dst_t:
+            cw, ch = dst_r - dst_l, dst_b - dst_t
+            cover[dst_t:dst_t + ch, dst_l:dst_l + cw] += \
+                a[src_t:src_t + ch, src_l:src_l + cw].astype(np.int32)
     return canvas, cover
 
 
