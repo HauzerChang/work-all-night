@@ -46,3 +46,12 @@
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
+
+## S4 區塊(獨立排程 `claude/spine-s4-inpainting`,見 `handoff_S4.md`/`STATE_S4.md`)
+
+> 此區塊只由 S4 排程 append,不改動上方主排程索引行。
+
+- [S4 補圖閘 v1 + CPU baseline 邊界](s4-inpaint-evaluator.md) — 合成挖洞法(`interior`/`edge` 兩種洞)+
+  4 項指標(premult_mae/alpha_mae/seam_grad_diff/ssim)+ 正負對照校準;對真實機器人拆件件量化出
+  **CPU baseline(nearest-fill/cv2.inpaint)在平滑漸層區全 PASS、在機械細節紋理區任何洞尺寸皆 fail**
+  的誠實邊界,呼應 PSD-first 契約策略。

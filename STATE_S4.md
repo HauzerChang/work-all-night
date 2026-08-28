@@ -5,7 +5,7 @@
 
 ## 專案狀態
 
-`SETUP`  <!-- SETUP / ACTIVE / BLOCKED / DONE — 由第一次 S4 排程執行後轉 ACTIVE -->
+`ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
 ## 範圍
 
@@ -19,21 +19,37 @@ S4 = 切圖 + 補圖。**(A) 切圖已大致完成**(PSD-first 對 2 真實 PSD 
 - ✅ `atlas_crop.py` 多頁 + derotate 方向修正(CW);給美術的 PSD 交檔契約 `knowledge/s4-psd-contract.md`。
 - 誠實界定:平圖(未分層)自動拆件在 CPU 到頂(同材質語意召回 0),升級需 GPU → 屬資源決策。
 
+## 已完成(補圖半邊,本排程新增)
+
+- ✅ **chunk 0:補圖閘 v1 + Level 1/2 CPU baseline 完成(里程碑,2026-08-28)** — `tools/mesh_gen/inpaint_eval.py`
+  (合成真值挖洞法,`interior`/`edge` 兩種洞;`premult_mae`/`alpha_mae`/`seam_grad_diff`/`ssim` 四指標;
+  正對照 `gt`+負對照 `none`/`random` 內建 `calibration_check`)。對 `robot_parts.psd` 真實件(光暈/身體/左手)
+  跑閘:校準全過(負對照皆被抓到 fail)。**量化出誠實邊界**:CPU baseline(nearest-fill / cv2.inpaint)在
+  平滑漸層區(光暈)全 PASS(ssim 0.99+),但在機械細節紋理區(身體/左手)**任何洞尺寸皆 fail**(ssim 上限
+  ~0.51,掃過 2%~12% 內容面積 5 種尺寸皆同);edge(咬輪廓外推)比 interior(內部內插)明顯更難。
+  見 `knowledge/s4-inpaint-evaluator.md`(含完整結果表)。
+
 ## 下一步動作 (next action)
 
-**尚未開始補圖。第一個有界工作塊(見 `handoff_S4.md` §5):**
-- **chunk 0:補圖閘 v1 + 邊緣外擴/`cv2.inpaint` baseline(純 CPU)。**
-  1. `tools/mesh_gen/inpaint_eval.py`:合成真值(挖洞→補→比對),正/負對照自校準(premult-alpha 比對)。
-  2. 對 1–2 個真實件(如機器人身體/左手,或 Symbol_Ww 層)人工洞跑 baseline,量化補全品質。
-  3. 誠實標出 CPU 補得動 vs 必須升 LaMa/GPU/人工 的界線。
-- 後續候選:遮擋真值法(多件疊合)補圖閘、cv2 兩演算法對比、結構性缺口的降階觸發規則。
+**下一個有界工作塊候選(擇一推進):**
+1. **遮擋真值法**:用 Award/機器人多件疊合 composite,找已知被上層遮住、但 PSD 該層本身有畫全的真實
+   區域當真值(比合成挖洞更貼近實戰);對照合成挖洞閘的判定是否一致。
+2. **探測 Level 3(LaMa)**:深度 inpaint 權重下載是否被網路政策擋?先探測可行性,若可裝則對「CPU 補不動」
+   的身體/左手案例跑一輪,量化 Level 3 能否補救。
+3. **修正 `fill_cv2_inpaint` 的 edge 模式 alpha 處理**:目前洞區強制設不透明,與柔和邊緣真值 alpha
+   漸縮不符(`alpha_mae` 28~42)→ 應改為對 alpha 也跑 inpaint 或用距離場漸縮。
+4. 用本閘測 `Symbol_Ww.psd` 其他層(icon 類,可能有更多平面色塊),擴大「CPU 補得動」樣本、交叉驗證邊界。
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
-- ❓ LaMa 等深度 inpaint 權重下載是否被網路政策擋?(第 3 級才需要;先用 CPU 1–2 級推進)
-- ❓ 補圖真值來源:目前用「合成挖洞」自造;是否能要到「美術在 PSD 把被遮區畫全」的真實件當真值?(屬契約層決策)
+- ❓ LaMa 等深度 inpaint 權重下載是否被網路政策擋?(第 3 級才需要;已用 CPU 1–2 級量化出明確需要升級的案例)
+- ❓ 補圖真值來源:目前用「合成挖洞」自造(已完成校準);「遮擋真值法」(候選 1)待驗證是否與合成挖洞判定一致。
 
 ## 進度摘要 (progress log)
 
 - 2026-08-28:**S4 拆為獨立排程(由主排程交接)**。建 `handoff_S4.md` / `prompts/run_s4.md` / 本檔。
   切圖半邊繼承既有成果(已完成);補圖半邊為本排程主任務,狀態 `SETUP`,待第一次執行推進 chunk 0。
+- 2026-08-28:**第一次 S4 排程執行(SETUP→ACTIVE,里程碑)** — 完成補圖閘 v1(`inpaint_eval.py`)+
+  Level 1(邊緣外擴)/Level 2(cv2.inpaint)baseline;校準通過;對真實機器人拆件件量化出「CPU 補得動
+  (平滑漸層)vs 補不動(機械細節紋理,任何洞尺寸皆 fail)」的誠實邊界,呼應 PSD-first 契約策略。
+  見 `knowledge/s4-inpaint-evaluator.md`、`log/s4-2026-08-28-001.md`。
