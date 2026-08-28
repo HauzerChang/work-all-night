@@ -40,6 +40,21 @@ S4 = 切圖 + 補圖。**(A) 切圖已大致完成**(PSD-first 對 2 真實 PSD 
   互動正確。見 `knowledge/s4-preview-tool.md`(含一個環境限定 caveat:Playwright `setInputFiles` 對中文
   檔名的已知限制,與工具本身無關)。
 
+## 架構原則:切圖/補圖都在 PSD 內編輯(使用者要求,2026-08-28,見 `knowledge/s4-psd-inplace-edit.md`)
+
+補圖不該對 `psd_slice.py` 匯出的裁切 PNG(局部座標)編輯完就結束——那樣要自己把結果貼回
+PSD 全域座標,重新發明一次 offset 換算,正是先前 `reassemble()` 踩過的 bug 類型。**改為直接
+在 PSD 內編輯**:新增 `tools/mesh_gen/psd_inplace_patch.py`,讀某圖層原本的 `layer.left/top`
+當唯一基準,補完的圖直接用同一組全域座標寫回同一個 PSD,座標系一致性由 psd-tools API 保證。
+往後所有補圖產出都應該走這條路徑,不要停在「匯出 PNG 補完」那一步。
+
+過程中修正兩個真實 psd-tools 陷阱:(1)寫入中文圖層名會 `UnicodeEncodeError`——改用
+`Tag.UNICODE_LAYER_NAME`(`luni`)tagged block 比照真實 Photoshop 存檔慣例;(2)**重存後的
+PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alpha)**,導致 `psd_slice.py`
+的評估閘誤判(orphan_ratio 從 0 暴增到 0.55)——已在 `psd_slice.py` 兩處 `composite()` 呼叫
+加上 `force=True` 修正,對原生 Photoshop PSD 回歸測試無影響(數字完全一致)。端到端驗證:
+對「身體」「左手」兩層跑合成挖洞→補→寫回→`--eval` 自驗,皆 `overall_pass: true`。
+
 ## 補圖問題定義修正(使用者釐清,2026-08-28,見 `knowledge/s4-inpaint-taxonomy.md`)
 
 補圖不是單一問題,分三種情境,**驗收標準不同**:
@@ -61,17 +76,25 @@ S4 = 切圖 + 補圖。**(A) 切圖已大致完成**(PSD-first 對 2 真實 PSD 
   已用 gt 校準抓到並收斂範圍,非猜測)。`psd_preview.html` 補圖卡片已加上雙判定燈(1a/1b)。
   見 `knowledge/s4-inpaint-1b-lenient-gate.md`。
 
+- ✅ **PSD 內編輯統一座標系完成(里程碑,2026-08-28)** — `psd_inplace_patch.py`(見上一節詳述),
+  修正兩個真實 psd-tools 陷阱(中文圖層名寫入、composite() 合併預覽壞掉),對「身體」「左手」
+  兩層端到端驗證 `overall_pass: true`。
+
 **下一個有界工作塊候選(擇一推進):**
-1. **遮擋真值法**:用 Award/機器人多件疊合 composite,找已知被上層遮住、但 PSD 該層本身有畫全的真實
+1. **把 `inpaint_eval.py` 的正式產出改接 `psd_inplace_patch.py`**:目前兩者是分開的(inpaint_eval
+   對匯出 PNG 跑評分,psd_inplace_patch 對 PSD 圖層跑 demo)。可以讓 inpaint_eval 選定「這次要採用
+   哪個 baseline 的結果」後,自動呼叫 `patch_layer_with_image()` 寫回原 PSD,打通「評分→採用→
+   落地」的完整鏈路。
+2. **遮擋真值法**:用 Award/機器人多件疊合 composite,找已知被上層遮住、但 PSD 該層本身有畫全的真實
    區域當真值(比合成挖洞更貼近實戰);對照合成挖洞閘的判定是否一致。
-2. **1b 的 edge 模式支援**:目前 edge 模式標「不適用」;可嘗試比對「這個材質沿真實輪廓其他段落的
+3. **1b 的 edge 模式支援**:目前 edge 模式標「不適用」;可嘗試比對「這個材質沿真實輪廓其他段落的
    天然 tone/alpha 變化範圍」當基準(而非整個件的內部區域),看能否收斂出可信判定。
-3. **探測 Level 3(LaMa)**:深度 inpaint 權重下載是否被網路政策擋?先探測可行性(注意:1b 已經解決
+4. **探測 Level 3(LaMa)**:深度 inpaint 權重下載是否被網路政策擋?先探測可行性(注意:1b 已經解決
    了機械紋理 interior 案例的實用性問題,LaMa 現在的優先序降低,除非要解 1a 或 edge 模式)。
-4. **修正 `fill_cv2_inpaint` 的 edge 模式 alpha 處理**:目前洞區強制設不透明,與柔和邊緣真值 alpha
+5. **修正 `fill_cv2_inpaint` 的 edge 模式 alpha 處理**:目前洞區強制設不透明,與柔和邊緣真值 alpha
    漸縮不符(`alpha_mae` 28~42)→ 應改為對 alpha 也跑 inpaint 或用距離場漸縮。
-5. 用本閘測 `Symbol_Ww.psd` 其他層(icon 類,可能有更多平面色塊),擴大樣本、交叉驗證邊界。
-6. **1b 閾值反向校準**:目前 1b 閾值靠正負對照的數值分野訂定,理想上應收集人工「這樣補看起來有沒有
+6. 用本閘測 `Symbol_Ww.psd` 其他層(icon 類,可能有更多平面色塊),擴大樣本、交叉驗證邊界。
+7. **1b 閾值反向校準**:目前 1b 閾值靠正負對照的數值分野訂定,理想上應收集人工「這樣補看起來有沒有
    穿幫」的標註來反過來校準,目前這步驟還沒做(見 `s4-inpaint-1b-lenient-gate.md` 誠實界定)。
 
 ## 未解問題 / 阻塞 (open questions / blockers)
@@ -98,3 +121,8 @@ S4 = 切圖 + 補圖。**(A) 切圖已大致完成**(PSD-first 對 2 真實 PSD 
   發現並收斂 1b 適用範圍(只限 interior 模式)。**核心結果**:先前「CPU 補不動」的機械紋理案例
   (身體/左手)在 1b 標準下 3 個 baseline 全 PASS,驗證使用者假設。`psd_preview.html` 同步加雙判定燈。
   見 `knowledge/s4-inpaint-1b-lenient-gate.md`。
+- 2026-08-28:**PSD 內編輯統一座標系(使用者要求,里程碑)** — 新增 `psd_inplace_patch.py`,補圖
+  一律直接寫回 PSD 圖層的全域座標(讀 `layer.left/top`,不手動換算 offset)。修正兩個真實
+  psd-tools 陷阱:中文圖層名寫入 crash(改用 `luni` tagged block)、重存後 PSD 預設 `composite()`
+  吃到壞掉的合併預覽(無 alpha,導致 orphan_ratio 誤判暴增)——`psd_slice.py` 加 `force=True` 修正,
+  原生 PSD 回歸無影響。端到端驗證兩層皆 `overall_pass: true`。見 `knowledge/s4-psd-inplace-edit.md`。

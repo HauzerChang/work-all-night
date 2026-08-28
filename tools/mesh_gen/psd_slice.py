@@ -45,7 +45,11 @@ def slice_psd(psd_path, out_dir=None):
         parts.append((entry, im))
     if out_dir:
         # 存 PSD 原始 composite 當預覽器的參照圖(供 psd_preview.html 疊圖比對重組結果)
-        comp = psd.composite().convert("RGBA").resize((W, H))
+        # force=True:對「我方工具重存」的 PSD,內嵌合併預覽圖常缺真實 alpha(見
+        # knowledge/s4-psd-inplace-edit.md),composite() 預設會直接吃到這張壞掉的預覽,
+        # 讓 alpha 整張變 255(全不透明)。force 讓它從實際圖層重新合成,對原生 Photoshop
+        # 檔案也安全(兩者差異 <1 premult MAE,純捨入誤差)。
+        comp = psd.composite(force=True).convert("RGBA").resize((W, H))
         comp.save(os.path.join(out_dir, "composite.png"))
         manifest["composite"] = "composite.png"
         json.dump(manifest, open(os.path.join(out_dir, "manifest.json"), "w"),
@@ -95,7 +99,7 @@ def _premult_diff(recon, ref):
 def evaluate(psd_path, mae_thresh=2.0, orphan_thresh=0.005):
     psd, manifest, parts = slice_psd(psd_path)
     W, H = psd.width, psd.height
-    ref = psd.composite().convert("RGBA").resize((W, H))
+    ref = psd.composite(force=True).convert("RGBA").resize((W, H))  # 理由同上,見 slice_psd()
     recon, cover = reassemble(parts, W, H)
     rgb_mae, alpha_mae = _premult_diff(recon, ref)  # premultiplied:透明區不誤判
     content = np.asarray(ref.split()[-1]) > 8

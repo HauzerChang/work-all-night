@@ -67,6 +67,14 @@
   視角外推**(原圖不存在的內容,補圖演算法無效,屬 S1 需求前移範疇)。指出既有補圖閘結論是用 1a 嚴格
   標準測的,1b 情境需另一組寬鬆閘重新檢視。
 
+- [S4 切圖/補圖都在 PSD 內編輯,統一座標系](s4-psd-inplace-edit.md) — 使用者要求:補圖不該對
+  匯出的裁切 PNG(局部座標)編輯,應直接在 PSD 內編輯,讀寫都用同一組全域 `layer.left/top`,
+  結構上排除 offset 手動換算的錯誤空間。新增 `psd_inplace_patch.py`(找圖層→補→用同座標寫回
+  →存檔,`--eval` 自驗)。過程中修正兩個真實 psd-tools 陷阱:(1) 中文圖層名寫入 crash,改用
+  `luni` tagged block 比照真實 Photoshop 慣例;(2) **重存後的 PSD 預設 `composite()` 會吃到
+  壞掉的合併預覽(無 alpha)**,`psd_slice.py` 兩處呼叫已加 `force=True` 修正,原生 PSD 回歸
+  測試無影響。端到端驗證:身體/左手兩層 patch 後 `overall_pass: true`。
+
 - [S4 補圖 1b 防穿幫寬鬆閘](s4-inpaint-1b-lenient-gate.md) — 實作自我參照(不比對真值內容)的
   1b 判定:`alpha_gap`/`seam_ratio`/`tone_gap` 三指標,正負對照校準通過。**核心結果驗證假設**:
   先前標記「CPU 補不動」的機械紋理案例(身體/左手),在 1b 標準下三個 CPU baseline 全部 PASS——
