@@ -47,4 +47,6 @@
 
 - [S3 weighted mesh 生成器(內部取樣 + heat-diffusion 權重)](s3-weighted-mesh-generator.md) — **候選 2 主體完成**:輪廓→triangle 三角化(max-area 控內部密度)→ heat-diffusion 骨綁權重(BBW 純 CPU 近似,`(L+H)W=HP` 天然 partition of unity)→ Spine weighted 格式。對 Award 不透明件(身體/左手)過同一道變形閘,4 AC 全 PASS(body nv 調到 == 藝術家 98、左手變形比藝術家更平滑)。誠實限制:軟性件(光暈極端 reveal)si 未追平藝術家手工非均勻拓樸(additive 無害,不列硬性 fail);尚未端到端接 build_spine。使 spine-weighted-forge 的生成能力 L0→L2。
 
+- [S1 分鏡 → 動畫 keyframe](s1-storyboard-to-animation.md) — **candidate 0d:讓產出素材「會動」**:把 analyze_target `#3 動作分鏡`(role/action 文字)確定性轉成可載入的 Spine 3.8 `animations`(bone TRS + slot alpha)。純 Python Spine 3.8 timeline 取樣器 `spine_anim.py`(緊湊 bezier/stepped/linear,無瀏覽器)+ `gen_animations.py`(role×category→運動基元,loop 正弦取樣端點強制相等→無縫)+ `build_spine.py --animate` 端到端。對 robot(slot_bigwin)/Symbol_Ww(slot_reveal)自我驗收 **4 AC 全 PASS + 負對照全偵測**(intro/loop/outro 介面全落在 setup identity → 任意串接無跳變);setup-pose round-trip 不受擾動。誠實界定:role→運動基元為先驗手感提案(非學自真值),緩動美感留使用者;mesh deform timeline 未生成。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

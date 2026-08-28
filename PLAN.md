@@ -34,26 +34,30 @@
   對 `robot_parts.psd ⇄ Award` 真值 5 項校驗全 PASS(件召回 1.0)。見 `knowledge/s1-target-image-analyzer.md`。
   **擴充(2026-08-19)**:平圖(未分層)純 CPU 拆件 baseline(結論:同材質角色語意召回 0,僅不相連塊可靠,
   升級需 GPU 語意分層)+ 分鏡先驗庫(slot_bigwin/slot_reveal 對 Award/main_draw 覆蓋率 1.0)。
-  見 `knowledge/s1-flat-pipeline-and-priors.md`。待續:接 S3/S4 端到端(最高優先)、影片輸入、更多有真值的先驗類型。
+  見 `knowledge/s1-flat-pipeline-and-priors.md`。**分鏡→動畫 keyframe ✅(2026-08-27,candidate 0d)**:
+  `spine_anim.py`(Spine 3.8 取樣器)+ `gen_animations.py` + `build_spine --animate`,4 AC 全 PASS + 負對照
+  (見 `knowledge/s1-storyboard-to-animation.md`)。待續:影片輸入(需 benchmark 影片)、更多有真值的先驗類型、rig pivot(S5)。
 
 ### S2 評估器套件
 - 目標：為四能力各寫「自我品質閘」(可機讀判準)。**樞紐：沒它自主迴圈無法收斂**。
 - 完成條件：四個評估器都能對既有 `main_draw` 產出 pass/fail + 量化差距。
 - 環境：純 CPU(含 vision 比對)。
-- 狀態：⬜ 未開始
+- 狀態：🟡 **部分完成**。切圖閘 `evaluate_slicing`(45/45 region MAE=0)+ mesh 變形閘(靜態 `evaluate_mesh`、
+  unweighted `deform_eval`、weighted `weighted_deform_eval`)皆完成。**骨架閘尚缺**;**補圖閘已隨 S4 交獨立排程**。
 
 ### S3 mesh 生成器  ★建議先做
 - 目標：SpriteToMesh 式拓樸(findContours+多通道 Canny+Delaunay) + BBW 權重 + SkelToJson 讀寫。
-- 完成條件：對一張 PNG 自動產出可用 mesh，寫入 Spine JSON，在 inspector 極端 deform 幀
-  0 自交 / 0 撕裂 / 頂點數在預算內 / 輪廓吻合。
+- 完成條件：對一張 PNG 自動產出可用 mesh，寫入 Spine JSON,極端 deform 幀 0 自交/0 撕裂/頂點在預算內/輪廓吻合。
 - 環境：純 CPU，可全自動(2026 SpriteToMesh 已驗證)。
-- 狀態：⬜ 未開始
+- 狀態：✅ **完成**。unweighted(v2 strip 對 4 mesh 通用)+ **weighted 生成器**(heat-diffusion/BBW 近似 + 內部取樣密度)
+  + 變形評估器,`build_spine --weighted` 端到端 READY(見 STATE 里程碑、`skills/READINESS.md`)。
 
-### S4 切圖 + 補圖
+### S4 切圖 + 補圖  ⇢ 已交獨立排程(2026-08-28)
 - 目標：PSD-first 契約(psd-tools) + CPU 半自動 fallback；補圖分級降階(外擴→cv2→LaMa→GPU/人工)。
 - 完成條件：切圖重組還原原圖輪廓、0 孤兒像素；補圖極端姿態幀 0 破洞 / 0 明顯接縫。
 - 環境：CPU 為主，大缺口 / 平面圖升 GPU。
-- 狀態：⬜ 未開始
+- 狀態：**🔀 拆為獨立排程**(分支 `claude/spine-s4-inpainting`;`handoff_S4.md`/`STATE_S4.md`/`prompts/run_s4.md`)。
+  **(A) 切圖 ✅**(PSD-first 對 2 真實 PSD 無損 + ⇄ Award 逐件吻合);**(B) 補圖 ⬜ = 該排程主任務**。本主 PLAN 不再追蹤 S4 細節。
 
 ### S5 骨架半自動
 - 目標：運動 → 關節草案 → 人微調 pivot(人形 RTMPose/MediaPipe；非人形 Farneback 光流+分群)。
