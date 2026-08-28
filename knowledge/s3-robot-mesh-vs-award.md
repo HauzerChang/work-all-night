@@ -45,7 +45,14 @@ hull=14 → 覆蓋率 0.923(< 美術 0.980)。美術對這類件用**純邊界�
 `prune_orphans`(移除未引用頂點 + 重編索引,保住 hull-first 順序、重算 hull 數)。**通用修正**,
 對所有 delaunay 分支件生效。
 
-## ⚠️ 誠實限制:靜態覆蓋率 PASS ≠ 變形品質對等(weighted mesh)
+## ✅ 更新(2026-08-28):此限制已由 weighted 變形評估器補上
+
+> 下方「變形品質未驗」的限制**已解決**。`tools/mesh_gen/weighted_deform_eval.py`(+ `weighted_skin.py`
+> Spine FK+蒙皮引擎)驅動這 3 件在其動畫下逐幀量測變形幾何合法性 + 應變非均勻度,建立真值簽章。
+> **關鍵更正**:這 3 件**不是**靠 deform timeline,而是靠所綁**骨骼的 rotate/scale/translate 動畫**變形
+> (下段「無 deform timeline」正確,但不代表不變形)。評估器 3 AC 全 PASS,見 `s3-weighted-deform-evaluator.md`。
+
+## ⚠️ 誠實限制(原記錄,已補齊):靜態覆蓋率 PASS ≠ 變形品質對等(weighted mesh)
 
 - 這 3 件在 Award 是 **weighted mesh 且無 deform timeline**(靠骨骼+權重變形,非逐頂點 deform)。
   故**真實逐頂點 deform 轉移閘不適用**;本次驗收 = 靜態覆蓋率 + 拓樸合法性 + 頂點經濟度。

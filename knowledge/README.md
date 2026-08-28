@@ -41,6 +41,8 @@
 
 - [S1 端到端 → 可載入 Spine 素材(SkelToJson)](s1-build-spine-end-to-end.md) — **規格→實際素材端到端打通**:`build_spine.py` 串 analyze_target+psd_slice+generate_mesh_v2 → Spine 3.8 json+atlas+png;`validate_build.py` round-trip(重建 setup pose==原圖)對 robot(5件)/Symbol_Ww(18件)**全 PASS**(MAE 0.03/0.24、0 孤兒、0 未解析)。誠實界定:只驗靜態幾何/貼圖編碼,動畫 keyframe/mesh 變形/關節 pivot 屬後續。
 
+- [S3 weighted-mesh 變形評估器](s3-weighted-deform-evaluator.md) — **補上 compare_robot_mesh 唯一未驗維度(weighted mesh 骨骼變形平滑度)**:實作 Spine 3.8 骨骼 FK + weighted 蒙皮引擎(純 CPU),驅動 Award 3 件在其動畫下逐幀量測幾何合法性 + 應變非均勻度(dispersion=p95−p50)。3 AC 全 PASS(AC1 剛體再現性 2.8e-13 驗引擎、AC2 權重和=1、AC3 可見幀 0 自交)。**誠實關鍵:可見性 gating**(光暈 In 前段自交 71 處但 alpha=0 全透明→不算壞掉)。硬綁負對照證鑑別力。建立變形平滑度真值簽章供 S3 weighted 生成器對照。
+
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
