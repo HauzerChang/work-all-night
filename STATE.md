@@ -47,7 +47,16 @@
   相對面積(避免 big-win scale-from-0 誤判)。發現**軟性加成件(光暈)容許自我重疊**(reveal t=0 精確 keyframe
   si=71,additive 混合無害)→ pass/fail 需依 attachment 語意分類。見 `knowledge/s3-weighted-deform-evaluator.md`、
   圖 `figures/s3_weighted_deform_eval.png`。**這是候選 2(BBW 權重生成)的前置品質閘,現已就緒。**
-- S5 尚未開始。
+- **S5 骨架 pivot 閘 + baseline(里程碑,2026-08-28,填上 S2 最後缺口「骨架閘」)** —
+  `tools/analyzer/pivot_eval.py`(pivot 品質閘)+ `infer_pivots.py`(baseline)+ `validate_pivots.py`(整合驗收)。
+  關鍵數學:骨帶 attachment 是剛體,繞錯 pivot 造成的世界位移差 = **2·sin(θ/2)·‖Δ‖**(與點無關且等向)
+  → **pivot 歐氏誤差就是充分且正確的量**;判準 `err/len ≤ 0.15`,並回報物理後果 swing@30°。
+  對 Award 真 rig(23 限肢節段)**三道校驗 OVERALL PASS**:①自洽(truth→0 誤差/100%pass);
+  ②鑑別力(加噪 σ·骨長,誤差/fail 率單調上升,σ=1.0→pass 4%);③baseline 分級。
+  baseline `parent_tip`(關節端對端相接)只在**序列中段關節成立**:serial 60%(3/5) vs **branch 0%(0/18)**,
+  且優於弱對照 `parent_origin`(閘分得出好壞啟發式)。誠實界定:branch 關節須靠 **per-part mask 重疊區證據**
+  (下一步),rig-only 啟發式天花板已量化。防固化:**閘就緒(L2)≠ 生成就緒(L1)→ S5 區塊維持 HOLD**。
+  見 `knowledge/s5-pivot-gate-and-baseline.md`、圖 `figures/s5_pivot_gate_baseline.png`。
 - **S3 weighted mesh 生成器完成(里程碑,2026-08-27,候選 2 主體)** — `generate_weighted_mesh.py`:
   輪廓 → triangle 三角化(max-area 控**內部取樣密度**)→ **heat-diffusion 骨綁權重**(BBW 純 CPU 近似,
   `(L+H)W=HP` 天然 partition of unity)→ Spine weighted 格式(bind 經逆骨變換)。`validate_weighted_gen.py`
@@ -128,8 +137,13 @@
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
 > **主排程近況**:S1(分析器+build+keyframe)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
-> S2(切圖閘)皆已達里程碑;S4 已交獨立排程。建議下一個 bounded chunk:**S5 rig pivot**(唯一卡死環節,槓桿最高)
-> 或 **weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
+> S2(切圖閘**+骨架閘**,2026-08-28 補齊)、**S5 pivot 閘+baseline**皆已達里程碑;S4 已交獨立排程。
+
+**下一個 bounded chunk 建議(擇一)**:
+- **(最高槓桿)S5 overlap-centroid pivot baseline**:吃 per-part mask(Award atlas 切件 `atlas_crop.py` +
+  slot→bone 綁定),pivot ≈ 相鄰件(parent-part/child-part)footprint 重疊區質心/邊界最近點,
+  用**已就緒的 pivot 閘**打分,目標把 **branch pass 率從 0% 拉起來**。閘可信、可直接續驗。
+- **(C 類需拍板)** weighted-forge 併入 spine-asset-forge skill;pivot 閘併入 spine-mesh-doctor。
 
 ## 環境前置(已驗證可用)
 
@@ -146,6 +160,11 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-08-28:**S5 骨架 pivot 閘 + baseline(里程碑)** — 補齊 S2 最後缺口「骨架閘」並開 S5。
+  `pivot_eval.py`/`infer_pivots.py`/`validate_pivots.py`;對 Award 真 rig 三道校驗 OVERALL PASS
+  (自洽+負對照 σ 單調+baseline 分級)。關鍵數學:pivot 歐氏誤差 = 充分正確的量(繞錯 pivot 位移差
+  = 2·sin(θ/2)·‖Δ‖,與點無關)。parent_tip baseline:serial 60% vs branch 0% → branch 須 per-part mask。
+  防固化:閘 L2 但生成 L1 → S5 HOLD。見 `log/2026-08-28-005.md`、`knowledge/s5-pivot-gate-and-baseline.md`。
 - 2026-08-28:**跨分支成果乾淨合流 + 分支釘定(使用者決策 B)** — 發現 200+ 條 `claude/*` 是平行且重複的研究線
   (routine 每 run 從同 default clone、重做同一 chunk、push 到隨機新分支,從不合流)。以最完整線 `3r9ey4`
   (weighted 生成+評估+skill 機制)為底,擇優併入 S1 keyframe(zjze4k 版,5 選 1)、S4 交接、分支釘定,去重評估器。

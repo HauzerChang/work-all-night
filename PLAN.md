@@ -42,8 +42,9 @@
 - 目標：為四能力各寫「自我品質閘」(可機讀判準)。**樞紐：沒它自主迴圈無法收斂**。
 - 完成條件：四個評估器都能對既有 `main_draw` 產出 pass/fail + 量化差距。
 - 環境：純 CPU(含 vision 比對)。
-- 狀態：🟡 **部分完成**。切圖閘 `evaluate_slicing`(45/45 region MAE=0)+ mesh 變形閘(靜態 `evaluate_mesh`、
-  unweighted `deform_eval`、weighted `weighted_deform_eval`)皆完成。**骨架閘尚缺**;**補圖閘已隨 S4 交獨立排程**。
+- 狀態：🟢 **本排程範圍內完成**。切圖閘 `evaluate_slicing`(45/45 region MAE=0)+ mesh 變形閘(靜態 `evaluate_mesh`、
+  unweighted `deform_eval`、weighted `weighted_deform_eval`)+ **骨架閘 `pivot_eval`(2026-08-28,對 Award 真 rig
+  自洽+負對照 OVERALL PASS)** 皆完成。**補圖閘已隨 S4 交獨立排程**(不在本排程)。
 
 ### S3 mesh 生成器  ★建議先做
 - 目標：SpriteToMesh 式拓樸(findContours+多通道 Canny+Delaunay) + BBW 權重 + SkelToJson 讀寫。
@@ -63,7 +64,11 @@
 - 目標：運動 → 關節草案 → 人微調 pivot(人形 RTMPose/MediaPipe；非人形 Farneback 光流+分群)。
 - 完成條件：每骨單獨旋轉 pivot 正確；整體動作疊影片相似度達標。
 - 環境：人形 CPU；非人形 CPU/GPU。**唯一卡死環節 — 人力集中於此**。
-- 狀態：⬜ 未開始
+- 狀態：🟡 **骨架閘 + baseline 完成(2026-08-28)**。`pivot_eval.py`(pivot 品質閘,關鍵數學:pivot 歐氏
+  誤差 = 充分正確的量;判準 err/len≤0.15)對 Award 真 rig 三道校驗 OVERALL PASS;baseline `infer_pivots.py`
+  (parent_tip/origin)量化「rig-only 啟發式天花板」= serial 中段關節(60%),branch 關節(0%)須影像證據。
+  **生成能力仍 L1 → 區塊 HOLD**。下一步:overlap-centroid baseline(吃 per-part mask,拉起 branch pass 率)。
+  見 `knowledge/s5-pivot-gate-and-baseline.md`。
 
 ## skill 化(階段性成果固化)
 

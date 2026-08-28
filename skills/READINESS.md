@@ -1,7 +1,7 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-08-27(session 004:weighted mesh 端到端接 build_spine,weighted-forge 達 L3)。
+> 產生於 2026-08-28(session 005:S5 骨架 pivot 閘 + baseline;新增 spine-rig-pivot 區塊,HOLD)。
 
 ```
 ==============================================================================
@@ -47,7 +47,13 @@ skill 化完成度矩陣(已實跑全部 validator)
     [L2] 內部取樣密度控制(triangle max-area)            閘:GREEN (gen)  «body 調到 nv=98 == 藝術家»
     [L3] build_spine --weighted 端到端產可載入 spine   閘:GREEN (pipeline)  «round-trip + 輪廓 IoU + 合成變形閘;結構件 si=0、特效件 additive 容忍»
 
+■ spine-rig-pivot — 骨架 pivot 推斷(S5,唯一卡死環節)
+  區塊成熟度 L2 → HOLD ⛔
+  目標:HOLD:閘就緒但生成仍 baseline(L1);pivot 閘可先併入 spine-mesh-doctor
+    [L2] pivot 品質閘(err/len + swing;S2 骨架閘)      閘:GREEN (eval)  «今日新增;對 Award 真 rig 自洽+負對照(σ 單調)+baseline 分級 OVERALL PASS»
+    [L1] pivot 生成 baseline(parent_tip/origin)   閘:GREEN (gen)  «rig-only 啟發式:serial 60% / branch 0%;branch 須 per-part mask 重疊區證據,未做»
+
 ==============================================================================
 可 skill 化(達門檻): spine-mesh-doctor, spine-asset-forge, spine-weighted-forge
-HOLD(防固化半成品): spine-slicing, spine-target-analysis
+HOLD(防固化半成品): spine-slicing, spine-target-analysis, spine-rig-pivot
 ```
