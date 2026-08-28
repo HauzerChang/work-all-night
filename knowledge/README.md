@@ -49,4 +49,6 @@
 
 - [S1 分鏡 → 動畫 keyframe](s1-storyboard-to-animation.md) — **candidate 0d:讓產出素材「會動」**:把 analyze_target `#3 動作分鏡`(role/action 文字)確定性轉成可載入的 Spine 3.8 `animations`(bone TRS + slot alpha)。純 Python Spine 3.8 timeline 取樣器 `spine_anim.py`(緊湊 bezier/stepped/linear,無瀏覽器)+ `gen_animations.py`(role×category→運動基元,loop 正弦取樣端點強制相等→無縫)+ `build_spine.py --animate` 端到端。對 robot(slot_bigwin)/Symbol_Ww(slot_reveal)自我驗收 **4 AC 全 PASS + 負對照全偵測**(intro/loop/outro 介面全落在 setup identity → 任意串接無跳變);setup-pose round-trip 不受擾動。誠實界定:role→運動基元為先驗手感提案(非學自真值),緩動美感留使用者;mesh deform timeline 未生成。
 
+- [S5 關節 pivot 推斷器](s5-pivot-inference.md) — **S5「骨架半自動」首個純 CPU 塊**:件世界輪廓 → 相鄰判定 + BFS 建樹(root=軀幹)+ **關節 pivot = 兩件 overlap 形心**。對 Award 機器人 3 關節(真值=子骨世界原點)**4 AC 全 PASS**(誤差 1.4/18.6/25.1px、中位 18.6 vs baseline 67.4、階層無假邊、光暈判 effect 剔除),負對照(子件形心)AC2/AC3 FAIL 證鑑別力。**關鍵發現:pivot 精度相依 silhouette 緊緻度**——鬆散 bbox 使右手誤差 132px、換真實 alpha 輪廓降到 25px → 推 pivot 必餵真實 alpha(mesh/atlas),不可餵 bbox。使 S5 生成能力 L0→L2(尚缺跨角色推廣+端到端接 build_spine → 未 skill 化)。圖 `figures/s5_pivot_inference.png`。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

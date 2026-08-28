@@ -47,7 +47,15 @@
   相對面積(避免 big-win scale-from-0 誤判)。發現**軟性加成件(光暈)容許自我重疊**(reveal t=0 精確 keyframe
   si=71,additive 混合無害)→ pass/fail 需依 attachment 語意分類。見 `knowledge/s3-weighted-deform-evaluator.md`、
   圖 `figures/s3_weighted_deform_eval.png`。**這是候選 2(BBW 權重生成)的前置品質閘,現已就緒。**
-- S5 尚未開始。
+- **S5 骨架半自動:首個純 CPU 塊——關節 pivot 推斷器完成(里程碑,2026-08-28)** —
+  `tools/analyzer/infer_pivots.py`(件世界輪廓 → overlap 相鄰判定 + BFS 建樹 root=軀幹 +
+  **關節 pivot = 兩件 overlap 形心** + 全幅特效層剔除)+ `tools/analyzer/validate_pivots.py`
+  (對 Award 機器人真值:**子骨世界原點=關節 pivot**)。**4 AC 全 PASS**:誤差 頭1.4/左手18.6/右手25.1px
+  (軀幹對角線 495px,10% 門檻)、中位 18.6 vs baseline(子件形心)67.4、階層無假邊、光暈判 effect 剔除;
+  **負對照(`--selftest`)AC2/AC3 FAIL → 閘有鑑別力**。**關鍵發現:pivot 精度相依 silhouette 緊緻度**——
+  鬆散 bbox 使右手誤差 132px、換真實 alpha 輪廓(mesh 頂點/atlas alpha)降到 25px。
+  誠實界定:單一機器人 3 關節(L2,未達 L3)、只推關節中心不推骨長/旋轉、未端到端接 build_spine。
+  見 `knowledge/s5-pivot-inference.md`、圖 `figures/s5_pivot_inference.png`。
 - **S3 weighted mesh 生成器完成(里程碑,2026-08-27,候選 2 主體)** — `generate_weighted_mesh.py`:
   輪廓 → triangle 三角化(max-area 控**內部取樣密度**)→ **heat-diffusion 骨綁權重**(BBW 純 CPU 近似,
   `(L+H)W=HP` 天然 partition of unity)→ Spine weighted 格式(bind 經逆骨變換)。`validate_weighted_gen.py`
@@ -123,13 +131,17 @@
    - **下一步(仍在本排程)**:weighted-forge 併入 `spine-asset-forge` skill(C 類回報拍板);次要:軟件非均勻拓樸追平光暈、rig pivot(S5)。
 3. ~~切圖→Spine JSON 組裝(SkelToJson)~~ **⇢ 屬 S4 範圍,已交獨立排程**(且 build_spine 已可端到端產可載入 Spine)。
 4. **S2 骨架閘**(補齊 S2 樞紐;純 CPU)。⚠️ **S2 補圖閘已隨 S4 交接**,本排程不做。
-5. **S5 骨架半自動**:關節 pivot 推斷(路線圖唯一卡死環節);人形 RTMPose/MediaPipe、非人形光流分群。
+5. **S5 骨架半自動(進行中)**:~~關節 pivot 推斷 baseline + 真值閘~~ **✅ 完成(2026-08-28,見上「S5 首個塊」)**。
+   **續**:(a) 端到端接 build_spine(件世界置放 → 推 pivot → 寫 bones 樹 + 子骨 local x,y=pivot 相對父骨、
+   rotation 由件主軸);(b) 跨角色真值推廣(人形多關節鏈,可用 main_draw 骨架反推自身件當二號真值);
+   (c) pivot→骨鏈長度/旋轉。人形 RTMPose/MediaPipe、非人形光流分群為更上游選項。
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
 > **主排程近況**:S1(分析器+build+keyframe)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
-> S2(切圖閘)皆已達里程碑;S4 已交獨立排程。建議下一個 bounded chunk:**S5 rig pivot**(唯一卡死環節,槓桿最高)
-> 或 **weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
+> S2(切圖閘)皆已達里程碑;S4 已交獨立排程;**S5 rig pivot baseline+真值閘已完成(2026-08-28)**。
+> 建議下一個 bounded chunk:**S5 端到端接 build_spine**(件→pivot→寫 bones 樹,把 pivot 推斷變成可載入骨架)
+> 或 **S5 跨角色真值推廣**(升 L3 的關鍵);次要 **weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
 
 ## 環境前置(已驗證可用)
 
@@ -146,6 +158,10 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-08-28:**S5 rig pivot 推斷器首個塊(里程碑)** — `infer_pivots.py`(件世界輪廓→overlap 相鄰+BFS 建樹
+  root=軀幹+關節 pivot=overlap 形心+特效層剔除)+ `validate_pivots.py`(對 Award 真值:子骨世界原點=關節 pivot)。
+  4 AC 全 PASS(誤差 1.4/18.6/25.1px、中位 18.6 vs baseline 67.4、階層無假邊、光暈剔除)、負對照有鑑別力。
+  關鍵發現:pivot 精度相依 silhouette 緊緻度(bbox 132px→真實 alpha 25px)。見 `log/2026-08-28-005.md`。
 - 2026-08-28:**跨分支成果乾淨合流 + 分支釘定(使用者決策 B)** — 發現 200+ 條 `claude/*` 是平行且重複的研究線
   (routine 每 run 從同 default clone、重做同一 chunk、push 到隨機新分支,從不合流)。以最完整線 `3r9ey4`
   (weighted 生成+評估+skill 機制)為底,擇優併入 S1 keyframe(zjze4k 版,5 選 1)、S4 交接、分支釘定,去重評估器。
