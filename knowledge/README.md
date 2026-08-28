@@ -61,3 +61,8 @@
   卡片式並排比對 + 點圖開大圖看差異熱圖。`psd_slice.py`/`inpaint_eval.py` 隨附新增預覽用檔案輸出
   (composite.png / holed+original PNG / manifest.json),向後相容、下游工具無回歸。用 Playwright+
   headless Chromium 驗證互動正確(重組 diff MAE 0.02、關圖層/差異熱圖精準定位)。
+
+- [S4 補圖問題定義修正:三種情境](s4-inpaint-taxonomy.md) — 使用者釐清補圖不是單一難度分級問題,
+  分 **1a 拆件破綻・需表演**(要真的畫對)、**1b 拆件破綻・防穿幫**(標準寬鬆很多)、**2 動畫規劃驅動
+  視角外推**(原圖不存在的內容,補圖演算法無效,屬 S1 需求前移範疇)。指出既有補圖閘結論是用 1a 嚴格
+  標準測的,1b 情境需另一組寬鬆閘重新檢視。
