@@ -196,7 +196,7 @@
       </div>
     </div>
     <canvas id="modalCanvas"></canvas>
-    <div id="modalMetrics" style="font-family:ui-monospace,monospace;font-size:12px;margin-top:8px;"></div>
+    <div id="modalMetrics" style="font-family:ui-monospace,monospace;font-size:12px;margin-top:8px;white-space:pre-line;"></div>
   </div>
 </div>
 
@@ -483,14 +483,28 @@ function renderInpaintCase(key) {
     thumbWrap.appendChild(img);
     const title = document.createElement('div');
     title.className = 'title';
-    const dot = metrics ? `<span class="pass-dot ${metrics.pass ? 'pass' : 'fail'}"></span>` : '';
-    title.innerHTML = `<span>${METHOD_LABEL[name] || name}</span>${dot}`;
+    let dots = '';
+    if (metrics) {
+      dots += `<span class="pass-dot ${metrics.pass ? 'pass' : 'fail'}" title="1a 需表演標準(對照真值):${metrics.pass ? 'PASS' : 'FAIL'}"></span>`;
+      const b = metrics['1b'];
+      if (b && b.applicable) {
+        dots += `<span class="pass-dot ${b.pass ? 'pass' : 'fail'}" style="margin-left:3px" title="1b 防穿幫標準(自我參照):${b.pass ? 'PASS' : 'FAIL'}"></span>`;
+      } else if (b) {
+        dots += `<span class="pass-dot" style="margin-left:3px;background:#555" title="1b 不適用(edge 洞跨真實輪廓,自我參照假設不成立)"></span>`;
+      }
+    }
+    title.innerHTML = `<span>${METHOD_LABEL[name] || name}</span><span>${dots}</span>`;
     card.appendChild(thumbWrap);
     card.appendChild(title);
     if (metrics) {
       const m = document.createElement('div');
       m.className = 'metrics';
-      m.innerHTML = `mae ${metrics.premult_mae} · ssim ${metrics.ssim}<br>seam ${metrics.seam_grad_diff} · α-mae ${metrics.alpha_mae}`;
+      const b = metrics['1b'];
+      const b1bLine = b ? (b.applicable
+        ? `1b α缺${b.alpha_gap} · 接縫比${b.seam_ratio} · 色差${b.tone_gap}`
+        : '1b 不適用(edge 洞)') : '';
+      m.innerHTML = `1a mae ${metrics.premult_mae} · ssim ${metrics.ssim}<br>` +
+        `1a seam ${metrics.seam_grad_diff} · α-mae ${metrics.alpha_mae}<br>${b1bLine}`;
       card.appendChild(m);
     }
     card.addEventListener('click', () => openModal(name, file, metrics, c));
@@ -503,9 +517,18 @@ let modalDiffOn = false;
 async function openModal(name, file, metrics, caseObj) {
   modalDiffOn = false;
   document.getElementById('modalTitle').textContent = METHOD_LABEL[name] || name;
-  document.getElementById('modalMetrics').textContent = metrics
-    ? `premult_mae=${metrics.premult_mae}  alpha_mae=${metrics.alpha_mae}  seam_grad_diff=${metrics.seam_grad_diff}  ssim=${metrics.ssim}  pass=${metrics.pass}`
-    : '(真值 / 破洞輸入,無比對指標)';
+  let metricsText = '(真值 / 破洞輸入,無比對指標)';
+  if (metrics) {
+    metricsText = `[1a 需表演標準] premult_mae=${metrics.premult_mae}  alpha_mae=${metrics.alpha_mae}  ` +
+      `seam_grad_diff=${metrics.seam_grad_diff}  ssim=${metrics.ssim}  pass=${metrics.pass}`;
+    const b = metrics['1b'];
+    if (b) {
+      metricsText += b.applicable
+        ? `\n[1b 防穿幫標準] alpha_gap=${b.alpha_gap}  seam_ratio=${b.seam_ratio}  tone_gap=${b.tone_gap}  pass=${b.pass}`
+        : `\n[1b 防穿幫標準] 不適用(edge 洞跨真實輪廓,自我參照假設不成立 —— 見 knowledge/s4-inpaint-1b-lenient-gate.md)`;
+    }
+  }
+  document.getElementById('modalMetrics').textContent = metricsText;
   const modal = document.getElementById('modal');
   modal.classList.add('show');
   modal._file = file; modal._caseObj = caseObj;

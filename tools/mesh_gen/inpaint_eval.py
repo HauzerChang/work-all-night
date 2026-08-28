@@ -209,16 +209,79 @@ def score(recon, gt, mask):
     }
 
 
+# ---------- 1b 防穿幫指標(自我參照,不比對真值內容 — 見 knowledge/s4-inpaint-taxonomy.md) ----------
+#
+# 1a(score/passes 上面那組)問「補得像不像真值」;1b 問「動態下會不會露餡」——
+# 露餡不需要知道洞裡『本來』是什麼,只需要看:(1)洞內還有沒有透明殘留、(2)洞邊界的接縫
+# 是否比這件『本來就有』的邊緣強度更突兀、(3)洞邊界內外的色調是否銜接。三者都是拿 recon
+# 自己(以及它跟同一張圖其他正常區域的比較)算,不需要 gt 的洞內真實內容。
+
+def _gradmag(img):
+    gray = _premult(img).mean(axis=2)
+    gx = ndimage.sobel(gray, axis=1)
+    gy = ndimage.sobel(gray, axis=0)
+    return np.sqrt(gx ** 2 + gy ** 2)
+
+
+def boundary_bands(mask, width=3):
+    """回傳緊貼洞邊界的內側帶(洞內)、外側帶(洞外,真實像素)。"""
+    dil = ndimage.binary_dilation(mask, iterations=width)
+    inside_band = mask & ~ndimage.binary_erosion(mask, iterations=width)
+    outside_band = dil & ~mask
+    return inside_band, outside_band
+
+
+def score_1b(recon, mask, content, width=3):
+    """1b 防穿幫指標(自我參照,無需真值洞內內容):
+      - alpha_gap : 洞內仍是透明的像素比例(殘留破洞 → 一定穿幫)
+      - seam_ratio: 洞邊界梯度強度 / 這件其餘正常區域(扣掉洞與邊界帶)的梯度基準
+                    (該材質本來的邊緣強度)—— 遠高於 1 代表接縫比正常紋理邊緣更突兀。
+      - tone_gap  : 洞邊界內帶 vs 外帶的平均 premultiplied 色差(銜接處色調斷不斷)。
+    """
+    if mask.sum() == 0:
+        return {"alpha_gap": 0.0, "seam_ratio": 0.0, "tone_gap": 0.0}
+    hole_alpha = recon[..., 3][mask]
+    # 門檻沿用全檔一致的「content」定義(alpha>8),不能用較高的門檻(如 200)——
+    # 天然軟邊素材(如光暈的放射漸層)在洞的邊界本就有 alpha 9~255 的漸層,曾誤把這種
+    # 合法半透明當成「還沒補好的破洞」,靠 gt 正對照校準抓到後修正。
+    alpha_gap = float((hole_alpha <= 8).mean())
+
+    inside_band, outside_band = boundary_bands(mask, width)
+    g = _gradmag(recon)
+    band = inside_band | outside_band
+    seam_grad = float(g[band].mean()) if band.sum() else 0.0
+    normal_region = content & ~ndimage.binary_dilation(mask, iterations=width)
+    baseline_grad = float(g[normal_region].mean()) if normal_region.sum() else 1e-6
+    seam_ratio = seam_grad / max(baseline_grad, 1e-6)
+
+    in_pix = _premult(recon)[inside_band]
+    out_pix = _premult(recon)[outside_band]
+    tone_gap = float(np.abs(in_pix.mean(axis=0) - out_pix.mean(axis=0)).mean()) \
+        if len(in_pix) and len(out_pix) else 0.0
+
+    return {"alpha_gap": round(alpha_gap, 4), "seam_ratio": round(seam_ratio, 3),
+            "tone_gap": round(tone_gap, 3)}
+
+
 # ---------- AC 判定(先校準,見 §main) ----------
 
 # 校準後閾值(見 knowledge/s4-inpaint-evaluator.md):正對照必須遠優於此、負對照必須遠劣於此,
 # baseline 落在中間帶依此判定「CPU 補得動」。
 THRESH = {"premult_mae": 18.0, "ssim": 0.75, "seam_grad_diff": 12.0}
 
+# 1b 閾值(見 knowledge/s4-inpaint-1b-lenient-gate.md,以正對照=gt 自身/負對照=none/random 校準):
+# alpha_gap 用嚴格 0(殘留透明就是看得見的洞,無寬鬆空間);seam/tone 給比 1a 寬鬆的容忍帶。
+THRESH_1B = {"alpha_gap": 0.02, "seam_ratio": 2.2, "tone_gap": 28.0}
+
 
 def passes(s):
     return s["premult_mae"] < THRESH["premult_mae"] and s["ssim"] > THRESH["ssim"] \
         and s["seam_grad_diff"] < THRESH["seam_grad_diff"]
+
+
+def passes_1b(s):
+    return s["alpha_gap"] <= THRESH_1B["alpha_gap"] and s["seam_ratio"] < THRESH_1B["seam_ratio"] \
+        and s["tone_gap"] < THRESH_1B["tone_gap"]
 
 
 # ---------- 主流程 ----------
@@ -234,11 +297,21 @@ def run_one(path, mode, seed, out_dir=None):
         files["holed"] = f"{base}_{mode}_holed.png"
         save_rgba(os.path.join(out_dir, files["original"]), gt)
         save_rgba(os.path.join(out_dir, files["holed"]), holed)
+    content = gt[..., 3] > 8
+    # 1b(防穿幫)的自我參照假設是「洞周圍本來就沒有接縫」,只在 interior 洞成立——
+    # edge 洞刻意跨在真實輪廓上,輪廓本身天然就有 tone/alpha 漸變,正對照(gt)在此處
+    # 會被自己的判定誤判為「有接縫」(見 knowledge/s4-inpaint-1b-lenient-gate.md 校準記錄)。
+    # 故 1b 判定只在 interior 模式下啟用;edge 模式僅記錄分數供參考,pass 標 None(不適用)。
+    b1_applicable = (mode == "interior")
     results = {}
     for name, fn in METHODS.items():
         recon = fn(holed, gt, mask)
         s = score(recon, gt, mask)
         s["pass"] = passes(s)
+        s_1b = score_1b(recon, mask, content)
+        s_1b["pass"] = passes_1b(s_1b) if b1_applicable else None
+        s_1b["applicable"] = b1_applicable
+        s["1b"] = s_1b
         if out_dir:
             fname = f"{base}_{mode}_{name}.png"
             save_rgba(os.path.join(out_dir, fname), recon)
@@ -250,19 +323,27 @@ def run_one(path, mode, seed, out_dir=None):
 
 def calibration_check(report):
     """正對照必須近乎完美(驗證指標無偏);兩個負對照必須明顯 fail(驗證鑑別力)。
-    未通過 → 整份報告不可信(呼應 RULES.md 教訓:先校準才能信判定)。"""
+    1a、1b 各自校準(1b 正對照 = gt 的 1b 分數本身應接近完美 —— 因為真實內容『本來就沒有接縫』;
+    1b 負對照沿用同一組 none/random)。未通過 → 整份報告不可信(呼應 RULES.md 教訓:先校準才能信判定)。"""
     ok = True
     notes = []
     for case_name, case in report["cases"].items():
         gt_s = case["methods"]["gt"]
         if gt_s["premult_mae"] > 0.5 or gt_s["ssim"] < 0.999:
             ok = False
-            notes.append(f"{case_name}: 正對照(gt)未達完美,指標可能有偏 — {gt_s}")
+            notes.append(f"{case_name}: 正對照(gt)1a 未達完美,指標可能有偏 — {gt_s}")
+        gt_1b = gt_s["1b"]
+        if gt_1b["applicable"] and not gt_1b["pass"]:
+            ok = False
+            notes.append(f"{case_name}: 正對照(gt)1b 竟然 fail(真實內容不該有接縫)— {gt_1b}")
         for neg in ("none", "random"):
             neg_s = case["methods"][neg]
             if neg_s["pass"]:
                 ok = False
-                notes.append(f"{case_name}: 負對照 {neg} 竟然 pass — 鑑別力不足,閾值需重調")
+                notes.append(f"{case_name}: 負對照 {neg} 1a 竟然 pass — 鑑別力不足,閾值需重調")
+            if neg_s["1b"]["applicable"] and neg_s["1b"]["pass"]:
+                ok = False
+                notes.append(f"{case_name}: 負對照 {neg} 1b 竟然 pass — 鑑別力不足,閾值需重調")
     return ok, notes
 
 
