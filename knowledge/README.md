@@ -81,3 +81,10 @@
   「補不動」是 1a 嚴格標準的結論,1b(防穿幫)情境下同一批廉價 baseline 其實夠用。範圍收斂:
   1b 只在 `interior` 模式成立(edge 模式輪廓天然有 tone/alpha 梯度,套自我參照假設會誤判)。
   `psd_preview.html` 補圖卡片現在顯示雙判定燈(1a/1b)。
+
+- [S4 補圖「評分→採用→落地」自動鏈路](s4-inpaint-auto-select-pipeline.md) — 打通
+  `inpaint_eval.py`(評分)→`psd_inplace_patch.py`(落地寫回)。真實情境無真值,用 1b 分數
+  盲選候選 baseline(`score_candidates`/`select_best`);修正一個新踩到的坑——1b 只在
+  `interior` 模式校準過,新增 `applicable` 旗標(呼叫端明確傳 `mode`)避免 `edge` 洞被誤標
+  高信心的 `pass_1b`。自我驗證:合成挖洞模擬盲選情境,寫回後才揭曉 1a 分數驗證選擇邏輯誠實;
+  edge 模式正確不再宣稱 pass_1b,舊 `--method` 路徑與 `psd_slice`/`inpaint_eval` 回歸無影響。

@@ -284,6 +284,54 @@ def passes_1b(s):
         and s["tone_gap"] < THRESH_1B["tone_gap"]
 
 
+# ---------- 評分→採用(供 psd_inplace_patch.py 落地鏈路呼叫) ----------
+#
+# 真實補圖(非本檔的合成校準流程)沒有真值可比 —— 這正是 1b 自我參照指標存在的理由
+# (見上面 taxonomy 說明)。這裡提供「拿候選 baseline 跑過 → 用 1b 分數盲選」的共用邏輯,
+# 讓 psd_inplace_patch.py 不必重新發明選擇規則,也讓校準(demo,盲選後才用 gt 算 1a 驗證
+# 選得好不好)與真實落地走同一套函式。
+
+CANDIDATE_METHODS = ("nearest", "cv2_telea", "cv2_ns")  # 不含 gt/none/random(僅供對照,不可採用)
+
+
+def score_candidates(holed_rgba, mask, methods=CANDIDATE_METHODS):
+    """對『已存在缺洞、無真值』的件跑每個候選 baseline,各自算 1b 自我參照分數。
+    回傳 {method: {"recon": ndarray, "score": {...,"pass":bool}}}。
+    注意:1b 分數本身不知道這個洞是 interior 還是 edge——`pass` 欄位一律照 THRESH_1B 算出,
+    呼叫端(select_best)必須自己傳 applicable 旗標做 gating,不能對 edge 洞照單全收。"""
+    content = holed_rgba[..., 3] > 8
+    out = {}
+    for name in methods:
+        fn = METHODS[name]
+        recon = fn(holed_rgba, None, mask)  # 真實情境無 gt;三個候選 baseline 本就不吃 gt 參數
+        s = score_1b(recon, mask, content)
+        s["pass"] = passes_1b(s)
+        out[name] = {"recon": recon, "score": s}
+    return out
+
+
+def select_best(scored, priority=CANDIDATE_METHODS, applicable=True):
+    """從 score_candidates() 結果挑一個採用。
+
+    `applicable`:1b 的自我參照假設(洞周圍本來沒有接縫)只在洞完全落在件內部(interior)
+    時成立——若洞跨在件的真實輪廓邊界上(edge,如遮擋件本身定義部分輪廓),輪廓天然的
+    tone/alpha 漸變會讓正對照自己都被誤判成『有接縫』(見 knowledge/s4-inpaint-1b-lenient-gate.md
+    校準記錄)。呼叫端必須依情境明確傳入這個旗標(自動判斷不可靠,故不在此處猜測)——
+    `applicable=False` 時,即使個別候選的 score["pass"]==True 也一律忽略,不會回傳 "pass_1b"
+    (那個 True 在 edge 情境下沒有校準過的意義),永遠走 fallback。
+
+    優先序中第一個 1b pass 的入選;若全 fail 或 applicable=False,退而求其次選
+    seam_ratio(接縫突兀度)最低者,並標記 no_pass_fallback,讓呼叫端知道這不是有信心的判定。"""
+    if applicable:
+        for name in priority:
+            if scored[name]["score"]["pass"]:
+                return name, "pass_1b"
+    best = min(scored, key=lambda n: scored[n]["score"]["seam_ratio"])
+    reason = "no_pass_fallback_lowest_seam_ratio" if applicable \
+        else "1b_not_applicable_edge_mode_fallback_lowest_seam_ratio"
+    return best, reason
+
+
 # ---------- 主流程 ----------
 
 def run_one(path, mode, seed, out_dir=None):

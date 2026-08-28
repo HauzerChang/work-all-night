@@ -80,14 +80,22 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
   修正兩個真實 psd-tools 陷阱(中文圖層名寫入、composite() 合併預覽壞掉),對「身體」「左手」
   兩層端到端驗證 `overall_pass: true`。
 
+- ✅ **評分→採用→落地完整鏈路打通(里程碑,2026-08-28)** — `inpaint_eval.py` 新增
+  `score_candidates()`/`select_best()`(對候選 baseline 各跑一次、用 1b 分數盲選,因為真實
+  補圖沒有 gt 可用 1a 選);`psd_inplace_patch.py` 新增 `patch_layer_auto()`(真實情境入口,
+  呼叫端給 mask)+ `demo_auto_patch()`(自我測試:合成挖洞模擬盲選,寫回後才揭曉 1a 分數驗證
+  選擇邏輯誠實)。CLI 新增 `--auto`/`--mask`。**踩到並修正一個新坑**:1b 只在 `interior` 模式
+  校準過(見 `s4-inpaint-1b-lenient-gate.md`),第一版沒做這層 gating 會讓 `edge` 洞被誤標高
+  信心的 `pass_1b`——新增 `applicable` 旗標(`select_best(..., applicable=mode=="interior")`),
+  edge 模式一律走 fallback 並標 `1b_not_applicable_edge_mode_fallback_lowest_seam_ratio`,
+  已用左手 edge 案例驗證修正生效。回歸:舊 `--method` 路徑、`psd_slice.py --eval`、
+  `inpaint_eval.py` 校準流程對 `robot_parts.psd` 重跑皆無影響。見
+  `knowledge/s4-inpaint-auto-select-pipeline.md`。
+
 **下一個有界工作塊候選(擇一推進):**
-1. **把 `inpaint_eval.py` 的正式產出改接 `psd_inplace_patch.py`**:目前兩者是分開的(inpaint_eval
-   對匯出 PNG 跑評分,psd_inplace_patch 對 PSD 圖層跑 demo)。可以讓 inpaint_eval 選定「這次要採用
-   哪個 baseline 的結果」後,自動呼叫 `patch_layer_with_image()` 寫回原 PSD,打通「評分→採用→
-   落地」的完整鏈路。
-2. **遮擋真值法**:用 Award/機器人多件疊合 composite,找已知被上層遮住、但 PSD 該層本身有畫全的真實
+1. **遮擋真值法**:用 Award/機器人多件疊合 composite,找已知被上層遮住、但 PSD 該層本身有畫全的真實
    區域當真值(比合成挖洞更貼近實戰);對照合成挖洞閘的判定是否一致。
-3. **1b 的 edge 模式支援**:目前 edge 模式標「不適用」;可嘗試比對「這個材質沿真實輪廓其他段落的
+2. **1b 的 edge 模式支援**:目前 edge 模式標「不適用」;可嘗試比對「這個材質沿真實輪廓其他段落的
    天然 tone/alpha 變化範圍」當基準(而非整個件的內部區域),看能否收斂出可信判定。
 4. **探測 Level 3(LaMa)**:深度 inpaint 權重下載是否被網路政策擋?先探測可行性(注意:1b 已經解決
    了機械紋理 interior 案例的實用性問題,LaMa 現在的優先序降低,除非要解 1a 或 edge 模式)。
@@ -126,3 +134,9 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
   psd-tools 陷阱:中文圖層名寫入 crash(改用 `luni` tagged block)、重存後 PSD 預設 `composite()`
   吃到壞掉的合併預覽(無 alpha,導致 orphan_ratio 誤判暴增)——`psd_slice.py` 加 `force=True` 修正,
   原生 PSD 回歸無影響。端到端驗證兩層皆 `overall_pass: true`。見 `knowledge/s4-psd-inplace-edit.md`。
+- 2026-08-28:**評分→採用→落地完整鏈路打通(里程碑)** — `inpaint_eval.score_candidates`/
+  `select_best`(1b 分數盲選候選 baseline)+ `psd_inplace_patch.patch_layer_auto`(真實情境)/
+  `demo_auto_patch`(自我測試,盲選後才揭曉 1a 分數驗證選得好不好)。修正新踩到的坑:1b 只在
+  interior 校準過,加 `applicable` 旗標避免 edge 洞被誤標高信心 pass_1b(左手 edge 案例驗證
+  修正生效)。舊路徑與 psd_slice/inpaint_eval 回歸皆無影響。見
+  `knowledge/s4-inpaint-auto-select-pipeline.md`、`log/s4-2026-08-28-007.md`。
