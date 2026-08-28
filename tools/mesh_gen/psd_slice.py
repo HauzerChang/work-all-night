@@ -44,6 +44,10 @@ def slice_psd(psd_path, out_dir=None):
         manifest["parts"].append(entry)
         parts.append((entry, im))
     if out_dir:
+        # 存 PSD 原始 composite 當預覽器的參照圖(供 psd_preview.html 疊圖比對重組結果)
+        comp = psd.composite().convert("RGBA").resize((W, H))
+        comp.save(os.path.join(out_dir, "composite.png"))
+        manifest["composite"] = "composite.png"
         json.dump(manifest, open(os.path.join(out_dir, "manifest.json"), "w"),
                   ensure_ascii=False, indent=2)
     return psd, manifest, parts

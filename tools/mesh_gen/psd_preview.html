@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>PSD 圖片預覽器 — S4 切圖/補圖即時預覽</title>
+<style>
+  :root {
+    --bg: #12151a; --panel: #1a1f27; --panel2: #20262f; --border: #2c3340;
+    --text: #dde3ec; --muted: #8b95a5; --accent: #4f9dff;
+    --ok: #3ecf6a; --bad: #ff5d6c; --warn: #f5b53c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 13px/1.5 -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  }
+  header {
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; color: var(--text); }
+  header .sub { color: var(--muted); font-size: 12px; }
+  .tabs { display: flex; gap: 6px; margin-left: auto; }
+  .tab-btn {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--muted);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
+  .tab-btn.active { color: #fff; border-color: var(--accent); background: #1c3253; }
+  .loader {
+    display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+    border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap;
+  }
+  .loader input[type=file] { color: var(--muted); font-size: 12px; max-width: 260px; }
+  .btn {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;
+  }
+  .btn:hover { border-color: var(--accent); }
+  #dropzone {
+    border: 1px dashed var(--border); border-radius: 6px; padding: 6px 14px;
+    color: var(--muted); font-size: 12px;
+  }
+  #dropzone.drag { border-color: var(--accent); color: var(--accent); }
+  #status { color: var(--muted); font-size: 12px; }
+  #status.err { color: var(--bad); }
+  #status.ok { color: var(--ok); }
+  main { display: none; padding: 16px; gap: 16px; }
+  main.show { display: flex; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .empty-hint { padding: 60px 20px; text-align: center; color: var(--muted); }
+
+  /* ---- slicing tab ---- */
+  #slicingView { flex: 1; display: none; gap: 16px; }
+  #slicingView.show { display: flex; }
+  #layerPanel { width: 260px; flex-shrink: 0; max-height: 78vh; overflow: auto; }
+  #layerPanel h3 { margin: 0 0 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .layer-row {
+    display: flex; align-items: center; gap: 8px; padding: 5px 4px; border-radius: 4px; cursor: pointer;
+  }
+  .layer-row:hover { background: var(--panel2); }
+  .layer-row .swatch {
+    width: 28px; height: 28px; border-radius: 4px; border: 1px solid var(--border);
+    background: repeating-conic-gradient(#333 0 25%, #2a2a2a 0 50%) 0 0/8px 8px; flex-shrink: 0;
+    background-size: 8px 8px; object-fit: contain; overflow: hidden;
+  }
+  .layer-row img.swatch { display: block; }
+  .layer-row .meta { flex: 1; min-width: 0; }
+  .layer-row .meta .name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .layer-row .meta .dims { font-size: 10px; color: var(--muted); font-family: ui-monospace, monospace; }
+  #canvasArea { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .canvas-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .canvas-box { background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+  .canvas-box .label { font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em; }
+  .canvas-box canvas {
+    display: block; background: repeating-conic-gradient(#333 0 25%, #2a2a2a 0 50%) 0 0/16px 16px;
+    background-size: 16px 16px; max-width: 100%;
+  }
+  #reconStats { font-size: 12px; font-family: ui-monospace, monospace; color: var(--text); }
+  #reconStats .mae-ok { color: var(--ok); }
+  #reconStats .mae-bad { color: var(--bad); }
+  .zoom-row { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+  .disclaimer {
+    font-size: 11px; color: var(--warn); border: 1px solid #4a3a1f; background: #241c0f;
+    padding: 6px 10px; border-radius: 5px;
+  }
+
+  /* ---- inpaint tab ---- */
+  #inpaintView { flex: 1; display: none; flex-direction: column; gap: 12px; }
+  #inpaintView.show { display: flex; }
+  .case-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .case-bar select { background: var(--panel2); color: var(--text); border: 1px solid var(--border); padding: 5px 8px; border-radius: 5px; }
+  .calib-chip { font-size: 11px; padding: 3px 8px; border-radius: 10px; }
+  .calib-chip.ok { background: #10321c; color: var(--ok); border: 1px solid #1c5c33; }
+  .calib-chip.bad { background: #3a1418; color: var(--bad); border: 1px solid #5c1c22; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 8px;
+    cursor: pointer; transition: border-color .1s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card .thumb-wrap {
+    background: repeating-conic-gradient(#333 0 25%, #2a2a2a 0 50%) 0 0/12px 12px; background-size: 12px 12px;
+    border-radius: 5px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+    height: 150px;
+  }
+  .card img { max-width: 100%; max-height: 150px; object-fit: contain; }
+  .card .title { font-size: 12px; font-weight: 600; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .pass-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .pass-dot.pass { background: var(--ok); }
+  .pass-dot.fail { background: var(--bad); }
+  .card .metrics { font-size: 10px; color: var(--muted); font-family: ui-monospace, monospace; margin-top: 4px; line-height: 1.6; }
+
+  /* modal */
+  #modal {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 50;
+    align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+  }
+  #modal.show { display: flex; }
+  #modal .modal-inner { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; max-width: 90vw; max-height: 90vh; overflow: auto; }
+  #modal canvas { max-width: 80vw; max-height: 65vh; background: repeating-conic-gradient(#333 0 25%, #2a2a2a 0 50%) 0 0/16px 16px; background-size:16px 16px; }
+  #modal .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 12px; }
+  #modal .modal-head .btn { }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PSD 圖片預覽器</h1>
+  <span class="sub">S4 切圖 / 補圖 — 即時視覺化驗收(輔助工具,非正式判定;正式閾值以 psd_slice.py / inpaint_eval.py 輸出為準)</span>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="slicing">切圖 Slicing</button>
+    <button class="tab-btn" data-tab="inpaint">補圖 Inpainting</button>
+  </div>
+</header>
+
+<div class="loader">
+  <input type="file" id="dirInput" webkitdirectory directory multiple>
+  <input type="file" id="fileInput" multiple>
+  <button class="btn" id="clearBtn">清除</button>
+  <div id="dropzone">或把 psd_slice.py / inpaint_eval.py 的 <code>-o</code> 輸出資料夾拖到這裡</div>
+  <span id="status">尚未載入。選「切圖」資料夾(含 manifest.json + composite.png)或「補圖」資料夾(含 manifest.json)。</span>
+</div>
+
+<main id="main">
+  <!-- 切圖 -->
+  <section id="slicingView" class="panel">
+    <div id="layerPanel">
+      <h3>圖層(依 z 由下到上)</h3>
+      <div id="layerList"></div>
+    </div>
+    <div id="canvasArea">
+      <div class="zoom-row">
+        縮放 <input type="range" id="zoomSlider" min="25" max="300" value="100"> <span id="zoomVal">100%</span>
+        <button class="btn" id="fitBtn">Fit</button>
+      </div>
+      <div class="canvas-row">
+        <div class="canvas-box">
+          <div class="label">重組(依 offset + z 疊圖)</div>
+          <canvas id="reconCanvas"></canvas>
+        </div>
+        <div class="canvas-box" id="refBox" style="display:none">
+          <div class="label">參照(PSD composite)</div>
+          <canvas id="refCanvas"></canvas>
+        </div>
+        <div class="canvas-box" id="diffBox" style="display:none">
+          <div class="label">差異熱圖(premultiplied,越紅差越大)</div>
+          <canvas id="diffCanvas"></canvas>
+        </div>
+      </div>
+      <div id="reconStats"></div>
+      <div class="disclaimer">此差異圖為瀏覽器端即時粗算,供快速視覺檢查;正式驗收數字請看 <code>psd_slice.py --eval</code> 的 premult_rgb_mae。</div>
+    </div>
+  </section>
+
+  <!-- 補圖 -->
+  <section id="inpaintView" class="panel">
+    <div class="case-bar">
+      <label>案例:</label>
+      <select id="caseSelect"></select>
+      <span id="calibChip" class="calib-chip"></span>
+      <span class="sub" id="caseInfo"></span>
+    </div>
+    <div id="grid"></div>
+  </section>
+</main>
+
+<div id="empty" class="empty-hint">尚未載入任何資料夾。</div>
+
+<div id="modal">
+  <div class="modal-inner">
+    <div class="modal-head">
+      <strong id="modalTitle"></strong>
+      <div>
+        <button class="btn" id="modalDiffBtn">切換:對 original 差異</button>
+        <button class="btn" id="modalCloseBtn">關閉 ✕</button>
+      </div>
+    </div>
+    <canvas id="modalCanvas"></canvas>
+    <div id="modalMetrics" style="font-family:ui-monospace,monospace;font-size:12px;margin-top:8px;"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ---------- 共用:載入檔案 → filesByName map ----------
+let filesByName = new Map();   // basename -> File
+let sliceManifest = null;
+let inpaintManifest = null;
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = cls || '';
+}
+
+async function ingestFileList(fileList) {
+  filesByName = new Map();
+  for (const f of fileList) {
+    const base = (f.webkitRelativePath || f.name).split('/').pop();
+    filesByName.set(base, f);
+  }
+  const manifestFile = filesByName.get('manifest.json');
+  if (!manifestFile) {
+    setStatus(`載入了 ${fileList.length} 個檔案,但找不到 manifest.json`, 'err');
+    return;
+  }
+  const text = await manifestFile.text();
+  let m;
+  try { m = JSON.parse(text); } catch (e) {
+    setStatus('manifest.json 解析失敗:' + e.message, 'err');
+    return;
+  }
+  if (m.parts && m.size) {
+    sliceManifest = m;
+    inpaintManifest = null;
+    setStatus(`✓ 切圖 manifest:${m.source || '(unknown)'},${m.parts.length} 件,尺寸 ${m.size[0]}×${m.size[1]}`, 'ok');
+    switchTab('slicing');
+    renderSlicing();
+  } else if (m.cases) {
+    inpaintManifest = m;
+    sliceManifest = null;
+    const n = Object.keys(m.cases).length;
+    setStatus(`✓ 補圖 manifest:${n} 個案例`, 'ok');
+    switchTab('inpaint');
+    populateCaseSelect();
+  } else {
+    setStatus('manifest.json 格式無法辨識(非切圖 / 補圖輸出)', 'err');
+  }
+}
+
+document.getElementById('dirInput').addEventListener('change', e => ingestFileList(e.target.files));
+document.getElementById('fileInput').addEventListener('change', e => ingestFileList(e.target.files));
+document.getElementById('clearBtn').addEventListener('click', () => {
+  filesByName = new Map(); sliceManifest = null; inpaintManifest = null;
+  document.getElementById('main').classList.remove('show');
+  document.getElementById('empty').style.display = 'block';
+  setStatus('已清除。');
+});
+
+// 拖放(支援拖整個資料夾,遞迴讀取)
+const dz = document.getElementById('dropzone');
+['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+dz.addEventListener('drop', async e => {
+  e.preventDefault();
+  const items = e.dataTransfer.items;
+  const files = [];
+  async function walk(entry) {
+    if (entry.isFile) {
+      await new Promise(res => entry.file(f => { files.push(f); res(); }));
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const entries = await new Promise(res => reader.readEntries(res));
+      for (const ent of entries) await walk(ent);
+    }
+  }
+  const entries = [];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i].webkitGetAsEntry && items[i].webkitGetAsEntry();
+    if (it) entries.push(it);
+  }
+  if (entries.length) {
+    for (const ent of entries) await walk(ent);
+    ingestFileList(files);
+  } else {
+    ingestFileList(e.dataTransfer.files);
+  }
+});
+
+// ---------- tabs ----------
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.getElementById('slicingView').classList.toggle('show', name === 'slicing');
+  document.getElementById('inpaintView').classList.toggle('show', name === 'inpaint');
+  const hasData = sliceManifest || inpaintManifest;
+  document.getElementById('main').classList.toggle('show', !!hasData);
+  document.getElementById('empty').style.display = hasData ? 'none' : 'block';
+}
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+// ---------- image loading helper ----------
+const _imgCache = new Map();
+function loadImg(file) {
+  if (_imgCache.has(file)) return _imgCache.get(file);
+  const p = new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+  _imgCache.set(file, p);
+  return p;
+}
+
+function drawChecker(ctx, w, h) { ctx.clearRect(0, 0, w, h); }
+
+// ---------- 切圖 tab ----------
+let layerVisibility = {};
+let zoomPct = 100;
+
+function renderLayerList() {
+  const list = document.getElementById('layerList');
+  list.innerHTML = '';
+  if (!sliceManifest) return;
+  const partsTopFirst = [...sliceManifest.parts].sort((a, b) => b.z - a.z);
+  for (const p of partsTopFirst) {
+    const key = p.z + '::' + p.name;
+    if (!(key in layerVisibility)) layerVisibility[key] = true;
+    const row = document.createElement('div');
+    row.className = 'layer-row';
+    const sw = document.createElement('img');
+    sw.className = 'swatch';
+    const f = filesByName.get(p.file);
+    if (f) loadImg(f).then(img => { sw.src = img.src; });
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.innerHTML = `<div class="name">${p.name}</div><div class="dims">z=${p.z} · ${p.size[0]}×${p.size[1]} · op=${p.opacity ?? 255}</div>`;
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = layerVisibility[key];
+    cb.addEventListener('change', () => { layerVisibility[key] = cb.checked; renderSlicing(); });
+    row.appendChild(cb); row.appendChild(sw); row.appendChild(meta);
+    list.appendChild(row);
+  }
+}
+
+async function renderSlicing() {
+  if (!sliceManifest) return;
+  renderLayerList();
+  const [W, H] = sliceManifest.size;
+  const scale = zoomPct / 100;
+  const cw = Math.max(1, Math.round(W * scale)), ch = Math.max(1, Math.round(H * scale));
+
+  const reconCanvas = document.getElementById('reconCanvas');
+  reconCanvas.width = cw; reconCanvas.height = ch;
+  const rctx = reconCanvas.getContext('2d');
+  drawChecker(rctx, cw, ch);
+
+  const partsBottomFirst = [...sliceManifest.parts].sort((a, b) => a.z - b.z);
+  for (const p of partsBottomFirst) {
+    const key = p.z + '::' + p.name;
+    if (!layerVisibility[key]) continue;
+    const f = filesByName.get(p.file);
+    if (!f) continue;
+    const img = await loadImg(f);
+    rctx.globalAlpha = (p.opacity ?? 255) / 255;
+    rctx.drawImage(img, p.offset[0] * scale, p.offset[1] * scale, p.size[0] * scale, p.size[1] * scale);
+  }
+  rctx.globalAlpha = 1;
+
+  const refBox = document.getElementById('refBox'), diffBox = document.getElementById('diffBox');
+  const compFile = filesByName.get(sliceManifest.composite || 'composite.png');
+  const statsEl = document.getElementById('reconStats');
+  if (compFile) {
+    refBox.style.display = ''; diffBox.style.display = '';
+    const refCanvas = document.getElementById('refCanvas');
+    refCanvas.width = cw; refCanvas.height = ch;
+    const fctx = refCanvas.getContext('2d');
+    drawChecker(fctx, cw, ch);
+    const refImg = await loadImg(compFile);
+    fctx.drawImage(refImg, 0, 0, cw, ch);
+
+    const diffCanvas = document.getElementById('diffCanvas');
+    diffCanvas.width = cw; diffCanvas.height = ch;
+    const mae = computeDiffHeatmap(reconCanvas, refCanvas, diffCanvas);
+    const cls = mae < 3 ? 'mae-ok' : 'mae-bad';
+    statsEl.innerHTML = `premultiplied-RGB MAE(全圖,含未選中透明區)≈ <span class="${cls}">${mae.toFixed(2)}</span> / 255`;
+  } else {
+    refBox.style.display = 'none'; diffBox.style.display = 'none';
+    statsEl.innerHTML = '(未提供 composite.png,無法比對參照圖;只顯示重組結果)';
+  }
+}
+
+function computeDiffHeatmap(canvasA, canvasB, canvasOut) {
+  const w = canvasOut.width, h = canvasOut.height;
+  const dA = canvasA.getContext('2d').getImageData(0, 0, w, h).data;
+  const dB = canvasB.getContext('2d').getImageData(0, 0, w, h).data;
+  const octx = canvasOut.getContext('2d');
+  const out = octx.createImageData(w, h);
+  let sum = 0;
+  for (let i = 0; i < dA.length; i += 4) {
+    const aA = dA[i + 3] / 255, aB = dB[i + 3] / 255;
+    const dr = Math.abs(dA[i] * aA - dB[i] * aB);
+    const dg = Math.abs(dA[i + 1] * aA - dB[i + 1] * aB);
+    const db = Math.abs(dA[i + 2] * aA - dB[i + 2] * aB);
+    const mag = (dr + dg + db) / 3;
+    sum += mag;
+    out.data[i] = Math.min(255, mag * 4);
+    out.data[i + 1] = 20;
+    out.data[i + 2] = Math.max(0, 60 - mag);
+    out.data[i + 3] = 255;
+  }
+  octx.putImageData(out, 0, 0);
+  return sum / (dA.length / 4);
+}
+
+document.getElementById('zoomSlider').addEventListener('input', e => {
+  zoomPct = +e.target.value;
+  document.getElementById('zoomVal').textContent = zoomPct + '%';
+  renderSlicing();
+});
+document.getElementById('fitBtn').addEventListener('click', () => {
+  if (!sliceManifest) return;
+  const [W] = sliceManifest.size;
+  const target = Math.min(100, Math.round(420 / W * 100));
+  zoomPct = Math.max(25, target);
+  document.getElementById('zoomSlider').value = zoomPct;
+  document.getElementById('zoomVal').textContent = zoomPct + '%';
+  renderSlicing();
+});
+
+// ---------- 補圖 tab ----------
+const METHOD_ORDER = ['original', 'holed', 'gt', 'none', 'random', 'nearest', 'cv2_telea', 'cv2_ns'];
+const METHOD_LABEL = {
+  original: '真值(原圖)', holed: '破洞(輸入)', gt: '正對照:填真值',
+  none: '負對照:不補', random: '負對照:亂補',
+  nearest: 'L1 邊緣外擴', cv2_telea: 'L2 cv2 Telea', cv2_ns: 'L2 cv2 NS',
+};
+
+function populateCaseSelect() {
+  const sel = document.getElementById('caseSelect');
+  sel.innerHTML = '';
+  for (const key of Object.keys(inpaintManifest.cases)) {
+    const opt = document.createElement('option');
+    opt.value = key; opt.textContent = key;
+    sel.appendChild(opt);
+  }
+  const chip = document.getElementById('calibChip');
+  const calib = inpaintManifest.calibration;
+  if (calib) {
+    chip.textContent = calib.pass ? '✓ 校準通過(正/負對照皆符合預期)' : '✗ 校準未過(' + (calib.notes || []).length + ' 項)';
+    chip.className = 'calib-chip ' + (calib.pass ? 'ok' : 'bad');
+  }
+  sel.onchange = () => renderInpaintCase(sel.value);
+  if (sel.options.length) renderInpaintCase(sel.value);
+}
+
+function renderInpaintCase(key) {
+  const c = inpaintManifest.cases[key];
+  document.getElementById('caseInfo').textContent =
+    `洞 ${c.hole_px}px / 內容 ${c.content_px}px(占 ${(100 * c.hole_px / c.content_px).toFixed(1)}%)`;
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (const name of METHOD_ORDER) {
+    let fileRef, metrics = null;
+    if (name === 'original' || name === 'holed') {
+      fileRef = c.files && c.files[name];
+    } else {
+      metrics = c.methods && c.methods[name];
+      fileRef = metrics && metrics.file;
+    }
+    if (!fileRef) continue;
+    const file = filesByName.get(fileRef);
+    if (!file) continue;
+    const card = document.createElement('div');
+    card.className = 'card';
+    const thumbWrap = document.createElement('div');
+    thumbWrap.className = 'thumb-wrap';
+    const img = document.createElement('img');
+    loadImg(file).then(loaded => { img.src = loaded.src; });
+    thumbWrap.appendChild(img);
+    const title = document.createElement('div');
+    title.className = 'title';
+    const dot = metrics ? `<span class="pass-dot ${metrics.pass ? 'pass' : 'fail'}"></span>` : '';
+    title.innerHTML = `<span>${METHOD_LABEL[name] || name}</span>${dot}`;
+    card.appendChild(thumbWrap);
+    card.appendChild(title);
+    if (metrics) {
+      const m = document.createElement('div');
+      m.className = 'metrics';
+      m.innerHTML = `mae ${metrics.premult_mae} · ssim ${metrics.ssim}<br>seam ${metrics.seam_grad_diff} · α-mae ${metrics.alpha_mae}`;
+      card.appendChild(m);
+    }
+    card.addEventListener('click', () => openModal(name, file, metrics, c));
+    grid.appendChild(card);
+  }
+}
+
+// ---------- modal ----------
+let modalDiffOn = false;
+async function openModal(name, file, metrics, caseObj) {
+  modalDiffOn = false;
+  document.getElementById('modalTitle').textContent = METHOD_LABEL[name] || name;
+  document.getElementById('modalMetrics').textContent = metrics
+    ? `premult_mae=${metrics.premult_mae}  alpha_mae=${metrics.alpha_mae}  seam_grad_diff=${metrics.seam_grad_diff}  ssim=${metrics.ssim}  pass=${metrics.pass}`
+    : '(真值 / 破洞輸入,無比對指標)';
+  const modal = document.getElementById('modal');
+  modal.classList.add('show');
+  modal._file = file; modal._caseObj = caseObj;
+  await drawModalImage(file);
+  document.getElementById('modalDiffBtn').onclick = async () => {
+    modalDiffOn = !modalDiffOn;
+    if (modalDiffOn) {
+      const origFile = filesByName.get(caseObj.files.original);
+      await drawModalDiff(file, origFile);
+    } else {
+      await drawModalImage(file);
+    }
+  };
+}
+async function drawModalImage(file) {
+  const img = await loadImg(file);
+  const canvas = document.getElementById('modalCanvas');
+  canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+  canvas.getContext('2d').drawImage(img, 0, 0);
+}
+async function drawModalDiff(fileA, fileB) {
+  const [imgA, imgB] = await Promise.all([loadImg(fileA), loadImg(fileB)]);
+  const w = imgA.naturalWidth, h = imgA.naturalHeight;
+  const tmpA = document.createElement('canvas'); tmpA.width = w; tmpA.height = h;
+  tmpA.getContext('2d').drawImage(imgA, 0, 0);
+  const tmpB = document.createElement('canvas'); tmpB.width = w; tmpB.height = h;
+  tmpB.getContext('2d').drawImage(imgB, 0, 0, w, h);
+  const canvas = document.getElementById('modalCanvas');
+  canvas.width = w; canvas.height = h;
+  computeDiffHeatmap(tmpA, tmpB, canvas);
+}
+document.getElementById('modalCloseBtn').addEventListener('click', () => {
+  document.getElementById('modal').classList.remove('show');
+});
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target.id === 'modal') document.getElementById('modal').classList.remove('show');
+});
+</script>
+</body>
+</html>

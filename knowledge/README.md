@@ -55,3 +55,9 @@
   4 項指標(premult_mae/alpha_mae/seam_grad_diff/ssim)+ 正負對照校準;對真實機器人拆件件量化出
   **CPU baseline(nearest-fill/cv2.inpaint)在平滑漸層區全 PASS、在機械細節紋理區任何洞尺寸皆 fail**
   的誠實邊界,呼應 PSD-first 契約策略。
+
+- [S4 圖片預覽器](s4-preview-tool.md) — `tools/mesh_gen/psd_preview.html`(單檔瀏覽器工具,拖資料夾
+  即用):切圖分頁即時疊圖 + 對參照 composite 的差異熱圖;補圖分頁 8 格(真值/破洞/正負對照/3 baseline)
+  卡片式並排比對 + 點圖開大圖看差異熱圖。`psd_slice.py`/`inpaint_eval.py` 隨附新增預覽用檔案輸出
+  (composite.png / holed+original PNG / manifest.json),向後相容、下游工具無回歸。用 Playwright+
+  headless Chromium 驗證互動正確(重組 diff MAE 0.02、關圖層/差異熱圖精準定位)。

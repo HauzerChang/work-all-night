@@ -226,17 +226,26 @@ def passes(s):
 def run_one(path, mode, seed, out_dir=None):
     gt = load_rgba(path)
     holed, mask = punch_hole(gt, mode=mode, frac=0.12, seed=seed)
+    base = os.path.splitext(os.path.basename(path))[0]
+    files = {}
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+        files["original"] = f"{base}_{mode}_original.png"
+        files["holed"] = f"{base}_{mode}_holed.png"
+        save_rgba(os.path.join(out_dir, files["original"]), gt)
+        save_rgba(os.path.join(out_dir, files["holed"]), holed)
     results = {}
     for name, fn in METHODS.items():
         recon = fn(holed, gt, mask)
         s = score(recon, gt, mask)
         s["pass"] = passes(s)
-        results[name] = s
         if out_dir:
-            os.makedirs(out_dir, exist_ok=True)
-            base = os.path.splitext(os.path.basename(path))[0]
-            save_rgba(os.path.join(out_dir, f"{base}_{mode}_{name}.png"), recon)
-    return {"hole_px": int(mask.sum()), "content_px": int((gt[..., 3] > 8).sum()), "methods": results}
+            fname = f"{base}_{mode}_{name}.png"
+            save_rgba(os.path.join(out_dir, fname), recon)
+            s["file"] = fname
+        results[name] = s
+    return {"hole_px": int(mask.sum()), "content_px": int((gt[..., 3] > 8).sum()),
+            "files": files, "methods": results}
 
 
 def calibration_check(report):
@@ -273,6 +282,10 @@ def main():
 
     calib_ok, calib_notes = calibration_check(report)
     report["calibration"] = {"pass": calib_ok, "notes": calib_notes}
+    if a.out:
+        os.makedirs(a.out, exist_ok=True)
+        json.dump(report, open(os.path.join(a.out, "manifest.json"), "w"),
+                  ensure_ascii=False, indent=2)
     print(json.dumps(report, ensure_ascii=False, indent=2))
     raise SystemExit(0 if calib_ok else 1)
 
