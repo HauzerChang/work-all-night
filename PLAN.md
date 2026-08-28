@@ -49,11 +49,13 @@
 - 環境：純 CPU，可全自動(2026 SpriteToMesh 已驗證)。
 - 狀態：⬜ 未開始
 
-### S4 切圖 + 補圖
+### S4 切圖 + 補圖  ⇢ 已交獨立排程(2026-08-28)
 - 目標：PSD-first 契約(psd-tools) + CPU 半自動 fallback；補圖分級降階(外擴→cv2→LaMa→GPU/人工)。
 - 完成條件：切圖重組還原原圖輪廓、0 孤兒像素；補圖極端姿態幀 0 破洞 / 0 明顯接縫。
 - 環境：CPU 為主，大缺口 / 平面圖升 GPU。
-- 狀態：⬜ 未開始
+- 狀態：**🔀 拆為獨立排程單獨研究**（分支 `claude/spine-s4-inpainting`；交接 `handoff_S4.md`、狀態 `STATE_S4.md`、
+  指令 `prompts/run_s4.md`）。**(A) 切圖 ✅ 大致完成**（PSD-first 對 2 真實 PSD 無損 + ⇄ Award 逐件吻合、texture-IoU 閉環）；
+  **(B) 補圖 ⬜ 未開始 = 該排程主任務**（補圖閘 + 純 CPU 降階 baseline）。本主 PLAN 不再追蹤 S4 細節。
 
 ### S5 骨架半自動
 - 目標：運動 → 關節草案 → 人微調 pivot(人形 RTMPose/MediaPipe；非人形 Farneback 光流+分群)。

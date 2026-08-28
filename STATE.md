@@ -13,6 +13,9 @@
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
+- **⇢ S4(切圖+補圖)已於 2026-08-28 交接給獨立排程**(分支 `claude/spine-s4-inpainting`,
+  狀態見 `STATE_S4.md`、交接見 `handoff_S4.md`)。**本主排程自此不再推進 S4**,專注 S1/S2(補圖閘除外)/S3/S5。
+  下方 S4 既有成果保留供參考,後續 S4 進度請看 `STATE_S4.md`。
 - **S4 PSD-first 切圖:已對真實生產檔驗收通過(里程碑)** — `psd_slice.py` 對 2 份真實 PSD
   (`Symbol_Ww` 18件 / `robot_parts` 機器人 5件)切圖無損 PASS;機器人 5 圖層 ⇄ 真實 spine `Award` 的
   slot `機器人拆件/<圖層名>` 逐件吻合(+2px padding)。閘經 premultiplied 校正(透明區白底假性失敗)。
@@ -83,7 +86,7 @@
    ⚠️ 量級參考(AC3):真實位移僅 diag 的 2.4~10.8%,屬**小幅待機呼吸**,對比要在此尺度上才有意義。
 3. **切圖→Spine JSON 組裝(SkelToJson)**:把 `機器人拆件/<圖層名>` 命名慣例 + size+2px padding +
    atlas 0.70 縮放固化成「件→Spine attachment」工具,端到端產可載入 Spine JSON。
-4. **S2 補圖閘 / 骨架閘**(補齊 S2 樞紐;純 CPU)。
+4. **S2 骨架閘**(補齊 S2 樞紐;純 CPU)。⚠️ **S2 補圖閘已隨 S4 交接給獨立排程**(見 `STATE_S4.md`),本排程不做。
 5. **S1 反推分析器**:需一支 benchmark 影片(repo 無影片資產)。
 6. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
@@ -134,6 +137,9 @@
 - 2026-08-19:**S1 擴充:平圖流程 + 分鏡先驗庫(使用者指定)** — (A) 平圖純 CPU 拆件 baseline + 真值召回閘
   (同材質角色 0/5、0/18 語意召回,僅不相連塊可靠 → 佐證 PSD-first);(B) 先驗庫 slot_bigwin/slot_reveal
   對 Award/main_draw 覆蓋率 1.0。修 2 評估器 bug(decomposability 反向、動畫名子字串誤判)。
+- 2026-08-28:**S4 拆為獨立排程(使用者決策)** — 把 S4(切圖+補圖)交給專屬 Routine 單獨研究
+  (分支 `claude/spine-s4-inpainting`)。新增 `handoff_S4.md`/`prompts/run_s4.md`/`STATE_S4.md`;
+  主排程 STATE/PLAN 標記 S4 已交接、S2 補圖閘隨之移出;SCHEDULE 增「兩條並行 Routine + 分支/檔案隔離」規劃。
 - 2026-08-28:**S3 weighted-mesh 骨綁變形評估器 — 真值端(里程碑)** — `weighted_deform.py` 重現 Spine 3.8
   bone FK(全繼承+compact bezier)+ LBS,把 Award 機器人 3 件在唯一驅動動畫 `Award_Legend_Loop` 下逐幀變形。
   3 件 × AC0–AC4 全 PASS(AC0 reproducer 自信任:Σw=1、t=0 重合 setup 0.0000px)。補上「靜態 IoU≠骨綁變形平滑度」

@@ -3,6 +3,45 @@
 讓這個研究專案每天自動推進一步。**排程 trigger 必須在 Claude Code on the web 介面建立**
 (session 內建的排程活不過容器回收)。以下是全部步驟。
 
+---
+
+## 🔀 目前排程規劃(2026-08-28 更新)—— 兩條並行 Routine
+
+專案現在由**兩條獨立 Routine** 並行推進,各有專屬分支、專屬狀態檔,**互不覆蓋**:
+
+| Routine | 範圍 | 分支 | 執行指令 | 狀態檔 | 交接檔 |
+|---|---|---|---|---|---|
+| **主研究** | S1 / S2(骨架閘)/ S3 / S5 | `claude/vibrant-franklin-bykdbi` | `prompts/run.md` | `STATE.md` | `handoff_brief.md` |
+| **S4 切圖+補圖** | S4(補圖為主)| `claude/spine-s4-inpainting` | `prompts/run_s4.md` | `STATE_S4.md` | `handoff_S4.md` |
+
+**為何要分兩條 / 兩分支**:Routine 每次都從 default branch clone,若兩排程 push 同一分支會互相覆蓋。
+分兩條專屬分支 + 檔案隔離契約(S4 只寫 `STATE_S4.md`/`log/s4-*`/`knowledge/s4-*`/`tools/`,不碰主排程檔)→ 零衝突。
+
+**建立 S4 Routine(在 [claude.ai/code/routines](https://claude.ai/code/routines) → New routine)**:
+1. **Name**:如「Spine S4 補圖研究」。
+2. **Prompt**(**自帶切分支的完整版**,避免 default branch 落後時讀不到 `run_s4.md`):
+   ```
+   請先切到 S4 專屬分支再開始:
+   git fetch origin claude/spine-s4-inpainting
+   git checkout claude/spine-s4-inpainting
+   git pull origin claude/spine-s4-inpainting
+   然後依照 prompts/run_s4.md 的指示推進 S4(切圖+補圖)獨立研究排程,
+   完成後 commit 並 push 回 claude/spine-s4-inpainting。
+   ```
+   (Routine 一律從 default clone;上面先 checkout 到含 `run_s4.md` 的 S4 分支,故不依賴 default 是否最新。)
+3. **Repositories**:`HauzerChang/work-all-night`。**Environment**:Default(hook 自動裝 CPU 套件)。
+4. **Trigger**:Schedule,每天一次(可與主排程錯開時段)。**Create** → 可 Run now 試跑。
+5. ⚠️ `claude/spine-s4-inpainting` 是 `claude/` 開頭 → routine 預設可 push,不需開 "unrestricted branch pushes"。
+   但該分支需存在於 remote:第一次執行時 `run_s4.md` 會自動 `checkout -b` 並 push 建立。
+
+> 兩條 Routine 首次啟動前,建議先把 `claude/spine-s4-inpainting` 分支推上 remote(見本次主排程 commit),
+> 讓 S4 Routine 從 default clone 後也拿得到 `handoff_S4.md`/`run_s4.md`/`STATE_S4.md`
+> (前提:這些檔已在 default branch;若 default 落後,先把本次 commit 併進 default)。
+
+---
+
+## (以下為單排程原始指南,主排程仍適用)
+
 ## 前置(已完成 ✅)
 
 - ✅ `requirements.txt` — CPU 套件清單。
