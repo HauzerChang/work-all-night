@@ -82,6 +82,13 @@
   1b 只在 `interior` 模式成立(edge 模式輪廓天然有 tone/alpha 梯度,套自我參照假設會誤判)。
   `psd_preview.html` 補圖卡片現在顯示雙判定燈(1a/1b)。
 
+- [S4 1b `tone_gap` 在新材質上的界限](s4-inpaint-tone-gap-limits.md) — 修正 `punch_hole`
+  interior 模式的 margin 退化 bug(材質太薄時原本靜默偽造不合規範的洞,現在改為縮小洞或
+  明確報錯);嘗試兩種 `tone_gap` 正規化(位置比對取樣基準、局部粗糙度基準)想讓門檻可攜到
+  新材質(`框`/`臉部陰影`),**兩者皆失敗**——量化證明 `臉部陰影` 的 gt 與 `左手` 的 random
+  在任一正規化下的分布本身重疊,無法用單一全域門檻同時滿足兩者。結論:`tone_gap` 僅在
+  機器人拆件這個材質家族內可信,跨材質家族需重新校準,不是調門檻能解決。
+
 - [S4 補圖「評分→採用→落地」自動鏈路](s4-inpaint-auto-select-pipeline.md) — 打通
   `inpaint_eval.py`(評分)→`psd_inplace_patch.py`(落地寫回)。真實情境無真值,用 1b 分數
   盲選候選 baseline(`score_candidates`/`select_best`);修正一個新踩到的坑——1b 只在

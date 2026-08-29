@@ -60,7 +60,18 @@ def punch_hole(rgba, mode="interior", frac=0.12, seed=0):
         dist = ndimage.distance_transform_edt(content)
         cand_y, cand_x = np.where(dist >= r * 1.15)
         if len(cand_y) == 0:
-            cand_y, cand_x = ys, xs  # 件太小退化用內容點
+            # 材質太薄(環形/細長件),原本這裡退化成「用任意內容點當圓心」(cand_y,cand_x=ys,xs),
+            # 但這樣完全不保證洞真的落在內部——挖出來的洞其實貼著/跨過輪廓,卻被標成
+            # "interior",汙染下游校準(見 knowledge/s4-inpaint-tone-gap-limits.md,框.png 案例)。
+            # 改法:先試著縮小洞去符合真正的 margin;縮到底仍不夠,就明確報錯而非產出假的 interior 洞。
+            max_margin = float(dist.max())
+            r = max(3, int(max_margin / 1.15))
+            cand_y, cand_x = np.where(dist >= r * 1.15)
+            if max_margin < 4.5 or len(cand_y) == 0:
+                raise ValueError(
+                    f"content too thin for a fair interior hole (max margin {max_margin:.1f}px "
+                    f"< required {r * 1.15:.1f}px) — this material's interior is too thin/ring-shaped "
+                    f"for interior-mode punch_hole; use mode='edge' or skip this case")
         i = rng.randint(len(cand_y))
         oy, ox = cand_y[i], cand_x[i]
         mask = ((yy - oy) ** 2 + (xx - ox) ** 2) <= r * r
@@ -389,7 +400,12 @@ def select_best(scored, priority=CANDIDATE_METHODS, applicable=True):
 
 def run_one(path, mode, seed, out_dir=None):
     gt = load_rgba(path)
-    holed, mask = punch_hole(gt, mode=mode, frac=0.12, seed=seed)
+    try:
+        holed, mask = punch_hole(gt, mode=mode, frac=0.12, seed=seed)
+    except ValueError as e:
+        # 材質太薄/太小裝不下合乎規範的洞(見 punch_hole 的 margin 檢查)——標成 skipped
+        # 而非讓整批評測 crash,也不要偽造一個不合規範的洞去產出誤導性數字。
+        return {"skipped": True, "reason": str(e)}
     base = os.path.splitext(os.path.basename(path))[0]
     files = {}
     if out_dir:
@@ -429,6 +445,9 @@ def calibration_check(report):
     ok = True
     notes = []
     for case_name, case in report["cases"].items():
+        if case.get("skipped"):
+            notes.append(f"{case_name}: 略過(材質不適用,見 reason)— {case['reason']}")
+            continue
         gt_s = case["methods"]["gt"]
         if gt_s["premult_mae"] > 0.5 or gt_s["ssim"] < 0.999:
             ok = False
