@@ -119,7 +119,7 @@ BLOCKS = [
     {
         "id": "spine-rig-pivot",
         "title": "S5 rig pivot 推斷(關節=父子件接觸縫)",
-        "target_skill": "HOLD:S5 首個能力;達 L3(多 rig + 接 build_spine 寫骨樹)後併入 forge 或開新 skill",
+        "target_skill": "HOLD:接觸縫 pivot + 骨樹接合已就緒;多 rig 真值受資產所限(僅機器人被拆件)",
         "caps": [
             CAP("pivot_gate", "pivot 推斷閘(真值+負對照)", "L2",
                 "python3 tools/rig/validate_pivots.py", "eval",
@@ -127,8 +127,13 @@ BLOCKS = [
             CAP("contact_seam_infer", "接觸縫 pivot 推斷器", "L2",
                 "python3 tools/rig/validate_pivots.py", "gen",
                 note="3 關節 err 2–5% 軀幹尺度、勝質心 baseline;僅驗『關節在接觸縫』子問題,軸向精修屬美術(A類)"),
-            CAP("pivot_end2end", "多 rig + 接 build_spine 骨樹生成", "L0", None, "pipeline",
-                note="尚未:僅單一 robot rig 驗過;pivot→bone 父子樹寫入 build_spine 未接"),
+            CAP("rig_chain_gate", "pivot→骨鏈 接合閘(round-trip+關節行為+負對照)", "L2",
+                None, "eval",
+                note="validate_rig_tree.py:jointed rig setup 不移件、轉子件骨繞真值關節(<TAU)、轉父件子件跟動且剛體、flat 脫節→有鑑別力(由 pipeline 列實跑)"),
+            CAP("pivot_end2end", "pivot→骨樹寫入 build_spine(--rig-tree)", "L2",
+                "python3 tools/rig/validate_rig_tree.py", "pipeline",
+                note="build_spine --rig-tree 子件骨落關節 pivot+parent 到父件骨;robot round-trip PASS、頭繞脖子 0px。"
+                     "L2 非 L3:多 rig 真值受資產限(Award 僅機器人被拆件,OMG/SUP/MEG 為單 slot);肢體父子樹取自 role 先驗、weighted+jointed 未整合"),
         ],
     },
 ]

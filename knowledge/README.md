@@ -51,4 +51,6 @@
 
 - [S5 rig pivot 推斷器(關節=父子件接觸縫)](s5-rig-pivot-inference.md) — **S5 首個能力**(路線圖「唯一卡死環節」的可客觀化子問題):給拆件幾何 + 父子樹,推斷每根子骨關節 pivot = 子件與父件的接觸縫質心(確定性、純 CPU 無 ML)。對 Award 機器人 rig 3 關節藝術家真值 **4 AC 全 PASS**(頭/左手/右手 err 2–5% 軀幹尺度、勝質心 baseline、random/swap/rect 三負對照皆爆閘)。關鍵發現:**pivot 準度 = 件輪廓保真** —— 用 region bounding-rect 代理右手誤差 406px,改從 atlas alpha 取真實輪廓後降到 25px(PSD-first 論點在 rig 階段再現)。誠實限制:僅單一 rig 驗過、pivot→bone 樹未接 build_spine → `spine-rig-pivot` 區塊 L2 **HOLD**;軸向精修屬美術(A 類)。
 
+- [S5(b) pivot → 骨鏈，寫入 build_spine](s5-rig-chain-build.md) — **把 pivot 從一個座標接成可載入的關節鏈**：`build_rig.py`（通用骨鏈建構器+姿勢求值器）+ `validate_rig_tree.py`（接合閘，對 Award 機器人 rig **4 AC 全 PASS**：setup 不移件、轉子件骨繞真值關節<TAU、轉父件子件跟動且剛體、flat rig 脫節→有鑑別力）+ `build_spine.py --rig-tree`（子件骨落推斷關節、parent 到父件骨，region/mesh 皆補償偏移使 setup 不變）。升級 `validate_build.py` 為合成骨鏈+讀 attachment 偏移（向後相容，flat robot rgb_mae 0.031 不變）；robot round-trip PASS、直接量測轉頭骨繞脖子 **0.0 px**（flat 會偏 50px）。誠實限制：**多 rig 真值受資產限**（Award 僅機器人被拆件，OMG/SUP/MEG 為單 slot）、肢體父子樹取自 role 先驗、weighted+jointed 未整合 → 區塊維持 **L2 HOLD**。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`

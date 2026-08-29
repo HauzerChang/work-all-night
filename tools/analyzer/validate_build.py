@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mesh_gen"))
 from atlas_crop import parse_atlas, extract
 from psd_slice import slice_psd
+import weighted_deform_eval as wde
 
 
 def reconstruct(build_dir, W, H):
@@ -23,7 +24,11 @@ def reconstruct(build_dir, W, H):
     atlas = os.path.join(build_dir, "skeleton.atlas")
     png = os.path.join(build_dir, "skeleton.png")
     regions = parse_atlas(atlas)
-    bone = {b["name"]: b for b in sk["bones"]}
+    bones = sk["bones"]
+    byname = {b["name"]: b for b in bones}
+    order = [b["name"] for b in bones]
+    # 骨鏈世界變換(setup pose);flat rig(全綁 root)時退化為 (bx,by),與舊行為一致。
+    world = wde.bone_world_transforms(bones, byname, order, {})
     skin = sk["skins"]["default"]
     canvas = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     cover = np.zeros((H, W), np.int32)
@@ -32,9 +37,12 @@ def reconstruct(build_dir, W, H):
         nm = slot["attachment"]
         if nm not in regions:
             missing.append(nm); continue
-        b = bone[slot["bone"]]
-        bx, by = b.get("x", 0), b.get("y", 0)
-        cx, cy = bx, H - by                         # 影像中心
+        att = skin.get(slot["name"], {}).get(nm, {})
+        # 影像中心的局部座標:mesh 頂點已置中於骨→(0,0);region 用 attachment x,y 偏移。
+        lcx = 0.0 if "vertices" in att else att.get("x", 0.0)
+        lcy = 0.0 if "vertices" in att else att.get("y", 0.0)
+        wx, wy = wde.transform_point(world[slot["bone"]], lcx, lcy)
+        cx, cy = wx, H - wy                          # 影像中心(spine world → 影像 y 下)
         sub = extract(atlas, png, nm)               # BGRA crop
         sub_rgba = cv2.cvtColor(sub, cv2.COLOR_BGRA2RGBA)
         im = Image.fromarray(sub_rgba)

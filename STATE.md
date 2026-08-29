@@ -55,6 +55,18 @@
   region bounding-rect 代理右手誤差 406px,改從 atlas alpha 取真實輪廓降到 25px(PSD-first 論點在 rig 階段再現)。
   `spine-rig-pivot` 區塊 L2 → **HOLD**(僅單一 rig、pivot→bone 樹未接 build_spine)。軸向精修屬美術(A 類)。
   見 `knowledge/s5-rig-pivot-inference.md`、圖 `figures/s5_pivot_inference.png`。
+- **S5(b) pivot→骨鏈 寫入 build_spine(里程碑,2026-08-29)** — 接續同日接觸縫 pivot 推斷:把
+  pivot 從一個座標接成**可載入的關節鏈**。`tools/rig/build_rig.py`(通用骨鏈建構器 + 姿勢求值器,
+  重用 weighted_deform_eval 世界變換)+ `tools/rig/validate_rig_tree.py`(接合閘)對 Award 機器人 rig
+  **4 AC 全 PASS**:①setup round-trip(接鏈不移件,max 7.6e-4px);②轉子件骨繞真值關節(max err/rig
+  0.051<0.10、中位 21.6<flat 43.0px);③轉父件→子件跟動且全機剛體(件距變化 1.7e-13),flat rig 子件
+  完全不動(脫節)→有鑑別力;④泛化界定(誠實):Award **僅機器人被拆件**,OMG/SUP/MEG 為單 slot 無拆件
+  → 無多 rig 真值可驗(資產限,非方法限)。`build_spine.py --rig-tree` 端到端:子件骨落推斷關節 pivot、
+  parent 到 body 骨,region/unweighted-mesh 皆補償 attachment 偏移使 setup 不變;升級 `validate_build.py`
+  為合成骨鏈+讀 attachment 偏移(**向後相容**,flat robot rgb_mae 0.031/Symbol_Ww 全不變),robot
+  --rig-tree round-trip **AC 全 PASS**、直接量測轉頭骨繞脖子 **0.0px**(flat 偏 50px)。regression 全綠
+  (weighted build/anim/pivot 閘皆 PASS)。`spine-rig-pivot` 區塊 pipeline gate GREEN 但維持 **L2 HOLD**
+  (無 L3、泛化受資產限、父子樹取自 role 先驗、weighted+jointed 未整合)。見 `knowledge/s5-rig-chain-build.md`。
 - **S3 weighted mesh 生成器完成(里程碑,2026-08-27,候選 2 主體)** — `generate_weighted_mesh.py`:
   輪廓 → triangle 三角化(max-area 控**內部取樣密度**)→ **heat-diffusion 骨綁權重**(BBW 純 CPU 近似,
   `(L+H)W=HP` 天然 partition of unity)→ Spine weighted 格式(bind 經逆骨變換)。`validate_weighted_gen.py`
@@ -130,18 +142,27 @@
    - **下一步(仍在本排程)**:weighted-forge 併入 `spine-asset-forge` skill(C 類回報拍板);次要:軟件非均勻拓樸追平光暈、rig pivot(S5)。
 3. ~~切圖→Spine JSON 組裝(SkelToJson)~~ **⇢ 屬 S4 範圍,已交獨立排程**(且 build_spine 已可端到端產可載入 Spine)。
 4. **S2 骨架閘**(補齊 S2 樞紐;純 CPU)。⚠️ **S2 補圖閘已隨 S4 交接**,本排程不做。
-5. **S5 骨架半自動**:關節 pivot 推斷 —— **接觸縫子問題 ✅ 完成(2026-08-29,見上里程碑)**。
-   **續(達 L3 → 脫離 HOLD)**:(a) 多 rig 真值(Award 其他角色鏈 `1_OMG`/`2_SUP`/`3_MEG`);
-   (b) pivot→bone 父子樹**寫入 `build_spine`**(目前每件綁 root,無關節鏈);(c) 肢體父子樹自動推斷(目前取自先驗)。
+5. **S5 骨架半自動**:關節 pivot 推斷 —— **接觸縫子問題 ✅ + pivot→骨鏈寫入 build_spine ✅
+   (2026-08-29,兩里程碑,見上)**。**續(達 L3 → 脫離 HOLD)**:
+   (a) ~~pivot→bone 父子樹寫入 build_spine~~ **✅ 完成(`--rig-tree`)**;
+   (b) **多 rig 真值 ⚠️ 受資產限**:Award 僅機器人被拆件(OMG/SUP/MEG 為單 slot 無拆件)→ 需**使用者提供
+       第二個拆件角色的 PSD/spine** 才能交叉驗證泛化(A 類:外部資源);
+   (c) **肢體父子樹自動推斷**(目前取自 role 先驗;接觸/包圍關係推父子鏈,純 CPU 可自主);
+   (d) **weighted + jointed 整合**(目前 `--rig-tree` 走 unweighted;控制骨 index 與關節鏈重排的整合)。
    人形 RTMPose/MediaPipe、非人形光流分群為後續。
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
 > **主排程近況**:S1(分析器+build+keyframe)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
-> S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫子問題已完成(2026-08-29,L2 HOLD)**;S4 已交獨立排程。
-> 建議下一個 bounded chunk(擇一):**(1) S5 續推 → L3**:pivot→bone 父子樹寫入 `build_spine`
-> +多 rig 真值(Award 其他角色鏈),脫離 HOLD;**(2) weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
-> 建議先做 (1)(可自主、延續今日成果、通往「素材會動且關節正確」)。
+> S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫 + pivot→骨鏈寫入 build_spine 皆完成(2026-08-29,L2 HOLD)**;
+> S4 已交獨立排程。
+> 建議下一個 bounded chunk(擇一,皆可自主):
+> **(1) S5(c) 肢體父子樹自動推斷** —— 由接觸/包圍關係自動推 child→parent(目前取自 role 先驗),
+>     搭 build_rig 的接合閘驗證;為 S5 泛化與 build_spine --rig-tree 去掉先驗依賴。
+> **(2) S5(d) weighted + jointed 整合** —— 讓 `--rig-tree` 也能產 weighted mesh(控制骨 index 與關節鏈重排)。
+> **(3) weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
+> ⚠️ S5(b) 多 rig 真值受資產限(見候選 5(b)),需使用者提供第二個拆件角色才解鎖 → 屬 A 類,非自主。
+> 建議先做 (1):純 CPU 可自主、通往「自動 rig」、直接強化今日 --rig-tree 的上游。
 
 ## 環境前置(已驗證可用)
 
@@ -158,6 +179,12 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-08-29:**S5(b) pivot→骨鏈 寫入 build_spine(里程碑)** — `build_rig.py` + `validate_rig_tree.py`
+  (Award 機器人 rig 4 AC 全 PASS)+ `build_spine.py --rig-tree`(子件骨落關節、parent 到父件骨)+
+  升級 `validate_build.py`(合成骨鏈+attachment 偏移,向後相容)。robot round-trip 不變、轉頭繞脖子 0px。
+  多 rig 真值受資產限(僅機器人被拆件)。regression 全綠。見 `knowledge/s5-rig-chain-build.md`。
+- 2026-08-29:**S5 rig pivot 接觸縫子問題(里程碑)** — `infer_pivots.py`+`validate_pivots.py`,對 Award
+  機器人 rig 藝術家真值 4 AC 全 PASS;pivot 準度=件輪廓保真(alpha 輪廓 25px vs rect 代理 406px)。
 - 2026-08-28:**跨分支成果乾淨合流 + 分支釘定(使用者決策 B)** — 發現 200+ 條 `claude/*` 是平行且重複的研究線
   (routine 每 run 從同 default clone、重做同一 chunk、push 到隨機新分支,從不合流)。以最完整線 `3r9ey4`
   (weighted 生成+評估+skill 機制)為底,擇優併入 S1 keyframe(zjze4k 版,5 選 1)、S4 交接、分支釘定,去重評估器。
