@@ -121,3 +121,14 @@
   判成 `edge`——1b 目前只在 `interior` 校準,對這類小尺寸素材完全沒有可用的驗收線(只能退回
   1a 嚴格標準,而 1a 對機械紋理材質全 fail)。這是真實樣本量出來的評估器覆蓋率缺口,不是
   理論假設,候選 2(1b edge 模式支援)優先度應上修。
+
+- [S4 1b edge 模式支援(候選 2)](s4-inpaint-1b-edge-gate.md) — `score_1b()` 新增
+  `mode="edge"`:第一版「比對真實輪廓其他段落的天然變化」構想量化後證實鑑別力不足
+  (premultiplied 在背景側恆 0,亂補與正確填補的落差量級相近),改採「排除貼真實輪廓的
+  邊界段落,只評內容內部轉接」,直接複用 interior 既有的 `local_ring` baseline。機器人
+  拆件家族(光暈/身體/左手)edge 模式 1b 校準通過,且候選 9 揭露的關鍵缺口案例
+  `頭←右手`(小尺寸圖層 edge 洞)現在有真正判定,3 個 CPU baseline 全 pass。過程中踩到
+  一個真實 bug:`content` 在校準流程與真實落地流程語意不同(是否含洞區域),導致
+  `patch_layer_auto`/`demo_auto_patch` 端到端測試 `applicable` 恆 `False`——改用
+  `content|mask` 統一語意後修正。interior 模式與既有 Symbol_Ww `框`/`臉部陰影` 的
+  已知 tone_gap 限制(候選 8)完全無回歸。

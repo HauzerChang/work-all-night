@@ -104,9 +104,6 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
   `knowledge/s4-inpaint-auto-select-pipeline.md`。
 
 **下一個有界工作塊候選(擇一推進):**
-2. **1b 的 edge 模式支援**(★候選 9 驗證後優先度上修,見下方 chunk 11):目前 edge 模式標
-   「不適用」;可嘗試比對「這個材質沿真實輪廓其他段落的天然 tone/alpha 變化範圍」當基準
-   (而非整個件的內部區域),看能否收斂出可信判定。
 4. **探測 Level 3(LaMa)**:深度 inpaint 權重下載是否被網路政策擋?先探測可行性(注意:1b 已經解決
    了機械紋理 interior 案例的實用性問題,LaMa 現在的優先序降低,除非要解 1a 或 edge 模式)。
 6. 用本閘測 `Symbol_Ww.psd` 其他層(icon 類,可能有更多平面色塊),擴大樣本、交叉驗證邊界。
@@ -169,12 +166,42 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
    回歸驗證:原 4 組案例的 gt/none/random pass-fail 與 session 010 逐項一致。見
    `knowledge/s4-inpaint-real-occlusion.md`(新增章節)、`log/s4-2026-08-29-011.md`。
 
+**本次(chunk 12,2026-08-29)已完成:**
+2. ✅ **1b 的 edge 模式支援(里程碑,候選 2,候選 9 驗證後優先度上修)** —
+   `score_1b()` 新增 `mode="edge"`。第一版依原始構想(比對真實輪廓其他段落的天然變化當
+   基準)量化後證實鑑別力不足(premultiplied 在背景側恆 0,亂補與正確填補的落差量級糾纏
+   不清,任何門檻都分不開);改採「排除貼真實輪廓的邊界段落,只評內容內部轉接」,直接
+   複用 interior 既有的 `local_ring` baseline(單位一致,新增 `THRESH_1B_EDGE`,`tone_gap`
+   收緊到 23.0)。**核心結果**:機器人拆件家族(光暈/身體/左手)edge 模式 1b 校準通過,
+   與 interior 模式結論同型;**候選 9 揭露的關鍵缺口案例 `頭←右手`(小尺寸圖層,edge)
+   現在有真正判定**——`applicable=True`,3 個 CPU baseline 全 pass,之前「沒有任何量化閘
+   能判定動態下是否穿幫」的小尺寸機械材質補圖,現在有驗收線了。過程中踩到一個真實 bug:
+   `content` 在校準流程與真實落地流程語意不同(是否含洞區域),導致
+   `patch_layer_auto`/`demo_auto_patch` 端到端測試 `applicable` 恆 `False`——改用
+   `content|mask` 統一語意後修正,`--auto --mode edge` 端到端驗證恢復正常
+   (`chosen_reason` 從 fallback 變成真正的 `pass_1b`)。Symbol_Ww `框`/`臉部陰影` 的
+   已知 tone_gap 限制(候選 8)在 edge 模式下延續(非新問題,`框` interior 模式下本來就
+   已 fail calibration)。回歸驗證:interior 模式逐位元不變(機器人 3 材質 + Symbol_Ww
+   2 材質數值與 session 008/009 完全一致);`real_occlusion_eval.py` 既有 5 組 interior
+   案例數值與 session 010/011 一致;`psd_inplace_patch.py --auto --mode interior`
+   `chosen_method` 不變。見 `knowledge/s4-inpaint-1b-edge-gate.md`、
+   `log/s4-2026-08-29-012.md`。
+
 ## 未解問題 / 阻塞 (open questions / blockers)
 
 - ❓ LaMa 等深度 inpaint 權重下載是否被網路政策擋?(第 3 級才需要;已用 CPU 1–2 級量化出明確需要升級的案例)
 - ❓ 補圖真值來源:目前用「合成挖洞」自造(已完成校準);「遮擋真值法」(候選 1)待驗證是否與合成挖洞判定一致。
 
 ## 進度摘要 (progress log)
+
+- 2026-08-29:**1b edge 模式支援完成(里程碑,候選 2)** — `score_1b()` 新增
+  `mode="edge"`;第一版「比對真實輪廓其他段落天然變化」構想量化後證實鑑別力不足,改採
+  「排除貼真實輪廓的邊界段落,只評內容內部轉接」,複用 interior 既有 baseline。機器人
+  拆件家族 edge 模式 1b 校準通過;候選 9 揭露的關鍵缺口案例 `頭←右手` 現在有真正判定,
+  之前完全沒有驗收線的小尺寸機械材質補圖現在 3 個 CPU baseline 全 pass。過程中修正一個
+  真實 bug(`content` 校準流程與真實落地流程語意不同,導致端到端 `applicable` 恆
+  `False`)。Symbol_Ww 已知 tone_gap 限制(候選 8)延續,非新問題。回歸驗證 interior
+  模式逐位元不變。見 `knowledge/s4-inpaint-1b-edge-gate.md`、`log/s4-2026-08-29-012.md`。
 
 - 2026-08-29:**遮擋真值法擴大樣本至 8 組(候選 9)** — 新增 4 組小面積/懸殊比例配對,含本檔
   測過最小絕對洞尺寸(829px)與最大比例(46.5%)。機械紋理結論可攜到新材質 `右手`。核心發現:

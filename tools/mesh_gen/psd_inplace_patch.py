@@ -93,8 +93,11 @@ def patch_layer_auto(psd_path, layer_name, mask, out_path, mode="interior",
 
     `mode`:呼叫端必須明確指出這個洞是 "interior"(完全落在件內部,如遮擋件蓋住角色身上
     某處)還是 "edge"(洞跨在件的真實輪廓邊界上,如遮擋件本身就定義部分輪廓)——這無法
-    從 mask 本身自動判斷可靠地推出,1b 的自我參照假設只在 interior 校準過(見
-    knowledge/s4-inpaint-1b-lenient-gate.md);傳錯會讓 edge 洞被誤判為有信心的 pass_1b。"""
+    從 mask 本身自動判斷可靠地推出。兩種模式現在都有各自校準過的 1b 基準(interior:
+    knowledge/s4-inpaint-1b-lenient-gate.md;edge:候選 2,
+    knowledge/s4-inpaint-1b-edge-gate.md);傳錯 mode 會讓 `score_1b()` 套錯基準/門檻。
+    edge 模式若該素材真實輪廓樣本不足(如小尺寸圖層洞吃掉整條輪廓),`score_candidates()`
+    會自動把 `applicable` 標 False,一律走 fallback,不會誤標高信心的 pass_1b。"""
     psd = PSDImage.open(psd_path)
     layer = _find_layer(psd, layer_name)
     local_rgba = np.array(layer.topil().convert("RGBA")).astype(np.float64)
@@ -102,8 +105,9 @@ def patch_layer_auto(psd_path, layer_name, mask, out_path, mode="interior",
     if mask.shape != local_rgba.shape[:2]:
         raise ValueError(f"mask 尺寸 {mask.shape} 跟圖層 {local_rgba.shape[:2]} 不符")
 
-    scored = ie.score_candidates(local_rgba, mask, methods)
-    chosen, reason = ie.select_best(scored, priority=methods, applicable=(mode == "interior"))
+    scored = ie.score_candidates(local_rgba, mask, methods, mode=mode)
+    applicable = next(iter(scored.values()))["score"]["applicable"]
+    chosen, reason = ie.select_best(scored, priority=methods, applicable=applicable)
     result = patch_layer_with_image(psd_path, layer_name, scored[chosen]["recon"], out_path)
     result["mode"] = mode
     result["chosen_method"] = chosen
@@ -113,17 +117,18 @@ def patch_layer_auto(psd_path, layer_name, mask, out_path, mode="interior",
 
 
 def demo_auto_patch(psd_path, layer_name, mode, seed, out_path, methods=ie.CANDIDATE_METHODS):
-    """本鏈路的評估器:合成挖洞模擬『真實無真值』情境,盲選(選擇邏輯不碰 gt,且照
-    knowledge/s4-inpaint-1b-lenient-gate.md 的範圍收斂只在 interior 模式信任 1b pass)後
-    寫回,再用 gt 算選中結果的 1a 分數當驗收(僅測試用途,證明盲選沒有選到明顯比其他候選
-    差的 baseline;不能拿來當真實補圖的信心來源,因為真實情境本來就沒有 gt 可比)。"""
+    """本鏈路的評估器:合成挖洞模擬『真實無真值』情境,盲選(選擇邏輯不碰 gt,interior/edge
+    分別套用各自校準過的 1b 基準,見 `score_candidates`/`score_1b`)後寫回,再用 gt 算選中
+    結果的 1a 分數當驗收(僅測試用途,證明盲選沒有選到明顯比其他候選差的 baseline;不能
+    拿來當真實補圖的信心來源,因為真實情境本來就沒有 gt 可比)。"""
     psd = PSDImage.open(psd_path)
     layer = _find_layer(psd, layer_name)
     gt = np.array(layer.topil().convert("RGBA")).astype(np.float64)
     holed, mask = ie.punch_hole(gt, mode=mode, frac=0.12, seed=seed)
 
-    scored = ie.score_candidates(holed, mask, methods)
-    chosen, reason = ie.select_best(scored, priority=methods, applicable=(mode == "interior"))
+    scored = ie.score_candidates(holed, mask, methods, mode=mode)
+    applicable = next(iter(scored.values()))["score"]["applicable"]
+    chosen, reason = ie.select_best(scored, priority=methods, applicable=applicable)
     result = patch_layer_with_image(psd_path, layer_name, scored[chosen]["recon"], out_path)
     result["mode"] = mode
     result["chosen_method"] = chosen

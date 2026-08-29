@@ -490,7 +490,7 @@ function renderInpaintCase(key) {
       if (b && b.applicable) {
         dots += `<span class="pass-dot ${b.pass ? 'pass' : 'fail'}" style="margin-left:3px" title="1b 防穿幫標準(自我參照):${b.pass ? 'PASS' : 'FAIL'}"></span>`;
       } else if (b) {
-        dots += `<span class="pass-dot" style="margin-left:3px;background:#555" title="1b 不適用(edge 洞跨真實輪廓,自我參照假設不成立)"></span>`;
+        dots += `<span class="pass-dot" style="margin-left:3px;background:#555" title="1b 不適用(此洞的真實輪廓樣本不足以當基準,常見於小尺寸素材的 edge 洞)"></span>`;
       }
     }
     title.innerHTML = `<span>${METHOD_LABEL[name] || name}</span><span>${dots}</span>`;
@@ -502,7 +502,7 @@ function renderInpaintCase(key) {
       const b = metrics['1b'];
       const b1bLine = b ? (b.applicable
         ? `1b α缺${b.alpha_gap} · 接縫比${b.seam_ratio} · 色差${b.tone_gap}`
-        : '1b 不適用(edge 洞)') : '';
+        : '1b 不適用(真實輪廓樣本不足)') : '';
       m.innerHTML = `1a mae ${metrics.premult_mae} · ssim ${metrics.ssim}<br>` +
         `1a seam ${metrics.seam_grad_diff} · α-mae ${metrics.alpha_mae}<br>${b1bLine}`;
       card.appendChild(m);
@@ -525,7 +525,7 @@ async function openModal(name, file, metrics, caseObj) {
     if (b) {
       metricsText += b.applicable
         ? `\n[1b 防穿幫標準] alpha_gap=${b.alpha_gap}  seam_ratio=${b.seam_ratio}  tone_gap=${b.tone_gap}  pass=${b.pass}`
-        : `\n[1b 防穿幫標準] 不適用(edge 洞跨真實輪廓,自我參照假設不成立 —— 見 knowledge/s4-inpaint-1b-lenient-gate.md)`;
+        : `\n[1b 防穿幫標準] 不適用(此洞的真實輪廓其他段落樣本不足以當基準 —— 見 knowledge/s4-inpaint-1b-edge-gate.md)`;
     }
   }
   document.getElementById('modalMetrics').textContent = metricsText;
