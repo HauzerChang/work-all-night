@@ -298,8 +298,8 @@ def boundary_bands(mask, width=3):
 def score_1b(recon, mask, content, width=3):
     """1b 防穿幫指標(自我參照,無需真值洞內內容):
       - alpha_gap : 洞內仍是透明的像素比例(殘留破洞 → 一定穿幫)
-      - seam_ratio: 洞邊界梯度強度 / 這件其餘正常區域(扣掉洞與邊界帶)的梯度基準
-                    (該材質本來的邊緣強度)—— 遠高於 1 代表接縫比正常紋理邊緣更突兀。
+      - seam_ratio: 洞邊界梯度強度 / 洞周圍局部環狀帶的梯度基準(該材質**局部**本來的邊緣強度)
+                    —— 遠高於 1 代表接縫比正常紋理邊緣更突兀。
       - tone_gap  : 洞邊界內帶 vs 外帶的平均 premultiplied 色差(銜接處色調斷不斷)。
     """
     if mask.sum() == 0:
@@ -314,8 +314,19 @@ def score_1b(recon, mask, content, width=3):
     g = _gradmag(recon)
     band = inside_band | outside_band
     seam_grad = float(g[band].mean()) if band.sum() else 0.0
-    normal_region = content & ~ndimage.binary_dilation(mask, iterations=width)
-    baseline_grad = float(g[normal_region].mean()) if normal_region.sum() else 1e-6
+    # baseline_grad 只採「洞周圍」的局部環狀帶,不用整件全域平均——材質局部漸層本就不均勻的件
+    # (如光暈:核心附近陡、外圈平緩)若用全域平均,外圈大面積平緩區會把基準稀釋過低;洞剛好
+    # 落在陡的區域時,連正對照(gt,真的沒有接縫)都會被誤判「比正常區域突兀」而 1b fail。
+    # (見 knowledge/s4-inpaint-real-occlusion.md:光暈←右手 真實遮擋案例——右手遮擋範圍跨過
+    # 光暈核心陡峭區,全域基準版 seam_ratio=2.723 > 門檻 2.2,正對照假性 fail;改局部環狀帶後
+    # 2.41→仍不夠,固定 12px 環寬則降到 0.69,同時光暈←身體/左手兩個真正無異常的案例維持
+    # 更低的 ratio,無反向)。環寬固定(呼應 `estimate_alpha_taper` 同樣用固定 15 圈環,不隨洞
+    # 尺寸縮放);洞太小/太薄擠不出局部環時退回全域,不要因樣本不足產生噪聲基準。
+    local_ring = content & ~ndimage.binary_dilation(mask, iterations=width) \
+        & ndimage.binary_dilation(mask, iterations=width + 12)
+    if local_ring.sum() < 200:
+        local_ring = content & ~ndimage.binary_dilation(mask, iterations=width)
+    baseline_grad = float(g[local_ring].mean()) if local_ring.sum() else 1e-6
     seam_ratio = seam_grad / max(baseline_grad, 1e-6)
 
     in_pix = _premult(recon)[inside_band]
@@ -398,16 +409,16 @@ def select_best(scored, priority=CANDIDATE_METHODS, applicable=True):
 
 # ---------- 主流程 ----------
 
-def run_one(path, mode, seed, out_dir=None):
-    gt = load_rgba(path)
-    try:
-        holed, mask = punch_hole(gt, mode=mode, frac=0.12, seed=seed)
-    except ValueError as e:
-        # 材質太薄/太小裝不下合乎規範的洞(見 punch_hole 的 margin 檢查)——標成 skipped
-        # 而非讓整批評測 crash,也不要偽造一個不合規範的洞去產出誤導性數字。
-        return {"skipped": True, "reason": str(e)}
-    base = os.path.splitext(os.path.basename(path))[0]
+def run_with_mask(gt, mask, mode, base, out_dir=None):
+    """共用核心,抽出自原本的 `run_one()` 主體:給定 (真值 gt, 洞 mask, mode 標籤),
+    跑全部 METHODS + 1a/1b 兩組指標,回傳同一份格式的 report entry。
+
+    抽出的理由:候選 1(遮擋真值法,見 `real_occlusion_eval.py`)洞的來源不是 `punch_hole`
+    的隨機圓,而是 PSD 圖層間的真實遮擋輪廓——但比對/校準邏輯應該完全共用,不重新發明一套,
+    否則兩邊的判定不可比較(這正是候選 1 要驗證的:遮擋真值法的判定是否與合成挖洞一致)。"""
     files = {}
+    holed = gt.copy()
+    holed[mask] = 0
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
         files["original"] = f"{base}_{mode}_original.png"
@@ -434,8 +445,20 @@ def run_one(path, mode, seed, out_dir=None):
             save_rgba(os.path.join(out_dir, fname), recon)
             s["file"] = fname
         results[name] = s
-    return {"hole_px": int(mask.sum()), "content_px": int((gt[..., 3] > 8).sum()),
+    return {"hole_px": int(mask.sum()), "content_px": int(content.sum()),
             "files": files, "methods": results}
+
+
+def run_one(path, mode, seed, out_dir=None):
+    gt = load_rgba(path)
+    try:
+        _, mask = punch_hole(gt, mode=mode, frac=0.12, seed=seed)
+    except ValueError as e:
+        # 材質太薄/太小裝不下合乎規範的洞(見 punch_hole 的 margin 檢查)——標成 skipped
+        # 而非讓整批評測 crash,也不要偽造一個不合規範的洞去產出誤導性數字。
+        return {"skipped": True, "reason": str(e)}
+    base = os.path.splitext(os.path.basename(path))[0]
+    return run_with_mask(gt, mask, mode, base, out_dir)
 
 
 def calibration_check(report):
