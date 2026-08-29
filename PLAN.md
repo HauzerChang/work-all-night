@@ -66,9 +66,12 @@
 - 狀態：🟡 **首個能力完成(2026-08-29)** — 把「唯一卡死環節」切出**可客觀化子問題**:
   給拆件幾何+父子樹,推斷關節 pivot = 父子件接觸縫(`tools/rig/`,確定性純 CPU)。對 Award 機器人
   rig 3 關節藝術家真值 4 AC 全 PASS(err 2–5% 軀幹尺度、勝 baseline、三負對照)。關鍵:pivot 準度=件輪廓保真
-  (rect 代理右手 406px→alpha 25px)。`spine-rig-pivot` L2 **HOLD**(單一 rig、未接 build_spine)。
-  待續達 L3:多 rig 真值 + pivot→bone 樹寫入 build_spine + 肢體父子樹自動推斷。軸向精修/手感=美術(A 類)。
-  見 `knowledge/s5-rig-pivot-inference.md`。
+  (rect 代理右手 406px→alpha 25px)。**接 build_spine ✅(2026-08-29)**:`build_spine --rig` 依 struct_role
+  建 head/limb→body 關節鏈、把接觸縫 pivot 寫成骨原點、attachment 偏移補償(setup 0px 不變);閘 `validate_rig`
+  4 AC PASS(rig 0px vs 負對照 26–85px)。`rig_end2end` 達 **L2 GREEN**,但 `spine-rig-pivot` **仍 HOLD**:
+  L3 需多 rig 真值,而 **Award 僅 robot 被拆件**(其他角色整圖單 slot)→ 資產結構阻塞,需外部多角色拆件素材。
+  待續:(a) 多 rig 真值[阻塞];(c) 肢體父子樹自動推斷;(d) `--rig --animate` 整合閘。軸向精修/手感=美術(A 類)。
+  見 `knowledge/s5-rig-pivot-inference.md`、`s5-rig-articulation.md`。
 
 ## skill 化(階段性成果固化)
 

@@ -119,7 +119,7 @@ BLOCKS = [
     {
         "id": "spine-rig-pivot",
         "title": "S5 rig pivot 推斷(關節=父子件接觸縫)",
-        "target_skill": "HOLD:S5 首個能力;達 L3(多 rig + 接 build_spine 寫骨樹)後併入 forge 或開新 skill",
+        "target_skill": "HOLD:S5 首個能力;接 build_spine 已完成,達 L3 尚缺『多 rig 真值』後併入 forge 或開新 skill",
         "caps": [
             CAP("pivot_gate", "pivot 推斷閘(真值+負對照)", "L2",
                 "python3 tools/rig/validate_pivots.py", "eval",
@@ -127,8 +127,13 @@ BLOCKS = [
             CAP("contact_seam_infer", "接觸縫 pivot 推斷器", "L2",
                 "python3 tools/rig/validate_pivots.py", "gen",
                 note="3 關節 err 2–5% 軀幹尺度、勝質心 baseline;僅驗『關節在接觸縫』子問題,軸向精修屬美術(A類)"),
-            CAP("pivot_end2end", "多 rig + 接 build_spine 骨樹生成", "L0", None, "pipeline",
-                note="尚未:僅單一 robot rig 驗過;pivot→bone 父子樹寫入 build_spine 未接"),
+            CAP("rig_end2end", "接 build_spine 寫關節鏈(端到端 PSD→articulated Spine)", "L2",
+                "python3 tools/rig/validate_rig.py", "pipeline",
+                note="2026-08-29 完成:build_spine --rig 依 struct_role+接觸縫建 head/limb→body 骨樹;"
+                     "自我閘 4AC(setup 0px 不變、子骨繞關節轉 rig 0px vs 負對照 26–85px、樹符語意)。"
+                     "L3 仍缺:多 rig 真值——Award 僅 robot 被拆件(OMG/SUP/MEG 為整圖單 slot),屬資產結構阻塞"),
+            CAP("pivot_multirig", "多 rig 真值(達 L3 之最後一哩)", "L0", None, "pipeline",
+                note="阻塞:Award 只有 robot 一條被拆件 rig 可作 pivot 真值;需外部多角色拆件 PSD/spine"),
         ],
     },
 ]

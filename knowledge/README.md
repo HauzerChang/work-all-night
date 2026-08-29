@@ -51,4 +51,6 @@
 
 - [S5 rig pivot 推斷器(關節=父子件接觸縫)](s5-rig-pivot-inference.md) — **S5 首個能力**(路線圖「唯一卡死環節」的可客觀化子問題):給拆件幾何 + 父子樹,推斷每根子骨關節 pivot = 子件與父件的接觸縫質心(確定性、純 CPU 無 ML)。對 Award 機器人 rig 3 關節藝術家真值 **4 AC 全 PASS**(頭/左手/右手 err 2–5% 軀幹尺度、勝質心 baseline、random/swap/rect 三負對照皆爆閘)。關鍵發現:**pivot 準度 = 件輪廓保真** —— 用 region bounding-rect 代理右手誤差 406px,改從 atlas alpha 取真實輪廓後降到 25px(PSD-first 論點在 rig 階段再現)。誠實限制:僅單一 rig 驗過、pivot→bone 樹未接 build_spine → `spine-rig-pivot` 區塊 L2 **HOLD**;軸向精修屬美術(A 類)。
 
+- [S5 接觸縫 pivot 寫入 build_spine 的關節鏈](s5-rig-articulation.md) — **接續上一項(接 build_spine 完成)**:`build_spine.py --rig` 依分析器 `struct_role` 建運動學父子樹(head/limb→body、特效→root),把接觸縫 pivot 寫成子骨原點,並補償 attachment 偏移 → **setup pose 完全不變**(只改 rig 結構)。自我閘 `validate_rig.py` **4 AC 全 PASS**:setup 不變 **0.000px**、子骨旋轉 35° 關節不動點 rig **0px** vs 負對照(骨在件中心)**26–85px**、樹符 struct_role。關鍵性質:`--rig` 跨 genre 永不破壞 setup(Symbol_Ww 亦 0.005px)。誠實限制:`rig_end2end` 達 **L2 GREEN** 但區塊仍 **HOLD** —— L3 需多 rig 真值,而 **Award 僅 robot 被拆件**(OMG/SUP/MEG 為整圖單 slot),屬資產結構阻塞,需外部多角色拆件 PSD。
+
 > 每次新增 knowledge 檔案時,在此補一行：`- [標題](檔名.md) — 一句話摘要`
