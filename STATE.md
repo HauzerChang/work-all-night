@@ -47,7 +47,14 @@
   相對面積(避免 big-win scale-from-0 誤判)。發現**軟性加成件(光暈)容許自我重疊**(reveal t=0 精確 keyframe
   si=71,additive 混合無害)→ pass/fail 需依 attachment 語意分類。見 `knowledge/s3-weighted-deform-evaluator.md`、
   圖 `figures/s3_weighted_deform_eval.png`。**這是候選 2(BBW 權重生成)的前置品質閘,現已就緒。**
-- S5 尚未開始。
+- **S5 rig pivot 推斷:首個能力 + 真值閘(里程碑,2026-08-29)** — 路線圖「唯一卡死環節」的
+  **可客觀化子問題**:給拆件幾何 + 父子樹,推斷每根子骨關節 pivot。`tools/rig/infer_pivots.py`
+  (contact-seam:關節=子件最靠近父件的 q 分位點質心,確定性純 CPU)+ `tools/rig/validate_pivots.py`。
+  對 Award 機器人 rig 3 關節藝術家真值 **4 AC 全 PASS**(頭 22px/左手 11px/右手 25px,皆 2–5% 軀幹尺度;
+  勝質心 baseline 21.6 vs 43px;random/swap/rect 三負對照皆爆閘)。**關鍵發現:pivot 準度=件輪廓保真**——
+  region bounding-rect 代理右手誤差 406px,改從 atlas alpha 取真實輪廓降到 25px(PSD-first 論點在 rig 階段再現)。
+  `spine-rig-pivot` 區塊 L2 → **HOLD**(僅單一 rig、pivot→bone 樹未接 build_spine)。軸向精修屬美術(A 類)。
+  見 `knowledge/s5-rig-pivot-inference.md`、圖 `figures/s5_pivot_inference.png`。
 - **S3 weighted mesh 生成器完成(里程碑,2026-08-27,候選 2 主體)** — `generate_weighted_mesh.py`:
   輪廓 → triangle 三角化(max-area 控**內部取樣密度**)→ **heat-diffusion 骨綁權重**(BBW 純 CPU 近似,
   `(L+H)W=HP` 天然 partition of unity)→ Spine weighted 格式(bind 經逆骨變換)。`validate_weighted_gen.py`
@@ -123,13 +130,18 @@
    - **下一步(仍在本排程)**:weighted-forge 併入 `spine-asset-forge` skill(C 類回報拍板);次要:軟件非均勻拓樸追平光暈、rig pivot(S5)。
 3. ~~切圖→Spine JSON 組裝(SkelToJson)~~ **⇢ 屬 S4 範圍,已交獨立排程**(且 build_spine 已可端到端產可載入 Spine)。
 4. **S2 骨架閘**(補齊 S2 樞紐;純 CPU)。⚠️ **S2 補圖閘已隨 S4 交接**,本排程不做。
-5. **S5 骨架半自動**:關節 pivot 推斷(路線圖唯一卡死環節);人形 RTMPose/MediaPipe、非人形光流分群。
+5. **S5 骨架半自動**:關節 pivot 推斷 —— **接觸縫子問題 ✅ 完成(2026-08-29,見上里程碑)**。
+   **續(達 L3 → 脫離 HOLD)**:(a) 多 rig 真值(Award 其他角色鏈 `1_OMG`/`2_SUP`/`3_MEG`);
+   (b) pivot→bone 父子樹**寫入 `build_spine`**(目前每件綁 root,無關節鏈);(c) 肢體父子樹自動推斷(目前取自先驗)。
+   人形 RTMPose/MediaPipe、非人形光流分群為後續。
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
 > **主排程近況**:S1(分析器+build+keyframe)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
-> S2(切圖閘)皆已達里程碑;S4 已交獨立排程。建議下一個 bounded chunk:**S5 rig pivot**(唯一卡死環節,槓桿最高)
-> 或 **weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
+> S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫子問題已完成(2026-08-29,L2 HOLD)**;S4 已交獨立排程。
+> 建議下一個 bounded chunk(擇一):**(1) S5 續推 → L3**:pivot→bone 父子樹寫入 `build_spine`
+> +多 rig 真值(Award 其他角色鏈),脫離 HOLD;**(2) weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
+> 建議先做 (1)(可自主、延續今日成果、通往「素材會動且關節正確」)。
 
 ## 環境前置(已驗證可用)
 

@@ -63,7 +63,12 @@
 - 目標：運動 → 關節草案 → 人微調 pivot(人形 RTMPose/MediaPipe；非人形 Farneback 光流+分群)。
 - 完成條件：每骨單獨旋轉 pivot 正確；整體動作疊影片相似度達標。
 - 環境：人形 CPU；非人形 CPU/GPU。**唯一卡死環節 — 人力集中於此**。
-- 狀態：⬜ 未開始
+- 狀態：🟡 **首個能力完成(2026-08-29)** — 把「唯一卡死環節」切出**可客觀化子問題**:
+  給拆件幾何+父子樹,推斷關節 pivot = 父子件接觸縫(`tools/rig/`,確定性純 CPU)。對 Award 機器人
+  rig 3 關節藝術家真值 4 AC 全 PASS(err 2–5% 軀幹尺度、勝 baseline、三負對照)。關鍵:pivot 準度=件輪廓保真
+  (rect 代理右手 406px→alpha 25px)。`spine-rig-pivot` L2 **HOLD**(單一 rig、未接 build_spine)。
+  待續達 L3:多 rig 真值 + pivot→bone 樹寫入 build_spine + 肢體父子樹自動推斷。軸向精修/手感=美術(A 類)。
+  見 `knowledge/s5-rig-pivot-inference.md`。
 
 ## skill 化(階段性成果固化)
 

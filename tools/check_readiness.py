@@ -116,6 +116,21 @@ BLOCKS = [
                 note="round-trip + 輪廓 IoU + 合成變形閘;結構件 si=0、特效件 additive 容忍"),
         ],
     },
+    {
+        "id": "spine-rig-pivot",
+        "title": "S5 rig pivot 推斷(關節=父子件接觸縫)",
+        "target_skill": "HOLD:S5 首個能力;達 L3(多 rig + 接 build_spine 寫骨樹)後併入 forge 或開新 skill",
+        "caps": [
+            CAP("pivot_gate", "pivot 推斷閘(真值+負對照)", "L2",
+                "python3 tools/rig/validate_pivots.py", "eval",
+                note="Award 機器人 rig 3 關節藝術家真值 + 隨機/互換/rect 三負對照,皆有鑑別力"),
+            CAP("contact_seam_infer", "接觸縫 pivot 推斷器", "L2",
+                "python3 tools/rig/validate_pivots.py", "gen",
+                note="3 關節 err 2–5% 軀幹尺度、勝質心 baseline;僅驗『關節在接觸縫』子問題,軸向精修屬美術(A類)"),
+            CAP("pivot_end2end", "多 rig + 接 build_spine 骨樹生成", "L0", None, "pipeline",
+                note="尚未:僅單一 robot rig 驗過;pivot→bone 父子樹寫入 build_spine 未接"),
+        ],
+    },
 ]
 
 LADDER = {"L0": 0, "L1": 1, "L2": 2, "L3": 3, "L4": 4}
