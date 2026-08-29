@@ -127,8 +127,11 @@ BLOCKS = [
             CAP("contact_seam_infer", "接觸縫 pivot 推斷器", "L2",
                 "python3 tools/rig/validate_pivots.py", "gen",
                 note="3 關節 err 2–5% 軀幹尺度、勝質心 baseline;僅驗『關節在接觸縫』子問題,軸向精修屬美術(A類)"),
-            CAP("pivot_end2end", "多 rig + 接 build_spine 骨樹生成", "L0", None, "pipeline",
-                note="尚未:僅單一 robot rig 驗過;pivot→bone 父子樹寫入 build_spine 未接"),
+            CAP("multi_rig_gen", "多 rig pivot 泛化(拆件幾何法 + 連續 mesh 權重法)", "L2",
+                "python3 tools/rig/validate_multi_rig.py", "gen",
+                note="5 rig:robot 拆件式幾何法全過 + OMG/SUP/MEG1/MEG2 連續 mesh 權重法 pooled 84% <0.10、勝 baseline、隨機/swap 負對照爆閘;硬案例=外張肢體"),
+            CAP("pivot_end2end", "接 build_spine 寫 pivot→bone 父子樹", "L0", None, "pipeline",
+                note="尚未:pivot→bone 父子樹寫入 build_spine 未接(目前每件綁 root)"),
         ],
     },
 ]

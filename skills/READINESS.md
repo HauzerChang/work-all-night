@@ -1,7 +1,8 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-08-27(session 004:weighted mesh 端到端接 build_spine,weighted-forge 達 L3)。
+> 更新於 2026-08-29(S5 多 rig pivot 泛化:`spine-rig-pivot` 加 `multi_rig_gen` L2,仍 HOLD)。
+> 前次 2026-08-27(session 004:weighted mesh 端到端接 build_spine,weighted-forge 達 L3)。
 
 ```
 ==============================================================================
@@ -47,7 +48,15 @@ skill 化完成度矩陣(已實跑全部 validator)
     [L2] 內部取樣密度控制(triangle max-area)            閘:GREEN (gen)  «body 調到 nv=98 == 藝術家»
     [L3] build_spine --weighted 端到端產可載入 spine   閘:GREEN (pipeline)  «round-trip + 輪廓 IoU + 合成變形閘;結構件 si=0、特效件 additive 容忍»
 
+■ spine-rig-pivot — S5 rig pivot 推斷(關節=父子件接觸縫)
+  區塊成熟度 L2 → HOLD ⛔
+  目標:HOLD:S5 首個能力;達 L3(接 build_spine 寫骨樹)後併入 forge 或開新 skill
+    [L2] pivot 推斷閘(真值+負對照)                      閘:GREEN (eval)  «Award 機器人 rig 3 關節藝術家真值 + 隨機/互換/rect 三負對照»
+    [L2] 接觸縫 pivot 推斷器                          閘:GREEN (gen)  «3 關節 err 2–5% 軀幹尺度、勝質心 baseline;僅驗『關節在接觸縫』子問題,軸向精修屬美術(A類)»
+    [L2] 多 rig pivot 泛化(拆件幾何法 + 連續 mesh 權重法)    閘:GREEN (gen)  «5 rig:robot 幾何法全過 + OMG/SUP/MEG1/MEG2 權重法 pooled 84% <0.10、勝 baseline、隨機/swap 負對照爆閘;硬案例=外張肢體»
+    [L0] 接 build_spine 寫 pivot→bone 父子樹         閘:—     (pipeline)  «尚未:pivot→bone 父子樹寫入 build_spine 未接(目前每件綁 root)»
+
 ==============================================================================
 可 skill 化(達門檻): spine-mesh-doctor, spine-asset-forge, spine-weighted-forge
-HOLD(防固化半成品): spine-slicing, spine-target-analysis
+HOLD(防固化半成品): spine-slicing, spine-target-analysis, spine-rig-pivot
 ```
