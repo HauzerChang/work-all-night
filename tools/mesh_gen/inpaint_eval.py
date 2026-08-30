@@ -41,10 +41,20 @@ def save_rgba(path, rgba):
 
 # ---------- 挖洞(合成真值的破洞) ----------
 
-def punch_hole(rgba, mode="interior", frac=0.12, seed=0):
+def punch_hole(rgba, mode="interior", frac=0.12, seed=0, shape="circle", aspect=1.0, angle=None,
+                center=None):
     """在 alpha>8 的內容區挖洞,回傳 (holed_rgba, mask)。
     mode=interior: 洞完全落在內容內部(模擬件中段被別的件遮住,露出時要補『內插』)。
-    mode=edge:     洞咬到內容輪廓邊界(模擬邊緣被裁掉,補圖要『外推』,較難)。"""
+    mode=edge:     洞咬到內容輪廓邊界(模擬邊緣被裁掉,補圖要『外推』,較難)。
+
+    shape=circle(預設,行為與既有版本逐位元相同)/ellipse:候選 10(光暈材質 1a 邊界
+    再校準)用——真實遮擋洞不保證是圓形,`aspect`(半長軸/半短軸比,>=1)讓面積固定時
+    可獨立控制「形狀狹長度」,`angle`(弧度,None=隨機)控制長軸方向,用來檢驗
+    `seam_grad_diff` 是否真的跟「洞多狹長不規則」相關而非只跟面積相關
+    (見 knowledge/s4-inpaint-1a-shape-boundary.md)。`center`(oy,ox,選填):固定洞心,
+    否則不同 aspect 下 margin 檢查的合格候選點集合大小不同,同一個 seed 會被
+    `rng.randint(len(cand))` 選到不同位置——若要單獨測「形狀」這個變數,必須固定位置,
+    否則位置差異(材質本身該處的局部紋理)會混進「形狀」的效應裡,無法分離。"""
     H, W = rgba.shape[:2]
     content = rgba[..., 3] > 8
     ys, xs = np.where(content)
@@ -54,6 +64,42 @@ def punch_hole(rgba, mode="interior", frac=0.12, seed=0):
     area = content.sum()
     r = max(3, int(np.sqrt(area * frac / np.pi)))
     yy, xx = np.mgrid[0:H, 0:W]
+
+    if shape == "ellipse" and mode != "interior":
+        raise ValueError("shape='ellipse' only supported for mode='interior' so far")
+
+    if shape == "ellipse":
+        # semi-major a / semi-minor b:pi*a*b = area*frac,a/b = aspect(>=1 才有意義)
+        a_semi = max(3.0, np.sqrt(aspect * area * frac / np.pi))
+        b_semi = max(3.0, a_semi / aspect)
+        # margin 檢查用半長軸(旋轉不變的最保守外接半徑),確保任何方向都不碰邊界
+        r_margin = a_semi
+        if center is not None:
+            oy, ox = center
+            dist_at_center = float(ndimage.distance_transform_edt(content)[oy, ox]) \
+                if content[oy, ox] else 0.0
+            if dist_at_center < r_margin * 1.15:
+                raise ValueError(
+                    f"given center ({oy},{ox}) margin {dist_at_center:.1f}px "
+                    f"< required {r_margin * 1.15:.1f}px for aspect={aspect}, frac={frac}")
+        else:
+            dist = ndimage.distance_transform_edt(content)
+            cand_y, cand_x = np.where(dist >= r_margin * 1.15)
+            if len(cand_y) == 0:
+                raise ValueError(
+                    f"content too thin for a fair interior ellipse hole (max margin "
+                    f"{float(dist.max()):.1f}px < required {r_margin * 1.15:.1f}px)")
+            i = rng.randint(len(cand_y))
+            oy, ox = cand_y[i], cand_x[i]
+        th = rng.uniform(0, np.pi) if angle is None else angle
+        dy, dx = (yy - oy).astype(np.float64), (xx - ox).astype(np.float64)
+        dx_r = dx * np.cos(th) + dy * np.sin(th)
+        dy_r = -dx * np.sin(th) + dy * np.cos(th)
+        mask = (dx_r / a_semi) ** 2 + (dy_r / b_semi) ** 2 <= 1.0
+        mask = mask & content
+        holed = rgba.copy()
+        holed[mask] = 0
+        return holed, mask
 
     if mode == "interior":
         # 距輪廓 >= r 的內部點才當圓心,確保洞不碰邊界

@@ -132,3 +132,13 @@
   `patch_layer_auto`/`demo_auto_patch` 端到端測試 `applicable` 恆 `False`——改用
   `content|mask` 統一語意後修正。interior 模式與既有 Symbol_Ww `框`/`臉部陰影` 的
   已知 tone_gap 限制(候選 8)完全無回歸。
+
+- [S4 光暈材質 1a 邊界再校準(候選 10)](s4-inpaint-1a-shape-boundary.md) — `punch_hole`
+  新增 `shape="ellipse"`(獨立控制面積/長寬比/朝向)+ `center`(固定洞心做控制變因實驗)。
+  用控制實驗分別檢驗「形狀狹長度」與「位置」兩個候選解釋,**都不足以重現**候選 1 觀察到
+  的非單調 pass/fail(固定位置掃 aspect 1~3、固定形狀沿真實方向掃位置,`seam_grad_diff`
+  在可行範圍內都遠低於門檻)。誠實結論:光暈這類材質的 1a 邊界無法化約成單一合成洞參數,
+  需要真實遮擋洞的大面積+真實形狀+位置一起看(呼應候選 1/8,1b 才是實戰驗收線)。
+  **意外發現**並除錯到根因:`estimate_alpha_taper` 在特定橢圓 interior 洞下出現真實 bug
+  (RGB 補對,alpha 因小樣本(n=7)污染而催毀性低估,60 vs 真值 255),既有測試案例
+  皆未觸發(回歸零反向),列為新候選未修。
