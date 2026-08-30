@@ -47,6 +47,15 @@
   相對面積(避免 big-win scale-from-0 誤判)。發現**軟性加成件(光暈)容許自我重疊**(reveal t=0 精確 keyframe
   si=71,additive 混合無害)→ pass/fail 需依 attachment 語意分類。見 `knowledge/s3-weighted-deform-evaluator.md`、
   圖 `figures/s3_weighted_deform_eval.png`。**這是候選 2(BBW 權重生成)的前置品質閘,現已就緒。**
+- **S5 rig pivot 寫入 build_spine 骨鏈(里程碑,2026-08-30)** — 完成 L3 兩條件的 (b):`build_spine.py --rig`
+  由接觸縫關節建**骨階層**(star 先驗選不透明面積最大結構件為 root、子件掛父件骨下、pivot 落關節、
+  region/mesh attachment 偏移補償使**素材完全不位移**、拓樸排序 bones)。整合閘 `tools/rig/validate_rig_build.py`
+  對 `robot_parts.psd` **4 AC 全 PASS**(AC1 不位移 0px、AC2 pivot 落關節 <0.005px、AC3 繞關節旋轉 seam_ratio 0.31–0.47、
+  AC4 centroid/swap 負對照皆爆閘)。**閘有鑑別力**:對非關節式裝飾符號 `Symbol_Ww`(18 層)正確 **AC3 FAIL**
+  (seam_ratio 0.62–0.93)→ 能力界定為**單角色 articulated rig**。`pivot_end2end` **L0→L2**(check_readiness 實跑 GREEN)。
+  ⚠️ **L3 被素材阻擋(A 類/資源)**:達 L3 的另一條件 (a)「多個 articulated rig 真值」需更多已拆件 rig,
+  但 Award 中**只有 robot 一組**已拆多件 rig(`1_OMG`/`2_SUP`/`3_MEG` 經查為**單 slot 角色**,子骨僅驅動小燈/光暈,
+  無 per-part 美術件 → 無接觸縫真值)。**非演算法問題**。見 `knowledge/s5-rig-pivot-inference.md`(里程碑 2)。
 - **S5 rig pivot 推斷:首個能力 + 真值閘(里程碑,2026-08-29)** — 路線圖「唯一卡死環節」的
   **可客觀化子問題**:給拆件幾何 + 父子樹,推斷每根子骨關節 pivot。`tools/rig/infer_pivots.py`
   (contact-seam:關節=子件最靠近父件的 q 分位點質心,確定性純 CPU)+ `tools/rig/validate_pivots.py`。
@@ -130,18 +139,25 @@
    - **下一步(仍在本排程)**:weighted-forge 併入 `spine-asset-forge` skill(C 類回報拍板);次要:軟件非均勻拓樸追平光暈、rig pivot(S5)。
 3. ~~切圖→Spine JSON 組裝(SkelToJson)~~ **⇢ 屬 S4 範圍,已交獨立排程**(且 build_spine 已可端到端產可載入 Spine)。
 4. **S2 骨架閘**(補齊 S2 樞紐;純 CPU)。⚠️ **S2 補圖閘已隨 S4 交接**,本排程不做。
-5. **S5 骨架半自動**:關節 pivot 推斷 —— **接觸縫子問題 ✅ 完成(2026-08-29,見上里程碑)**。
-   **續(達 L3 → 脫離 HOLD)**:(a) 多 rig 真值(Award 其他角色鏈 `1_OMG`/`2_SUP`/`3_MEG`);
-   (b) pivot→bone 父子樹**寫入 `build_spine`**(目前每件綁 root,無關節鏈);(c) 肢體父子樹自動推斷(目前取自先驗)。
-   人形 RTMPose/MediaPipe、非人形光流分群為後續。
+5. **S5 骨架半自動**:關節 pivot 推斷 —— **接觸縫子問題 ✅(2026-08-29)+ 寫入 build_spine 骨鏈 ✅(2026-08-30)**。
+   - (b) pivot→bone 父子樹**寫入 `build_spine --rig`** ✅ 完成(整合閘 `validate_rig_build.py` 4 AC 對 robot 全 PASS;`pivot_end2end` L0→L2)。
+   - (a) 多 rig 真值 **⛔ 素材阻擋**:Award 只有 robot 一組已拆多件 rig;`1_OMG`/`2_SUP`/`3_MEG` 經查為單 slot 角色
+     (子骨僅驅動小燈/光暈,無 per-part 件 → 無接觸縫真值)。→ 達 L3 需**使用者提供更多已拆件 articulated rig**(A 類/資源)。
+   - (c) 肢體父子樹自動推斷(目前 star 先驗;完整拓樸推斷為另一子問題)。人形 RTMPose/MediaPipe、非人形光流分群為後續。
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
 > **主排程近況**:S1(分析器+build+keyframe)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
-> S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫子問題已完成(2026-08-29,L2 HOLD)**;S4 已交獨立排程。
-> 建議下一個 bounded chunk(擇一):**(1) S5 續推 → L3**:pivot→bone 父子樹寫入 `build_spine`
-> +多 rig 真值(Award 其他角色鏈),脫離 HOLD;**(2) weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
-> 建議先做 (1)(可自主、延續今日成果、通往「素材會動且關節正確」)。
+> S2(切圖閘)皆已達里程碑;**S5 rig pivot:接觸縫子問題(2026-08-29)+ 寫入 build_spine 骨鏈(2026-08-30)已完成,pivot_end2end L2 HOLD**;S4 已交獨立排程。
+> S5 → L3 之 (b)「接 build_spine」已做完,**只剩 (a)「多 articulated rig 真值」被素材阻擋(需使用者提供更多已拆件 rig)**。
+> 建議下一個 bounded chunk(擇一,皆可自主):
+> **(1) 把 `--rig` 併入 `--animate`**:讓 keyframe 的骨旋轉現在**繞正確關節**發生(接觸縫 pivot × 分鏡動作),
+>   量化「關節式旋轉 vs 平掛 root」在真實 loop 動畫下的差異(通往「素材會動且關節正確」的最後一哩,純自主)。
+> **(2) 肢體父子樹自動推斷(S5-c)**:目前 star 先驗;試從幾何(相鄰/包含關係)推非星狀鏈,對 robot 真值(身體→手→劍)驗。
+> **(3) weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
+> 建議先做 (1)(延續今日 rig 成果 + 昨日 keyframe,直接產「會動且繞關節」的素材)。
+> ⚠️ **待使用者(A 類/資源)**:S5 達 L3 需更多**已拆件的 articulated rig 素材**(Award 僅 robot 一組);
+> 這是素材取得問題,非演算法 —— 若能提供 2–3 組已拆多件角色 rig(含藝術家 bone pivot),即可把 `pivot_end2end` 推到 L3、脫離 HOLD。
 
 ## 環境前置(已驗證可用)
 
@@ -158,6 +174,11 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-08-30:**S5 rig pivot 寫入 build_spine 骨鏈(里程碑)** — `build_spine --rig` 由接觸縫關節建骨階層
+  (star 先驗 root + 子件掛父件骨 pivot 落關節 + attachment 偏移補償素材不位移 + 拓樸排序);整合閘
+  `validate_rig_build.py` 4 AC 對 robot 全 PASS,對非關節式 Symbol_Ww 正確 AC3 FAIL(閘有鑑別力)。
+  `pivot_end2end` L0→L2。**發現 L3 被素材阻擋**:Award 僅 robot 一組已拆 rig,OMG/SUP/MEG 為單 slot 角色。
+  regressions(validate_build robot/Ww、validate_pivots)全綠。見 `log/2026-08-30-001.md`。
 - 2026-08-28:**跨分支成果乾淨合流 + 分支釘定(使用者決策 B)** — 發現 200+ 條 `claude/*` 是平行且重複的研究線
   (routine 每 run 從同 default clone、重做同一 chunk、push 到隨機新分支,從不合流)。以最完整線 `3r9ey4`
   (weighted 生成+評估+skill 機制)為底,擇優併入 S1 keyframe(zjze4k 版,5 選 1)、S4 交接、分支釘定,去重評估器。

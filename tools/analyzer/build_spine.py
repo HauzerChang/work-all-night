@@ -43,7 +43,31 @@ def _boundary_world(part_png, ox, oy, H, approx_frac=0.012):
     return world, poly  # world 供三角化/骨;poly(part-local)供 uv
 
 
-def _axis_bones(world_pts, k=2):
+def _alpha_area(part_png):
+    """件的不透明像素數(真實面積代理;比 bbox 面積可靠 —— 大框但稀疏的件不會被誤判為最大)。"""
+    img = cv2.imread(part_png, cv2.IMREAD_UNCHANGED)
+    if img is None:
+        return 0
+    alpha = img[:, :, 3] if (img.ndim == 3 and img.shape[2] == 4) else \
+        np.full(img.shape[:2], 255, np.uint8)
+    return int((alpha > 8).sum())
+
+
+# ---------------- S5 rig:接觸縫關節 pivot 併入骨階層 ----------------
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "rig"))
+from infer_pivots import contact_seam_joint  # noqa: E402
+
+
+def infer_rig_tree(struct_parts, areas):
+    """星狀 rig 先驗:結構件中面積(不透明像素)最大者為 root(通常是身體/軀幹),
+    其餘結構件皆為其子。回傳 (root_key, {child_key: root_key})。
+    ⚠️ 這是**類型先驗**(big-win 單角色符號的常見拓樸),非從幾何推肢體樹;
+    完整肢體拓樸推斷屬另一子問題(見 knowledge)。"""
+    if not struct_parts:
+        return None, {}
+    root_key = max(struct_parts, key=lambda k: areas[k])
+    tree = {k: root_key for k in struct_parts if k != root_key}
+    return root_key, tree
     """沿 PCA 主軸放 k 根控制骨(世界座標)。回傳 [(x,y),...]。"""
     c = world_pts.mean(0)
     u, s, vt = np.linalg.svd(world_pts - c, full_matrices=False)
@@ -107,7 +131,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
     return placements, (W, H)
 
 
-def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False):
+def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
     psd, manifest, parts = slice_psd(psd_path, parts_dir)     # 切件 PNG(裁到 bbox)+ manifest
@@ -148,6 +172,29 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False)
                   "  offset: 0, 0", "  index: -1"]
     open(os.path.join(out_dir, "skeleton.atlas"), "w", encoding="utf-8").write("\n".join(lines) + "\n")
 
+    def center_world(i):
+        ox, oy = offsets[i]; w, h = sizes[i]
+        return (ox + w / 2.0, H - (oy + h / 2.0))
+
+    # ---- S5 rig:預先推 star tree + 每結構子件的接觸縫關節(世界座標)----
+    rig_joint, rig_parent, rig_meta = {}, {}, {}
+    if rig:
+        sil_w, area, struct = {}, {}, []
+        for i in range(len(parts)):
+            e = metas[i]; ox, oy = offsets[i]
+            if kind_of(e["name"]) == "structural":
+                part_png = os.path.join(parts_dir, e["file"])
+                sil_w[i], _ = _boundary_world(part_png, ox, oy, H)
+                area[i] = _alpha_area(part_png)
+                struct.append(i)
+        root_i, tree_i = infer_rig_tree(struct, area)
+        for child_i, par_i in tree_i.items():
+            j, _ = contact_seam_joint(sil_w[par_i], sil_w[child_i], q=0.2)
+            rig_joint[child_i] = (float(j[0]), float(j[1]))
+            rig_parent[child_i] = par_i
+        rig_meta = {"root_part": names[root_i] if root_i is not None else None,
+                    "children": {names[c]: names[p] for c, p in rig_parent.items()}}
+
     # Spine skeleton JSON
     bones = [{"name": "root"}]
     slots, skin = [], {}
@@ -157,27 +204,56 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False)
     for i in order:
         e = metas[i]; nm = names[i]; w, h = sizes[i]
         ox, oy = offsets[i]
-        cx = ox + w / 2.0
-        cy = oy + h / 2.0
+        cxw, cyw = center_world(i)
         bone = f"b_{nm}"
-        bones.append({"name": bone, "parent": "root",
-                      "x": round(cx, 2), "y": round(H - cy, 2)})
-        slots.append({"name": nm, "bone": bone, "attachment": nm})
         use_mesh = geo.get(e["name"], "").startswith("mesh")
         part_png = os.path.join(parts_dir, e["file"])
+        # 是否以接觸縫關節作 pivot 並掛到父件骨下(weighted mesh 走控制骨,不套 rig 關節)
+        jointed = rig and (i in rig_parent) and not (use_mesh and weighted)
+        if jointed:
+            jx, jy = rig_joint[i]
+            par_bone = f"b_{names[rig_parent[i]]}"
+            pcx, pcy = center_world(rig_parent[i])
+            bones.append({"name": bone, "parent": par_bone,           # 父件骨在其件中心、rot 0
+                          "x": round(jx - pcx, 2), "y": round(jy - pcy, 2)})
+            off = (cxw - jx, cyw - jy)      # 使件影像中心仍落在原位(pivot 移到關節後的補償)
+        else:
+            bones.append({"name": bone, "parent": "root",
+                          "x": round(cxw, 2), "y": round(cyw, 2)})
+            off = (0.0, 0.0)
+        slots.append({"name": nm, "bone": bone, "attachment": nm})
         if use_mesh and weighted:
             base = len(bones)                              # 控制骨的全域起始 index
             att, ctrl = _weighted_attachment(part_png, ox, oy, W, H, w, h, base, bone)
             bones += ctrl
         elif use_mesh:
             m = gen_mesh(part_png, mode="auto")
-            att = {"type": "mesh", "vertices": m["vertices"], "uvs": m["uvs"],
+            verts = list(m["vertices"])
+            if off != (0.0, 0.0):          # pivot 移到關節 → 頂點同步平移以保持世界位置不變
+                verts = [verts[k] + (off[0] if k % 2 == 0 else off[1]) for k in range(len(verts))]
+            att = {"type": "mesh", "vertices": verts, "uvs": m["uvs"],
                    "triangles": m["triangles"], "hull": m["hull"],
                    "width": m["width"], "height": m["height"]}
         else:
-            att = {"x": 0, "y": 0, "width": w, "height": h}   # region;bone 已在件中心
+            att = {"x": round(off[0], 2), "y": round(off[1], 2),
+                   "width": w, "height": h}   # region;off=0 時 bone 即件中心
         skin[nm] = {nm: att}
-        build_meta[nm] = {"kind": kind_of(e["name"]), "mesh": use_mesh}
+        build_meta[nm] = {"kind": kind_of(e["name"]), "mesh": use_mesh,
+                          "rig_parent": rig_meta.get("children", {}).get(nm)}
+
+    if rig:      # 拓樸排序:rig 重親後 child 骨的 z 序可能早於父件骨,Spine 要求 parent 先於 child
+        bmap = {b["name"]: b for b in bones}
+        ordered, seen = [], set()
+        def _emit(bn):
+            if bn in seen:
+                return
+            p = bmap[bn].get("parent")
+            if p and p in bmap:
+                _emit(p)
+            seen.add(bn); ordered.append(bmap[bn])
+        for b in bones:
+            _emit(b["name"])
+        bones = ordered
 
     skeleton = {
         "skeleton": {"hash": "gen", "spine": "3.8.75", "x": 0, "y": 0,
@@ -196,6 +272,8 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False)
                "parts": len(parts),
                "mesh_parts": [names[i] for i in order if geo.get(metas[i]["name"], "").startswith("mesh")],
                "region_parts": [names[i] for i in order if not geo.get(metas[i]["name"], "").startswith("mesh")]}
+    if rig:
+        summary["rig"] = rig_meta
     return summary
 
 
@@ -206,9 +284,11 @@ def main():
     ap.add_argument("--genre", default="slot_bigwin")
     ap.add_argument("--weighted", action="store_true", help="mesh 件產 weighted(骨綁)mesh + 自動控制骨")
     ap.add_argument("--animate", action="store_true", help="同時由 #3 分鏡生成 animations(candidate 0d)")
+    ap.add_argument("--rig", action="store_true",
+                    help="結構件依接觸縫關節建骨階層(pivot 在關節、掛父件骨下),而非全部平掛 root")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
-    s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate)
+    s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

@@ -55,3 +55,53 @@ S5 整體(運動 → 骨架 + 每骨 pivot)含**美術決定**,PLAN 標為唯一
 - 父子樹目前**取自分析器/先驗**(非本器推;肢體拓樸推斷是另一子問題)。
 - 軸向精修 / 手感 = 美術(A 類),不在此閘。
 - 對非人形 / 無 mesh 真值的件,接觸縫仍需輪廓保真(同上)。
+
+---
+
+## 里程碑 2 (2026-08-30):接觸縫 pivot 寫入 `build_spine` 骨鏈(整合閘 L2)
+
+延續里程碑 1(pivot 推斷器對 Award 真值 4 AC 全 PASS),本次把**推斷出的關節真正嵌進可載入的 Spine 骨階層**——
+S5 從「算得出 pivot」進到「素材的骨鏈就綁在關節上」,通往 L3 的關鍵整合步。
+
+### 做了什麼
+
+- **`build_spine.py --rig`**:結構件不再全部平掛 `root`。改為:
+  1. `infer_rig_tree`:結構件中**不透明像素面積最大者為 root**(通常軀幹);其餘結構件為其子(star 先驗)。
+     ⚠️ 用 alpha 像素面積(非 bbox)—— 否則「大框但稀疏」的件(如機器人右手 597×486 但僅 16% 填滿)會被誤判為最大。
+  2. 對每個結構子件,以 `contact_seam_joint`(里程碑 1 的算法)算關節,把**子骨掛到父件骨下、pivot 設在關節**。
+  3. **attachment 偏移補償**:pivot 從件中心搬到關節後,region 用 `att.x/att.y`、unweighted mesh 平移頂點,
+     使靜態外觀(件影像中心世界座標)**完全不變**。
+  4. rig 重親後 z 序可能讓子骨排在父骨前 → **拓樸排序** bones 陣列(Spine 要求 parent 先於 child)。
+  - weighted mesh 走控制骨,不套 rig 關節(已由 weighted-forge 處理);effect 件(光暈)維持平掛 root。
+
+- **`tools/rig/validate_rig_build.py`**:整合閘,4 AC(對 `robot_parts.psd`,star 先驗:身體=root,頭/左手/右手=子):
+
+| AC | 內容 | robot 結果 |
+|---|---|---|
+| **AC1 素材不位移** | rig build 每 slot 解算影像中心 == flat build 件中心 | **PASS** max 0.0px(完全不動) |
+| **AC2 pivot 落關節** | 每子骨世界位置 == 重算接觸縫關節、父子掛接正確 | **PASS** max 0.005px |
+| **AC3 繞關節旋轉** | 旋轉子骨 25°:接觸縫位移 rig(繞關節)<< centroid(繞件中心),且末梢確有位移 | **PASS** seam_ratio 0.31–0.47、末梢動 0.09–0.47 |
+| **AC4 負對照** | centroid pivot 偏離關節 >10% 尺度、關節互換偏離自身真值 → 皆爆閘 | **PASS** centroid 0.33、swap 破 |
+
+一鍵驗證:`python3 tools/rig/validate_rig_build.py`(exit 0 = PASS)。
+
+圖 `figures/s5_rig_build.png`:左=接觸縫關節作骨階層(● pivot 落在 × 重算縫上,■ root=身體);右=旋轉左手 25°,rig 繞關節(綠,縫錨在關節、肢體從肩甩出)vs flat 繞件中心(紅,整件連縫一起甩、脫離身體)。
+
+### 關鍵發現:整合閘有鑑別力 —— 拒絕非關節式角色(Symbol_Ww)
+
+同一 `--rig` + 閘跑 `Symbol_Ww.psd`(18 層裝飾符號:文字/光暈/鬢角/耳機…):
+**AC1/AC2/AC4 PASS,但 AC3 FAIL(16 子件僅 6 過)**。這是**正確**行為,非 bug:
+- Symbol_Ww 不是**有關節的角色**,是裝飾件拼盤;star 先驗硬把 16 件掛到「頭」下,但它們彼此重疊/各自獨立,
+  **沒有真正的肢體接觸縫**,繞「星狀關節」旋轉不像關節在轉(seam_ratio 0.62–0.93,遠高於 robot 的 0.3–0.47)。
+- → 閘沒有橡皮圖章:它只在**真的有接觸縫的 articulated rig** 上放行。
+- **能力界定**:`build_spine --rig` + 接觸縫 pivot 適用於**單角色 articulated rig**(robot ✅),
+  不適用於裝飾符號拼盤。star 先驗本身的適用性也被閘量化把關(AC3)。
+
+### 誠實界定 / 為何仍 L2 HOLD(未達 L3)
+
+- ✅ 完成子問題 (b)「pivot→bone 父子樹寫入 build_spine」——`pivot_end2end` L0 → **L2**(pipeline 已接 + 單 rig 整合閘 GREEN)。
+- ❌ 子問題 (a)「多個 articulated rig 真值」**被素材阻擋**:Award 中**只有 robot 一組已拆多件 rig**;
+  `1_OMG`/`2_SUP`/`3_MEG` 經查為**單 slot 角色**(子骨只驅動小燈/光暈特效,無 per-part 美術件)→ 無接觸縫真值。
+  → 達 L3 需**更多已拆件的 articulated rig 素材**(使用者資源決策,RULES A/資源),**非演算法問題**。
+- 父子樹仍取自 star 先驗(非幾何推肢體樹);完整肢體拓樸推斷是另一子問題。
+- 軸向精修 / 手感 = 美術(A 類),不在此閘。
