@@ -1,8 +1,48 @@
-# S5 — rig pivot 推斷器(第一版:關節=父子件接觸縫)
+# S5 — rig pivot 推斷器(關節=父子件接觸縫)
 
-> 里程碑 2026-08-29。S5(骨架半自動,路線圖標記的「唯一卡死環節」)的**首個能力**。
-> 工具:`tools/rig/infer_pivots.py`(推斷器 + Award 真值 loader)、`tools/rig/validate_pivots.py`(自我品質閘)。
-> 圖:`figures/s5_pivot_inference.png`。一鍵驗證:`python3 tools/rig/validate_pivots.py`(exit 0 = PASS)。
+> 里程碑 2026-08-29(首個能力,Award 機器人 rig)+ **2026-08-30 擴充:多 rig 真值(新增 main_draw 貓 rig)**。
+> S5(骨架半自動,路線圖標記的「唯一卡死環節」)的**首個能力**。
+> 工具:`tools/rig/infer_pivots.py`(推斷器 + 通用 `load_rig` + robot/cat 兩個真值 loader)、
+> `tools/rig/validate_pivots.py`(多 rig 自我品質閘)、`tools/rig/plot_pivots.py`(視覺對照圖)。
+> 圖:`figures/s5_pivot_multirig.png`(兩 rig 推斷 vs 真值)。
+> 一鍵驗證:`python3 tools/rig/validate_pivots.py`(2 rig 全跑,exit 0 = PASS;`--rig robot|cat` 單跑)。
+
+## 多 rig 真值擴充(里程碑 2026-08-30)—— 證明 contact-seam 不只對單一 rig 有效
+
+原限制「只在單一 robot rig 驗過」是達 L3 的主要缺口之一。本次**新增第二個真實藝術家 rig**:
+`assets/main_draw.json` 的**貓角色子 rig**(身體 `main` → 臉 `face` / 左手 `hand_lift` / 右手 `hand_right` / 尾 `tail`;
+臉 → 鈴鐺 `bell`),bone 世界位置 = 藝術家真值 pivot。與 robot 的差異正好構成**跨資產壓力測試**:
+
+| 維度 | robot(Award) | cat(main_draw) |
+|---|---|---|
+| 件類型 | mesh(身體/左手/光暈)+ region(頭/右手) | **全部 region**(無 mesh hull 可用) |
+| 結構 | 機械(直角、外伸手+劍) | 有機(圓潤、對稱雙手) |
+| 貼圖 | 每件獨立 region | **左右手共用同一貼圖鍵 `image/hand`(鏡射)** |
+| 關節數 | 3(頭/左右手) | 5(臉/左右手/尾/鈴鐺) |
+
+**結果(TAU=0.10,rig_scale=父件 bbox 對角線)**:兩 rig **AC1-3 全 PASS**。
+
+| rig | max err/rig | AC1 準度 | AC2 勝 baseline | AC3 負對照(random/swap) | AC4 rect 保真 |
+|---|---|---|---|---|---|
+| robot | 0.051(右手 25px) | PASS | 21.6px < 43.0px | 0.476 / 0.276 | rect 0.820 ≫ alpha(PASS) |
+| cat | 0.096(尾 25px) | PASS | 10.8px < 82.1px | 0.356 / 0.237 | rect 0.380 ≫ alpha(PASS) |
+
+貓各關節:臉 19px(0.072)、左手/右手各 11px(0.042)、尾 25px(0.096)、鈴鐺 7px(0.026)。
+
+### 修掉一個通用性 bug:region 要用 attachment 鍵查 atlas,不是 slot 名
+
+原 `_region_world_silhouette` 用 **slot 名**查 atlas region → 對 robot 剛好可行(slot==region)。
+但貓的 `image/hand2`(右手 slot)其 attachment 鍵是 `image/hand`(**共用左手貼圖、由 bone 鏡射**),
+atlas 無 `image/hand2` → 舊碼 fallback 到粗略 rect(右手掉到 rect 保真)。修法:新增 `_region_name(att, attkey)`
+= `path > name > attachment 鍵`(Spine region 貼圖鍵解析規則),改用它查 atlas。修後右手拿到真實 alpha 輪廓、
+與左手對稱同誤差(11px)。**教訓:共用/鏡射貼圖時 slot≠region,凡從 atlas 取輪廓都要用 attachment 鍵。**
+重構出通用 `load_rig(json, slot_bone, tree, use_alpha)`,robot/cat 兩 loader 共用;robot 結果逐值不變(回歸通過)。
+
+### AC4(輸入保真)在貓 rig 也成立,且更細緻
+
+貓件較 robot 緊實(fill 高),原本擔心 rect 代理已夠好使 AC4 失效;實測 rect max 仍 0.380 ≫ alpha 0.096,
+主因**尾**是長條、**右手鏡射件**掉回 rect 時偏差大。故 AC4 改為診斷屬性(rect ≥1.8× alpha 且爆閘才算「明顯劣化」),
+不列硬性門檻(件極緊實時 rect 可能已足夠,屬 asset-dependent)。兩 rig 目前皆觸發劣化,再證 PSD-first 論點。
 
 ## 問題界定(把「卡死環節」切出可客觀化的一塊)
 
@@ -49,9 +89,12 @@ S5 整體(運動 → 骨架 + 每骨 pivot)含**美術決定**,PLAN 標為唯一
 
 ## 誠實限制 / 下一步(仍 HOLD,未達 skill 化)
 
-- 只在**單一 rig(robot,3 關節)** 驗過;`check_readiness` 中 `spine-rig-pivot` 區塊
-  **L2 → HOLD**(端到端 cap 仍 L0)。達 L3 需:(a) 多個 rig 真值(如 Award 其他角色 `1_OMG`/`2_SUP`/`3_MEG` 鏈);
-  (b) 把 pivot→bone 父子樹**寫入 `build_spine`**(目前 build_spine 把每件綁 root,無關節鏈)。
+- ✅ **(a) 多 rig 真值已補齊(2026-08-30)**:robot + cat 兩個真實藝術家 rig 全 AC PASS(見上)。
+  `check_readiness` 中 `pivot_end2end` 由 L0 → **L1**(多 rig 完成,但端到端仍缺)。
+  註:Award 其他角色 `1_OMG`/`2_SUP`/`3_MEG` 經查為**單 slot 角色**(非拆件肢體 rig,子 bone 只驅動小燈/光暈),
+  無「件↔件接觸縫」真值 → 不適合當第三個 rig;真正的第二拆件 rig 來自 main_draw 貓。
+- ⬜ **(b) pivot→bone 父子樹寫入 `build_spine`**(目前 build_spine 把每件綁 root,無關節鏈)——
+  **這是 `spine-rig-pivot` 脫離 HOLD、達 L3 的唯一剩餘缺口**。
 - 父子樹目前**取自分析器/先驗**(非本器推;肢體拓樸推斷是另一子問題)。
 - 軸向精修 / 手感 = 美術(A 類),不在此閘。
 - 對非人形 / 無 mesh 真值的件,接觸縫仍需輪廓保真(同上)。

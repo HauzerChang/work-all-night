@@ -92,6 +92,16 @@
   本 `spine-main` 分支經**一次性合流**:以最完整的研究線(weighted 生成器+評估器+skill 機制)為底,
   併入 S1 keyframe(擇優 zjze4k 版)、S4 交接、分支釘定,去除重複評估器。見 `log/2026-08-28-003.md`、`log/2026-08-28-004.md`。
 
+- **S5 rig pivot 多 rig 真值擴充(里程碑,2026-08-30)** — 補上「僅單一 rig 驗過」缺口的一半。
+  新增第二個真實藝術家 rig:`main_draw` 貓角色(身體→臉/雙手/尾;臉→鈴鐺,**全 region、左右手共用鏡射貼圖**)。
+  contact-seam 演算法 **2 rig(robot+cat)AC1-3 全 PASS**(cat 5 關節 max err/rig=0.096:臉0.072/雙手0.042/尾0.096/鈴鐺0.026;
+  勝 baseline 10.8<82.1;random 0.356 / swap 0.237 皆爆閘)。修掉通用性 bug:**region 要用 attachment 鍵(`_region_name`=path>name>attkey)查 atlas,非 slot 名** ——
+  貓右手 `image/hand2` 共用 `image/hand` 貼圖,舊碼用 slot 名查不到 → 掉 rect;修後拿真實 alpha、與左手對稱(11px)。
+  重構通用 `load_rig`(robot 結果逐值不變,回歸通過)。新增 `tools/rig/plot_pivots.py` → `figures/s5_pivot_multirig.png`。
+  `check_readiness`:`pivot_end2end` L0→**L1**(多 rig ✅,build_spine 骨樹寫入仍缺);`spine-rig-pivot` **仍 HOLD**
+  (達 L3 唯一剩:pivot→bone 父子樹寫入 build_spine)。見 `knowledge/s5-rig-pivot-inference.md`、圖 `figures/s5_pivot_multirig.png`。
+  ⚠️ 註:Award 其他角色 `1_OMG`/`2_SUP`/`3_MEG` 經查為**單 slot 角色**(子 bone 只驅動小燈/光暈,無拆件肢體真值)→ 不適合當 rig 真值。
+
 ## 真實資產(已收進 `assets/`)
 
 - `assets/main_draw.json`(真實骨架:28 bones / 40 slots / 9 anims / 4 unweighted mesh)。
@@ -130,18 +140,19 @@
    - **下一步(仍在本排程)**:weighted-forge 併入 `spine-asset-forge` skill(C 類回報拍板);次要:軟件非均勻拓樸追平光暈、rig pivot(S5)。
 3. ~~切圖→Spine JSON 組裝(SkelToJson)~~ **⇢ 屬 S4 範圍,已交獨立排程**(且 build_spine 已可端到端產可載入 Spine)。
 4. **S2 骨架閘**(補齊 S2 樞紐;純 CPU)。⚠️ **S2 補圖閘已隨 S4 交接**,本排程不做。
-5. **S5 骨架半自動**:關節 pivot 推斷 —— **接觸縫子問題 ✅ 完成(2026-08-29,見上里程碑)**。
-   **續(達 L3 → 脫離 HOLD)**:(a) 多 rig 真值(Award 其他角色鏈 `1_OMG`/`2_SUP`/`3_MEG`);
-   (b) pivot→bone 父子樹**寫入 `build_spine`**(目前每件綁 root,無關節鏈);(c) 肢體父子樹自動推斷(目前取自先驗)。
-   人形 RTMPose/MediaPipe、非人形光流分群為後續。
+5. **S5 骨架半自動**:關節 pivot 推斷 —— **接觸縫子問題 ✅(2026-08-29)+ 多 rig 真值 ✅(2026-08-30,見上里程碑)**。
+   **續(達 L3 → 脫離 HOLD,唯一剩餘缺口)**:(b) pivot→bone 父子樹**寫入 `build_spine`**
+   (目前每件綁 root,無關節鏈;推斷器 `infer_pivots` + 兩 rig 真值閘已就緒,只差把 pivot 接進骨架生成)。
+   ~~ (a) 多 rig 真值~~ ✅ 完成(robot+cat)。次要:(c) 肢體父子樹自動推斷(目前取自先驗)。人形 RTMPose/MediaPipe、非人形光流分群為後續。
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
 > **主排程近況**:S1(分析器+build+keyframe)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
-> S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫子問題已完成(2026-08-29,L2 HOLD)**;S4 已交獨立排程。
-> 建議下一個 bounded chunk(擇一):**(1) S5 續推 → L3**:pivot→bone 父子樹寫入 `build_spine`
-> +多 rig 真值(Award 其他角色鏈),脫離 HOLD;**(2) weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
-> 建議先做 (1)(可自主、延續今日成果、通往「素材會動且關節正確」)。
+> S2(切圖閘)皆已達里程碑;**S5 rig pivot:接觸縫子問題(2026-08-29)+ 多 rig 真值(2026-08-30,robot+cat)已完成,仍 L2 HOLD**;S4 已交獨立排程。
+> 建議下一個 bounded chunk(擇一):**(1) S5 達 L3 脫離 HOLD**:把 pivot→bone 父子樹**寫入 `build_spine`**
+> (推斷器+兩 rig 閘皆已就緒,只差骨架生成端接上關節鏈;這是 spine-rig-pivot 唯一剩餘缺口);
+> **(2) weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
+> 建議先做 (1)(可自主、直接讓 spine-rig-pivot 達 L3、通往「素材會動且關節正確」)。
 
 ## 環境前置(已驗證可用)
 
@@ -158,6 +169,11 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-08-30:**S5 rig pivot 多 rig 真值擴充(里程碑)** — 新增 main_draw 貓 rig(全 region、共用鏡射貼圖)為第二真值;
+  contact-seam 2 rig 全 AC PASS(cat max 0.096 軀幹尺度);修 region-由-attachment-鍵-查-atlas 通用性 bug;
+  重構通用 `load_rig`(robot 回歸不變)+ 多 rig 閘 + `plot_pivots` 圖。`pivot_end2end` L0→L1,仍 HOLD(只差接 build_spine)。
+  見 `log/2026-08-30-001.md`。⚠️ **分支注意**:本 run 在 harness 指派分支 `claude/focused-dirac-y68r27` 上,
+  **非** SCHEDULE.md 設定的固定分支 `claude/spine-main`(見該 log「分支狀況」)。
 - 2026-08-28:**跨分支成果乾淨合流 + 分支釘定(使用者決策 B)** — 發現 200+ 條 `claude/*` 是平行且重複的研究線
   (routine 每 run 從同 default clone、重做同一 chunk、push 到隨機新分支,從不合流)。以最完整線 `3r9ey4`
   (weighted 生成+評估+skill 機制)為底,擇優併入 S1 keyframe(zjze4k 版,5 選 1)、S4 交接、分支釘定,去重評估器。

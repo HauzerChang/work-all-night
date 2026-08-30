@@ -100,8 +100,15 @@ def _region_world_corners(att, bone_world):
     return _region_local_to_world(att, bone_world, corners)
 
 
-def _region_world_silhouette(att, bone_world, slot, atlas_path, asset_dir, approx_eps=0.01):
-    """從 atlas 頁裁出 region 的真實 alpha 輪廓 → 世界點雲。無 PNG 時回傳 None。"""
+def _region_name(att, attkey):
+    """atlas region 的鍵。Spine region attachment 的貼圖鍵 = path > name > 該 skin 內的 attachment 鍵
+    (**非 slot 名**)。共用貼圖時(如左右手同一張圖鏡射)slot≠region,必須用此鍵查 atlas。"""
+    return att.get("path") or att.get("name") or attkey
+
+
+def _region_world_silhouette(att, bone_world, region_name, atlas_path, asset_dir, approx_eps=0.01):
+    """從 atlas 頁裁出 region 的真實 alpha 輪廓 → 世界點雲。無 PNG 時回傳 None。
+    region_name = atlas 內的貼圖鍵(見 _region_name;不是 slot 名)。"""
     try:
         import cv2
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mesh_gen"))
@@ -112,7 +119,7 @@ def _region_world_silhouette(att, bone_world, slot, atlas_path, asset_dir, appro
         regs = ac.parse_atlas(atlas_path)
     except Exception:
         return None
-    r = regs.get(slot)
+    r = regs.get(region_name)
     if r is None:
         return None
     page = os.path.join(asset_dir, r["page"])
@@ -151,44 +158,85 @@ def _mesh_world_hull(att, bone_world, bones, byname, order):
     return V[:nhull]
 
 
-def load_award_robot(award_path="assets/Award.json", use_alpha=True):
-    """回傳 (parts_world, truth_pivots, tree, fidelity)。
+# main_draw 貓角色子 rig(第二個真值 rig,證明 contact-seam 不只對單一 rig 有效)。
+# 身體(main)為根;臉/左手/右手/尾為其子;鈴鐺(bell)為臉的子。bone 世界位置 = 藝術家真值 pivot。
+# 各件皆 region attachment(左右手 image/hand、image/hand2 共用同一貼圖鍵 image/hand → 需 _region_name)。
+CAT_SLOT_BONE = {
+    "image/body": "main",
+    "image/face": "face",
+    "image/hand": "hand_lift",
+    "image/hand2": "hand_right",
+    "image/tail": "tail",
+    "image/bell": "bell",
+}
+CAT_TREE = {                # child_slot -> parent_slot
+    "image/face": "image/body",
+    "image/hand": "image/body",
+    "image/hand2": "image/body",
+    "image/tail": "image/body",
+    "image/bell": "image/face",
+}
+
+
+def load_rig(json_path, slot_bone, tree, use_alpha=True):
+    """通用 rig loader。回傳 (parts_world, truth_pivots, tree, fidelity)。
        parts_world: {slot: Nx2 世界多邊形};truth_pivots: {slot: bone 世界位置};
        fidelity: {slot: 'mesh'|'alpha'|'rect'} —— 該件幾何代理的保真度。
-       use_alpha=True 時 region 件優先用 atlas alpha 真實輪廓(需 Award.png/Award2.png)。"""
-    sk, bones, byname, order = wde.load_skeleton(award_path)
+       use_alpha=True 時 region 件優先用 atlas alpha 真實輪廓(需對應 .png)。
+       region 件用 attachment 鍵(_region_name)查 atlas,非 slot 名(共用貼圖時兩者不同)。"""
+    sk, bones, byname, order = wde.load_skeleton(json_path)
     atts = wde.get_skin_attachments(sk)
     world = wde.bone_world_transforms(bones, byname, order, {})
-    asset_dir = os.path.dirname(os.path.abspath(award_path))
-    atlas_path = os.path.splitext(award_path)[0] + ".atlas"
+    asset_dir = os.path.dirname(os.path.abspath(json_path))
+    atlas_path = os.path.splitext(json_path)[0] + ".atlas"
 
     parts, truth, fidelity = {}, {}, {}
-    for slot, bone in ROBOT_SLOT_BONE.items():
+    for slot, bone in slot_bone.items():
         bw = world[bone]
         truth[slot] = np.array([bw[4], bw[5]], dtype=np.float64)  # bone world (x,y)
         adict = atts.get(slot, {})
         if not adict:
             continue
-        att = next(iter(adict.values()))
+        attkey, att = next(iter(adict.items()))
         t = att.get("type", "region")
         if t == "mesh":
             parts[slot] = _mesh_world_hull(att, bw, bones, byname, order)
             fidelity[slot] = "mesh"
         else:
-            sil = _region_world_silhouette(att, bw, slot, atlas_path, asset_dir) if use_alpha else None
+            rname = _region_name(att, attkey)
+            sil = (_region_world_silhouette(att, bw, rname, atlas_path, asset_dir)
+                   if use_alpha else None)
             if sil is not None and len(sil) >= 3:
                 parts[slot] = sil
                 fidelity[slot] = "alpha"
             else:
                 parts[slot] = _region_world_corners(att, bw)
                 fidelity[slot] = "rect"
-    return parts, truth, ROBOT_TREE, fidelity
+    return parts, truth, tree, fidelity
+
+
+def load_award_robot(award_path="assets/Award.json", use_alpha=True):
+    """Award 機器人子 rig(見 ROBOT_SLOT_BONE / ROBOT_TREE)。"""
+    return load_rig(award_path, ROBOT_SLOT_BONE, ROBOT_TREE, use_alpha=use_alpha)
+
+
+def load_main_draw_cat(json_path="assets/main_draw.json", use_alpha=True):
+    """main_draw 貓角色子 rig(見 CAT_SLOT_BONE / CAT_TREE)。"""
+    return load_rig(json_path, CAT_SLOT_BONE, CAT_TREE, use_alpha=use_alpha)
+
+
+RIGS = {
+    "robot": (load_award_robot, "assets/Award.json"),
+    "cat":   (load_main_draw_cat, "assets/main_draw.json"),
+}
 
 
 if __name__ == "__main__":
     use_alpha = "--no-alpha" not in sys.argv
-    parts, truth, tree, fid = load_award_robot(use_alpha=use_alpha)
-    print(f"parts loaded (use_alpha={use_alpha}):")
+    which = "cat" if "--cat" in sys.argv else "robot"
+    loader, _ = RIGS[which]
+    parts, truth, tree, fid = loader(use_alpha=use_alpha)
+    print(f"[{which}] parts loaded (use_alpha={use_alpha}):")
     for s, p in parts.items():
         c = p.mean(0)
         print(f"  {s:<18} [{fid[s]:<5}] verts={len(p):<4} centroid=({c[0]:8.2f},{c[1]:8.2f})")
