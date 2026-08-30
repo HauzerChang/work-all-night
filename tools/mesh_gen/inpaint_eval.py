@@ -161,7 +161,7 @@ def fill_random(rgba_holed, gt, mask, seed=1):
     return out
 
 
-def estimate_alpha_taper(alpha_holed, mask):
+def estimate_alpha_taper(alpha_holed, mask, min_ring=20, debug=None):
     """洞區 alpha 漸縮估計(距離場×局部量測寬度),取代「洞內強制拉滿不透明」。
 
     背景(見 knowledge/s4-inpaint-evaluator.md「額外發現」):`edge` 洞跨出真實輪廓時,強制
@@ -182,6 +182,20 @@ def estimate_alpha_taper(alpha_holed, mask):
        貼近背景線性衰減到 0,衰減快慢跟隨量到的 `ell`。
     量化驗證(3 真實件 × interior/edge,見 log/s4-2026-08-28-008.md):interior 全 0 誤差
     (與舊法打平);edge 三件 alpha_mae 全面改善(光暈 41.8→8.6、身體 4.18→2.27、左手 5.55→2.98)。
+
+    `min_ring`(候選 13,見 knowledge/s4-inpaint-alpha-taper-robustness.md):步驟 2 的 `ell`
+    是用 15px 環內「已知 AA 邊緣」樣本的中位數估計,樣本數太少時中位數本身不穩定,量出離譜的
+    `ell` 導致洞深處 alpha 大崩壞(候選 10 意外撞見:n=7 樣本讓一處該接近 255 的深內部像素被
+    估成 60)。跨 12 個材質(機器人 5 層 + Symbol_Ww 7 層)、circle/ellipse 多種洞形狀共 1233
+    次取樣量化:樣本數 5~19 這個區間(剛好跨過舊門檻 5,卡在「太少但沒觸發退回全域」的縫隙)
+    平均 alpha_mae 4.3~12.2、最差到 139.9;退回全域 fringe(`ring_count < min_ring`)後這批
+    案例的 alpha_mae 全部掉到 0(zero 誤差,因為這幾個材質全域邊緣本身就均勻)。用同一批資料
+    掃過候選門檻 10/15/20/22/25/28:20~22 是最後「零負面案例」的安全帶(25 開始出現 2 個因
+    誤傷有效局部樣本而變差的案例,28 惡化到 12 個)——**門檻訂在 20**,留安全餘裕不頂著剛好
+    翻盤的邊界。**誠實範圍界定**:同一批量化也發現了另一種完全不同、樣本數大(50~700+)也會
+    崩壞的失敗模式(如 `右手` edge 小洞 alpha_mae 115.6、`光暈` 特定橢圓 interior 洞 alpha_mae
+    ~100),`min_ring` 對這批案例沒有效果(样本數本身不小,不是本函式要解的「小樣本統計不穩」
+    問題)——列為候選 14,見同一份 knowledge 文件,本次不修。
     """
     known = ~mask
     bg_known = (alpha_holed <= 8) & known
@@ -196,10 +210,18 @@ def estimate_alpha_taper(alpha_holed, mask):
 
     grad = np.sqrt(ndimage.sobel(a_fill, axis=0) ** 2 + ndimage.sobel(a_fill, axis=1) ** 2) / 8.0
     ring = ndimage.binary_dilation(mask, iterations=15) & fringe_known
-    if ring.sum() < 5:
+    ring_count = int(ring.sum())
+    used_fallback = ring_count < min_ring
+    if used_fallback:
         ring = fringe_known
     local_grad = float(np.median(grad[ring])) if ring.sum() else 255.0
     ell = 255.0 / max(local_grad, 1.0)
+
+    if debug is not None:
+        debug["ring_count"] = ring_count
+        debug["used_fallback"] = used_fallback
+        debug["local_grad"] = local_grad
+        debug["ell"] = ell
 
     d_bg = ndimage.distance_transform_edt(~bg_known) if bg_known.any() else np.full_like(alpha_holed, 1e6)
     return np.clip(255.0 * d_bg / ell, 0, 255)
