@@ -54,6 +54,63 @@ def _axis_bones(world_pts, k=2):
             for j in range(k)]
 
 
+# ---------------- S5 rig:pivot→bone 父子樹(--rig)----------------
+def _part_role(note):
+    """由分析器 note 判部位角色。body=rig 根;head/limb=結構子件;effect=特效(非關節)。"""
+    if "特效" in note:
+        return "effect"
+    for r in ("body", "head", "limb"):
+        if r in note:
+            return r
+    return "other"
+
+
+def rig_layout(metas, names, sizes, offsets, H, notes, parts_dir):
+    """S5:把各件排成骨骼父子樹,結構子件的 bone 原點落在「與 body 的接觸縫」pivot。
+
+    回傳 {name: {role, parent_bone, parent_name, world(x,y骨世界原點), center(件中心世界),
+                 delta(件中心-骨原點,供 attachment 位移以保 setup pose)}}。
+    純確定性:body=結構最大件(或註記 body);head/limb 用 contact_seam_joint 對 body 取縫;
+    effect 掛在 body 下(隨身移動,但不視為關節,原點=件中心)。父子樹來自分析器 note(先驗)。
+    """
+    import sys as _sys
+    _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "rig"))
+    from infer_pivots import contact_seam_joint  # noqa: E402
+
+    info = {}
+    for i in range(len(names)):
+        nm = names[i]; w, h = sizes[i]; ox, oy = offsets[i]
+        center = np.array([ox + w / 2.0, H - (oy + h / 2.0)])
+        role = _part_role(notes.get(metas[i]["name"], ""))
+        part_png = os.path.join(parts_dir, metas[i]["file"])
+        world_sil, _ = _boundary_world(part_png, ox, oy, H)
+        info[nm] = dict(role=role, center=center, sil=world_sil, area=w * h)
+
+    # 選 rig 根(body):優先 role==body,否則最大結構件
+    structs = [nm for nm, d in info.items() if d["role"] != "effect"]
+    body = next((nm for nm, d in info.items() if d["role"] == "body"), None)
+    if body is None and structs:
+        body = max(structs, key=lambda nm: info[nm]["area"])
+    body_bone = f"b_{body}" if body else None
+
+    out = {}
+    for nm, d in info.items():
+        if nm == body:                          # rig 根:parent=root,原點=件中心
+            out[nm] = dict(role=d["role"], parent_bone="root", parent_name=None,
+                           world=d["center"].copy(), center=d["center"],
+                           delta=np.zeros(2), joint=False)
+        elif d["role"] == "effect" or body is None:   # 特效件:掛 body 下,原點=件中心(非關節)
+            out[nm] = dict(role=d["role"], parent_bone=body_bone or "root",
+                           parent_name=body, world=d["center"].copy(), center=d["center"],
+                           delta=np.zeros(2), joint=False)
+        else:                                    # 結構子件:原點=與 body 接觸縫 pivot
+            j, _ = contact_seam_joint(info[body]["sil"], d["sil"])
+            out[nm] = dict(role=d["role"], parent_bone=body_bone, parent_name=body,
+                           world=np.asarray(j, float), center=d["center"],
+                           delta=d["center"] - np.asarray(j, float), joint=True)
+    return out, body
+
+
 def _weighted_attachment(part_png, ox, oy, W, H, w, h, bone_base_idx, bone_names_start,
                          max_area=1500.0, k_bones=2):
     """生成 weighted mesh attachment + 該件的控制骨定義。
@@ -107,7 +164,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
     return placements, (W, H)
 
 
-def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False):
+def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
     psd, manifest, parts = slice_psd(psd_path, parts_dir)     # 切件 PNG(裁到 bbox)+ manifest
@@ -154,14 +211,35 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False)
     build_meta = {}   # slot_safe -> {"kind": effect|structural}(供 weighted 閘依語意分類)
     # z 升序 = 由下而上繪製
     order = sorted(range(len(parts)), key=lambda i: metas[i]["z"])
+
+    # --rig:先算好 pivot→bone 父子樹,結構子件 bone 原點落在接觸縫;attachment 以 delta 位移保 setup pose。
+    if rig:
+        if weighted:
+            raise SystemExit("--rig 目前不與 --weighted 併用(weighted 控制骨父子樹整合列為後續)")
+        rlay, body = rig_layout(metas, names, sizes, offsets, H, note, parts_dir)
+        wo = {nm: rlay[nm]["world"] for nm in rlay}
+        joints = [nm for nm in names if rlay[nm]["parent_name"] == body and rlay[nm]["joint"]]
+        effs = [nm for nm in names if nm != body and not rlay[nm]["joint"]]
+        for nm in [body] + joints + effs:      # 階層序:父必先於子
+            r = rlay[nm]
+            pw = wo[r["parent_name"]] if r["parent_name"] else np.zeros(2)
+            lx, ly = np.asarray(r["world"]) - pw
+            bones.append({"name": f"b_{nm}", "parent": r["parent_bone"],
+                          "x": round(float(lx), 2), "y": round(float(ly), 2)})
+        delta_of = {nm: np.asarray(rlay[nm]["delta"], float) for nm in rlay}
+    else:
+        delta_of = {nm: np.zeros(2) for nm in names}
+
     for i in order:
         e = metas[i]; nm = names[i]; w, h = sizes[i]
         ox, oy = offsets[i]
         cx = ox + w / 2.0
         cy = oy + h / 2.0
         bone = f"b_{nm}"
-        bones.append({"name": bone, "parent": "root",
-                      "x": round(cx, 2), "y": round(H - cy, 2)})
+        if not rig:                            # 非 rig:每件綁 root、bone 置件中心(原行為)
+            bones.append({"name": bone, "parent": "root",
+                          "x": round(cx, 2), "y": round(H - cy, 2)})
+        dx, dy = float(delta_of[nm][0]), float(delta_of[nm][1])   # 件中心 - bone 原點
         slots.append({"name": nm, "bone": bone, "attachment": nm})
         use_mesh = geo.get(e["name"], "").startswith("mesh")
         part_png = os.path.join(parts_dir, e["file"])
@@ -171,13 +249,20 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False)
             bones += ctrl
         elif use_mesh:
             m = gen_mesh(part_png, mode="auto")
-            att = {"type": "mesh", "vertices": m["vertices"], "uvs": m["uvs"],
+            verts = m["vertices"]
+            if rig and (dx or dy):             # bone 移到 pivot → mesh 頂點加 delta 保原位
+                verts = [round(v + (dx if k % 2 == 0 else dy), 4) for k, v in enumerate(verts)]
+            att = {"type": "mesh", "vertices": verts, "uvs": m["uvs"],
                    "triangles": m["triangles"], "hull": m["hull"],
                    "width": m["width"], "height": m["height"]}
         else:
-            att = {"x": 0, "y": 0, "width": w, "height": h}   # region;bone 已在件中心
+            att = {"x": round(dx, 2), "y": round(dy, 2), "width": w, "height": h}  # region;bone 在 pivot,att 偏移回件中心
         skin[nm] = {nm: att}
         build_meta[nm] = {"kind": kind_of(e["name"]), "mesh": use_mesh}
+        if rig:
+            build_meta[nm]["bone_parent"] = rlay[nm]["parent_bone"]
+            build_meta[nm]["joint"] = bool(rlay[nm]["joint"])
+            build_meta[nm]["role"] = rlay[nm]["role"]
 
     skeleton = {
         "skeleton": {"hash": "gen", "spine": "3.8.75", "x": 0, "y": 0,
@@ -196,6 +281,11 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False)
                "parts": len(parts),
                "mesh_parts": [names[i] for i in order if geo.get(metas[i]["name"], "").startswith("mesh")],
                "region_parts": [names[i] for i in order if not geo.get(metas[i]["name"], "").startswith("mesh")]}
+    if rig:
+        summary["rig_root"] = f"b_{body}"
+        summary["rig_joints"] = {f"b_{nm}": [round(float(rlay[nm]['world'][0]), 1),
+                                            round(float(rlay[nm]['world'][1]), 1)]
+                                 for nm in rlay if rlay[nm]["joint"]}
     return summary
 
 
@@ -206,9 +296,10 @@ def main():
     ap.add_argument("--genre", default="slot_bigwin")
     ap.add_argument("--weighted", action="store_true", help="mesh 件產 weighted(骨綁)mesh + 自動控制骨")
     ap.add_argument("--animate", action="store_true", help="同時由 #3 分鏡生成 animations(candidate 0d)")
+    ap.add_argument("--rig", action="store_true", help="S5:pivot→bone 父子樹(結構子件綁 body、關節落接觸縫)")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
-    s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate)
+    s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

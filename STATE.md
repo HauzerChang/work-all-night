@@ -55,6 +55,15 @@
   region bounding-rect 代理右手誤差 406px,改從 atlas alpha 取真實輪廓降到 25px(PSD-first 論點在 rig 階段再現)。
   `spine-rig-pivot` 區塊 L2 → **HOLD**(僅單一 rig、pivot→bone 樹未接 build_spine)。軸向精修屬美術(A 類)。
   見 `knowledge/s5-rig-pivot-inference.md`、圖 `figures/s5_pivot_inference.png`。
+- **S5 pivot→bone 父子樹寫入 build_spine(里程碑,2026-08-30)** — S5 脫離 HOLD 的**第二個要件**:
+  `build_spine.py --rig` 把「關節=父子件接觸縫」接進組裝,產出帶**真正骨骼關節鏈**的可載入 Spine
+  (結構子件掛 body、關節落接觸縫;bone 移到關節後 attachment 以 delta 位移保 setup pose;暫不與 `--weighted` 併用)。
+  `validate_rig_build.py` 對 Award 機器人 PSD **4 AC 全 PASS**:①骨樹結構;②setup 不位移 max **0.00px**;
+  ③pivot 安裝往返(local↔parent 換算)**0.04px**;④關節語意——轉子骨 25° 時 rig 繞接觸縫 vs 非 rig 繞件中心的
+  縫撕裂量,3 件 **2.1–3.2× 全減半以上**(非 rig 版即負對照)。`pivot_end2end` **L0→L2 GREEN**。
+  **關鍵發現(recalibrate 多 rig 建議)**:Award 47slots/77bones 中**只有機器人(4_LEG)是可拆肢體 rig**;
+  `1_OMG`/`2_SUP`/`3_MEG` 皆為**單張角色圖 + 發光/小燈特效**,無接觸縫結構 → 第二個真值 rig 屬**使用者資源**,
+  故 `pivot_end2end` 定 L2 非 L3、區塊維持 **HOLD**(防固化)。見 `knowledge/s5-rig-build-integration.md`、圖 `knowledge/figures/s5_rig_build.png`。
 - **S3 weighted mesh 生成器完成(里程碑,2026-08-27,候選 2 主體)** — `generate_weighted_mesh.py`:
   輪廓 → triangle 三角化(max-area 控**內部取樣密度**)→ **heat-diffusion 骨綁權重**(BBW 純 CPU 近似,
   `(L+H)W=HP` 天然 partition of unity)→ Spine weighted 格式(bind 經逆骨變換)。`validate_weighted_gen.py`
@@ -130,18 +139,24 @@
    - **下一步(仍在本排程)**:weighted-forge 併入 `spine-asset-forge` skill(C 類回報拍板);次要:軟件非均勻拓樸追平光暈、rig pivot(S5)。
 3. ~~切圖→Spine JSON 組裝(SkelToJson)~~ **⇢ 屬 S4 範圍,已交獨立排程**(且 build_spine 已可端到端產可載入 Spine)。
 4. **S2 骨架閘**(補齊 S2 樞紐;純 CPU)。⚠️ **S2 補圖閘已隨 S4 交接**,本排程不做。
-5. **S5 骨架半自動**:關節 pivot 推斷 —— **接觸縫子問題 ✅ 完成(2026-08-29,見上里程碑)**。
-   **續(達 L3 → 脫離 HOLD)**:(a) 多 rig 真值(Award 其他角色鏈 `1_OMG`/`2_SUP`/`3_MEG`);
-   (b) pivot→bone 父子樹**寫入 `build_spine`**(目前每件綁 root,無關節鏈);(c) 肢體父子樹自動推斷(目前取自先驗)。
+5. **S5 骨架半自動**:關節 pivot 推斷 —— **接觸縫子問題 ✅(2026-08-29)+ 接 build_spine 骨樹 ✅(2026-08-30,見上里程碑)**。
+   **續(達 L3 → 脫離 HOLD)**:(a) ~~pivot→bone 父子樹寫入 `build_spine`~~ **✅ 完成(--rig,L2 GREEN)**;
+   (b) **多 rig 真值(唯一硬缺口,資源類)**:實查 Award **只有機器人一件可拆肢體 rig**(`1_OMG`/`2_SUP`/`3_MEG`
+   為單圖+特效,無接觸縫)→ 需**使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot 的分層/rig 檔;
+   (c) 肢體父子樹自動推斷(目前取自先驗 note);(d) `--rig`×`--weighted` 併用、多層關節鏈(手→前臂→手掌)。
    人形 RTMPose/MediaPipe、非人形光流分群為後續。
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
 > **主排程近況**:S1(分析器+build+keyframe)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
-> S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫子問題已完成(2026-08-29,L2 HOLD)**;S4 已交獨立排程。
-> 建議下一個 bounded chunk(擇一):**(1) S5 續推 → L3**:pivot→bone 父子樹寫入 `build_spine`
-> +多 rig 真值(Award 其他角色鏈),脫離 HOLD;**(2) weighted-forge 併入 spine-asset-forge skill**(C 類需使用者拍板)。
-> 建議先做 (1)(可自主、延續今日成果、通往「素材會動且關節正確」)。
+> S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫(2026-08-29)+ 接 build_spine 骨樹(2026-08-30,--rig,L2)已完成**;S4 已交獨立排程。
+> ⚠️ **S5 達 L3 的唯一硬缺口 = 多 rig 真值,但 Award 只有機器人一件可拆肢體 rig → 屬使用者資源(C/資源類待辦)**。
+> 建議下一個 bounded chunk(擇一,皆可自主):
+> **(1) 肢體父子樹自動推斷**(S5 (c)):由拆件相鄰幾何推 body/head/limb 父子關係(目前取自分析器 note 先驗),
+>   配真值閘(對 robot_parts 的已知樹)—— 不需新資產,續推 S5;
+> **(2) `--rig`×`--weighted` 併用 + 多層關節鏈**(S5 (d)):weighted 控制骨併入關節鏈、遞迴接觸縫做 2+ 跳鏈;
+> **(3) weighted-forge / rig 併入 spine-asset-forge skill**(需 C 類使用者拍板 sync)。
+> 建議先做 (1)(純自主、補上 rig 目前唯一「取自先驗」的環節,使 build_spine --rig 完全自決)。
 
 ## 環境前置(已驗證可用)
 
@@ -158,6 +173,10 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-08-30:**S5 pivot→bone 父子樹寫入 build_spine(里程碑)** — `build_spine --rig` 產帶真正關節鏈的可載入
+  Spine(結構子件掛 body、關節落接觸縫、attachment delta 位移保 setup pose);`validate_rig_build.py` 4 AC 全 PASS
+  (setup 不位移 0.00px、pivot 往返 0.04px、關節語意 rig vs 非rig 縫撕裂 2.1–3.2×↓)。`pivot_end2end` L0→L2 GREEN。
+  發現 **Award 僅機器人一件可拆肢體 rig**(OMG/SUP/MEG 為單圖+特效)→ 多 rig 真值屬使用者資源,區塊維持 HOLD(防固化)。
 - 2026-08-28:**跨分支成果乾淨合流 + 分支釘定(使用者決策 B)** — 發現 200+ 條 `claude/*` 是平行且重複的研究線
   (routine 每 run 從同 default clone、重做同一 chunk、push 到隨機新分支,從不合流)。以最完整線 `3r9ey4`
   (weighted 生成+評估+skill 機制)為底,擇優併入 S1 keyframe(zjze4k 版,5 選 1)、S4 交接、分支釘定,去重評估器。
