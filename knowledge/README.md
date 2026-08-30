@@ -163,3 +163,13 @@
   最佳方案(方向濾波+p90)13 fixed、9 newly broken(`n_mae_gt_20` 39→35,mean_mae
   2.668→1.978),**淨提升但非零回歸**,不符合本專案落地門檻,故本次未修改
   `inpaint_eval.py` production 代碼。留 A 類岔路候選(trade-off 是否可接受)給使用者裁決。
+
+- [S4 候選 4:LaMa 深度 inpaint 可行性探測](s4-lama-feasibility.md) — 網路政策部分允許
+  (PyPI `torch`/`simple-lama-inpainting`、GitHub release 的 `big-lama.pt` 權重皆可下載;
+  `download.pytorch.org`/`huggingface.co` 被擋)但唯一可行安裝路徑會多付 ~2GB CUDA 依賴代價
+  (預設 PyPI 的 `torch` wheel 非 CPU-only)。實測通用預訓練 LaMa(未微調)對已知 1a fail 的
+  機械紋理材質(`身體`/`左手`)量化跑分:6/8 指標贏過全部 3 個 CPU baseline(如 `身體` ssim
+  0.441→0.574),但**沒有一個案例跨過 1a 門檻**(`ssim>0.75`)。誠實結論:通用權重是穩定的
+  量化改善、非質變,要解 1a 大機率需針對本專案素材微調(超出可行性探測範圍);而 1b(防穿幫,
+  本專案實戰驗收線)CPU baseline 已經 pass,LaMa 換不到新增益,當前優先序下不建議投入,
+  也不寫進 `requirements.txt`(避免每個 session 重裝 ~2GB)。

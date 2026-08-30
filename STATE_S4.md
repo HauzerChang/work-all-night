@@ -104,8 +104,8 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
   `knowledge/s4-inpaint-auto-select-pipeline.md`。
 
 **下一個有界工作塊候選(擇一推進):**
-4. **探測 Level 3(LaMa)**:深度 inpaint 權重下載是否被網路政策擋?先探測可行性(注意:1b 已經解決
-   了機械紋理 interior 案例的實用性問題,LaMa 現在的優先序降低,除非要解 1a 或 edge 模式)。
+4. ✅ 已完成(見下方 chunk 16)——探測 Level 3(LaMa):網路政策部分允許,但通用預訓練權重
+   不足以解 1a,且 1b 已經解決實用性問題,不建議投入。
 6. 用本閘測 `Symbol_Ww.psd` 其他層(icon 類,可能有更多平面色塊),擴大樣本、交叉驗證邊界。
 7. **1b 閾值反向校準**:目前 1b 閾值靠正負對照的數值分野訂定,理想上應收集人工「這樣補看起來有沒有
    穿幫」的標註來反過來校準,目前這步驟還沒做(見 `s4-inpaint-1b-lenient-gate.md` 誠實界定)。
@@ -118,6 +118,20 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
 14. ✅ **已調查(見下方 chunk 15)**——`estimate_alpha_taper` 的另一種獨立失敗模式:拆解出
     兩個獨立根因(材質內部紋理雜訊污染 ring 統計 / 光滑材質非線性衰減使線性外推模型結構性
     失效),嘗試 4 種修法皆非零回歸,本次未修改 production 代碼,留 A 類岔路候選給使用者裁決。
+
+**本次(chunk 16,2026-08-30)已完成:**
+4. ✅ **候選 4(LaMa 可行性探測)完成,結論:網路政策不擋,但通用權重不足以解 1a,不建議投入** —
+   新增 `tools/mesh_gen/s4_lama_probe.py`(一次性 probe)。網路面:PyPI `torch`/
+   `simple-lama-inpainting`、GitHub release 的 `big-lama.pt`(196MB)皆可下載;
+   `download.pytorch.org`/`huggingface.co` 被 proxy 擋(403)。裝置代價:唯一可行路徑
+   (預設 PyPI `torch`)會多帶 ~2GB CUDA 依賴(非 CPU-only wheel)。跑分面:通用預訓練
+   LaMa(未微調)對 `身體`/`左手`(已知 1a fail 機械紋理材質)interior+edge 共 8 個指標,
+   6 個贏過全部 3 個 CPU baseline(如 `身體` ssim 0.441→0.574,`左手` premult_mae
+   66.4→57.7),但**沒有任何一個案例跨過 1a 門檻**(ssim>0.75)。1b(實戰標準)兩者本來
+   就已 pass,LaMa 換不到新增益。**誠實結論**:通用權重是穩定量化改善、非質變,真要解 1a
+   大機率需微調(超出可行性探測範圍);當前優先序下不建議投入,`torch`/
+   `simple-lama-inpainting` 不寫進 `requirements.txt`。見
+   `knowledge/s4-lama-feasibility.md`、`log/s4-2026-08-30-016.md`。
 
 **本次(chunk 15,2026-08-30)已完成:**
 14. ✅ **候選 14 調查完成,結論:兩個獨立根因,4 種修法皆非零回歸** — 拆解候選 14:(1) 硬邊
@@ -205,7 +219,8 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
-- ❓ LaMa 等深度 inpaint 權重下載是否被網路政策擋?(第 3 級才需要;已用 CPU 1–2 級量化出明確需要升級的案例)
+- ✅ LaMa 等深度 inpaint 權重下載是否被網路政策擋?(候選 4,已解:部分允許但代價高,通用權重
+  不足以解 1a,不建議投入,見 `knowledge/s4-lama-feasibility.md`)
 - ❓ 補圖真值來源:目前用「合成挖洞」自造(已完成校準);「遮擋真值法」(候選 1)待驗證是否與合成挖洞判定一致。
 - 🔀 **A 類岔路(候選 15,2026-08-30)**:`estimate_alpha_taper` 候選 14 的最佳修法(方向濾波
   +p90)是「13 例大幅改善換 9 例壓線新增 fail」的 trade-off,不符合零回歸門檻,需要使用者
@@ -213,6 +228,13 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
 
 ## 進度摘要 (progress log)
 
+- 2026-08-30:**候選 4(LaMa 可行性探測)完成,結論:網路不擋但代價高,通用權重不足以解 1a
+  (chunk 16)** — 新增 `tools/mesh_gen/s4_lama_probe.py`。網路政策:PyPI `torch`(帶 ~2GB
+  CUDA 依賴)、GitHub release 的 `big-lama.pt` 皆可下載;`download.pytorch.org`/
+  `huggingface.co` 被擋。跑分:通用預訓練 LaMa 對機械紋理材質(身體/左手)6/8 指標贏過
+  CPU baseline,但無一跨過 1a 門檻;1b 標準下 CPU baseline 已 pass,LaMa 無新增益。
+  不建議投入,不寫進 `requirements.txt`。見 `knowledge/s4-lama-feasibility.md`、
+  `log/s4-2026-08-30-016.md`。
 - 2026-08-30:**候選 14 調查完成,結論:兩個獨立根因,4 種修法皆非零回歸(chunk 15)** —
   拆解出「材質內部紋理雜訊污染 ring 統計」(硬邊材質,如 `右手`)與「光滑材質非線性衰減使
   線性外推模型結構性失效」(如 `光暈`)兩個獨立根因。用全部 1233 筆量化資料測試 4 種修法,
