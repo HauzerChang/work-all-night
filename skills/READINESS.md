@@ -1,7 +1,7 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-08-31 session 003(S5 (d') 多跳 weighted 肢體鏈端到端驗收:合成鏈 fixture 補 combo 唯一缺口,新增 cap `rig_weighted_chain` L2 GREEN。區塊仍 HOLD:L3 缺口=多 rig 真值不變)。
+> 產生於 2026-08-31 session 004(S1 candidate 0e mesh deform timeline 生成器:新增區塊 `spine-motion`(0d bone TRS + 0e mesh deform)4 cap 全 GREEN,但動作美感主觀 → 刻意 L2 非 L3、HOLD。其餘區塊不變:3 READY / 4 HOLD)。
 
 ```
 ==============================================================================
@@ -55,9 +55,17 @@ skill 化完成度矩陣(已實跑全部 validator)
     [L2] 肢體父子樹自動推斷(root+parent 邊)               閘:GREEN (gen)  «area-primary root + 接觸距離 Dijkstra 樹;對 Award 機器人真值樹 AC1-4 + 3 負對照全 PASS,合成鏈驗多跳通用;取代 rig_layout 的星形先驗(rig 拓樸現完全自決)。honest boundary:effect/structural 角色分類仍為輸入(NC3)»
     [L2] pivot→bone 父子樹寫入 build_spine(--rig)    閘:GREEN (pipeline)  «build_spine --rig 端到端產關節鏈(父子樹改由 infer_tree 幾何推斷,非星形先驗)+ validate_rig_build 4AC(結構/setup不位移/pivot往返/關節語意 vs 非rig對照)PASS;仍 L2 非 L3:僅單一 robot rig 驗過(Award 僅此件可拆肢體;OMG/SUP/MEG 為單圖+特效,無接觸縫)→ 多 rig 真值屬使用者資源»
     [L2] --rig × --weighted 併用(weighted 控制骨接進關節鏈) 閘:GREEN (pipeline)  «移除 --rig/--weighted 互斥;weighted mesh 控制骨改掛該件關節骨 b_{nm}(座標轉局部)→ 4AC PASS (結構/ setup 逐頂點 0.00px / 自articulate+鏈帶動 vs weighted-only 脫鉤(0px)/ 關節旋轉逐幀 si=0)。仍 L2:同 pivot_end2end,僅單一 robot rig 驗過(多 rig 真值屬使用者資源)»
-    [L2] 多跳 weighted 肢體鏈(weighted mesh 當鏈中段)    閘:GREEN (pipeline)  «補 robot_parts 無『weighted mesh 當鏈中段肢體』樣本的缺口:合成鏈 fixture(make_limb_chain_psd:body→arm→forearm→hand,arm/forearm 皆 weighted mesh)。5AC PASS:鏈深 4≥3 非星形 / setup 0.00px / 遞迴帶動(轉 b_body→forearm 隔一跳仍隨動 80px、轉 b_arm→forearm 動 body 不動、weighted-only 全脫鉤 0px)/ region 葉件隨鏈 / 逐幀 si=0。演算法早已支援,本閘證端到端成立。honest boundary:合成 fixture 非藝術家真值»
+    [L2] 多跳 weighted 肢體鏈(weighted mesh 當鏈中段)    閘:GREEN (pipeline)  «補 robot_parts 無『weighted mesh 當鏈中段肢體』樣本的缺口:合成鏈 fixture (make_limb_chain_psd:body→arm→forearm→hand,arm/forearm 皆 weighted mesh)。5AC PASS:鏈深 4≥3 非星形 / setup 0.00px / 遞迴帶動(轉 b_body→forearm 隔一跳仍隨動 80px、轉 b_arm→forearm 動 body 不動、weighted-only 全脫鉤 0px)/ region 葉件隨鏈 / 逐幀 si=0。演算法早已支援(接觸縫遞迴+控制骨掛關節骨),本閘證端到端成立。honest boundary:合成 fixture 非藝術家真值»
+
+■ spine-motion — 分鏡 → 動畫 timeline(candidate 0d bone TRS + 0e mesh deform)
+  區塊成熟度 L2 → HOLD ⛔
+  目標:HOLD:客觀閘(合法/乾淨/無縫)全綠,但**動作美感主觀(A 類,留使用者)**→ 不宣告 L3,區塊維持 HOLD
+    [L2] 分鏡→bone TRS + slot alpha(0d)           閘:GREEN (gen)  «4AC(合法/loop 無縫/幅度相位/串接 identity)+ --selftest 負對照;role→運動基元為先驗手感提案(非學自真值)»
+    [L2] mesh deform timeline 真值閘(0e)           閘:GREEN (eval)  «對 main_draw 4 真實美術 mesh:AC1 合法/round-trip、AC2 乾淨(si/flip/degen=0 全幀)、AC3 無縫+identity 介面、AC4 非平凡+負對照(折疊被抓)+正對照(極端仿射剪切仍乾淨)。評估器 = deform_eval(已對藝術家真值自一致 si=0)»
+    [L2] mesh deform 生成器(仿射核心 + 波幅閘控)           閘:GREEN (gen)  «affine swing/uniform-scale 恆乾淨(仿射保直線邊)+ 非仿射行進波經 deform_eval 逐幀自動遞減至乾淨(最差退純仿射);端到端接 build_spine --animate --deform(robot 光暈/身體 294 幀全乾淨、位移 22–341px)»
+    [L2] build_spine --animate --deform 端到端(bone+deform 共存) 閘:GREEN (pipeline)  «**刻意 L2 非 L3**:端到端可跑、round-trip + 0d 閘回歸皆 PASS,但動作『好不好看』屬主觀美感(A 類)→ 不當作客觀 L3 里程碑,故區塊 HOLD(防把主觀手感固化成 skill)»
 
 ==============================================================================
 可 skill 化(達門檻): spine-mesh-doctor, spine-asset-forge, spine-weighted-forge
-HOLD(防固化半成品): spine-slicing, spine-target-analysis, spine-rig-pivot
+HOLD(防固化半成品): spine-slicing, spine-target-analysis, spine-rig-pivot, spine-motion
 ```

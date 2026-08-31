@@ -135,6 +135,19 @@
   本 `spine-main` 分支經**一次性合流**:以最完整的研究線(weighted 生成器+評估器+skill 機制)為底,
   併入 S1 keyframe(擇優 zjze4k 版)、S4 交接、分支釘定,去除重複評估器。見 `log/2026-08-28-003.md`、`log/2026-08-28-004.md`。
 
+- **S1 candidate 0e:mesh deform timeline 生成器(里程碑,2026-08-31,session 004)** — 補 0d 缺口
+  (0d 只生成 bone TRS + slot alpha,mesh 剛性隨骨走不變形)。`gen_mesh_deform.py` 為 skin 內每 mesh
+  生成逐頂點 `deform` timeline;`build_spine --animate --deform` 端到端。核心=**仿射保證 + 波幅閘控**:
+  affine swing(`dx=A·fy·swing(t)`,fy 線性 in y)+ radial uniform-scale 皆仿射 → 恆乾淨;非仿射行進波
+  經 `deform_eval` 逐幀**自動遞減**至乾淨(最差退純仿射)。`validate_mesh_deform.py` 對 main_draw 4 真實
+  美術 mesh **4 AC 全 PASS**(合法/round-trip、全幀 si/flip/degen=0、無縫+identity 介面、非平凡+折疊
+  負對照被抓 si=8+極端仿射剪切仍乾淨);build 端到端 robot 光暈/身體 294 幀全乾淨(位移 22–341px),
+  `validate_build`/`validate_anim`(0d)回歸 PASS。**關鍵教訓:平面雙射≠mesh 保拓樸**——直線邊是頂點
+  位移後重畫的,只有**仿射**映射精確保邊;非線性剪切讓邊互穿(密集 body mesh 爆 si=30 才發現,原以為
+  純 y 剪切恆乾淨)。負對照校準:radial s=−2 是 180° 旋轉(det=+1)保拓樸不該被抓 → 改用單頂點拽過質心。
+  新增 check_readiness 區塊 `spine-motion`(0d+0e)4 cap 全 GREEN 但**刻意 L2 非 L3 → HOLD**(動作美感
+  主觀=A 類,防固化)。見 `knowledge/s1-mesh-deform-timeline.md`。
+
 ## 真實資產(已收進 `assets/`)
 
 - `assets/main_draw.json`(真實骨架:28 bones / 40 slots / 9 anims / 4 unweighted mesh)。
@@ -192,10 +205,11 @@
 > **S5 的可自主子問題已收斂到位**(pivot 縫 + 樹推斷 + rig 組裝 + weighted 併用 + 多跳鏈,合成 fixture 覆蓋深度通用)。
 > 建議下一個 bounded chunk(擇一,皆可自主):
 > **(A) S1 keyframe 補主秀 beat 模板**(S1 (f)):給 hit/open/reveal 等 big-win beat 加確定性 keyframe 模板 + 真值閘;
-> **(B) mesh deform timeline 生成**(讓 build --animate 的窗簾/軟件會 deform,非只 bone TRS;配 deform_eval 閘);
-> **(C) weighted-forge / rig 併入 `spine-asset-forge` skill**(需 **C 類使用者拍板** sync;打包政策見 `skills/README.md`);
+> **(B') mesh deform 專屬主秀爆發**(承 0e):給 hit/open/reveal 的 mesh 加爆發式 deform 模板(如光暈炸開、窗簾拉開)+ 閘;
+> ~~(B) mesh deform timeline 生成~~ **✅ 完成(2026-08-31 s004,candidate 0e,`spine-motion` L2 GREEN 但 HOLD,見上里程碑)**;
+> **(C) weighted-forge / rig / motion 併入 `spine-asset-forge` skill**(需 **C 類使用者拍板** sync;打包政策見 `skills/README.md`);
 > **(D) rig 真值資源**(**C/資源類**,阻塞 S5→L3):請使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot** 的分層/rig 檔。
-> 建議先做 (A) 或 (B)(純自主、續充實「會動」的產線;S5 自主面已飽和,再推需 (D) 的真值)。
+> 建議先做 (A) 或 (B')(純自主、續充實「會動」的產線;動作美感主觀項留使用者)。
 
 ## 環境前置(已驗證可用)
 
@@ -212,6 +226,12 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-08-31(session 004):**S1 candidate 0e mesh deform timeline 生成器(里程碑)** — 補 0d 缺口
+  (mesh 只剛性隨骨走)。`gen_mesh_deform.py`(仿射核心 swing/uniform-scale 恆乾淨 + 非仿射行進波經
+  `deform_eval` 逐幀自動遞減至乾淨)+ `build_spine --animate --deform` 端到端 + `validate_mesh_deform.py`
+  對 main_draw 4 真實 mesh 4AC 全 PASS(全幀 si/flip/degen=0、無縫+identity、非平凡+折疊負對照被抓)。
+  **關鍵教訓:平面雙射≠mesh 保拓樸**(直線邊位移後重畫,只有仿射精確保邊;密集 body mesh 爆 si=30 才發現)。
+  新增 `spine-motion` 區塊(0d+0e)4cap GREEN 但刻意 L2→HOLD(動作美感主觀)。見 `knowledge/s1-mesh-deform-timeline.md`。
 - 2026-08-31(session 003):**S5 (d') 多跳 weighted 肢體鏈端到端驗收(里程碑)** — 補 combo 唯一 honest-boundary
   缺口(「weighted mesh 當鏈中段肢體」在 robot_parts 無樣本)。合成鏈 fixture `make_limb_chain_psd.py`
   (body→arm→forearm→hand,arm/forearm 皆 weighted mesh)+ `validate_rig_weighted_chain.py` 5AC 全 PASS:

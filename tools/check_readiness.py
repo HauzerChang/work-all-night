@@ -149,6 +149,33 @@ BLOCKS = [
                      "演算法早已支援(接觸縫遞迴+控制骨掛關節骨),本閘證端到端成立。honest boundary:合成 fixture 非藝術家真值"),
         ],
     },
+    {
+        "id": "spine-motion",
+        "title": "分鏡 → 動畫 timeline(candidate 0d bone TRS + 0e mesh deform)",
+        "target_skill": "HOLD:客觀閘(合法/乾淨/無縫)全綠,但**動作美感主觀(A 類,留使用者)**→ 不宣告 L3,區塊維持 HOLD",
+        "caps": [
+            CAP("storyboard_bone_anim", "分鏡→bone TRS + slot alpha(0d)", "L2",
+                "python3 tools/analyzer/build_spine.py assets/robot_parts.psd --out specs/robot_anim_spine --animate >/dev/null && "
+                "python3 tools/analyzer/validate_anim.py specs/robot_anim_spine/skeleton.json --psd assets/robot_parts.psd",
+                "gen", note="4AC(合法/loop 無縫/幅度相位/串接 identity)+ --selftest 負對照;role→運動基元為先驗手感提案(非學自真值)"),
+            CAP("mesh_deform_gate", "mesh deform timeline 真值閘(0e)", "L2",
+                "python3 tools/analyzer/validate_mesh_deform.py", "eval",
+                note="對 main_draw 4 真實美術 mesh:AC1 合法/round-trip、AC2 乾淨(si/flip/degen=0 全幀)、"
+                     "AC3 無縫+identity 介面、AC4 非平凡+負對照(折疊被抓)+正對照(極端仿射剪切仍乾淨)。"
+                     "評估器 = deform_eval(已對藝術家真值自一致 si=0)"),
+            CAP("mesh_deform_gen", "mesh deform 生成器(仿射核心 + 波幅閘控)", "L2",
+                "python3 tools/analyzer/validate_mesh_deform.py", "gen",
+                note="affine swing/uniform-scale 恆乾淨(仿射保直線邊)+ 非仿射行進波經 deform_eval 逐幀自動遞減至乾淨(最差退純仿射);"
+                     "端到端接 build_spine --animate --deform(robot 光暈/身體 294 幀全乾淨、位移 22–341px)"),
+            CAP("motion_end2end", "build_spine --animate --deform 端到端(bone+deform 共存)", "L2",
+                "python3 tools/analyzer/build_spine.py assets/robot_parts.psd --out specs/robot_animdef_spine --animate --deform >/dev/null && "
+                "python3 tools/analyzer/validate_build.py assets/robot_parts.psd specs/robot_animdef_spine && "
+                "python3 tools/analyzer/validate_anim.py specs/robot_animdef_spine/skeleton.json --psd assets/robot_parts.psd",
+                "pipeline",
+                note="**刻意 L2 非 L3**:端到端可跑、round-trip + 0d 閘回歸皆 PASS,但動作『好不好看』屬主觀美感(A 類)"
+                     "→ 不當作客觀 L3 里程碑,故區塊 HOLD(防把主觀手感固化成 skill)"),
+        ],
+    },
 ]
 
 LADDER = {"L0": 0, "L1": 1, "L2": 2, "L3": 3, "L4": 4}
