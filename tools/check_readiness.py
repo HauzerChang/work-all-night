@@ -140,6 +140,13 @@ BLOCKS = [
                 note="移除 --rig/--weighted 互斥;weighted mesh 控制骨改掛該件關節骨 b_{nm}(座標轉局部)→ 4AC PASS "
                      "(結構/ setup 逐頂點 0.00px / 自articulate+鏈帶動 vs weighted-only 脫鉤(0px)/ 關節旋轉逐幀 si=0)。"
                      "仍 L2:同 pivot_end2end,僅單一 robot rig 驗過(多 rig 真值屬使用者資源)"),
+            CAP("rig_weighted_chain", "多跳 weighted 肢體鏈(weighted mesh 當鏈中段)", "L2",
+                "python3 tools/analyzer/validate_rig_weighted_chain.py", "pipeline",
+                note="補 robot_parts 無『weighted mesh 當鏈中段肢體』樣本的缺口:合成鏈 fixture "
+                     "(make_limb_chain_psd:body→arm→forearm→hand,arm/forearm 皆 weighted mesh)。5AC PASS:"
+                     "鏈深 4≥3 非星形 / setup 0.00px / 遞迴帶動(轉 b_body→forearm 隔一跳仍隨動 80px、"
+                     "轉 b_arm→forearm 動 body 不動、weighted-only 全脫鉤 0px)/ region 葉件隨鏈 / 逐幀 si=0。"
+                     "演算法早已支援(接觸縫遞迴+控制骨掛關節骨),本閘證端到端成立。honest boundary:合成 fixture 非藝術家真值"),
         ],
     },
 ]
