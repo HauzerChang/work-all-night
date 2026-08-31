@@ -55,6 +55,17 @@
   region bounding-rect 代理右手誤差 406px,改從 atlas alpha 取真實輪廓降到 25px(PSD-first 論點在 rig 階段再現)。
   `spine-rig-pivot` 區塊 L2 → **HOLD**(僅單一 rig、pivot→bone 樹未接 build_spine)。軸向精修屬美術(A 類)。
   見 `knowledge/s5-rig-pivot-inference.md`、圖 `figures/s5_pivot_inference.png`。
+- **S5 肢體父子樹自動推斷(里程碑,2026-08-31)** — 移除 rig pipeline **最後一個「取自先驗」環節**:
+  `build_spine --rig` 的 `rig_layout` 原**假設星形**(每結構件直掛 body,root/父邊取自分析器 note);
+  改由 `tools/rig/infer_tree.py` 由**拆件相鄰幾何自動推斷父子樹**(root=面積最大 trunk;父邊=接觸距離
+  Dijkstra 最短路徑樹,**支援多跳肢體鏈**)。子件 pivot 改對**推得的父件**取接觸縫;bone 以拓樸序輸出。
+  `validate_tree.py` 對 Award 機器人真值樹 **AC1–AC4 + 3 負對照全 PASS**(root 對、拓樸==真值、τ band
+  穩定、合成鏈驗多跳;NC:隨機父≈1.4%、斷開左手父邊變、天真納光暈汙染樹→證 role 須輸入)。
+  接進後 `validate_rig_build.py` 原 **4 AC 端到端回歸全 PASS**(rig_root=b_身體 自動推得)。
+  **關鍵發現:root 須 area-primary 非 degree-hub**——純肢體鏈中間件 degree 最高卻非 root(trunk 在鏈端);
+  且重疊 composite 下 degree 飽和(4 件互重疊 → 全 degree 3),area 才是決定訊號。
+  新增 cap `limb_tree_infer` L2 GREEN;`spine-rig-pivot` **仍 HOLD**(L3 缺口=多 rig 真值不變,屬使用者資源)。
+  見 `knowledge/s5-limb-tree-inference.md`。
 - **S5 pivot→bone 父子樹寫入 build_spine(里程碑,2026-08-30)** — S5 脫離 HOLD 的**第二個要件**:
   `build_spine.py --rig` 把「關節=父子件接觸縫」接進組裝,產出帶**真正骨骼關節鏈**的可載入 Spine
   (結構子件掛 body、關節落接觸縫;bone 移到關節後 attachment 以 delta 位移保 setup pose;暫不與 `--weighted` 併用)。
@@ -143,7 +154,8 @@
    **續(達 L3 → 脫離 HOLD)**:(a) ~~pivot→bone 父子樹寫入 `build_spine`~~ **✅ 完成(--rig,L2 GREEN)**;
    (b) **多 rig 真值(唯一硬缺口,資源類)**:實查 Award **只有機器人一件可拆肢體 rig**(`1_OMG`/`2_SUP`/`3_MEG`
    為單圖+特效,無接觸縫)→ 需**使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot 的分層/rig 檔;
-   (c) 肢體父子樹自動推斷(目前取自先驗 note);(d) `--rig`×`--weighted` 併用、多層關節鏈(手→前臂→手掌)。
+   (c) ~~肢體父子樹自動推斷(原取自先驗 note)~~ **✅ 完成(2026-08-31,`infer_tree`,L2 GREEN,見上里程碑)**;
+   (d) `--rig`×`--weighted` 併用、多層關節鏈(手→前臂→手掌,遞迴接觸縫做 2+ 跳鏈——演算法已支援,缺真值)。
    人形 RTMPose/MediaPipe、非人形光流分群為後續。
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
@@ -173,6 +185,11 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-08-31:**S5 肢體父子樹自動推斷(里程碑)** — 補上 rig pipeline 最後一個先驗環節:`infer_tree.py`
+  由拆件相鄰幾何自動推父子樹(area-primary root + 接觸距離 Dijkstra 樹,支援多跳鏈),取代 `rig_layout` 星形先驗。
+  `validate_tree.py` 對 Award 真值樹 AC1–4 + 3 負對照全 PASS,合成鏈驗多跳通用;接進後 `validate_rig_build` 4AC 回歸 PASS。
+  發現 root 須 area-primary(純鏈中間件 degree 最高卻非 root;重疊 composite 下 degree 飽和)。新增 cap `limb_tree_infer` L2 GREEN;
+  `spine-rig-pivot` 仍 HOLD(L3 缺口=多 rig 真值,屬使用者資源)。見 `knowledge/s5-limb-tree-inference.md`。
 - 2026-08-30:**S5 pivot→bone 父子樹寫入 build_spine(里程碑)** — `build_spine --rig` 產帶真正關節鏈的可載入
   Spine(結構子件掛 body、關節落接觸縫、attachment delta 位移保 setup pose);`validate_rig_build.py` 4 AC 全 PASS
   (setup 不位移 0.00px、pivot 往返 0.04px、關節語意 rig vs 非rig 縫撕裂 2.1–3.2×↓)。`pivot_end2end` L0→L2 GREEN。

@@ -66,16 +66,19 @@ def _part_role(note):
 
 
 def rig_layout(metas, names, sizes, offsets, H, notes, parts_dir):
-    """S5:把各件排成骨骼父子樹,結構子件的 bone 原點落在「與 body 的接觸縫」pivot。
+    """S5:把各件排成骨骼父子樹,結構子件的 bone 原點落在「與**其父件**的接觸縫」pivot。
 
-    回傳 {name: {role, parent_bone, parent_name, world(x,y骨世界原點), center(件中心世界),
-                 delta(件中心-骨原點,供 attachment 位移以保 setup pose)}}。
-    純確定性:body=結構最大件(或註記 body);head/limb 用 contact_seam_joint 對 body 取縫;
-    effect 掛在 body 下(隨身移動,但不視為關節,原點=件中心)。父子樹來自分析器 note(先驗)。
+    回傳 (out, body, order)。out={name:{role, parent_bone, parent_name, world(x,y骨世界原點),
+                 center(件中心世界), delta(件中心-骨原點,供 attachment 位移保 setup pose), joint}};
+                 order = 階層拓樸序(父必先於子)。
+    純確定性:**父子樹(root + parent 邊)由拆件相鄰幾何自動推斷**(`infer_tree`,支援多跳鏈),
+    不再假設星形先驗;結構子件用 `contact_seam_joint` 對**其推得的父件**取縫;
+    effect 件(role 由 note 分類)掛 root 下,不視為關節(原點=件中心)。
     """
     import sys as _sys
     _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "rig"))
     from infer_pivots import contact_seam_joint  # noqa: E402
+    from infer_tree import infer_tree            # noqa: E402
 
     info = {}
     for i in range(len(names)):
@@ -86,11 +89,12 @@ def rig_layout(metas, names, sizes, offsets, H, notes, parts_dir):
         world_sil, _ = _boundary_world(part_png, ox, oy, H)
         info[nm] = dict(role=role, center=center, sil=world_sil, area=w * h)
 
-    # 選 rig 根(body):優先 role==body,否則最大結構件
-    structs = [nm for nm, d in info.items() if d["role"] != "effect"]
-    body = next((nm for nm, d in info.items() if d["role"] == "body"), None)
-    if body is None and structs:
-        body = max(structs, key=lambda nm: info[nm]["area"])
+    # 結構件(effect 由 note 語意分類為輸入,honest boundary);root + 父子樹由幾何推斷
+    structs = [nm for nm in names if info[nm]["role"] != "effect"]
+    tree, body = {}, None
+    if structs:
+        sparts = {nm: info[nm]["sil"] for nm in structs}
+        body, tree, _ = infer_tree(sparts)
     body_bone = f"b_{body}" if body else None
 
     out = {}
@@ -99,16 +103,29 @@ def rig_layout(metas, names, sizes, offsets, H, notes, parts_dir):
             out[nm] = dict(role=d["role"], parent_bone="root", parent_name=None,
                            world=d["center"].copy(), center=d["center"],
                            delta=np.zeros(2), joint=False)
-        elif d["role"] == "effect" or body is None:   # 特效件:掛 body 下,原點=件中心(非關節)
+        elif nm in tree:                         # 結構子件:parent=推得父件,原點=與父件接觸縫 pivot
+            par = tree[nm]
+            j, _ = contact_seam_joint(info[par]["sil"], d["sil"])
+            out[nm] = dict(role=d["role"], parent_bone=f"b_{par}", parent_name=par,
+                           world=np.asarray(j, float), center=d["center"],
+                           delta=d["center"] - np.asarray(j, float), joint=True)
+        else:                                    # 特效件(或無 root):掛 root 下,原點=件中心,非關節
             out[nm] = dict(role=d["role"], parent_bone=body_bone or "root",
                            parent_name=body, world=d["center"].copy(), center=d["center"],
                            delta=np.zeros(2), joint=False)
-        else:                                    # 結構子件:原點=與 body 接觸縫 pivot
-            j, _ = contact_seam_joint(info[body]["sil"], d["sil"])
-            out[nm] = dict(role=d["role"], parent_bone=body_bone, parent_name=body,
-                           world=np.asarray(j, float), center=d["center"],
-                           delta=d["center"] - np.asarray(j, float), joint=True)
-    return out, body
+
+    # 階層拓樸序(父必先於子):從 root 起 BFS,effect/孤兒殿後
+    order, seen = [], set()
+    if body:
+        queue = [body]
+        while queue:
+            cur = queue.pop(0)
+            if cur in seen:
+                continue
+            order.append(cur); seen.add(cur)
+            queue += [c for c, p in tree.items() if p == cur and c not in seen]
+    order += [nm for nm in names if nm not in seen]
+    return out, body, order
 
 
 def _weighted_attachment(part_png, ox, oy, W, H, w, h, bone_base_idx, bone_names_start,
@@ -216,11 +233,9 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
     if rig:
         if weighted:
             raise SystemExit("--rig 目前不與 --weighted 併用(weighted 控制骨父子樹整合列為後續)")
-        rlay, body = rig_layout(metas, names, sizes, offsets, H, note, parts_dir)
+        rlay, body, rig_order = rig_layout(metas, names, sizes, offsets, H, note, parts_dir)
         wo = {nm: rlay[nm]["world"] for nm in rlay}
-        joints = [nm for nm in names if rlay[nm]["parent_name"] == body and rlay[nm]["joint"]]
-        effs = [nm for nm in names if nm != body and not rlay[nm]["joint"]]
-        for nm in [body] + joints + effs:      # 階層序:父必先於子
+        for nm in rig_order:                   # 拓樸序:父必先於子(支援多跳鏈)
             r = rlay[nm]
             pw = wo[r["parent_name"]] if r["parent_name"] else np.zeros(2)
             lx, ly = np.asarray(r["world"]) - pw

@@ -127,9 +127,13 @@ BLOCKS = [
             CAP("contact_seam_infer", "接觸縫 pivot 推斷器", "L2",
                 "python3 tools/rig/validate_pivots.py", "gen",
                 note="3 關節 err 2–5% 軀幹尺度、勝質心 baseline;僅驗『關節在接觸縫』子問題,軸向精修屬美術(A類)"),
+            CAP("limb_tree_infer", "肢體父子樹自動推斷(root+parent 邊)", "L2",
+                "python3 tools/rig/validate_tree.py", "gen",
+                note="area-primary root + 接觸距離 Dijkstra 樹;對 Award 機器人真值樹 AC1-4 + 3 負對照全 PASS,合成鏈驗多跳通用;"
+                     "取代 rig_layout 的星形先驗(rig 拓樸現完全自決)。honest boundary:effect/structural 角色分類仍為輸入(NC3)"),
             CAP("pivot_end2end", "pivot→bone 父子樹寫入 build_spine(--rig)", "L2",
                 "python3 tools/analyzer/validate_rig_build.py", "pipeline",
-                note="build_spine --rig 端到端產關節鏈 + validate_rig_build 4AC(結構/setup不位移/pivot往返/關節語意 vs 非rig對照)PASS;"
+                note="build_spine --rig 端到端產關節鏈(父子樹改由 infer_tree 幾何推斷,非星形先驗)+ validate_rig_build 4AC(結構/setup不位移/pivot往返/關節語意 vs 非rig對照)PASS;"
                      "仍 L2 非 L3:僅單一 robot rig 驗過(Award 僅此件可拆肢體;OMG/SUP/MEG 為單圖+特效,無接觸縫)→ 多 rig 真值屬使用者資源"),
         ],
     },
