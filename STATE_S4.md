@@ -122,12 +122,10 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
 **以下三項來自 chunk 19 吸收使用者自製 Photoshop `GPT Fill` UXP 插件 v1.18(見
 `knowledge/s4-gptfill-plugin-knowledge.md`)。**
 
-19. 🔥 **【建議下一個推進,零成本純 CPU】上下文假設重測** — 插件給生成模型的重建上下文
-    **下限是 512px**,而我們的補圖閘從頭到尾只吃**單一圖層裁切、零周圍上下文**
-    (`inpaint_eval.py` 吃單張 RGBA 件)。也就是說「1a 對機械紋理材質全 fail」這個貫穿
-    S4 的核心結論,是在「只看單層」條件下量出來的。**實驗**:改用整張 composite(或含
-    鄰接圖層的較大裁切)當 baseline 的輸入上下文,看 1a 判定是否改變。純 CPU、不需授權、
-    不需新依賴,而且**有機會收窄或推翻一個既有核心結論**——這是目前投報率最高的一塊。
+19. ✅ **已完成(見下方 chunk 20)**——上下文假設重測:結論「1a 全 fail」不是零上下文的
+    人工產物——interior 模式下 windowed(512px 真實場景上下文)與孤立裁切版三個 CPU
+    baseline 輸出逐位元相同,edge 模式效果小且不一致,無案例翻盤。見
+    `knowledge/s4-inpaint-context-window.md`。
 18. **候選 16 的指標設計方向已具體化(可直接接著做)** — 插件 prompt 的
     「SHADOW REASONING」明確禁止「flat, uniformly-lit color」填補,理由是「亮度與暗邊界
     不匹配就看起來像貼上去的」——**與 chunk 18 用 vision 發現的「奶油糊」失真維度完全同構**
@@ -154,6 +152,24 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
 14. ✅ **已調查(見下方 chunk 15)**——`estimate_alpha_taper` 的另一種獨立失敗模式:拆解出
     兩個獨立根因(材質內部紋理雜訊污染 ring 統計 / 光滑材質非線性衰減使線性外推模型結構性
     失效),嘗試 4 種修法皆非零回歸,本次未修改 production 代碼,留 A 類岔路候選給使用者裁決。
+
+**本次(chunk 20,2026-08-31)已完成:**
+- ✅ **候選 19(上下文假設重測)完成,結論:「1a 全 fail」不是零上下文的人工產物** — 新增
+  `tools/mesh_gen/s4_context_window.py`。同一顆隨機挖洞分別套進「孤立層裁切」與「以 PSD
+  真實場景當背景、比照插件 512px 下限的大畫布視窗」,重跑既有三個 CPU baseline 配對比較。
+  過程踩到兩層校準坑(`psd.composite()` 被後畫圖層污染目標層自身內容;改用
+  `alpha_composite` 貼回又在半透明邊緣撞見「場景合成 alpha」≠「圖層自身 alpha」的假警報)
+  ——改用硬覆蓋(不經 alpha 混合)後 6 案例校準全數逐位元通過。**核心結果**:`身體`/`左手`
+  在 **interior 模式下 windowed 與孤立版三個 baseline 輸出逐位元相同(delta 恰好
+  0.0000)**——`nearest`(最近有效值)與 `cv2.inpaint`(極小半徑 FMM)都是局部演算法,
+  視野被演算法自身限制死,不是被裁圖裁掉的。edge 模式效果小且方向不一致(`nearest` 因
+  誤用鄰近圖層像素反而變差,seam_grad_diff 43.6→107.6),無案例跨過 1a 門檻(ssim>0.75,
+  windowed 最高僅 0.44,與孤立版相同)。**結論收窄候選 19 原假設**:512px 上下文對生成式
+  模型(候選 17)才有意義,對現有 CPU baseline 無效;「生成式路徑能不能解 1a」仍只能由
+  候選 17 回答。未改動任何 production 代碼(`inpaint_eval.py` 本身不變)。誠實限制:只測
+  `robot_parts.psd` 的身體/左手兩材質,未擴大到 icon 類材質;`光暈` 回歸檢查是退化案例
+  (bbox 已 ≥512px,pad_to=512 擴不出更大視窗)。見 `knowledge/s4-inpaint-context-window.md`、
+  `log/s4-2026-08-31-020.md`。
 
 **本次(chunk 19,2026-08-31)已完成:**
 - ✅ **吸收使用者自製 Photoshop `GPT Fill` UXP 插件 v1.18.0 的切圖/補圖知識(使用者直接指定)** —
@@ -323,6 +339,16 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
 
 ## 進度摘要 (progress log)
 
+- 2026-08-31:**候選 19(上下文假設重測)完成,結論:「1a 全 fail」不是零上下文的人工
+  產物(chunk 20)** — 新增 `tools/mesh_gen/s4_context_window.py`,同一顆挖洞分別套進
+  「孤立層裁切」與「PSD 真實場景當背景、比照插件 512px 下限的大畫布視窗」,配對比較既有
+  三個 CPU baseline。踩到兩層校準坑(composite 被後畫圖層污染 / alpha_composite 邊緣像素
+  的「場景 alpha」≠「圖層自身 alpha」假警報),改硬覆蓋後 6 案例校準逐位元通過。核心結果:
+  `身體`/`左手` interior 模式下 windowed 與孤立版三個 baseline **輸出逐位元相同**
+  (nearest/cv2.inpaint 都是局部演算法,視野被演算法自身限制死);edge 模式效果小且不一致
+  (`nearest` 反而因誤用鄰近圖層像素變差),無案例跨過 1a 門檻。結論收窄原假設:512px
+  上下文只對生成式模型(候選 17)有意義,對現有 CPU baseline 無效。未改動 production 代碼。
+  見 `knowledge/s4-inpaint-context-window.md`、`log/s4-2026-08-31-020.md`。
 - 2026-08-31:**吸收使用者自製 Photoshop `GPT Fill` UXP 插件 v1.18 知識(chunk 19,使用者
   直接指定)** — 完整讀過 5 檔(`main.js` 1986 行),產出
   `knowledge/s4-gptfill-plugin-knowledge.md`。取得 mask 慣例外部真值(8px 融合邊界 /24px

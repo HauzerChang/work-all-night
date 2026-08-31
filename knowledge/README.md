@@ -208,3 +208,18 @@
   禁止 flat 填補,與 vision 觀察到的「奶油糊」同構 → 候選 16 具體化為「邊界證據延續性」。
   另:插件獨立收斂到 premultiplied 插值、便宜幾何代理指標盲選候選、自我輸出污染自我評估的
   防呆,三者皆與本 repo 既有做法同型。誠實界定:尚未對本 repo 素材跑分(候選 17)。
+
+- [S4 候選 19:上下文假設重測(CPU baseline 加大輸入上下文)](s4-inpaint-context-window.md) —
+  新增 `tools/mesh_gen/s4_context_window.py`。同一顆隨機挖洞分別套進「孤立層裁切」與
+  「以 PSD 真實場景當背景、比照插件 512px 下限的大畫布視窗」兩種輸入,重跑既有三個 CPU
+  baseline(`nearest`/`cv2_telea`/`cv2_ns`)配對比較。過程踩到兩層校準坑(先用
+  `psd.composite()` 當上下文被後畫圖層污染目標層本身內容;改用 `alpha_composite` 貼回
+  又在半透明邊緣像素撞見「場景合成 alpha」與「圖層自身 alpha」語意不同的假警報)——最終
+  用硬覆蓋(不經 alpha 混合)讓 6 案例校準全部逐位元通過。**核心結果**:`身體`/`左手`
+  (已知 1a 全 fail 材質)在 **interior 模式下,windowed 版與孤立版三個 baseline 輸出逐位元
+  相同(delta 恰好 0.0000)**——機制解釋:`nearest`(最近有效值)與 `cv2.inpaint`
+  (極小半徑 FMM)都是局部演算法,視野本來就被演算法自身限制死,不是被裁圖裁掉的。edge
+  模式效果小且方向不一致(`nearest` 因誤用鄰近圖層像素反而變差),量級遠不足以讓任何案例
+  跨過 1a 門檻。**結論:「1a 機械紋理材質全 fail」不是「只看單層零上下文」的人工產物**,
+  收窄候選 19 原假設——512px 上下文對生成式模型(候選 17)才有意義,對現有 CPU baseline
+  無效。未改動任何 production 代碼(`inpaint_eval.py` 本身不變,新增獨立驗證腳本)。
