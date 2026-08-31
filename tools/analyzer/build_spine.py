@@ -129,10 +129,15 @@ def rig_layout(metas, names, sizes, offsets, H, notes, parts_dir):
 
 
 def _weighted_attachment(part_png, ox, oy, W, H, w, h, bone_base_idx, bone_names_start,
-                         max_area=1500.0, k_bones=2):
+                         max_area=1500.0, k_bones=2, parent_bone="root", parent_world=None):
     """生成 weighted mesh attachment + 該件的控制骨定義。
-    回傳 (attachment, new_bones)。new_bones 為 root 子骨(絕對世界座標、rotation 0),
-    故 setup skinning 用簡單 bind = 世界頂點 - 骨原點,partition of unity → 完美重建。"""
+    回傳 (attachment, new_bones)。控制骨預設為 root 子骨(絕對世界座標、rotation 0),
+    故 setup skinning 用簡單 bind = 世界頂點 - 骨原點,partition of unity → 完美重建。
+
+    S5 rig×weighted:給 `parent_bone`(該件的關節骨 b_{nm})+ `parent_world`(其世界原點)後,
+    控制骨改掛關節骨、座標轉為**相對關節骨的局部座標**(local = 控制骨世界 − 關節骨世界)。
+    setup 下父鏈皆純平移 → 控制骨世界位置不變 → **bind 偏移完全不變、setup pose 精確保留**;
+    但關節骨(及其祖先)旋轉時,控制骨(連同 weighted mesh)沿關節鏈剛性帶動 → weighted 件真正接進 rig。"""
     world, poly = _boundary_world(part_png, ox, oy, H)
     V, F = gwm.triangulate_polygon(world, max_area=max_area, boundary_steiner=False)
     n_hull = len(world)                                  # 前 N 頂點 == 邊界(Y 選項保證)
@@ -157,8 +162,10 @@ def _weighted_attachment(part_png, ox, oy, W, H, w, h, bone_base_idx, bone_names
     att = {"type": "mesh", "vertices": verts, "uvs": uvs,
            "triangles": [int(x) for t in F for x in t],
            "hull": int(n_hull), "width": int(w), "height": int(h)}
-    new_bones = [{"name": f"{bone_names_start}_c{j}", "parent": "root",
-                  "x": round(bone_pos[j][0], 2), "y": round(bone_pos[j][1], 2)}
+    # 控制骨座標:預設世界(掛 root);rig×weighted 時轉為相對關節骨的局部座標(保 setup 不動)
+    pwx, pwy = (parent_world[0], parent_world[1]) if parent_world is not None else (0.0, 0.0)
+    new_bones = [{"name": f"{bone_names_start}_c{j}", "parent": parent_bone,
+                  "x": round(bone_pos[j][0] - pwx, 2), "y": round(bone_pos[j][1] - pwy, 2)}
                  for j in range(k_bones)]
     return att, new_bones
 
@@ -230,9 +237,9 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
     order = sorted(range(len(parts)), key=lambda i: metas[i]["z"])
 
     # --rig:先算好 pivot→bone 父子樹,結構子件 bone 原點落在接觸縫;attachment 以 delta 位移保 setup pose。
+    # rig×weighted(2026-08-31):weighted mesh 的控制骨改掛該件的關節骨 b_{nm}(接進關節鏈),
+    #   非 mesh 結構件仍走 rig 的 delta 位移路徑。兩者可併用。
     if rig:
-        if weighted:
-            raise SystemExit("--rig 目前不與 --weighted 併用(weighted 控制骨父子樹整合列為後續)")
         rlay, body, rig_order = rig_layout(metas, names, sizes, offsets, H, note, parts_dir)
         wo = {nm: rlay[nm]["world"] for nm in rlay}
         for nm in rig_order:                   # 拓樸序:父必先於子(支援多跳鏈)
@@ -260,7 +267,11 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         part_png = os.path.join(parts_dir, e["file"])
         if use_mesh and weighted:
             base = len(bones)                              # 控制骨的全域起始 index
-            att, ctrl = _weighted_attachment(part_png, ox, oy, W, H, w, h, base, bone)
+            if rig:                                        # 控制骨掛該件關節骨 b_{nm}(接進關節鏈)
+                att, ctrl = _weighted_attachment(part_png, ox, oy, W, H, w, h, base, bone,
+                                                 parent_bone=bone, parent_world=wo[nm])
+            else:                                          # 原行為:控制骨掛 root(絕對世界座標)
+                att, ctrl = _weighted_attachment(part_png, ox, oy, W, H, w, h, base, bone)
             bones += ctrl
         elif use_mesh:
             m = gen_mesh(part_png, mode="auto")

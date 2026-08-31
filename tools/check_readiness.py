@@ -135,6 +135,11 @@ BLOCKS = [
                 "python3 tools/analyzer/validate_rig_build.py", "pipeline",
                 note="build_spine --rig 端到端產關節鏈(父子樹改由 infer_tree 幾何推斷,非星形先驗)+ validate_rig_build 4AC(結構/setup不位移/pivot往返/關節語意 vs 非rig對照)PASS;"
                      "仍 L2 非 L3:僅單一 robot rig 驗過(Award 僅此件可拆肢體;OMG/SUP/MEG 為單圖+特效,無接觸縫)→ 多 rig 真值屬使用者資源"),
+            CAP("rig_weighted_combo", "--rig × --weighted 併用(weighted 控制骨接進關節鏈)", "L2",
+                "python3 tools/analyzer/validate_rig_weighted_build.py", "pipeline",
+                note="移除 --rig/--weighted 互斥;weighted mesh 控制骨改掛該件關節骨 b_{nm}(座標轉局部)→ 4AC PASS "
+                     "(結構/ setup 逐頂點 0.00px / 自articulate+鏈帶動 vs weighted-only 脫鉤(0px)/ 關節旋轉逐幀 si=0)。"
+                     "仍 L2:同 pivot_end2end,僅單一 robot rig 驗過(多 rig 真值屬使用者資源)"),
         ],
     },
 ]

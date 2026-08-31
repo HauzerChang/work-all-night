@@ -55,6 +55,17 @@
   region bounding-rect 代理右手誤差 406px,改從 atlas alpha 取真實輪廓降到 25px(PSD-first 論點在 rig 階段再現)。
   `spine-rig-pivot` 區塊 L2 → **HOLD**(僅單一 rig、pivot→bone 樹未接 build_spine)。軸向精修屬美術(A 類)。
   見 `knowledge/s5-rig-pivot-inference.md`、圖 `figures/s5_pivot_inference.png`。
+- **S5 (d) `--rig`×`--weighted` 併用(里程碑,2026-08-31,session 002)** — 移除 `--rig`/`--weighted`
+  **互斥限制**(原併用直接 `SystemExit`)。weighted mesh 的控制骨改掛**該件關節骨 `b_{nm}`**(座標轉相對局部),
+  讓件同時能被關節articulate + 局部 weighted 變形。**純座標問題非演算法衝突**:setup 下父鏈皆純平移 →
+  weighted bind 偏移**不用改** → setup 精確保留。`validate_rig_weighted_build.py` 對 robot_parts **4 AC 全 PASS**:
+  ①結構(控制骨 parent==關節骨、rig 樹完好);②setup 逐頂點 **0.0000px** 不位移(vs weighted-only);
+  ③自articulate(轉 `b_{nm}` rig 動 72/53px vs weighted-only **脫鉤 0px**)+ 鏈帶動(轉 rig 根 `b_身體`
+  子件光暈隨動 73.9px vs 脫鉤 0px);④關節旋轉逐幀結構件 si=0/flip=0(effect additive 容忍)。
+  **內建負對照=weighted-only 版位移=0**(鑑別力)。honest boundary:此資產 weighted 結構子件為空集
+  (肢體是 region 件、weighted 只有身體=rig根+光暈=effect),多跳 weighted 肢體鏈需新素材(使用者資源)。
+  新增 cap `rig_weighted_combo` L2 GREEN;`spine-rig-pivot` **仍 HOLD**(L3 硬缺口=多 rig 真值不變)。
+  見 `knowledge/s5-rig-weighted-combo.md`。
 - **S5 肢體父子樹自動推斷(里程碑,2026-08-31)** — 移除 rig pipeline **最後一個「取自先驗」環節**:
   `build_spine --rig` 的 `rig_layout` 原**假設星形**(每結構件直掛 body,root/父邊取自分析器 note);
   改由 `tools/rig/infer_tree.py` 由**拆件相鄰幾何自動推斷父子樹**(root=面積最大 trunk;父邊=接觸距離
@@ -155,7 +166,8 @@
    (b) **多 rig 真值(唯一硬缺口,資源類)**:實查 Award **只有機器人一件可拆肢體 rig**(`1_OMG`/`2_SUP`/`3_MEG`
    為單圖+特效,無接觸縫)→ 需**使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot 的分層/rig 檔;
    (c) ~~肢體父子樹自動推斷(原取自先驗 note)~~ **✅ 完成(2026-08-31,`infer_tree`,L2 GREEN,見上里程碑)**;
-   (d) `--rig`×`--weighted` 併用、多層關節鏈(手→前臂→手掌,遞迴接觸縫做 2+ 跳鏈——演算法已支援,缺真值)。
+   (d) ~~`--rig`×`--weighted` 併用~~ **✅ 完成(2026-08-31 session 002,`rig_weighted_combo` L2 GREEN,見上里程碑)**;
+   **續(d')**:多層 weighted 肢體鏈(手→前臂→手掌,遞迴接觸縫做 2+ 跳鏈——演算法已支援,缺真實多跳 weighted 素材)。
    人形 RTMPose/MediaPipe、非人形光流分群為後續。
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
@@ -185,6 +197,13 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-08-31(session 002):**S5 (d) `--rig`×`--weighted` 併用(里程碑)** — 移除兩旗標互斥;weighted mesh
+  控制骨改掛該件關節骨 `b_{nm}`(座標轉相對局部),件同時可關節articulate + 局部 weighted 變形。純座標問題:
+  setup 下父鏈純平移 → bind 偏移不變 → setup 逐頂點 **0.00px** 不位移。`validate_rig_weighted_build.py` 對
+  robot_parts 4 AC 全 PASS(結構/setup 不動/自articulate 72·53px + 鏈帶動 73.9px vs weighted-only **脫鉤 0px**/
+  關節旋轉逐幀 si=0)。內建負對照=weighted-only 位移=0(鑑別力)。回歸:validate_rig_build(rig-only)、
+  validate_weighted_build(weighted-only)皆仍 PASS。新增 cap `rig_weighted_combo` L2;區塊仍 HOLD(多 rig 真值缺口)。
+  見 `knowledge/s5-rig-weighted-combo.md`。
 - 2026-08-31:**S5 肢體父子樹自動推斷(里程碑)** — 補上 rig pipeline 最後一個先驗環節:`infer_tree.py`
   由拆件相鄰幾何自動推父子樹(area-primary root + 接觸距離 Dijkstra 樹,支援多跳鏈),取代 `rig_layout` 星形先驗。
   `validate_tree.py` 對 Award 真值樹 AC1–4 + 3 負對照全 PASS,合成鏈驗多跳通用;接進後 `validate_rig_build` 4AC 回歸 PASS。
