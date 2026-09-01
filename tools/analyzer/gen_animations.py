@@ -190,8 +190,8 @@ def gen_pulse(role, side_sign, radial):
 _DISPATCH = {"intro": gen_in, "loop": gen_loop, "outro": gen_out, "hold": gen_hold, "pulse": gen_pulse}
 
 
-def build_animations(skeleton, storyboard):
-    """回傳 animations dict(beat 名為 key)。"""
+def build_animations(skeleton, storyboard, with_deform=True, deform_amp=0.08, deform_wavenum=1.0):
+    """回傳 animations dict(beat 名為 key)。with_deform=True 時同時為 mesh 軟件注入 deform timeline。"""
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
@@ -233,6 +233,16 @@ def build_animations(skeleton, storyboard):
         if slots_tl:
             anim["slots"] = slots_tl
         anims[name] = anim
+
+    if with_deform:
+        # candidate 0e:讓 mesh 軟件逐頂點變形(非只被父骨剛體搬動)。
+        # 注入 deform 需 skeleton["animations"] 已含各 beat → 暫掛上再由 gen_deform 依 beat 類別注入。
+        import gen_deform
+        prev = skeleton.get("animations")
+        skeleton["animations"] = anims
+        gen_deform.add_deform_for_beats(skeleton, amp_frac=deform_amp, wavenum=deform_wavenum)
+        if prev is not None:
+            skeleton["animations"] = prev
     return anims
 
 
