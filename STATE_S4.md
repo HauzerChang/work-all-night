@@ -138,6 +138,7 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
     `spine_inspector.html` 不支援雙頁因而不可共用)、`s4_award_screenshot_compare.py`。
     **下一步(若再推進)**:擴大到 `身體`/`光暈`,或取得真實遊戲顯示縮放比例驗證佔比假設。
     見 `knowledge/s4-inpaint-spine-render-compare.md`、`log/s4-2026-09-01-023.md`。
+    ✅ **chunk 24 更新**:第二個案例(`身體`,`rotate=true`)已完成,見下方。
 
 ---
 
@@ -378,6 +379,18 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
    `chosen_method` 不變。見 `knowledge/s4-inpaint-1b-edge-gate.md`、
    `log/s4-2026-08-29-012.md`。
 
+**本次(chunk 24,2026-09-01)已完成:**
+- ✅ **候選 16 路徑 (b) 第二個案例:機器人拆件/身體(驗證 rotate=true 路徑)** —
+  沿用 chunk 23 的通用工具 `s4_award_screenshot_compare.py`(不改 production 代碼,只換
+  `--slot`/`--att-name` 參數),對 `身體`(`rotate=true`,`左手` 是 `rotate=false`)跑同一套
+  流程。**核心結果**:(1) 全 900×900 場景像素比對 orig vs patched,11 個時間點差異像素
+  全部落在目標 slot 螢幕框內、0 外洩——首次在真實 spine-webgl 渲染管線下驗證
+  `atlas_patch.py` 的旋轉還原正確(之前只有 `--selftest` 靜態自測覆蓋);(2) 該材質實際
+  螢幕佔比 ~1.0~1.1%(約 `左手` 的兩倍),人眼複查(實際渲染尺寸,未放大)orig/patched
+  仍幾乎無法分辨,「不構成一眼可見穿幫」的結論可攜到第二個材質,且尚未在更大佔比下翻盤。
+  1b 盲選同樣選中 `nearest`(`pass_1b`)。見 `knowledge/s4-inpaint-spine-render-compare.md`
+  (新增「第二個案例」章節)、`log/s4-2026-09-01-024.md`。
+
 ## 未解問題 / 阻塞 (open questions / blockers)
 
 - ✅ LaMa 等深度 inpaint 權重下載是否被網路政策擋?(候選 4,已解:部分允許但代價高,通用權重
@@ -389,21 +402,28 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
 - ❓ 補圖真值來源:目前用「合成挖洞」自造(已完成校準);「遮擋真值法」(候選 1)待驗證是否與合成挖洞判定一致。
 - ✅ 1b 閾值反向校準是否可行?(候選 7,已解:用 vision 代理調查過,現有三指標框架解不了
   「高頻細節丟失」這個新發現的維度,不是門檻問題,見 `knowledge/s4-inpaint-1b-lenient-gate.md`)
-- 🆕 **候選 16(chunk 18 提出,chunk 21/22/23 更新)**:路徑 (a)「1b 加第 4 個指標」的兩次
+- 🆕 **候選 16(chunk 18 提出,chunk 21/22/23/24 更新)**:路徑 (a)「1b 加第 4 個指標」的兩次
   具體嘗試都已實作校準並排除——「邊界證據延續性」(候選 18,結構性偏向獎勵平滑)、
   「局部高頻能量/方差比」(候選 20,正對照本身因材質不均勻失真 + 無法分辨真實紋理/
   拼貼假邊/純雜訊)。路徑 (a) 這個大方向若要再嘗試,需要換成能分辨「結構/樣式」而非
-  只看「量級」的統計量,已逼近與 1a `ssim` 職責重疊,價值存疑。**路徑 (b) 已完成第一個
-  真實案例(chunk 23,`左手`)**:貼回真實 Award spine 場景截圖比對,結論「瑕疵仍在但實際
-  渲染尺度下不構成一眼可見的穿幫」——單一材質/單一洞的結果,若要更完整可再擴大到
-  `身體`/`光暈`,非阻塞性 A 類岔路,是可選的延伸工作塊。見
-  `knowledge/s4-inpaint-spine-render-compare.md`。
+  只看「量級」的統計量,已逼近與 1a `ssim` 職責重疊,價值存疑。**路徑 (b) 已完成兩個
+  真實案例(chunk 23 `左手`、chunk 24 `身體`)**:貼回真實 Award spine 場景截圖比對,兩者
+  結論一致——「瑕疵仍在但實際渲染尺度下不構成一眼可見的穿幫」,且 `身體` 額外驗證了
+  `atlas_patch.py` 旋轉還原(`rotate=true`)在真實渲染管線下正確、實際佔比翻倍(~1.0~1.1%
+  vs ~0.5~0.6%)結論仍未翻盤。若要更完整可再擴大到 `光暈`(平滑材質,補第三種材質類型),
+  非阻塞性 A 類岔路,是可選的延伸工作塊。見 `knowledge/s4-inpaint-spine-render-compare.md`。
 - 🔀 **A 類岔路(候選 15,2026-08-30)**:`estimate_alpha_taper` 候選 14 的最佳修法(方向濾波
   +p90)是「13 例大幅改善換 9 例壓線新增 fail」的 trade-off,不符合零回歸門檻,需要使用者
   裁決是否接受此 trade-off 並落地。詳見 `knowledge/s4-inpaint-alpha-taper-candidate14.md`。
 
 ## 進度摘要 (progress log)
 
+- 2026-09-01:**候選 16 路徑 (b) 第二個案例完成(`身體`,驗證 rotate=true 路徑,chunk 24)** —
+  沿用 chunk 23 的通用工具重跑,不改 production 代碼。核心結果:(1) 首次在真實
+  spine-webgl 渲染管線驗證 `atlas_patch.py` 旋轉還原正確(全 11 個時間點差異像素零外洩到
+  目標 slot 螢幕框外);(2)「高頻細節丟失但不構成一眼可見穿幫」的結論可攜到第二個材質,
+  即使其實際佔比(~1.0~1.1%)是 `左手`(~0.5~0.6%)的近兩倍。見
+  `knowledge/s4-inpaint-spine-render-compare.md`、`log/s4-2026-09-01-024.md`。
 - 2026-09-01:**候選 16 路徑 (b)(補圖貼回真實 Award spine 場景,headless 動畫截圖比對)
   第一個真實案例完成(chunk 23)** — 新增 `tools/mesh_gen/atlas_patch.py`(`atlas_crop.py`
   逆操作,round-trip 自我驗證 5 region 全 `max_diff=0`)、`tools/mesh_gen/
