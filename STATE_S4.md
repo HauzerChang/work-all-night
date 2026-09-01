@@ -125,10 +125,19 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
     **路徑 (b)(貼回真實 Award spine 場景跑動畫截圖比對)是目前唯一未嘗試、且不依賴發明
     新自我參照指標的路徑**,建議候選 16 若要再推進,優先做 (b)。見
     `knowledge/s4-inpaint-1b-lenient-gate.md` 候選 20 章節。
+    ✅ **chunk 23 更新(見本次)**:路徑 (b) 已完成第一個真實案例(`左手`)——見下方新增段落。
 18. ✅ 已完成(見上方 chunk 21)——候選 18「邊界證據延續性」不採用,見候選 16 更新。
 20. ✅ **已完成(見本次 chunk 22)**——候選 16 路徑 (a) 第二次具體嘗試「局部高頻能量/方差比」
     (`tools/mesh_gen/s4_energy_ratio.py`),結論:兩個獨立失效模式,不採用。見上方候選 16
     更新、`knowledge/s4-inpaint-1b-lenient-gate.md` 候選 20 章節。
+21. ✅ **已完成(見本次 chunk 23)**——候選 16 路徑 (b):補圖貼回真實 `assets/Award.json/
+    atlas/png` spine 場景,headless 動畫截圖比對(`左手`,`Award_Legend_In/Loop` 11 個
+    時間點)。**結論**:實際渲染尺度下(該材質全場景只佔 ~0.5~0.6% 畫布)候選7已知的高頻
+    細節丟失瑕疵仍在,但不構成一眼可見的穿幫。新增 `atlas_patch.py`(已自我驗證,5 region
+    round-trip 全 `max_diff=0`)、`s4_spine_render_harness.html`(多頁 atlas 正確支援,
+    `spine_inspector.html` 不支援雙頁因而不可共用)、`s4_award_screenshot_compare.py`。
+    **下一步(若再推進)**:擴大到 `身體`/`光暈`,或取得真實遊戲顯示縮放比例驗證佔比假設。
+    見 `knowledge/s4-inpaint-spine-render-compare.md`、`log/s4-2026-09-01-023.md`。
 
 ---
 
@@ -380,20 +389,41 @@ PSD,預設 `composite()` 會吃到壞掉的合併預覽圖(整張變 RGB 無 alp
 - ❓ 補圖真值來源:目前用「合成挖洞」自造(已完成校準);「遮擋真值法」(候選 1)待驗證是否與合成挖洞判定一致。
 - ✅ 1b 閾值反向校準是否可行?(候選 7,已解:用 vision 代理調查過,現有三指標框架解不了
   「高頻細節丟失」這個新發現的維度,不是門檻問題,見 `knowledge/s4-inpaint-1b-lenient-gate.md`)
-- 🆕 **候選 16(chunk 18 提出,chunk 21/22 更新)**:路徑 (a)「1b 加第 4 個指標」的兩次
+- 🆕 **候選 16(chunk 18 提出,chunk 21/22/23 更新)**:路徑 (a)「1b 加第 4 個指標」的兩次
   具體嘗試都已實作校準並排除——「邊界證據延續性」(候選 18,結構性偏向獎勵平滑)、
   「局部高頻能量/方差比」(候選 20,正對照本身因材質不均勻失真 + 無法分辨真實紋理/
   拼貼假邊/純雜訊)。路徑 (a) 這個大方向若要再嘗試,需要換成能分辨「結構/樣式」而非
-  只看「量級」的統計量,已逼近與 1a `ssim` 職責重疊,價值存疑。**唯一仍待推進、且不依賴
-  發明新自我參照指標的路徑是 (b)**:投入把補圖貼回真實 Award spine 場景跑動畫截圖比對
-  (更貼近實戰但工作量大,需真實貼圖 pipeline 整合)——屬下一個可推進的有界工作塊,非
-  阻塞性 A 類岔路。
+  只看「量級」的統計量,已逼近與 1a `ssim` 職責重疊,價值存疑。**路徑 (b) 已完成第一個
+  真實案例(chunk 23,`左手`)**:貼回真實 Award spine 場景截圖比對,結論「瑕疵仍在但實際
+  渲染尺度下不構成一眼可見的穿幫」——單一材質/單一洞的結果,若要更完整可再擴大到
+  `身體`/`光暈`,非阻塞性 A 類岔路,是可選的延伸工作塊。見
+  `knowledge/s4-inpaint-spine-render-compare.md`。
 - 🔀 **A 類岔路(候選 15,2026-08-30)**:`estimate_alpha_taper` 候選 14 的最佳修法(方向濾波
   +p90)是「13 例大幅改善換 9 例壓線新增 fail」的 trade-off,不符合零回歸門檻,需要使用者
   裁決是否接受此 trade-off 並落地。詳見 `knowledge/s4-inpaint-alpha-taper-candidate14.md`。
 
 ## 進度摘要 (progress log)
 
+- 2026-09-01:**候選 16 路徑 (b)(補圖貼回真實 Award spine 場景,headless 動畫截圖比對)
+  第一個真實案例完成(chunk 23)** — 新增 `tools/mesh_gen/atlas_patch.py`(`atlas_crop.py`
+  逆操作,round-trip 自我驗證 5 region 全 `max_diff=0`)、`tools/mesh_gen/
+  s4_spine_render_harness.html`(新的 headless 渲染 harness,多頁 atlas 正確支援——
+  `spine_inspector.html` 的 `TextureAtlas` textureLoader 固定回傳同一張貼圖,對雙頁 atlas
+  的 Award 會讓其中一頁全部貼錯圖,故不可共用,只新增不改動)、`tools/mesh_gen/
+  s4_award_screenshot_compare.py`(orchestrator)。跑通 `機器人拆件/左手`(1a fail/1b pass
+  代表材質):atlas 解析度挖洞(interior,frac=0.12)→ 1b 盲選補丁(`nearest` 勝出)→ 貼回
+  `Award.png` 副本 → `Award_Legend_In`/`Award_Legend_Loop` 11 個時間點截圖比對。**過程踩到
+  一個坑**:相機不能只用 setup pose 框(`Award_Legend_In` 爆衝動畫中途會把材質甩出偏移的
+  視野),改成先跑 `orig` 場景取全部取樣時間點姿態包圍盒聯集再固定相機,orig/patched 才能
+  公平比較。**核心結果**:(1) 全 900×900 場景像素比對,差異只有 205px 且精確落在目標
+  slot 範圍內(其他 40+ slots 零差異)——證明雙頁貼圖路由正確;(2) 該材質在此相機框架下
+  只佔全場景 ~0.5~0.6% 面積(~70×60px);(3) 兩個獨立時間點 10x 放大人眼複查:候選7已知
+  的「高頻細節丟失/奶油糊」瑕疵仍在,但不構成一眼可見的接縫/破洞/色差,要刻意放大才看得
+  出摺痕反光細節被抹平一點。**誠實限制**:單一材質/單一 seed/單一盲選方法;相機框架是
+  方法論近似,未對照真實遊戲實機顯示縮放比例,若實機把特效放更大則「不明顯」的結論可能
+  不成立;人眼複查仍是 Claude vision 自評非真人標註。未改動 `spine_inspector.html`/
+  `inpaint_eval.py` 等既有 production 代碼。見 `knowledge/s4-inpaint-spine-render-compare.md`、
+  `log/s4-2026-09-01-023.md`。
 - 2026-09-01:**候選 20(1b「局部高頻能量/方差比」第 4 指標,候選 16 路徑 (a) 第二次嘗試)
   實作與校準完成,結論:兩個獨立失效模式,不採用(chunk 22)** — 新增
   `tools/mesh_gen/s4_energy_ratio.py`(`energy_ratio` = 洞內 core 局部方差 / 既有

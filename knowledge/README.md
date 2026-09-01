@@ -241,3 +241,17 @@
   「跳動量級」不量「樣式對不對」,逼近 1a `ssim` 職責重疊。不採用,未動 `score_1b`/
   `THRESH_1B`;候選 16 路徑 (a) 兩次嘗試(候選 18/20)皆已排除,建議後續優先做路徑 (b)
   (貼回真實 Award spine 場景跑動畫截圖比對)。
+- [S4 候選16路徑(b):補圖貼回真實 Award spine 場景,headless 動畫截圖比對](s4-inpaint-spine-render-compare.md) —
+  新增 `tools/mesh_gen/atlas_patch.py`(`atlas_crop.py` 逆操作,round-trip 自我驗證 5 region
+  全 `max_diff=0`)、`tools/mesh_gen/s4_spine_render_harness.html`(新的 headless 渲染
+  harness,多頁 atlas 正確支援——`spine_inspector.html` 的 textureLoader 固定回傳同一張貼圖,
+  對 Award 雙頁 atlas 會讓其中一頁全部貼錯圖,故不可共用,只新增不改動該檔)、`tools/mesh_gen/
+  s4_award_screenshot_compare.py`(orchestrator)。跑通 `機器人拆件/左手`:atlas 解析度挖洞→
+  1b 盲選補丁(`nearest` 勝出)→貼回 `Award.png` 副本→`Award_Legend_In`/`Loop` 11 個時間點
+  截圖比對。**踩坑**:相機不能只用 setup pose 框(爆衝動畫會把材質甩出偏移的視野),改成先
+  跑全部取樣時間點的姿態包圍盒聯集再固定相機。**核心結果**:(1) 全場景像素比對差異只有
+  205px 且精確落在目標 slot 範圍內,其他 40+ slots 零差異,證明雙頁貼圖路由正確;(2) 該材質
+  在此相機框架下只佔全場景 ~0.5~0.6% 面積;(3) 兩個獨立時間點 10x 放大人眼複查:候選7已知
+  的「高頻細節丟失/奶油糊」瑕疵仍在,但不構成一眼可見的接縫/破洞/色差。**誠實限制**:單一
+  材質/單一 seed/單一盲選方法;相機框架未對照真實遊戲實機顯示縮放比例。未改動
+  `spine_inspector.html`/`inpaint_eval.py` 等既有 production 代碼。

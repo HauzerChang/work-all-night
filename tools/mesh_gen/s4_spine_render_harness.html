@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>S4 spine render harness</title>
+<style>html,body{margin:0;background:#15171a;} #cv{display:block;}</style>
+</head>
+<body>
+<canvas id="cv" width="900" height="900"></canvas>
+<script src="spine-webgl.js"></script>
+<script>
+/*
+候選16路徑(b) 專用:headless、多頁 atlas 正確支援的 spine-webgl 渲染 harness。
+與 spine_inspector.html 的差異(不可共用該檔——它只支援單一貼圖,見
+knowledge/s4-inpaint-1b-lenient-gate.md 候選20章節後續 / STATE_S4.md):
+  - spine_inspector.html 的 TextureAtlas textureLoader 固定回傳同一張 realTex,
+    對 Award(atlas 雙頁 Award.png/Award2.png)只有其中一頁會正確,另一頁全錯貼。
+  - 本 harness 的 textureLoader 依 atlas page 檔名分派到各自預先載入好的 texture,
+    這才是 spine.TextureAtlas 原生支援的用法(見 spine-webgl.js TextureAtlas.load:
+    `page.texture = textureLoader(line)`,line = page 檔名字串,同步呼叫)。
+只寫在 tools/mesh_gen/ 下,不改動 spine_inspector.html(檔案隔離契約)。
+*/
+let gl, renderer, canvas;
+let skeleton = null, skeletonData = null, rawJson = null;
+let curAnim = null, animTime = 0, animDur = 0;
+let view = { scale: 1, x: 0, y: 0 };
+let pmaFlag = true;
+
+function boot() {
+  canvas = document.getElementById('cv');
+  gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, preserveDrawingBuffer: true });
+  renderer = new spine.webgl.SceneRenderer(canvas, gl);
+  window.__harnessReady = true;
+}
+boot();
+
+function fitView() {
+  skeleton.setToSetupPose();
+  skeleton.updateWorldTransform();
+  const off = new spine.Vector2(), size = new spine.Vector2();
+  try { skeleton.getBounds(off, size, []); } catch (e) {}
+  let sw = Number(size.x), sh = Number(size.y), ox = Number(off.x), oy = Number(off.y);
+  if (!(sw > 0) || !isFinite(sw)) { sw = 600; ox = -300; }
+  if (!(sh > 0) || !isFinite(sh)) { sh = 600; oy = -300; }
+  const cw = canvas.width, ch = canvas.height, m = 1.15;
+  const sc = Math.max((sw * m) / cw, (sh * m) / ch);
+  view.scale = (sc > 0 && isFinite(sc)) ? sc : 1;
+  view.x = isFinite(ox + sw / 2) ? (ox + sw / 2) : 0;
+  view.y = isFinite(oy + sh / 2) ? (oy + sh / 2) : 0;
+}
+function setCameraFit(ox, oy, sw, sh, margin) {
+  const m = margin == null ? 1.15 : margin;
+  const cw = canvas.width, ch = canvas.height;
+  const sc = Math.max((sw * m) / cw, (sh * m) / ch);
+  view.scale = (sc > 0 && isFinite(sc)) ? sc : 1;
+  view.x = isFinite(ox + sw / 2) ? (ox + sw / 2) : 0;
+  view.y = isFinite(oy + sh / 2) ? (oy + sh / 2) : 0;
+}
+function applyCamera() {
+  const c = renderer.camera;
+  c.viewportWidth = canvas.width * view.scale;
+  c.viewportHeight = canvas.height * view.scale;
+  c.position.x = view.x; c.position.y = view.y;
+}
+function poseAtCurrentTime() {
+  skeleton.setToSetupPose();
+  if (curAnim) { try { curAnim.apply(skeleton, 0, animTime, true, [], 1, spine.MixBlend.setup, spine.MixDirection.mixIn); } catch (e) {} }
+  skeleton.updateWorldTransform();
+}
+function getWorldVerts(slotName, attName) {
+  const slot = skeleton.findSlot(slotName); if (!slot) return null;
+  let att = (typeof slot.getAttachment === 'function') ? slot.getAttachment() : slot.attachment;
+  if (!att && slot.data) { try { att = skeleton.getAttachment(slot.data.index, attName || slot.data.attachmentName); } catch (e) {} }
+  if (!att || typeof att.computeWorldVertices !== 'function') return null;
+  const n = att.worldVerticesLength || (att.uvs ? att.uvs.length : 0);
+  const wv = new Float32Array(n);
+  att.computeWorldVertices(slot, 0, n, wv, 0, 2);
+  return wv;
+}
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const im = new Image();
+    im.onload = () => resolve(im);
+    im.onerror = (e) => reject(new Error('image load failed: ' + url));
+    im.src = url;
+  });
+}
+
+window.harness = {
+  ready: () => !!window.__harnessReady,
+  runtimeOk: () => !!(window.spine && spine.webgl && spine.webgl.SceneRenderer),
+
+  // jsonUrl/atlasUrl: relative fetch path.
+  // pageMap: {<page 檔名,如 atlas 內文所寫>: <實際 fetch URL>} —— 分開兩個字串是因為呼叫端
+  // 常把 orig/patched 兩份頁面放在不同子目錄,但 atlas 內文的 page 名字(TextureAtlas.load
+  // 拿去當 textureLoader(line) 的 key)必須維持跟 .atlas 檔一致,fetch 用的實際路徑才需要子目錄前綴。
+  // pma: bool, matches Cocos 'Premultiplied Alpha' setting (see CLAUDE.md 雷點 5).
+  load: async (jsonUrl, atlasUrl, pageMap, pma) => {
+    pmaFlag = !!pma;
+    const [jsonText, atlasText] = await Promise.all([
+      fetch(jsonUrl).then(r => { if (!r.ok) throw new Error('fetch json failed ' + r.status); return r.text(); }),
+      fetch(atlasUrl).then(r => { if (!r.ok) throw new Error('fetch atlas failed ' + r.status); return r.text(); }),
+    ]);
+    const images = {};
+    for (const name in pageMap) { images[name] = await loadImage(pageMap[name]); }
+    const textures = {};
+    for (const name in images) {
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, pmaFlag);
+      textures[name] = new spine.webgl.GLTexture(gl, images[name]);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    }
+    const atlas = new spine.TextureAtlas(atlasText, (path) => {
+      if (!textures[path]) throw new Error('no preloaded texture for atlas page: ' + path);
+      return textures[path];
+    });
+    const loader = new spine.AtlasAttachmentLoader(atlas);
+    const sj = new spine.SkeletonJson(loader); sj.scale = 1;
+    rawJson = JSON.parse(jsonText);
+    skeletonData = sj.readSkeletonData(rawJson);
+    skeleton = new spine.Skeleton(skeletonData);
+    skeleton.setToSetupPose(); skeleton.updateWorldTransform();
+    fitView();
+    return { bones: rawJson.bones.length, slots: rawJson.slots.length,
+             animations: Object.keys(rawJson.animations || {}), pages: Object.keys(images) };
+  },
+
+  // 目前 pose(setAnimation/setTime 之後)下,整個骨架的世界包圍盒——用來在 Python 端跨多個
+  // 動畫取樣時間點取聯集,避免只用 setup pose 框相機導致爆衝動畫(如 Award_Legend_In 的燒/飛出)
+  // 中途把目標 slot 甩出可視範圍外(見 STATE_S4/log:候選16路徑(b)首次試跑踩到的 bug)。
+  getPoseBounds: () => {
+    poseAtCurrentTime();
+    const off = new spine.Vector2(), size = new spine.Vector2();
+    try { skeleton.getBounds(off, size, []); } catch (e) { return null; }
+    const sw = Number(size.x), sh = Number(size.y), ox = Number(off.x), oy = Number(off.y);
+    if (!(sw > 0) || !isFinite(sw) || !(sh > 0) || !isFinite(sh)) return null;
+    return { x: ox, y: oy, w: sw, h: sh };
+  },
+  setCameraFit: (ox, oy, sw, sh, margin) => setCameraFit(ox, oy, sw, sh, margin),
+
+  setAnimation: (name) => {
+    curAnim = skeletonData.findAnimation(name);
+    if (!curAnim) throw new Error('no such animation: ' + name);
+    curAnim._name = name;
+    animDur = curAnim.duration || 0; animTime = 0;
+  },
+  setTime: (t) => { animTime = t; },
+
+  // 世界座標 -> 畫布像素座標(供 Python 端把 slot 的世界包圍盒換算成螢幕裁切框)。
+  worldToScreen: (wx, wy) => {
+    const c = renderer.camera;
+    const nx = (wx - c.position.x) / c.viewportWidth + 0.5;
+    const ny = (wy - c.position.y) / c.viewportHeight + 0.5;
+    return [nx * canvas.width, (1 - ny) * canvas.height];
+  },
+
+  getScreenBox: (slotName, attName) => {
+    poseAtCurrentTime();
+    const wv = getWorldVerts(slotName, attName);
+    if (!wv) return null;
+    let mnx = 1e9, mny = 1e9, mxx = -1e9, mxy = -1e9;
+    for (let i = 0; i < wv.length; i += 2) { mnx = Math.min(mnx, wv[i]); mxx = Math.max(mxx, wv[i]); mny = Math.min(mny, wv[i + 1]); mxy = Math.max(mxy, wv[i + 1]); }
+    applyCamera();
+    const p0 = window.harness.worldToScreen(mnx, mxy); // world maxY = screen top
+    const p1 = window.harness.worldToScreen(mxx, mny);
+    return { x0: p0[0], y0: p0[1], x1: p1[0], y1: p1[1] };
+  },
+
+  // slot 在此時間點是否真的有非空 attachment(排除「timeline 沒切到這件」的空跑)。
+  slotHasAttachment: (slotName) => {
+    poseAtCurrentTime();
+    const slot = skeleton.findSlot(slotName);
+    if (!slot) return false;
+    const att = (typeof slot.getAttachment === 'function') ? slot.getAttachment() : slot.attachment;
+    return !!att;
+  },
+
+  render: () => {
+    poseAtCurrentTime();
+    applyCamera();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0.082, 0.09, 0.102, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+    renderer.begin();
+    renderer.drawSkeleton(skeleton, pmaFlag);
+    renderer.end();
+  },
+};
+</script>
+</body>
+</html>
