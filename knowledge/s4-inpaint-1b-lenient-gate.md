@@ -192,3 +192,70 @@ python3 tools/mesh_gen/s4_boundary_evidence.py \
     <scratch>/robot/00_光暈.png <scratch>/robot/03_身體.png <scratch>/robot/04_左手.png \
     --modes interior --seed 0 --probe-depth 6
 ```
+
+## 候選 20:「局部高頻能量/方差比」第 4 指標實作與校準(2026-09-01,chunk 22,結論:兩個獨立失效模式,不採用)
+
+> 承接候選 16 原構想 (a)(見上方「決策/下一步」章節):候選 18(邊界證據延續性)結論該路線
+> 因「用平滑外推當預測基準」而結構性偏向獎勵平滑、不可用,並指出 (a)「洞內外高頻能量/局部
+> 方差比」方向上更有機會成立(問「補丁紋理能量夠不夠」而非「補丁像不像平滑預測值」,不會
+> 同樣倒錯方向)。本次把 (a) 做成可量化指標並校準,**結論:方向確實不像候選 18 那樣倒錯,
+> 但撞上兩個獨立、更根本的失效模式,一樣不能用**。
+
+**實作**(`tools/mesh_gen/s4_energy_ratio.py`,一次性探測腳本,未改動 `inpaint_eval.py`
+production 代碼):`energy_ratio`——局部高頻能量取局部方差(premultiplied 灰階,
+`uniform_filter` box 近似,手法同 `ssim_region` 內部 mu/var 計算慣例);洞側取 hole core
+(mask 內縮 3px 避開邊界漸層帶,深度不夠退回整個 mask);參照側**複製** `score_1b` 的
+`local_ring` 基準(mask 外環,寬度/半徑與既有 1b 完全一致,不重新發明幾何);
+`energy_ratio = hole 局部方差均值 / ref 局部方差均值`。**只測 interior 模式**(edge 模式套用
+`local_ring` 前需先排除貼真實輪廓的段落,同既有 1b 範圍限制,本次 interior 已經校準失敗,
+故未延伸到 edge)。
+
+**校準結果(`robot_parts.psd` 三材質,interior,seed=0)**:
+
+| 材質 | gt(正對照) | nearest | cv2_telea | cv2_ns | none | random |
+|---|---|---|---|---|---|---|
+| 光暈(平滑漸層) | **0.0036** | 0.2178 | 0.0744 | 0.0231 | 0.0 | 309.66 |
+| 身體(機械紋理) | 0.1483 | 0.379 | 0.028 | 0.0264 | 0.0 | 2.524 |
+| 左手(機械紋理) | 1.3675 | 1.3332 | 0.093 | 0.1058 | 0.0 | 1.1801 |
+
+**失效模式 1(光暈):正對照本身遠離「ratio≈1」的預期**——`光暈` 的 gt(真實內容本身)
+`energy_ratio` 只有 0.0036,比所有三個 baseline(nearest 0.22、cv2_telea 0.07、cv2_ns 0.02)
+都低,baseline 反而比真值本身「看起來更有能量」。根因:呼應候選 10 已確認的材質性質(見
+`knowledge/s4-inpaint-1a-shape-boundary.md`)——光暈材質局部統計量本身空間上極不均勻(核心
+陡、外圈平緩),本次挖洞剛好落在比 `local_ring` 參照環更平滑的區域,`energy_ratio` 這種
+「拿固定外環當單一全域基準」的設計,再次撞上候選 8/候選 18 都撞過的同一類根因:自我參照
+baseline 對局部統計不均勻的材質會失真,而且這次連正對照都失真,不是門檻鬆緊的問題。
+
+**失效模式 2(左手):負對照 random 與 gt/nearest 數值上分不開,且排序與已知結論矛盾**——
+跨 4 個 seed(0/1/2/3)重跑確認非單一樣本僥倖:`random` 的 `energy_ratio` 穩定落在
+0.83~1.67,與 `gt`(0.92~1.37)、`nearest`(0.75~1.33)同一數量級,**負對照鑑別力完全消失**
+(RULES 要求負對照必須明顯 fail,這裡數字本身無法分辨亂補與正確填補)。更嚴重的是排序方向
+跟既有證據矛盾:`nearest`(候選 18/chunk 18 vision 已知會產生 blocky 拼貼、非真實紋理)的
+`energy_ratio` 反而貼近 gt,而 `cv2_telea`/`cv2_ns`(vision 觀察到平滑模糊、1a ssim 在此材質
+上明顯優於 nearest:0.19/0.18 > 0.14)的 `energy_ratio` 卻遠低於 gt(0.08~0.17)——這個指標
+把 `nearest` 排在比 `cv2` 系列「更貼近真值」,跟既有 vision(候選 7)與 1a ssim 判斷完全
+相反。根因:局部方差量的是「數值有多跳動」而非「跳動的樣式對不對」——`nearest` 的
+distance-transform 拼貼會在洞內產生大量真實的像素跳變(視覺上是拼貼雜訊,不是正確紋理),
+量出的方差幅度剛好跟真實機械紋理、甚至跟純隨機雜訊同一量級,單看能量大小完全無法分辨
+「正確的高頻細節」「拼貼假邊」「純雜訊」三者。
+
+**決策**:不採用此實作,不動 `score_1b`/`THRESH_1B`(維持既有三指標)。候選 16 的兩條
+路徑目前皆已排除具體嘗試(路徑 (a) 本次的「方差量級比」失敗;若要再嘗試 (a) 這個大方向,
+需要換成能分辨「結構/樣式」而非只看「量級」的統計量(如區塊層級的紋理相似度、頻域能量分布
+比對這類需要匹配 pattern 而非只匹配 magnitude 的方法),但這已經逼近 1a 的 `ssim` 職責重疊
+(候選 16 原文就已預見這個風險),超出本次探測範圍。路徑 (b)(補圖貼回真實 Award spine 場景
+跑動畫截圖比對)仍是唯一尚未嘗試、且不依賴「發明一個新自我參照指標」的路徑,留給後續獨立
+工作塊。本次未改動任何 production 代碼,新增 `tools/mesh_gen/s4_energy_ratio.py` 作為留存的
+探測腳本與反例紀錄。
+
+**重現**:
+```
+python3 tools/mesh_gen/psd_slice.py assets/robot_parts.psd -o <scratch>/robot
+python3 tools/mesh_gen/s4_energy_ratio.py \
+    <scratch>/robot/00_光暈.png <scratch>/robot/03_身體.png <scratch>/robot/04_左手.png \
+    --modes interior --seed 0
+# 左手 負對照鑑別力崩潰的跨 seed 確認:
+python3 tools/mesh_gen/s4_energy_ratio.py <scratch>/robot/04_左手.png --modes interior --seed 1
+python3 tools/mesh_gen/s4_energy_ratio.py <scratch>/robot/04_左手.png --modes interior --seed 2
+python3 tools/mesh_gen/s4_energy_ratio.py <scratch>/robot/04_左手.png --modes interior --seed 3
+```
