@@ -134,6 +134,53 @@ def sample(anim, time, bones=None, slots=None):
     return {"bones": res_b, "slots": res_s}
 
 
+def sample_deform(frames, time):
+    """在時間 time 取樣一條 mesh deform timeline(unweighted:逐頂點 full offset 向量)。
+    frames 每筆:{"time":.., "vertices":[dx0,dy0,...], "curve":..(可選)}。
+    回傳 list(全長 offset 向量);未達首幀→首幀、超過末幀→末幀,中間依 curve 內插。"""
+    n = len(frames)
+    if n == 0:
+        return []
+    if time <= frames[0]["time"]:
+        return list(frames[0]["vertices"])
+    if time >= frames[-1]["time"]:
+        return list(frames[-1]["vertices"])
+    i = 0
+    while i + 1 < n and frames[i + 1]["time"] <= time:
+        i += 1
+    f0, f1 = frames[i], frames[i + 1]
+    t0, t1 = f0["time"], f1["time"]
+    span = t1 - t0
+    p = 0.0 if span <= 0 else (time - t0) / span
+    curve = f0.get("curve", None)
+    if curve == "stepped":
+        alpha = 0.0
+    elif isinstance(curve, (int, float)):
+        alpha = _bezier_y(f0["curve"], f0["c2"], f0["c3"], f0["c4"], p)
+    else:
+        alpha = p
+    v0 = f0["vertices"]; v1 = f1["vertices"]
+    m = min(len(v0), len(v1))
+    return [float(v0[k]) + (float(v1[k]) - float(v0[k])) * alpha for k in range(m)]
+
+
+def deform_frames_finite(frames):
+    """deform timeline 是否 well-formed:時間嚴格遞增、值皆有限、vertices 偶數長。"""
+    last_t = -1e18
+    for f in frames:
+        t = f.get("time", 0)
+        if not (isinstance(t, (int, float)) and math.isfinite(t)) or t <= last_t:
+            return False
+        last_t = t
+        v = f.get("vertices", [])
+        if len(v) % 2 != 0:
+            return False
+        for x in v:
+            if not (isinstance(x, (int, float)) and math.isfinite(x)):
+                return False
+    return True
+
+
 def duration(anim):
     """animation 最長 timeline 時間。"""
     d = 0.0

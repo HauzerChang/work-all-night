@@ -64,6 +64,12 @@ BLOCKS = [
                 "python3 tools/analyzer/build_spine.py assets/robot_parts.psd >/dev/null && "
                 "python3 tools/analyzer/validate_build.py assets/robot_parts.psd specs/robot_parts_spine",
                 "pipeline", note="限制:只驗靜態幾何/貼圖,不含 animation/weighted/pivot"),
+            CAP("mesh_deform_gen", "mesh deform timeline 生成(窗簾/軟體形變)", "L2",
+                "python3 tools/mesh_gen/validate_deform_gen.py", "gen",
+                note="確定性位移場(錨邊→自由端線性掃動,grounded 於 main_draw 4 藝術家 mesh)；"
+                     "對 4 真實 mesh×4 beat 類別 AC1-5 全 PASS(拓樸乾淨/loop 無縫/類別包絡內/隨機場負對照撕裂)；"
+                     "已接 build_spine --animate。honest boundary:預設幅度為窗簾級,shadow 類須 caller 傳 amp_frac；"
+                     "reveal intro/outro 為非零端點設計；weighted mesh 逐頂點 offset 不適用(留 deform-of-weighted 後續)"),
         ],
     },
     {

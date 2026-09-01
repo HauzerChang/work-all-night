@@ -135,6 +135,21 @@
   本 `spine-main` 分支經**一次性合流**:以最完整的研究線(weighted 生成器+評估器+skill 機制)為底,
   併入 S1 keyframe(擇優 zjze4k 版)、S4 交接、分支釘定,去除重複評估器。見 `log/2026-08-28-003.md`、`log/2026-08-28-004.md`。
 
+- **S1/S3 mesh deform timeline 生成器(里程碑,2026-09-01,session 004)** — 補上 candidate 0d
+  最後一個缺口:此前 `gen_animations` 只生成 bone TRS + slot alpha,**mesh 不會變形**。新增
+  `gen_deform.py`(beat 類別 → 空間位移場 × 時間 shape → Spine 3.8 `deform`)。**位移場模型 grounded
+  於藝術家真值**:量 main_draw 4 個真實 mesh 得「窗簾=頂錨定(|d|=0)、自由端(底)|d|=max、水平掃、
+  幅度**線性於距錨距離**」→ 確定性場 `offset_perp[i]=A·w_i·shape(τ)`。`validate_deform_gen.py` 對
+  **4 mesh × 4 beat 類別(loop/pulse/intro/outro)AC1–5 全 PASS**:①well-formed;②loop 無縫 err=0.0;
+  ③全幀拓樸乾淨(si/flip/degen=0);④幅度在類別包絡 0.60·長軸內;⑤負對照——隨機非平滑場撕裂
+  (si=62/flip=9)+ 打斷 loop 端點相等偵測。已接 `build_spine --animate` + `gen_animations`
+  (idle→loop deform、open→intro、close→outro),經 Spine reader `benchmark_real` round-trip **全 clean**。
+  **關鍵發現**:平滑 shear 場**極耐變形**(loop 幅度灌爆 6× ~187px 仍乾淨,呼應藝術家 315px strip)→
+  AC3 鑑別力**靠隨機非平滑場**而非加大幅度。新增 spine_anim `sample_deform`/`deform_frames_finite`;
+  check_readiness 加 cap `mesh_deform_gen` L2 GREEN(spine-asset-forge)。honest boundary:預設幅度窗簾級
+  (shadow 類須 caller 傳 amp_frac)、reveal intro/outro 非零端點設計、weighted mesh 逐頂點 offset 不適用。
+  見 `knowledge/s1-mesh-deform-generator.md`、圖 `knowledge/figures/s1_mesh_deform_gen.png`。
+
 ## 真實資產(已收進 `assets/`)
 
 - `assets/main_draw.json`(真實骨架:28 bones / 40 slots / 9 anims / 4 unweighted mesh)。
@@ -192,10 +207,12 @@
 > **S5 的可自主子問題已收斂到位**(pivot 縫 + 樹推斷 + rig 組裝 + weighted 併用 + 多跳鏈,合成 fixture 覆蓋深度通用)。
 > 建議下一個 bounded chunk(擇一,皆可自主):
 > **(A) S1 keyframe 補主秀 beat 模板**(S1 (f)):給 hit/open/reveal 等 big-win beat 加確定性 keyframe 模板 + 真值閘;
-> **(B) mesh deform timeline 生成**(讓 build --animate 的窗簾/軟件會 deform,非只 bone TRS;配 deform_eval 閘);
+> **~~(B) mesh deform timeline 生成~~ ✅ 完成(2026-09-01 session 004,見上里程碑)** — 4 mesh×4 beat AC1-5 全 PASS,已接 build --animate;
+> **(B') reveal 大單向掃動 deform**(open 停在掃開態的非-identity loop-idle;現 intro/outro 為收在 identity 的可串接版)+ role-specific 幅度(shadow vs curtain 語意,由分析器/storyboard 傳 amp_frac);
+> **(B'') deform-of-weighted**(weighted mesh 的形變疊加骨變形,現 gen_deform 只處理 unweighted 逐頂點 offset);
 > **(C) weighted-forge / rig 併入 `spine-asset-forge` skill**(需 **C 類使用者拍板** sync;打包政策見 `skills/README.md`);
 > **(D) rig 真值資源**(**C/資源類**,阻塞 S5→L3):請使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot** 的分層/rig 檔。
-> 建議先做 (A) 或 (B)(純自主、續充實「會動」的產線;S5 自主面已飽和,再推需 (D) 的真值)。
+> 建議先做 (A) 或 (B')(純自主、續充實「會動」的產線;S5 自主面已飽和,再推需 (D) 的真值)。
 
 ## 環境前置(已驗證可用)
 
@@ -212,6 +229,14 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-01(session 004):**S1/S3 mesh deform timeline 生成器(里程碑)** — 補 candidate 0d 最後缺口
+  (mesh 不會變形)。`gen_deform.py`:beat 類別 → 位移場 × 時間 shape → Spine 3.8 deform。位移場**grounded
+  於藝術家真值**(量 main_draw 4 mesh:頂錨定、水平掃、幅度線性於距錨距離)。`validate_deform_gen.py`
+  對 4 mesh×4 beat 類別 **AC1-5 全 PASS**(拓樸乾淨/loop 無縫 err=0/類別包絡內/隨機場負對照 si=62)。
+  已接 build_spine --animate + gen_animations;經 Spine reader round-trip 全 clean。發現平滑 shear 極耐變形
+  (灌爆 6× 仍乾淨)→ 鑑別力靠隨機場。新增 cap `mesh_deform_gen` L2 GREEN。⚠️ 分支:本 session 被指派
+  隨機工作分支 `claude/focused-dirac-hhamoo`,依 harness 明確要求在此分支開發並 push(非 spine-main)。
+  見 `knowledge/s1-mesh-deform-generator.md`。
 - 2026-08-31(session 003):**S5 (d') 多跳 weighted 肢體鏈端到端驗收(里程碑)** — 補 combo 唯一 honest-boundary
   缺口(「weighted mesh 當鏈中段肢體」在 robot_parts 無樣本)。合成鏈 fixture `make_limb_chain_psd.py`
   (body→arm→forearm→hand,arm/forearm 皆 weighted mesh)+ `validate_rig_weighted_chain.py` 5AC 全 PASS:

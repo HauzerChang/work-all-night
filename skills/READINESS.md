@@ -1,7 +1,7 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-08-31 session 003(S5 (d') 多跳 weighted 肢體鏈端到端驗收:合成鏈 fixture 補 combo 唯一缺口,新增 cap `rig_weighted_chain` L2 GREEN。區塊仍 HOLD:L3 缺口=多 rig 真值不變)。
+> 產生於 2026-09-01 session 004(mesh deform timeline 生成器:補 candidate 0d「mesh 不會變形」缺口,新增 cap `mesh_deform_gen` L2 GREEN 於 spine-asset-forge。位移場 grounded 於藝術家真值,4 mesh×4 beat AC1-5 全 PASS。區塊仍 L3 READY 不變)。
 
 ```
 ==============================================================================
@@ -23,6 +23,7 @@ skill 化完成度矩陣(已實跑全部 validator)
     [L2] PSD → 各部位件 + manifest                  閘:GREEN (gen)
     [L2] 件 → mesh 拓樸(strip)                     閘:GREEN (gen)
     [L3] SkelToJson 組裝(端到端 round-trip)          閘:GREEN (pipeline)  «限制:只驗靜態幾何/貼圖,不含 animation/weighted/pivot»
+    [L2] mesh deform timeline 生成(窗簾/軟體形變)       閘:GREEN (gen)  «確定性位移場(錨邊→自由端線性掃動,grounded 於 main_draw 4 藝術家 mesh);4 真實 mesh×4 beat 類別 AC1-5 全 PASS(拓樸乾淨/loop 無縫/類別包絡內/隨機場負對照撕裂);已接 build_spine --animate。honest boundary:預設幅度窗簾級須 caller 傳 amp_frac、reveal 非零端點、weighted 不適用»
 
 ■ spine-slicing — 切圖 / atlas 無損重組閘
   區塊成熟度 L2 → HOLD ⛔

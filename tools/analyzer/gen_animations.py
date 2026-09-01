@@ -190,13 +190,16 @@ def gen_pulse(role, side_sign, radial):
 _DISPATCH = {"intro": gen_in, "loop": gen_loop, "outro": gen_out, "hold": gen_hold, "pulse": gen_pulse}
 
 
-def build_animations(skeleton, storyboard):
-    """回傳 animations dict(beat 名為 key)。"""
+def build_animations(skeleton, storyboard, mesh_deform=True):
+    """回傳 animations dict(beat 名為 key)。
+    mesh_deform=True:對 skeleton 內的 unweighted mesh 依 beat 類別自動附上 deform timeline
+    (窗簾/軟體形變;見 tools/mesh_gen/gen_deform.py,已過 validate_deform_gen 閘)。"""
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
-    W = skeleton["skeleton"]["width"]
-    H = skeleton["skeleton"]["height"]
+    skh = skeleton.get("skeleton", {})
+    W = skh.get("width") or (max((b.get("x", 0.0) for b in skeleton["bones"]), default=0.0) * 2 or 1.0)
+    H = skh.get("height") or (max((b.get("y", 0.0) for b in skeleton["bones"]), default=0.0) * 2 or 1.0)
     cx, cy = W / 2.0, H / 2.0
 
     anims = {}
@@ -232,6 +235,14 @@ def build_animations(skeleton, storyboard):
             anim["bones"] = bones_tl
         if slots_tl:
             anim["slots"] = slots_tl
+        if mesh_deform:
+            try:
+                import gen_deform as _gd
+                blk = _gd.build_deform_block(skeleton, beat_category(name))
+                if blk:
+                    anim["deform"] = blk
+            except Exception:
+                pass  # 無 mesh 或生成失敗 → 略過 deform,不影響 TRS
         anims[name] = anim
     return anims
 
