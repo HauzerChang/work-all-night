@@ -21,6 +21,8 @@
 
 ## 索引(本次執行起新增的發現)
 
+- [S1 big-win 主秀 beat 模板(0f)](s1-beat-templates.md) — 補 0d 只有對稱脈衝的缺口:hit/reveal 主秀節拍加 **anticipation(反向預備)+ settle(阻尼回擺)**。`beat_templates.py` + `validate_beat_templates.py` 6 AC 全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝。真值=結構簽章(非美感)。cap `storyboard_beat_templates` L2;anim-forge 仍 HOLD。
+
 - [S3 mesh 生成器](s3-mesh-generator.md) — 純 CPU PNG→Spine mesh 原型 + 評估器,合成資料 6 條 AC 全過(IoU 0.99)。
 
 - [deform-aware 評估器](s3-deform-evaluator.md) — Spine deform 重現 + 自交/翻面閘;真實 4mesh×9anim benchmark 全乾淨,負對照可抓壞網格。

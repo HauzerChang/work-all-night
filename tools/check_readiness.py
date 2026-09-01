@@ -166,6 +166,12 @@ BLOCKS = [
                      "7AC PASS(結構/逐幀乾淨/loop無縫/setup介面/幅度≤真實裕度/負對照 scramble×3 全破+連貫×4不破/"
                      "build_spine --animate --deform 端到端生成 mesh 逐幀乾淨)。gate=deform_eval(真實位移場,已驗可信)。"
                      "honest boundary:件role→律動場來源為先驗映射(預設軟布料模板);單一真值資產"),
+            CAP("storyboard_beat_templates", "big-win 主秀 beat 模板 hit/reveal(anticipation+settle,0f)", "L2",
+                "python3 tools/analyzer/validate_beat_templates.py",
+                "gen", note="補 0d 只有對稱脈衝的缺口:hit=反向預備→命中→阻尼回擺、reveal=藏→蓄勢→炸開→回穩,"
+                            "皆 setup identity/collapse 介面可與 In/Loop/Out 串接。6AC(well-formed/可串接介面/真峰/"
+                            "anticipation/settle 阻尼回擺/負對照)全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝(gen_pulse "
+                            "無反向預備+無阻尼回擺→非主秀)、不歸位、無峰。真值=結構簽章(非美感,美感留使用者 A類)"),
         ],
     },
 ]

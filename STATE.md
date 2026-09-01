@@ -78,6 +78,18 @@
   踩雷:PSD 寫檔 mac_roman 不吃 CJK 圖層名→用 ASCII;旋轉某骨不移其自身原點→region 葉件看 attachment 世界點。
   新增 cap `rig_weighted_chain` L2 GREEN;`spine-rig-pivot` **仍 HOLD**(L3 缺口=多 rig 真值不變,防固化)。
   見 `knowledge/s5-rig-weighted-chain.md`。
+- **S1 big-win 主秀 beat 模板(里程碑,2026-09-01,session 002,candidate 0f)** — 補 0d 主秀節拍只有
+  `gen_pulse` 對稱三角脈衝的缺口,加兩個經典動畫原理:**anticipation(反向預備)+ settle/follow-through(阻尼回擺)**。
+  `tools/analyzer/beat_templates.py`:`gen_hit`(蓄力→命中→阻尼回擺,首尾 identity 可插 Loop 間)、`gen_reveal`
+  (藏→蓄勢 hold→炸開 overshoot→回穩,首 collapsed 尾 identity)。wire 進 `gen_animations`(新類別 hit/reveal,
+  `hit`/`burst` 移出泛用 pulse;註冊放檔尾避 import 迴圈)。`validate_beat_templates.py`(對**真實 robot 5 拆件+role**
+  端到端經 build_animations)**6 AC 全 PASS**:B1 well-formed / B2 可串接介面(hit 首尾 identity、reveal 首 collapsed 尾 identity)/
+  B3 真峰(hit 1.348·reveal 1.35≥1.12)/ B4 anticipation(hit 命中前下蹲 0.931)/ B5 settle(hit `(scale-1)` 變號≥3 阻尼回擺)/
+  **B6 負對照**(對稱脈衝 gen_pulse 判為非主秀、不歸位 FAIL B2、無峰 FAIL B3、真 hit 具簽章)。**關鍵發現:`(scale-1)` 符號
+  變化數是分辨「主秀 hit」與「天真脈衝」的強鑑別子**(真 hit≥3、對稱脈衝僅單正峰 0 負向偏移)。真值界定:主秀 beat 無唯一
+  正解(先驗手感),閘驗**客觀結構簽章非美感**;緩動幅度手感留使用者(A 類)。回歸:0d validate_anim(+selftest)、0e(+deform)、
+  Symbol_Ww slot_reveal 全 PASS。新增 cap `storyboard_beat_templates` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、
+  單一真值資產,防固化)。見 `knowledge/s1-beat-templates.md`、圖 `figures/s1_beat_templates.png`。
 - **S1 mesh deform timeline 生成(里程碑,2026-09-01,candidate 0e,讓軟件 mesh 本身會動)** — 補 0d
   只產 bone TRS + slot alpha、mesh 本身不變形的缺口。`tools/analyzer/gen_deform.py`:把真實 main_draw
   窗簾/陰影 deform 場(`deform_eval.real_deform_field`,UV 座標可轉移)UV 內插轉移到目標 mesh,beat 包絡
@@ -196,18 +208,23 @@
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> **主排程近況**:S1(分析器+build+keyframe+**mesh deform 生成 0e**)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
+> **主排程近況**:S1(分析器+build+keyframe 0d+**mesh deform 生成 0e**+**主秀 beat 模板 0f**)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
 > S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫(08-29)→ 接 build_spine 骨樹(08-30,--rig)→ 肢體樹自動推斷(08-31 s1)
 > → `--rig`×`--weighted` 併用(08-31 s2)→ 多跳 weighted 肢體鏈端到端(08-31 s3)已全部完成**;S4 已交獨立排程。
 > ⚠️ **S5 達 L3 的唯一硬缺口 = 多 rig 真值,但 Award 只有機器人一件可拆肢體 rig → 屬使用者資源(C/資源類待辦)**。
 > **S5 的可自主子問題已收斂到位**(pivot 縫 + 樹推斷 + rig 組裝 + weighted 併用 + 多跳鏈,合成 fixture 覆蓋深度通用)。
 > 建議下一個 bounded chunk(擇一,皆可自主):
-> **(A) S1 keyframe 補主秀 beat 模板**(S1 (f)):給 hit/open/reveal 等 big-win beat 加確定性 keyframe 模板 + 真值閘;
+> **(A) ~~S1 keyframe 補主秀 beat 模板~~ ✅ 完成(2026-09-01 session 002,candidate 0f,`storyboard_beat_templates` L2,見上里程碑)** ——
+>   `beat_templates.py`(hit/reveal,anticipation+settle)+ `validate_beat_templates.py` 6AC + 負對照;
 > **(B) ~~mesh deform timeline 生成~~ ✅ 完成(2026-09-01,candidate 0e,`spine-anim-forge` L2,見上里程碑)** ——
 >   `gen_deform.py` 真實律動場轉移 + `validate_deform_gen.py` 7AC + `build --animate --deform` 端到端;續充實可做「律動場庫擴充」(需更多真實 deform 樣本,資源類);
 > **(C) weighted-forge / rig 併入 `spine-asset-forge` skill**(需 **C 類使用者拍板** sync;打包政策見 `skills/README.md`);
 > **(D) rig 真值資源**(**C/資源類**,阻塞 S5→L3):請使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot** 的分層/rig 檔。
-> 建議下一個做 **(A)**(純自主、續充實「會動」產線 —— 0d bone/slot + 0e mesh deform 已到位,補 big-win 主秀 beat 模板)。
+> **建議下一個(擇一,皆純自主):**
+> **(E) 主秀 beat 接進 genre 先驗庫**:把 0f 的 hit/reveal 併入 `genre_priors` 的 slot_bigwin/slot_reveal,
+>   讓 `build_spine --animate` 直接輸出含主秀節拍的完整演出(需同步 `validate_priors` 真值覆蓋,勿動已驗先驗);
+> **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f 的模板庫);
+> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心)。
 
 ## 環境前置(已驗證可用)
 
@@ -224,6 +241,11 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-01(session 002):**S1 big-win 主秀 beat 模板(里程碑,candidate 0f)** — 補 0d 主秀節拍只有對稱脈衝的缺口,
+  加 anticipation(反向預備)+ settle(阻尼回擺)兩動畫原理。`beat_templates.py`(gen_hit 首尾 identity、gen_reveal 首 collapsed
+  尾 identity)wire 進 gen_animations(hit/reveal 新類別)+ `validate_beat_templates.py` 6AC 全 PASS(對真實 robot 5 拆件端到端)+
+  負對照(對稱脈衝 gen_pulse 判為非主秀)。關鍵:`(scale-1)` 符號變化數分辨主秀 hit(≥3)vs 天真脈衝(0 負偏移)。真值=結構
+  簽章非美感。回歸 0d/0e/Symbol_Ww 全 PASS。新增 cap `storyboard_beat_templates` L2;anim-forge 仍 HOLD。見 `knowledge/s1-beat-templates.md`。
 - 2026-08-31(session 003):**S5 (d') 多跳 weighted 肢體鏈端到端驗收(里程碑)** — 補 combo 唯一 honest-boundary
   缺口(「weighted mesh 當鏈中段肢體」在 robot_parts 無樣本)。合成鏈 fixture `make_limb_chain_psd.py`
   (body→arm→forearm→hand,arm/forearm 皆 weighted mesh)+ `validate_rig_weighted_chain.py` 5AC 全 PASS:

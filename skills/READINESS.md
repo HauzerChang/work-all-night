@@ -1,7 +1,8 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-09-01 run 001(S1 candidate 0e mesh deform timeline 生成:補 0d 只動 bone/slot 的缺口,軟件 mesh 本身 deform。新增區塊 `spine-anim-forge`(0d keyframe + 0e deform)L2 → HOLD;運動基元先驗、單一真值資產,防固化。3 區塊仍 READY 不變)。
+> 產生於 2026-09-01 run 002(S1 candidate 0f big-win 主秀 beat 模板:補 0d 只有對稱脈衝的缺口,加 anticipation+settle 兩動畫原理。`spine-anim-forge` 新增 cap `storyboard_beat_templates` L2 → 區塊仍 HOLD;運動基元先驗、單一真值資產,防固化。3 區塊仍 READY 不變)。
+> (前次 run 001:candidate 0e mesh deform timeline 生成,新增區塊 `spine-anim-forge`。)
 
 ```
 ==============================================================================
@@ -62,6 +63,7 @@ skill 化完成度矩陣(已實跑全部 validator)
   目標:HOLD:讓 build --animate 素材『會動』;運動基元為手感先驗(非學自真值),達 L3 前不打包
     [L2] 分鏡→bone TRS + slot alpha timeline(0d)  閘:GREEN (gen)  «4AC(有限/loop無縫/pose不擾動/beat串接)+ --selftest 負對照全偵測;role→運動基元為先驗手感提案(非學自真值),緩動美感留使用者(A類)»
     [L2] 分鏡→mesh deform timeline(真實律動場轉移,0e)    閘:GREEN (pipeline)  «補 0d 只動 bone/slot 的缺口:軟件/特效 mesh 本身 deform。運動=真實 main_draw 窗簾/陰影 deform 場(deform_eval.real_deform_field)UV 轉移到目標 mesh;beat 包絡首尾回 setup(無縫)。7AC PASS(結構/逐幀乾淨/loop無縫/setup介面/幅度≤真實裕度/負對照 scramble×3 全破+連貫×4不破/build_spine --animate --deform 端到端生成 mesh 逐幀乾淨)。gate=deform_eval(真實位移場,已驗可信)。honest boundary:件role→律動場來源為先驗映射(預設軟布料模板);單一真值資產»
+    [L2] big-win 主秀 beat 模板 hit/reveal(anticipation+settle,0f)  閘:GREEN (gen)  «補 0d 只有對稱脈衝的缺口:hit=反向預備→命中→阻尼回擺、reveal=藏→蓄勢→炸開→回穩,皆 setup identity/collapse 介面可與 In/Loop/Out 串接。6AC(well-formed/可串接介面/真峰/anticipation/settle 阻尼回擺/負對照)全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝(gen_pulse 無反向預備+無阻尼回擺→非主秀)、不歸位、無峰。真值=結構簽章(非美感,美感留使用者 A類)»
 
 ==============================================================================
 可 skill 化(達門檻): spine-mesh-doctor, spine-asset-forge, spine-weighted-forge

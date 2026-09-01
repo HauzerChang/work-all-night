@@ -33,7 +33,9 @@ _CAT_KEYWORDS = {
     "outro": ["out", "close", "exit", "disappear", "leave", "end", "退場", "離場", "消失"],
     "loop": ["loop", "idle", "breath", "待機", "循環", "呼吸"],
     "hold": ["static", "hold", "base", "靜態", "定格"],
-    "pulse": ["hit", "flash", "burst", "win", "打擊", "閃", "命中"],
+    # pulse = 泛用對稱脈衝(輕重音);主秀節拍 hit/reveal 由 beat_templates 提供更完整簽章
+    # (見本檔尾端註冊),故 hit/burst 移出 pulse。
+    "pulse": ["flash", "win", "閃"],
 }
 
 
@@ -188,6 +190,19 @@ def gen_pulse(role, side_sign, radial):
 
 
 _DISPATCH = {"intro": gen_in, "loop": gen_loop, "outro": gen_out, "hold": gen_hold, "pulse": gen_pulse}
+
+# candidate 0f — 註冊 big-win 主秀 beat 模板(anticipation+settle)。放檔尾避免與 beat_templates
+# 形成 import 迴圈:beat_templates 只需本檔上方已定義的 DUR/_rot/_xy/_color。
+try:
+    from beat_templates import gen_hit as _gen_hit, gen_reveal as _gen_reveal, \
+        HIT_KEYWORDS as _HIT_KW, REVEAL_KEYWORDS as _REVEAL_KW, DUR as _DUR_EXT
+    _DISPATCH["hit"] = _gen_hit
+    _DISPATCH["reveal"] = _gen_reveal
+    DUR.update(_DUR_EXT)  # 讓 hit/reveal 時長對 spine_anim.duration 一致
+    # 主秀類別置前:exact/substring 命中優先於泛用 pulse
+    _CAT_KEYWORDS = {"hit": _HIT_KW, "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
+except ImportError:
+    pass
 
 
 def build_animations(skeleton, storyboard):
