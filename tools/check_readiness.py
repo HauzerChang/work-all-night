@@ -149,6 +149,25 @@ BLOCKS = [
                      "演算法早已支援(接觸縫遞迴+控制骨掛關節骨),本閘證端到端成立。honest boundary:合成 fixture 非藝術家真值"),
         ],
     },
+    {
+        "id": "spine-anim-forge",
+        "title": "分鏡 → 會動 Spine timeline(bone/slot + mesh deform)",
+        "target_skill": "HOLD:讓 build --animate 素材『會動』;運動基元為手感先驗(非學自真值),達 L3 前不打包",
+        "caps": [
+            CAP("storyboard_keyframe", "分鏡→bone TRS + slot alpha timeline(0d)", "L2",
+                "python3 tools/analyzer/build_spine.py assets/robot_parts.psd --out specs/_anim_chk_spine --animate >/dev/null && "
+                "python3 tools/analyzer/validate_anim.py specs/_anim_chk_spine/skeleton.json",
+                "gen", note="4AC(有限/loop無縫/pose不擾動/beat串接)+ --selftest 負對照全偵測;"
+                            "role→運動基元為先驗手感提案(非學自真值),緩動美感留使用者(A類)"),
+            CAP("mesh_deform_gen", "分鏡→mesh deform timeline(真實律動場轉移,0e)", "L2",
+                "python3 tools/analyzer/validate_deform_gen.py", "pipeline",
+                note="補 0d 只動 bone/slot 的缺口:軟件/特效 mesh 本身 deform。運動=真實 main_draw 窗簾/陰影 "
+                     "deform 場(deform_eval.real_deform_field)UV 轉移到目標 mesh;beat 包絡首尾回 setup(無縫)。"
+                     "7AC PASS(結構/逐幀乾淨/loop無縫/setup介面/幅度≤真實裕度/負對照 scramble×3 全破+連貫×4不破/"
+                     "build_spine --animate --deform 端到端生成 mesh 逐幀乾淨)。gate=deform_eval(真實位移場,已驗可信)。"
+                     "honest boundary:件role→律動場來源為先驗映射(預設軟布料模板);單一真值資產"),
+        ],
+    },
 ]
 
 LADDER = {"L0": 0, "L1": 1, "L2": 2, "L3": 3, "L4": 4}

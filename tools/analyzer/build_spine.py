@@ -188,7 +188,8 @@ def shelf_pack(sizes, pad=2, max_w=2048):
     return placements, (W, H)
 
 
-def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False):
+def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False,
+          deform=False, deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
     psd, manifest, parts = slice_psd(psd_path, parts_dir)     # 切件 PNG(裁到 bbox)+ manifest
@@ -300,6 +301,11 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         # candidate 0d:把 #3 分鏡具體化為 Spine timeline,讓素材「會動」
         from gen_animations import build_animations
         skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"])
+        if deform:
+            # candidate 0e:再讓軟件/特效 mesh 本身 deform(真實布料律動場轉移),非只被控制骨搬動
+            from gen_deform import build_deform, load_source_field
+            us, fl, _ = load_source_field(*deform_src)
+            build_deform(skeleton, spec["3_motion_storyboard"], us, fl)
     json.dump(skeleton, open(os.path.join(out_dir, "skeleton.json"), "w"),
               ensure_ascii=False, indent=1)
     json.dump(build_meta, open(os.path.join(out_dir, "build_meta.json"), "w"), ensure_ascii=False, indent=1)
@@ -322,10 +328,11 @@ def main():
     ap.add_argument("--genre", default="slot_bigwin")
     ap.add_argument("--weighted", action="store_true", help="mesh 件產 weighted(骨綁)mesh + 自動控制骨")
     ap.add_argument("--animate", action="store_true", help="同時由 #3 分鏡生成 animations(candidate 0d)")
+    ap.add_argument("--deform", action="store_true", help="candidate 0e:mesh 件產真實律動 deform timeline(需 --animate)")
     ap.add_argument("--rig", action="store_true", help="S5:pivot→bone 父子樹(結構子件綁 body、關節落接觸縫)")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
-    s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig)
+    s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

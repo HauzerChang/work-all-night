@@ -78,6 +78,17 @@
   踩雷:PSD 寫檔 mac_roman 不吃 CJK 圖層名→用 ASCII;旋轉某骨不移其自身原點→region 葉件看 attachment 世界點。
   新增 cap `rig_weighted_chain` L2 GREEN;`spine-rig-pivot` **仍 HOLD**(L3 缺口=多 rig 真值不變,防固化)。
   見 `knowledge/s5-rig-weighted-chain.md`。
+- **S1 mesh deform timeline 生成(里程碑,2026-09-01,candidate 0e,讓軟件 mesh 本身會動)** — 補 0d
+  只產 bone TRS + slot alpha、mesh 本身不變形的缺口。`tools/analyzer/gen_deform.py`:把真實 main_draw
+  窗簾/陰影 deform 場(`deform_eval.real_deform_field`,UV 座標可轉移)UV 內插轉移到目標 mesh,beat 包絡
+  (loop ucos 無縫 / intro settle-to-setup / pulse,首尾回 setup → 可無縫串接);peak 為真實場分數(≤0.7×)
+  → 位移必 ≤ 真實裕度。`build_spine.py --animate --deform` 端到端(deform 預設 off,向後相容)。
+  `validate_deform_gen.py` **7 AC 全 PASS**(結構/逐幀乾淨/loop無縫/setup介面/幅度校準/負對照/端到端生成 mesh 乾淨),
+  gate=`deform_eval`(真實位移場,已驗 _checker_validated 可信)。**關鍵發現:閘抓的是「拓樸損壞」不是「幅度大」**
+  —— 不連貫 scramble×3 場 **4/4 全破**,連貫真實場等比放大 ×4 反而 **4/4 不破**(合法運動方向);稀疏 12v 陰影
+  對同幅度 scramble 較耐,負對照需 ×3 才穩定破。回歸:`validate_anim`(bone/slot)對 `--animate --deform` 仍 4AC PASS。
+  新增 cap 區塊 `spine-anim-forge`(0d keyframe + 0e deform)L2 → **HOLD**(運動基元先驗、單一真值資產,防固化)。
+  見 `knowledge/s1-mesh-deform-generation.md`。
 - **S5 肢體父子樹自動推斷(里程碑,2026-08-31)** — 移除 rig pipeline **最後一個「取自先驗」環節**:
   `build_spine --rig` 的 `rig_layout` 原**假設星形**(每結構件直掛 body,root/父邊取自分析器 note);
   改由 `tools/rig/infer_tree.py` 由**拆件相鄰幾何自動推斷父子樹**(root=面積最大 trunk;父邊=接觸距離
@@ -185,17 +196,18 @@
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> **主排程近況**:S1(分析器+build+keyframe)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
+> **主排程近況**:S1(分析器+build+keyframe+**mesh deform 生成 0e**)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
 > S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫(08-29)→ 接 build_spine 骨樹(08-30,--rig)→ 肢體樹自動推斷(08-31 s1)
 > → `--rig`×`--weighted` 併用(08-31 s2)→ 多跳 weighted 肢體鏈端到端(08-31 s3)已全部完成**;S4 已交獨立排程。
 > ⚠️ **S5 達 L3 的唯一硬缺口 = 多 rig 真值,但 Award 只有機器人一件可拆肢體 rig → 屬使用者資源(C/資源類待辦)**。
 > **S5 的可自主子問題已收斂到位**(pivot 縫 + 樹推斷 + rig 組裝 + weighted 併用 + 多跳鏈,合成 fixture 覆蓋深度通用)。
 > 建議下一個 bounded chunk(擇一,皆可自主):
 > **(A) S1 keyframe 補主秀 beat 模板**(S1 (f)):給 hit/open/reveal 等 big-win beat 加確定性 keyframe 模板 + 真值閘;
-> **(B) mesh deform timeline 生成**(讓 build --animate 的窗簾/軟件會 deform,非只 bone TRS;配 deform_eval 閘);
+> **(B) ~~mesh deform timeline 生成~~ ✅ 完成(2026-09-01,candidate 0e,`spine-anim-forge` L2,見上里程碑)** ——
+>   `gen_deform.py` 真實律動場轉移 + `validate_deform_gen.py` 7AC + `build --animate --deform` 端到端;續充實可做「律動場庫擴充」(需更多真實 deform 樣本,資源類);
 > **(C) weighted-forge / rig 併入 `spine-asset-forge` skill**(需 **C 類使用者拍板** sync;打包政策見 `skills/README.md`);
 > **(D) rig 真值資源**(**C/資源類**,阻塞 S5→L3):請使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot** 的分層/rig 檔。
-> 建議先做 (A) 或 (B)(純自主、續充實「會動」的產線;S5 自主面已飽和,再推需 (D) 的真值)。
+> 建議下一個做 **(A)**(純自主、續充實「會動」產線 —— 0d bone/slot + 0e mesh deform 已到位,補 big-win 主秀 beat 模板)。
 
 ## 環境前置(已驗證可用)
 
