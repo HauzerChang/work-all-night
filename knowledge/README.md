@@ -21,6 +21,8 @@
 
 ## 索引(本次執行起新增的發現)
 
+- [S1×S5 端到端:分鏡生成 keyframe × 推得接觸縫關節(--rig --animate)](s5-rig-anim-end2end.md) — 接起 S1(gen_animations)與 S5(--rig)兩條線:證**生成的動畫幀**讓肢體繞**推得的接觸縫關節**轉而非件中心。`validate_rig_anim.py` 4 AC 全 PASS(關節撕裂 rig_tear=0.0000px vs flat 5.4~19.9px,ratio>1e6);旋轉角取自真實 keyframe(非手設 25°)+ 完整 bone world transform 組合 → 抓整合 bug。踩雷:region bounding-box 角不是接觸縫,須追蹤「關節材質點相對 body 的撕裂」。cap `rig_anim_end2end` L2;spine-rig-pivot 仍 HOLD。
+
 - [S1 big-win 主秀 beat 模板(0f)](s1-beat-templates.md) — 補 0d 只有對稱脈衝的缺口:hit/reveal 主秀節拍加 **anticipation(反向預備)+ settle(阻尼回擺)**。`beat_templates.py` + `validate_beat_templates.py` 6 AC 全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝。真值=結構簽章(非美感)。cap `storyboard_beat_templates` L2;anim-forge 仍 HOLD。
 
 - [S3 mesh 生成器](s3-mesh-generator.md) — 純 CPU PNG→Spine mesh 原型 + 評估器,合成資料 6 條 AC 全過(IoU 0.99)。

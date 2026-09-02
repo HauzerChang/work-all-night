@@ -147,6 +147,14 @@ BLOCKS = [
                      "鏈深 4≥3 非星形 / setup 0.00px / 遞迴帶動(轉 b_body→forearm 隔一跳仍隨動 80px、"
                      "轉 b_arm→forearm 動 body 不動、weighted-only 全脫鉤 0px)/ region 葉件隨鏈 / 逐幀 si=0。"
                      "演算法早已支援(接觸縫遞迴+控制骨掛關節骨),本閘證端到端成立。honest boundary:合成 fixture 非藝術家真值"),
+            CAP("rig_anim_end2end", "分鏡生成 keyframe × 推得接觸縫關節(--rig --animate)", "L2",
+                "python3 tools/analyzer/validate_rig_anim.py", "pipeline",
+                note="接起 S1(gen_animations 分鏡→keyframe)與 S5(--rig pivot→bone)兩條線:證『生成的動畫幀』"
+                     "讓肢體繞『推得的接觸縫關節』轉而非件中心。與 validate_rig_build 差異=旋轉角取自真實生成 keyframe "
+                     "(非手設 25°)+ 用完整 Spine bone world transform 組合算撕裂(抓整合 bug:掛錯骨/骨原點≠關節/取樣器不一致)。"
+                     "4AC PASS(對 robot_parts):動畫驅動關節肢體(peak 20/8/-20°)/ 無縫介面 rig 上 0px 回歸 / "
+                     "關節撕裂 rig_tear=0.0000px vs flat 5.4~19.9px ratio>1e6 / 零旋轉幀撕裂 0px + 件中心 pivot 解析撕裂 2.6~14.3px≫0。"
+                     "仍 L2:同 pivot_end2end,僅單一 robot rig 驗過(多 rig 真值屬使用者資源)"),
         ],
     },
     {

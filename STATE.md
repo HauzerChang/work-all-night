@@ -78,6 +78,18 @@
   踩雷:PSD 寫檔 mac_roman 不吃 CJK 圖層名→用 ASCII;旋轉某骨不移其自身原點→region 葉件看 attachment 世界點。
   新增 cap `rig_weighted_chain` L2 GREEN;`spine-rig-pivot` **仍 HOLD**(L3 缺口=多 rig 真值不變,防固化)。
   見 `knowledge/s5-rig-weighted-chain.md`。
+- **S1×S5 端到端:分鏡生成 keyframe × 推得接觸縫關節(里程碑,2026-09-02,session 001,chunk G)** — 接起兩條
+  已完成線:S1(`gen_animations` 分鏡→bone keyframe)與 S5(`build_spine --rig` pivot→bone 樹)。`--rig --animate`
+  早能一起跑但從未被當一個單元驗過。`validate_rig_anim.py` 證**生成的動畫幀**讓肢體繞**推得的接觸縫關節**轉、
+  而非件中心。與 `validate_rig_build` 差異=旋轉角**取自真實生成 keyframe**(非手設 25°)+ 用**完整 Spine bone
+  world transform 組合**算「關節撕裂」(抓整合 bug:動畫掛錯骨/骨原點≠關節/取樣器與骨變換不一致)。**4 AC 全
+  PASS**(robot_parts):①動畫驅動關節肢體(peak 右手20°/頭8°/左手−20°);②無縫介面 rig 上 0.0000px 回歸;
+  ③**關節撕裂**(Loop peak-rotate 純 rotate 幀,追蹤關節材質點相對 body)`rig_tear=0.0000px` vs `flat_tear`
+  5.4~19.9px,ratio>1e6;④零旋轉幀撕裂 0px(歸因旋轉)+ 件中心 pivot 解析撕裂 2.6~14.3px≫0(量化 rig 恰繞關節)。
+  **踩雷**:region bounding-box 角不是接觸縫(用它 ratio 只 1.2 不過)→ 正解是追蹤「關節材質點相對 body 的撕裂」,
+  與件形狀無關。**關鍵**:`rig_tear≡0` 是定義性精確但非平凡——任一環節壞掉就非 0;`flat_tear>0` 證 metric 有鑑別力。
+  新增 cap `rig_anim_end2end` L2(pipeline)併入 `spine-rig-pivot`(**仍 HOLD**:硬缺口=多 rig 真值不變,防固化)。
+  見 `knowledge/s5-rig-anim-end2end.md`。
 - **S1 big-win 主秀 beat 模板(里程碑,2026-09-01,session 002,candidate 0f)** — 補 0d 主秀節拍只有
   `gen_pulse` 對稱三角脈衝的缺口,加兩個經典動畫原理:**anticipation(反向預備)+ settle/follow-through(阻尼回擺)**。
   `tools/analyzer/beat_templates.py`:`gen_hit`(蓄力→命中→阻尼回擺,首尾 identity 可插 Loop 間)、`gen_reveal`
@@ -213,6 +225,7 @@
 > → `--rig`×`--weighted` 併用(08-31 s2)→ 多跳 weighted 肢體鏈端到端(08-31 s3)已全部完成**;S4 已交獨立排程。
 > ⚠️ **S5 達 L3 的唯一硬缺口 = 多 rig 真值,但 Award 只有機器人一件可拆肢體 rig → 屬使用者資源(C/資源類待辦)**。
 > **S5 的可自主子問題已收斂到位**(pivot 縫 + 樹推斷 + rig 組裝 + weighted 併用 + 多跳鏈,合成 fixture 覆蓋深度通用)。
+> **2026-09-02 新增**:S1×S5 端到端 `--rig --animate`(chunk G)已驗——生成 keyframe 讓肢體繞推得接觸縫關節轉(`rig_anim_end2end` L2)。
 > 建議下一個 bounded chunk(擇一,皆可自主):
 > **(A) ~~S1 keyframe 補主秀 beat 模板~~ ✅ 完成(2026-09-01 session 002,candidate 0f,`storyboard_beat_templates` L2,見上里程碑)** ——
 >   `beat_templates.py`(hit/reveal,anticipation+settle)+ `validate_beat_templates.py` 6AC + 負對照;
@@ -224,7 +237,11 @@
 > **(E) 主秀 beat 接進 genre 先驗庫**:把 0f 的 hit/reveal 併入 `genre_priors` 的 slot_bigwin/slot_reveal,
 >   讓 `build_spine --animate` 直接輸出含主秀節拍的完整演出(需同步 `validate_priors` 真值覆蓋,勿動已驗先驗);
 > **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f 的模板庫);
-> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心)。
+> **(G) ~~S1 (e) 關節 pivot 推斷接 keyframe~~ ✅ 完成(2026-09-02 session 001,`rig_anim_end2end` L2,見上里程碑)** ——
+>   `validate_rig_anim.py` 證 `--rig --animate` 生成的 keyframe 讓肢體繞推得接觸縫關節轉而非件中心(關節撕裂 rig=0 vs flat 5~20px,4AC PASS)。
+> **建議下一個(擇一,皆純自主):**
+> **(H) 主秀 beat(0f hit/reveal)× rig 驗證**:把 In beat 的甩入/hit 的命中節拍在 `--rig --animate` 下驗「關節繞縫」(續 G,但用 hit/reveal 而非 loop 純 rotate;需處理 translate/scale 混淆,可用相對-body 追蹤同法);
+> **(I) rig 關節鏈多跳動畫帶動**:驗轉 `b_身體`(根)時子肢體 keyframe 在鏈上遞迴帶動(接 s5-rig-weighted-chain 的多跳結論到 --animate)。
 
 ## 環境前置(已驗證可用)
 
@@ -241,6 +258,13 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-02(session 001):**S1×S5 端到端:分鏡生成 keyframe × 推得接觸縫關節(里程碑,chunk G)** — 接起 S1
+  (`gen_animations`)與 S5(`build_spine --rig`)。`validate_rig_anim.py` 證 `--rig --animate` 的**生成動畫幀**讓
+  肢體繞**推得接觸縫關節**轉而非件中心:4 AC 全 PASS(動畫驅動關節肢體 peak 20/8/−20° / 無縫介面 rig 上 0px 回歸 /
+  關節撕裂 rig_tear=0.0000px vs flat 5.4~19.9px ratio>1e6 / 零旋轉幀撕裂 0px + 件中心 pivot 解析撕裂 2.6~14.3px≫0)。
+  旋轉角取自真實 keyframe(非手設 25°)+ 完整 bone world transform 組合 → 抓 rig_build 解析式抓不到的整合 bug。
+  踩雷:region bbox 角非接觸縫,須追蹤「關節材質點相對 body 撕裂」。新增 cap `rig_anim_end2end` L2;區塊仍 HOLD
+  (多 rig 真值缺口不變)。見 `knowledge/s5-rig-anim-end2end.md`。
 - 2026-09-01(session 002):**S1 big-win 主秀 beat 模板(里程碑,candidate 0f)** — 補 0d 主秀節拍只有對稱脈衝的缺口,
   加 anticipation(反向預備)+ settle(阻尼回擺)兩動畫原理。`beat_templates.py`(gen_hit 首尾 identity、gen_reveal 首 collapsed
   尾 identity)wire 進 gen_animations(hit/reveal 新類別)+ `validate_beat_templates.py` 6AC 全 PASS(對真實 robot 5 拆件端到端)+
