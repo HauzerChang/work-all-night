@@ -78,6 +78,19 @@
   踩雷:PSD 寫檔 mac_roman 不吃 CJK 圖層名→用 ASCII;旋轉某骨不移其自身原點→region 葉件看 attachment 世界點。
   新增 cap `rig_weighted_chain` L2 GREEN;`spine-rig-pivot` **仍 HOLD**(L3 缺口=多 rig 真值不變,防固化)。
   見 `knowledge/s5-rig-weighted-chain.md`。
+- **S1 slot_bigwin 主秀重擊 beat 接進先驗庫(里程碑,2026-09-02,candidate 0g)** — 補 0f 的**端到端可達性缺口**:
+  0f 的 `gen_hit`/`gen_reveal` 雖已註冊到 `_DISPATCH`,但要端到端輸出需 storyboard 有對應 beat。實查兩 validated 先驗:
+  **`slot_reveal`(main_draw)已可達**(`open→reveal`、`hit→hit`,生產檔本有獨立 open/hit 動畫);
+  **`slot_bigwin`(Award)只有 In/Loop/Out** —— Award 12 支 = In/Loop/Out×4 檔位,**無獨立 hit 動畫**(主秀折進 In)→
+  `build_spine --animate --genre slot_bigwin` **從不輸出主秀**。做法:在 `genre_priors` 的 slot_bigwin **加 PROPOSAL beat
+  `Hit`**(kw `hit/win/bigwin/…`,`beat_category→hit`→路由 `gen_hit`)+ `_BIGWIN_ROLES["Hit"]`,**不動已驗 In/Loop/Out**。
+  端到端結果:`In, Hit, Loop, Out`。`validate_bigwin_mainshow.py`(真實 robot_parts 端到端,沿用 0f 結構簽章判定子)
+  **5 AC 全 PASS**:①可達(Hit 5 bones);②hit 簽章(`b_身體` peak **1.279**、命中前下蹲 **0.931**<0.99、(scale−1)變號 **4**≥3);
+  ③首尾 setup identity(可插 Loop 間);④**負對照**——同一 build 的 `In`/`Loop` **不具** hit 簽章(證加的是真·獨立主秀非改名);
+  ⑤回歸——validate_priors slot_bigwin 覆蓋率仍 **1.0**、Award In/Loop/Out 歸類不動、`Hit` 列 `prior_beats_unused`。
+  **誠實界定**:`Hit` 對 Award 不命中=**先驗提案(PROPOSAL)非真值觀測**(Award 主秀折進 In 是該資產美術選擇);本 chunk 提供
+  「若要獨立主秀節拍」的可達路徑。回歸:0d(--selftest)、0f(B1–B6)、0e、priors 全 PASS。`spine-anim-forge` 仍 **HOLD**。
+  見 `knowledge/s1-bigwin-mainshow-beat.md`。
 - **S1 big-win 主秀 beat 模板(里程碑,2026-09-01,session 002,candidate 0f)** — 補 0d 主秀節拍只有
   `gen_pulse` 對稱三角脈衝的缺口,加兩個經典動畫原理:**anticipation(反向預備)+ settle/follow-through(阻尼回擺)**。
   `tools/analyzer/beat_templates.py`:`gen_hit`(蓄力→命中→阻尼回擺,首尾 identity 可插 Loop 間)、`gen_reveal`
@@ -221,9 +234,11 @@
 > **(C) weighted-forge / rig 併入 `spine-asset-forge` skill**(需 **C 類使用者拍板** sync;打包政策見 `skills/README.md`);
 > **(D) rig 真值資源**(**C/資源類**,阻塞 S5→L3):請使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot** 的分層/rig 檔。
 > **建議下一個(擇一,皆純自主):**
-> **(E) 主秀 beat 接進 genre 先驗庫**:把 0f 的 hit/reveal 併入 `genre_priors` 的 slot_bigwin/slot_reveal,
->   讓 `build_spine --animate` 直接輸出含主秀節拍的完整演出(需同步 `validate_priors` 真值覆蓋,勿動已驗先驗);
+> **(E) ~~主秀 beat 接進 genre 先驗庫~~ ✅ 完成(2026-09-02,candidate 0g,見上里程碑)** —— 實查發現 `slot_reveal`
+>   早已可達(open/hit),真缺口是 `slot_bigwin`(Award 無獨立 hit,只 In/Loop/Out);加 PROPOSAL beat `Hit` 端到端輸出
+>   `In,Hit,Loop,Out`,`validate_bigwin_mainshow.py` 5 AC 全 PASS(含負對照 In/Loop 不具簽章)。不動已驗 In/Loop/Out;
 > **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f 的模板庫);
+> **(F') 每檔位一支主秀**:把 `Hit` 觸發接進 slot_bigwin 的 `tiers`(Super/Mega/Omg/Legend 各一支主秀變體);
 > **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心)。
 
 ## 環境前置(已驗證可用)
@@ -241,6 +256,14 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-02:**S1 slot_bigwin 主秀重擊 beat 接進先驗庫(里程碑,candidate 0g)** — 補 0f 端到端可達性缺口。
+  實查:`slot_reveal`(main_draw)早已可達(open→reveal/hit→hit,生產檔本有此動畫);真缺口=`slot_bigwin`(Award 12 支
+  只 In/Loop/Out×4 檔位,無獨立 hit,主秀折進 In)。在 `genre_priors` 加 PROPOSAL beat `Hit`(路由 gen_hit)→
+  `build_spine --animate` 輸出 `In,Hit,Loop,Out`。`validate_bigwin_mainshow.py` 5 AC 全 PASS(可達/hit 簽章 peak 1.279+
+  下蹲 0.931+變號 4/首尾 identity/**負對照:同 build 的 In·Loop 不具簽章**/priors 回歸 cov 1.0 且 Hit=unused)。
+  誠實界定:Hit 對 Award 不命中=先驗提案非真值;不動已驗 In/Loop/Out。回歸 0d/0e/0f/priors 全 PASS。見 `knowledge/s1-bigwin-mainshow-beat.md`。
+  ⚠️ 分支註記:本次排程於工作分支 `claude/focused-dirac-idq83r` 推進(harness 指定),非 `claude/spine-main`;
+  該分支已含 spine-main 全歷史(自 0f)。若要維持單一 canonical,使用者宜把此分支合回 `claude/spine-main`。
 - 2026-09-01(session 002):**S1 big-win 主秀 beat 模板(里程碑,candidate 0f)** — 補 0d 主秀節拍只有對稱脈衝的缺口,
   加 anticipation(反向預備)+ settle(阻尼回擺)兩動畫原理。`beat_templates.py`(gen_hit 首尾 identity、gen_reveal 首 collapsed
   尾 identity)wire 進 gen_animations(hit/reveal 新類別)+ `validate_beat_templates.py` 6AC 全 PASS(對真實 robot 5 拆件端到端)+

@@ -22,6 +22,14 @@ _BIGWIN_ROLES = _roles(
     "彈入+輕微 overshoot 縮放", "隨身體彈入+回正", "大幅甩入(旋轉+位移+放大)", "炸開:放大+旋轉+亮度峰值",
     "呼吸(±小幅縮放/位移)", "微點頭/傾", "末梢小幅擺盪(相位錯開)", "脈動/緩轉(alpha/scale 微幅循環)",
     "縮出/淡出", "收斂淡出")
+# 主秀重擊 beat 的角色動作(candidate 0g)。beat 名 'Hit' → gen_animations 經 beat_templates
+# 路由到 gen_hit(anticipation+settle),故此處 action 僅為給 rigger 的描述文字,不影響取樣。
+_BIGWIN_ROLES["Hit"] = {
+    "body": "蓄力下蹲→命中放大 overshoot→阻尼回擺(重量感)",
+    "head": "預備微抬→下砸強調→回彈",
+    "limb": "反向蓄力→甩出→阻尼回擺(末梢 whip)",
+    "effect": "先暗蓄勢→亮度峰值閃光→阻尼(反向旋轉甩)",
+}
 
 
 PRIORS = {
@@ -31,6 +39,11 @@ PRIORS = {
         "beats": [
             {"key": "In", "kw": ["in", "intro", "enter", "start", "comeout"],
              "desc": "入場爆發:主體放大/彈入,肢體大幅甩入,特效炸開(旋轉+放大+亮度峰值)"},
+            # 主秀重擊(candidate 0g):蓄力→命中 overshoot→阻尼回擺(anticipation+settle 簽章)。
+            # ⚠️ PROPOSAL — Award 生產檔把主秀節拍**折進 In**(無獨立 hit/win 動畫),故此 beat
+            # 對 Award 命名不命中(validate_priors 會列為 prior_beats_unused),屬先驗提案非真值觀測。
+            {"key": "Hit", "kw": ["hit", "win", "bigwin", "impact", "punch", "命中", "重擊", "衝擊"],
+             "desc": "主秀重擊:蓄力→命中放大 overshoot→阻尼回擺(首尾 identity,可插在 Loop 間當重音)"},
             {"key": "Loop", "kw": ["loop", "idle"],
              "desc": "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉"},
             {"key": "Out", "kw": ["out", "exit", "end", "close"],

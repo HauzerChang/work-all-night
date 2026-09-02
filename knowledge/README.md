@@ -21,6 +21,7 @@
 
 ## 索引(本次執行起新增的發現)
 
+- [S1 slot_bigwin 主秀重擊 beat 接進先驗庫(0g)](s1-bigwin-mainshow-beat.md) — 補 0f 的**端到端可達性缺口**:0f 的 gen_hit 雖已註冊,但 slot_bigwin 預設分鏡只有 In/Loop/Out(Award 把主秀折進 In,無獨立 hit 動畫)→ `build_spine --animate` 從不輸出主秀。在 genre_priors 加 PROPOSAL beat `Hit`(路由 gen_hit)→ 端到端輸出 `In,Hit,Loop,Out`。`validate_bigwin_mainshow.py` **5 AC 全 PASS**(可達/hit 簽章 peak 1.279+下蹲 0.931+變號 4/首尾 identity/**負對照:同 build 的 In·Loop 不具簽章**/priors 回歸 cov 1.0 且 Hit 為 unused)。誠實界定:Hit 對 Award 不命中=先驗提案非真值;不動已驗 In/Loop/Out。anim-forge 仍 HOLD。
 - [S1 big-win 主秀 beat 模板(0f)](s1-beat-templates.md) — 補 0d 只有對稱脈衝的缺口:hit/reveal 主秀節拍加 **anticipation(反向預備)+ settle(阻尼回擺)**。`beat_templates.py` + `validate_beat_templates.py` 6 AC 全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝。真值=結構簽章(非美感)。cap `storyboard_beat_templates` L2;anim-forge 仍 HOLD。
 
 - [S3 mesh 生成器](s3-mesh-generator.md) — 純 CPU PNG→Spine mesh 原型 + 評估器,合成資料 6 條 AC 全過(IoU 0.99)。
