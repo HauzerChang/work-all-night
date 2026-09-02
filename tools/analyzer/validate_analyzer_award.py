@@ -6,7 +6,7 @@ Award 是 robot_parts 的真實成品(機器人拆件 5 slot / 綁 5 骨 / 12 �
   ① 可動件召回:反推件 vs Award 機器人拆件 slot(名稱對應)。
   ② 特效分類:光暈 應判為特效;其餘結構。
   ③ mesh/region 建議 vs Award 實際 attachment type。
-  ④ 分鏡結構:提案 In/Loop/Out(+檔位) vs Award 動畫命名結構。
+  ④ 分鏡結構:提案須復現 Award 每一 beat(In/Loop/Out)+檔位;extra 只允許合法主秀節拍(hit/reveal 類,0g 起)。
   ⑤ 露出項合理性:各 reveal 的 mover 骨在 Award 是否真的有足量運動(位移/旋轉)。
 """
 import argparse, json, os, sys, re
@@ -81,7 +81,15 @@ def validate(psd_path, award_path):
             tiers.add(t.group(1))
     proposed_beats = {b["beat"] for b in spec["3_motion_storyboard"]["beats"]}
     proposed_tiers = set(spec["3_motion_storyboard"]["tier_variants"] or [])
-    beats_ok = proposed_beats == beat_kinds
+    # 準確度保證:分析器須**復現 Award 每一個真實 beat**(observed ⊆ proposed)。
+    # candidate 0g 起,先驗庫可含**提案主秀節拍**(如 Hit,payoff 被 Award 融進 In → 真值未單獨命名);
+    # 這類 extra 允許存在,但**每一個都必須是合法主秀類別**(beat_category ∈ {hit,reveal}),
+    # 否則(隨機/幻覺 beat)仍 FAIL —— 保留反捏造鑑別力。純 In/Loop/Out 的 == 是本條的特例。
+    from gen_animations import beat_category as _bc
+    recovered = beat_kinds.issubset(proposed_beats)
+    extra_beats = proposed_beats - beat_kinds
+    extra_all_show = all(_bc(b) in ("hit", "reveal") for b in extra_beats)
+    beats_ok = recovered and extra_all_show
     tiers_hit = proposed_tiers & tiers
 
     # ⑤ 露出項合理性:露出需「遮擋者移開」或「被遮件自己移出」二者之一有足量運動
@@ -111,7 +119,11 @@ def validate(psd_path, award_path):
         "3_geometry_vs_award": {"per_part": geo_eval,
                                 "pass": all(v["verdict"] != "mismatch" for v in geo_eval.values())},
         "4_storyboard_structure": {"proposed_beats": sorted(proposed_beats),
-                                    "award_beats": sorted(beat_kinds), "beats_match": beats_ok,
+                                    "award_beats": sorted(beat_kinds),
+                                    "observed_recovered": recovered,
+                                    "extra_proposal_beats": sorted(extra_beats),
+                                    "extra_all_show_beats": extra_all_show,
+                                    "beats_match": beats_ok,
                                     "award_tiers": sorted(tiers), "tiers_hit": sorted(tiers_hit),
                                     "pass": beats_ok and len(tiers_hit) >= 1},
         "5_reveal_motion_check": {"checks": reveal_checks,

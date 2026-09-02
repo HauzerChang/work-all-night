@@ -23,6 +23,16 @@ _BIGWIN_ROLES = _roles(
     "呼吸(±小幅縮放/位移)", "微點頭/傾", "末梢小幅擺盪(相位錯開)", "脈動/緩轉(alpha/scale 微幅循環)",
     "縮出/淡出", "收斂淡出")
 
+# candidate 0g — 主秀「Hit」節拍(payoff 重擊):插在 In 與 Loop 之間。動作交給
+# `beat_templates.gen_hit`(anticipation 蓄力 + impact 放大 + settle 阻尼回擺),**首尾皆 setup
+# identity** → 可無縫夾在 In(尾 identity)與 Loop(首 identity)之間,補「入場→payoff→待機」的完整演出。
+_BIGWIN_ROLES["Hit"] = {
+    "body": "蓄力下蹲→放大命中→阻尼回擺(payoff 重擊)",
+    "head": "微抬預備→下砸強調→回彈",
+    "limb": "反向蓄力→大幅甩出→阻尼回擺",
+    "effect": "亮度先暗(蓄)→閃光峰值→阻尼;反向旋轉甩",
+}
+
 
 PRIORS = {
     "slot_bigwin": {
@@ -31,6 +41,9 @@ PRIORS = {
         "beats": [
             {"key": "In", "kw": ["in", "intro", "enter", "start", "comeout"],
              "desc": "入場爆發:主體放大/彈入,肢體大幅甩入,特效炸開(旋轉+放大+亮度峰值)"},
+            {"key": "Hit", "kw": ["hit", "impact", "punch", "slam", "throb", "win", "命中", "重擊", "衝擊", "打擊"],
+             "desc": "主秀重擊(payoff):蓄力→命中放大→阻尼回擺(anticipation+settle;夾在 In 與 Loop 間,首尾 identity 無縫)。"
+                     "Award 把 payoff 融進 In 動畫,故此 beat 為**提案節拍**(真值未單獨命名,見 validate_priors unused)。"},
             {"key": "Loop", "kw": ["loop", "idle"],
              "desc": "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉"},
             {"key": "Out", "kw": ["out", "exit", "end", "close"],

@@ -78,6 +78,25 @@
   踩雷:PSD 寫檔 mac_roman 不吃 CJK 圖層名→用 ASCII;旋轉某骨不移其自身原點→region 葉件看 attachment 世界點。
   新增 cap `rig_weighted_chain` L2 GREEN;`spine-rig-pivot` **仍 HOLD**(L3 缺口=多 rig 真值不變,防固化)。
   見 `knowledge/s5-rig-weighted-chain.md`。
+- **S1 主秀 payoff 節拍併入 genre 先驗庫(里程碑,2026-09-02,candidate 0g)** — 補 0f 的**端到端缺口**:
+  0f `beat_templates`(gen_hit/gen_reveal)已驗**模板結構簽章**,但用**合成 storyboard**(直接塞 beat key);
+  實測 `build_spine --animate --genre slot_bigwin` 端到端只吐 **[In, Loop, Out]** —— 主秀 payoff **缺席**
+  (slot_bigwin 先驗只有 In/Loop/Out,In→intro=簡單彈入無 anticipation/settle)。把 **Hit 節拍併入
+  `genre_priors.slot_bigwin`**(In 與 Loop 間),`beat_category("Hit")→hit→gen_hit`,gen_animations **零改動**
+  即接通;端到端現吐完整 **In→Hit→Loop→Out**。選 Hit 非 Reveal:gen_hit 首尾 identity 可無縫夾中段,
+  gen_reveal collapsed 起手只能當首拍(big-win 的 In 已現身 → 主秀用 payoff 重擊)。
+  `validate_show_beat_wiring.py`(走**真實組裝** build_spine.build)**6 AC 全 PASS**:W1 端到端吐主秀 beat +序列
+  In→Hit→Loop→Out;W2 Hit 每 bone 具簽章(**復用 0f `_hit_signature`**;peak 1.18–1.35/蓄力 0.931/變號 4);
+  W3 首尾 identity → 相鄰邊界位移 **0.0**(無縫);W4 `validate_priors` 覆蓋回歸(slot_bigwin **1.0**,Hit=unused);
+  W5 負對照(對稱脈衝無簽章 + **移除 Hit 先驗端到端退回 [In,Loop,Out] 0 主秀 beat**→證因果);W6 slot_reveal
+  兩 genre 皆吐 reveal+hit。**關鍵發現:主秀節拍是「先驗庫」層而非「模板」層** —— 0f 模板做好也沒用,
+  先驗庫沒引用它端到端等於沒有;真正接通的是先驗 beat 表 +1 拍。**誠實界定**:Award payoff 融進 In 動畫,
+  Hit 為**提案節拍**(真值未單獨命名 → `validate_priors` 標 unused、不占覆蓋率);「勿動已驗先驗」達成
+  (In/Loop/Out 一字未改,只新增 Hit;slot_reveal 全未動)。**耦合修復**:check_readiness 抓到 `validate_analyzer_award`
+  check-4 原用嚴格集合相等 → 加 Hit 後 RED;改為 `observed⊆proposed` + extra 須主秀類別(hit/reveal,否則仍 FAIL,
+  保鑑別力)→ 修後 GREEN,spine-asset-forge/target-analysis 兩區塊回復。回歸:0d validate_anim(robot+selftest+Symbol_Ww)、
+  0e validate_deform_gen、0f validate_beat_templates 全 PASS。新增 cap `show_beat_wiring` L2 併入 `spine-anim-forge`
+  (**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。見 `knowledge/s1-show-beat-wiring.md`。
 - **S1 big-win 主秀 beat 模板(里程碑,2026-09-01,session 002,candidate 0f)** — 補 0d 主秀節拍只有
   `gen_pulse` 對稱三角脈衝的缺口,加兩個經典動畫原理:**anticipation(反向預備)+ settle/follow-through(阻尼回擺)**。
   `tools/analyzer/beat_templates.py`:`gen_hit`(蓄力→命中→阻尼回擺,首尾 identity 可插 Loop 間)、`gen_reveal`
@@ -221,9 +240,12 @@
 > **(C) weighted-forge / rig 併入 `spine-asset-forge` skill**(需 **C 類使用者拍板** sync;打包政策見 `skills/README.md`);
 > **(D) rig 真值資源**(**C/資源類**,阻塞 S5→L3):請使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot** 的分層/rig 檔。
 > **建議下一個(擇一,皆純自主):**
-> **(E) 主秀 beat 接進 genre 先驗庫**:把 0f 的 hit/reveal 併入 `genre_priors` 的 slot_bigwin/slot_reveal,
->   讓 `build_spine --animate` 直接輸出含主秀節拍的完整演出(需同步 `validate_priors` 真值覆蓋,勿動已驗先驗);
+> **(E) ~~主秀 beat 接進 genre 先驗庫~~ ✅ 完成(2026-09-02,candidate 0g,`show_beat_wiring` L2,見上里程碑)** ——
+>   Hit 併入 `genre_priors.slot_bigwin`,`build_spine --animate` 端到端輸出 In→Hit→Loop→Out;
+>   `validate_show_beat_wiring.py` 6AC + 負對照(移除 Hit 先驗→退回無主秀)。slot_reveal 本就已吐 open/hit,未動;
 > **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f 的模板庫);
+>   ⚠️ 併入先驗庫時沿用 0g 契約:identity 兩端的節拍(如 combo/hit)可夾序列中段、collapsed 起手的只能當首拍;
+>   Award 真值只有 In/Loop/Out → 新節拍多為提案(validate_priors unused,勿破壞既有 1.0 覆蓋)。
 > **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心)。
 
 ## 環境前置(已驗證可用)
@@ -241,6 +263,14 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-02:**S1 主秀 payoff 節拍併入 genre 先驗庫(里程碑,candidate 0g)** — 補 0f 端到端缺口:0f 用合成
+  storyboard 驗模板,但 slot_bigwin 先驗只有 In/Loop/Out → `build --animate` 端到端主秀 payoff 缺席([In,Loop,Out])。
+  把 Hit 節拍併入 `genre_priors.slot_bigwin`(In 與 Loop 間,首尾 identity 無縫夾入),gen_animations 零改動接通;
+  端到端現吐 In→Hit→Loop→Out。`validate_show_beat_wiring.py`(走真實 build_spine.build)6AC 全 PASS(端到端吐主秀 beat/
+  簽章復用 0f 判定器/邊界位移 0.0/validate_priors 覆蓋回歸 1.0 Hit=unused/負對照:對稱脈衝無簽章+移除 Hit 先驗退回無主秀/
+  slot_reveal 兩 genre 皆吐)。關鍵:主秀是「先驗庫」層非「模板」層;Reveal collapsed 起手只能首拍、Hit identity 兩端可夾中段。
+  honest:Award payoff 融進 In→Hit 為提案節拍(不占真值覆蓋)。回歸 0d/0e/0f 全 PASS。新增 cap `show_beat_wiring` L2;
+  anim-forge 仍 HOLD。見 `knowledge/s1-show-beat-wiring.md`。
 - 2026-09-01(session 002):**S1 big-win 主秀 beat 模板(里程碑,candidate 0f)** — 補 0d 主秀節拍只有對稱脈衝的缺口,
   加 anticipation(反向預備)+ settle(阻尼回擺)兩動畫原理。`beat_templates.py`(gen_hit 首尾 identity、gen_reveal 首 collapsed
   尾 identity)wire 進 gen_animations(hit/reveal 新類別)+ `validate_beat_templates.py` 6AC 全 PASS(對真實 robot 5 拆件端到端)+

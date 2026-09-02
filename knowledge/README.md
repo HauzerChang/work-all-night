@@ -21,6 +21,7 @@
 
 ## 索引(本次執行起新增的發現)
 
+- [S1 主秀 payoff 節拍併入 genre 先驗庫(0g)](s1-show-beat-wiring.md) — 補 0f 端到端缺口:0f 用**合成 storyboard** 驗模板,但 slot_bigwin 先驗只有 In/Loop/Out → `build --animate` 端到端**主秀 payoff 缺席**([In,Loop,Out])。把 **Hit 節拍併入 `genre_priors.slot_bigwin`**(In 與 Loop 間,首尾 identity 可無縫夾入),端到端現吐完整 **In→Hit→Loop→Out**,Hit 走 0f `gen_hit`。`validate_show_beat_wiring.py` **6 AC 全 PASS**(端到端吐主秀 beat/簽章復用 0f 判定器/首尾 identity 無縫位移=0/`validate_priors` 覆蓋回歸 1.0/負對照:對稱脈衝無簽章+移除 Hit 先驗端到端 0 主秀 beat/slot_reveal 兩 genre 皆吐)。**關鍵:主秀是「先驗庫」層而非「模板」層**;Reveal(collapsed 起手)只能當首拍、Hit(identity 兩端)才能夾中段。honest:Award payoff 融進 In→Hit 為提案節拍(`validate_priors` unused,不占真值覆蓋)。cap `show_beat_wiring` L2;anim-forge 仍 HOLD。
 - [S1 big-win 主秀 beat 模板(0f)](s1-beat-templates.md) — 補 0d 只有對稱脈衝的缺口:hit/reveal 主秀節拍加 **anticipation(反向預備)+ settle(阻尼回擺)**。`beat_templates.py` + `validate_beat_templates.py` 6 AC 全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝。真值=結構簽章(非美感)。cap `storyboard_beat_templates` L2;anim-forge 仍 HOLD。
 
 - [S3 mesh 生成器](s3-mesh-generator.md) — 純 CPU PNG→Spine mesh 原型 + 評估器,合成資料 6 條 AC 全過(IoU 0.99)。

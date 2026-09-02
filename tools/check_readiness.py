@@ -172,6 +172,14 @@ BLOCKS = [
                             "皆 setup identity/collapse 介面可與 In/Loop/Out 串接。6AC(well-formed/可串接介面/真峰/"
                             "anticipation/settle 阻尼回擺/負對照)全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝(gen_pulse "
                             "無反向預備+無阻尼回擺→非主秀)、不歸位、無峰。真值=結構簽章(非美感,美感留使用者 A類)"),
+            CAP("show_beat_wiring", "主秀 Hit payoff 節拍併入 slot_bigwin 先驗庫(端到端,0g)", "L2",
+                "python3 tools/analyzer/validate_show_beat_wiring.py",
+                "pipeline", note="補 0f 缺口:0f 用合成 storyboard 驗模板,slot_bigwin 端到端只吐 In/Loop/Out(主秀缺席)。"
+                     "把 Hit 節拍併入 genre_priors.slot_bigwin(In 與 Loop 間),build_spine --animate 現輸出完整 "
+                     "In→Hit→Loop→Out,Hit 走 gen_hit(anticipation+settle)。6AC(端到端吐主秀 beat/簽章復用 0f 判定器/"
+                     "首尾 identity 無縫串接位移=0/validate_priors 真值覆蓋回歸 1.0/負對照:對稱脈衝無簽章+移除 Hit 先驗端到端 0 主秀 beat/"
+                     "slot_reveal 兩 genre 皆吐主秀類別)全 PASS。honest:Award 把 payoff 融進 In 動畫,故 Hit 為提案節拍→"
+                     "validate_priors 標 unused(不占真值覆蓋)"),
         ],
     },
 ]
