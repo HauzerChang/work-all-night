@@ -172,6 +172,13 @@ BLOCKS = [
                             "皆 setup identity/collapse 介面可與 In/Loop/Out 串接。6AC(well-formed/可串接介面/真峰/"
                             "anticipation/settle 阻尼回擺/負對照)全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝(gen_pulse "
                             "無反向預備+無阻尼回擺→非主秀)、不歸位、無峰。真值=結構簽章(非美感,美感留使用者 A類)"),
+            CAP("rig_anim_articulation", "rig 關節樹 × 生成主秀動畫組合閘(--rig --animate)", "L2",
+                "python3 tools/analyzer/validate_rig_anim.py", "pipeline",
+                note="組合 S5 骨樹 + S1 生成 timeline:證整支生成動畫逐幀下肢體繞關節擺、且接縫黏父件。"
+                     "5AC PASS(組合良構+機制 rig 掛 body/非 rig 掛 root / rig 接縫脫槽≤6.3px / 負對照非 rig 散架 "
+                     "脫槽 21/6.4/7px 單調 rig<flat 總和比 2.56 最大 6.2× / 三 beat mesh 逐幀 si=0 / radial 修正)。"
+                     "負對照=完全相同動畫、只差 rig 結構(最乾淨鑑別)。同塊修 In/Out 徑向在 --rig 下誤用件骨 local "
+                     "座標當畫布座標的潛伏 bug(_bone_world_origin 沿父鏈累加;非 rig 逐位相容)。honest:左手件中心≈關節故弱(1.1×)、單一真值資產"),
         ],
     },
 ]

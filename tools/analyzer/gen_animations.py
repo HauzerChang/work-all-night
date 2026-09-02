@@ -205,10 +205,28 @@ except ImportError:
     pass
 
 
+def _bone_world_origin(bname, byname):
+    """該骨在 **setup pose** 的世界原點 =沿 parent 鏈累加 local (x,y)。
+    build_spine 產出的件骨 setup 皆純平移(rotation=0、scale=1)→ 世界原點=鏈上 local 位移和。
+    非 rig(件骨直掛 root、x/y 本即畫布世界座標)下退化為 (bone.x, bone.y),與舊行為逐位吻合(向後相容);
+    --rig 下件骨 x/y 是**相對父件的 local 偏移**,舊碼誤把 local 當畫布座標算徑向 → 方向錯(尤其
+    local 與世界位置異號的件,如 頭/左手 徑向被翻反)。此處累加父鏈修正之。"""
+    x = y = 0.0
+    cur, seen = bname, set()
+    while cur is not None and cur in byname and cur not in seen:
+        seen.add(cur)
+        b = byname[cur]
+        x += b.get("x", 0.0)
+        y += b.get("y", 0.0)
+        cur = b.get("parent")
+    return x, y
+
+
 def build_animations(skeleton, storyboard):
     """回傳 animations dict(beat 名為 key)。"""
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
+    byname = {b["name"]: b for b in skeleton["bones"]}
     # 畫布中心(用於徑向)
     W = skeleton["skeleton"]["width"]
     H = skeleton["skeleton"]["height"]
@@ -231,8 +249,10 @@ def build_animations(skeleton, storyboard):
             if role == "limb":
                 side_sign = 1.0 if limb_seen % 2 == 0 else -1.0
                 limb_seen += 1
-            # 徑向外側單位向量(件中心相對畫布中心)
-            dx, dy = bd.get("x", cx) - cx, bd.get("y", cy) - cy
+            # 徑向外側單位向量(件世界原點相對畫布中心)。用**世界原點**(沿父鏈累加),
+            # 而非 bd["x"]/["y"](--rig 下為 local 偏移,非畫布座標);非 rig 退化為 (bd.x,bd.y)。
+            wx, wy = _bone_world_origin(bname, byname)
+            dx, dy = wx - cx, wy - cy
             n = math.hypot(dx, dy) or 1.0
             radial = (dx / n, dy / n)
 

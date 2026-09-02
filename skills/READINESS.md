@@ -1,12 +1,12 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-09-01 run 002(S1 candidate 0f big-win 主秀 beat 模板:補 0d 只有對稱脈衝的缺口,加 anticipation+settle 兩動畫原理。`spine-anim-forge` 新增 cap `storyboard_beat_templates` L2 → 區塊仍 HOLD;運動基元先驗、單一真值資產,防固化。3 區塊仍 READY 不變)。
-> (前次 run 001:candidate 0e mesh deform timeline 生成,新增區塊 `spine-anim-forge`。)
+> 產生於 2026-09-02 run 001(S5×S1 組合閘:證 `build_spine --rig --animate` 生成主秀動畫下肢體繞關節擺、黏父件(5 AC + 負對照),並修 rig In/Out 徑向潛伏 bug。`spine-anim-forge` 新增 cap `rig_anim_articulation` L2 → 區塊仍 HOLD;單一真值資產,防固化。3 區塊仍 READY 不變)。
+> (前次 run:candidate 0f big-win 主秀 beat 模板,`spine-anim-forge` 新增 cap `storyboard_beat_templates`。)
 
 ```
 ==============================================================================
-skill 化完成度矩陣(已實跑全部 validator)
+skill 化完成度矩陣(--quick:略過 heavy 閘)
 ==============================================================================
 
 ■ spine-mesh-doctor — mesh 品質 / 變形評估閘套件
@@ -14,7 +14,7 @@ skill 化完成度矩陣(已實跑全部 validator)
   目標:新 skill《spine-mesh-doctor》(補 spine-ai-editor 只可視化、無量化 pass/fail 的空白)
     [L2] 靜態輪廓 IoU 閘                             閘:GREEN (eval)
     [L2] unweighted 變形閘(真實位移場)                  閘:GREEN (eval)
-    [L2] weighted 骨綁變形閘                         閘:GREEN (eval)  «今日新增;3 robot 真值 + 負對照»
+    [L2] weighted 骨綁變形閘                         閘:—     (eval)  «今日新增;3 robot 真值 + 負對照»
     [L3] 整合 AC(端到端 4 mesh)                      閘:GREEN (pipeline)
 
 ■ spine-asset-forge — 目標圖/PSD → 可載入 Spine 素材(靜態)
@@ -43,10 +43,10 @@ skill 化完成度矩陣(已實跑全部 validator)
 ■ spine-weighted-forge — weighted mesh 生成 + BBW 權重(候選 2 主體)
   區塊成熟度 L3 → READY ✅
   目標:READY:達門檻,可併入 spine-asset-forge(weighted 素材產線)
-    [L2] 變形品質閘(前置)                              閘:GREEN (eval)
-    [L2] heat-diffusion(BBW 近似)權重生成             閘:GREEN (gen)  «不透明件(身體/左手)過閘 + 平滑度≈藝術家;軟性件(光暈極端 reveal)未追平,屬已知限制»
-    [L2] 內部取樣密度控制(triangle max-area)            閘:GREEN (gen)  «body 調到 nv=98 == 藝術家»
-    [L3] build_spine --weighted 端到端產可載入 spine   閘:GREEN (pipeline)  «round-trip + 輪廓 IoU + 合成變形閘;結構件 si=0、特效件 additive 容忍»
+    [L2] 變形品質閘(前置)                              閘:—     (eval)
+    [L2] heat-diffusion(BBW 近似)權重生成             閘:—     (gen)  «不透明件(身體/左手)過閘 + 平滑度≈藝術家;軟性件(光暈極端 reveal)未追平,屬已知限制»
+    [L2] 內部取樣密度控制(triangle max-area)            閘:—     (gen)  «body 調到 nv=98 == 藝術家»
+    [L3] build_spine --weighted 端到端產可載入 spine   閘:—     (pipeline)  «round-trip + 輪廓 IoU + 合成變形閘;結構件 si=0、特效件 additive 容忍»
 
 ■ spine-rig-pivot — S5 rig pivot 推斷(關節=父子件接觸縫)
   區塊成熟度 L2 → HOLD ⛔
@@ -63,7 +63,8 @@ skill 化完成度矩陣(已實跑全部 validator)
   目標:HOLD:讓 build --animate 素材『會動』;運動基元為手感先驗(非學自真值),達 L3 前不打包
     [L2] 分鏡→bone TRS + slot alpha timeline(0d)  閘:GREEN (gen)  «4AC(有限/loop無縫/pose不擾動/beat串接)+ --selftest 負對照全偵測;role→運動基元為先驗手感提案(非學自真值),緩動美感留使用者(A類)»
     [L2] 分鏡→mesh deform timeline(真實律動場轉移,0e)    閘:GREEN (pipeline)  «補 0d 只動 bone/slot 的缺口:軟件/特效 mesh 本身 deform。運動=真實 main_draw 窗簾/陰影 deform 場(deform_eval.real_deform_field)UV 轉移到目標 mesh;beat 包絡首尾回 setup(無縫)。7AC PASS(結構/逐幀乾淨/loop無縫/setup介面/幅度≤真實裕度/負對照 scramble×3 全破+連貫×4不破/build_spine --animate --deform 端到端生成 mesh 逐幀乾淨)。gate=deform_eval(真實位移場,已驗可信)。honest boundary:件role→律動場來源為先驗映射(預設軟布料模板);單一真值資產»
-    [L2] big-win 主秀 beat 模板 hit/reveal(anticipation+settle,0f)  閘:GREEN (gen)  «補 0d 只有對稱脈衝的缺口:hit=反向預備→命中→阻尼回擺、reveal=藏→蓄勢→炸開→回穩,皆 setup identity/collapse 介面可與 In/Loop/Out 串接。6AC(well-formed/可串接介面/真峰/anticipation/settle 阻尼回擺/負對照)全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝(gen_pulse 無反向預備+無阻尼回擺→非主秀)、不歸位、無峰。真值=結構簽章(非美感,美感留使用者 A類)»
+    [L2] big-win 主秀 beat 模板 hit/reveal(anticipation+settle,0f) 閘:GREEN (gen)  «補 0d 只有對稱脈衝的缺口:hit=反向預備→命中→阻尼回擺、reveal=藏→蓄勢→炸開→回穩,皆 setup identity/collapse 介面可與 In/Loop/Out 串接。6AC(well-formed/可串接介面/真峰/anticipation/settle 阻尼回擺/負對照)全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝(gen_pulse 無反向預備+無阻尼回擺→非主秀)、不歸位、無峰。真值=結構簽章(非美感,美感留使用者 A類)»
+    [L2] rig 關節樹 × 生成主秀動畫組合閘(--rig --animate)   閘:GREEN (pipeline)  «組合 S5 骨樹 + S1 生成 timeline:證整支生成動畫逐幀下肢體繞關節擺、且接縫黏父件。5AC PASS(組合良構+機制 rig 掛 body/非 rig 掛 root / rig 接縫脫槽≤6.3px / 負對照非 rig 散架 脫槽 21/6.4/7px 單調 rig<flat 總和比 2.56 最大 6.2× / 三 beat mesh 逐幀 si=0 / radial 修正)。負對照=完全相同動畫、只差 rig 結構(最乾淨鑑別)。同塊修 In/Out 徑向在 --rig 下誤用件骨 local 座標當畫布座標的潛伏 bug(_bone_world_origin 沿父鏈累加;非 rig 逐位相容)。honest:左手件中心≈關節故弱(1.1×)、單一真值資產»
 
 ==============================================================================
 可 skill 化(達門檻): spine-mesh-doctor, spine-asset-forge, spine-weighted-forge

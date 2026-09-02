@@ -78,6 +78,21 @@
   踩雷:PSD 寫檔 mac_roman 不吃 CJK 圖層名→用 ASCII;旋轉某骨不移其自身原點→region 葉件看 attachment 世界點。
   新增 cap `rig_weighted_chain` L2 GREEN;`spine-rig-pivot` **仍 HOLD**(L3 缺口=多 rig 真值不變,防固化)。
   見 `knowledge/s5-rig-weighted-chain.md`。
+- **S5×S1 組合:rig 關節樹 × 生成主秀動畫(里程碑,2026-09-02)** — 證明 `build_spine --rig --animate`
+  把 **S5 骨樹**(接觸縫 pivot→bone)與 **S1 生成 timeline**(0d/0f)**組起來後,肢體真的繞關節擺、且黏在父件身上**
+  (補 `validate_rig_build` 只驗單一固定角 θ=25°、`validate_anim` 只驗非 rig 扁平骨架的缺口)。
+  `tools/analyzer/validate_rig_anim.py` 逐幀取樣生成 timeline → bone world → 量「子件接縫點在**父件(body)
+  移動座標系**中相對 setup 的脫槽距離」(用 Loop:僅旋轉、無 In 的 scale-from-0 假影)。**5 AC 全 PASS**:
+  ①組合良構+機制(rig 子件掛 body、非 rig 掛 root);②rig 接縫黏連(脫槽 右手6.3/頭1.0/左手6.1 ≤12px);
+  ③**負對照(非 rig 散架)**——同動畫脫槽 21/6.4/7px、**單調 rig<flat**、總和比 2.56/最大比 6.2×;
+  ④三 beat 逐幀 mesh(body/光暈)si=0/flip=0/world 非退化;⑤radial 修正+向後相容。
+  **同塊修一個潛伏組合 bug**:`build_animations` 舊碼 In/Out 徑向 `bd["x"]-cx` 誤把 **rig 件骨的 local 偏移**
+  當畫布座標算方向(頭/左手被翻反 cos −0.74/−0.95 → 從錯側飛入)→ 新增 `_bone_world_origin`(沿父鏈累加
+  setup 世界原點),**非 rig 退化為 (bone.x,bone.y) 逐位相容**。回歸:validate_anim(rig+非rig)/beat/deform 全 PASS;
+  build_animations 只寫 animations → setup pose 完全不受影響。**負對照=完全相同動畫、只差 rig 結構**(最乾淨鑑別)。
+  誠實界定:左手件中心≈關節故鑑別弱(1.1×,閘用單調+總和/最大比非 min>門檻);單一真值資產 →
+  `spine-anim-forge`/`spine-rig-pivot` 兩區塊**仍 HOLD**(強化組合證據非跨門檻)。見 `knowledge/s5-rig-anim-articulation.md`、
+  圖 `knowledge/figures/s5_rig_anim_articulation.png`。
 - **S1 big-win 主秀 beat 模板(里程碑,2026-09-01,session 002,candidate 0f)** — 補 0d 主秀節拍只有
   `gen_pulse` 對稱三角脈衝的缺口,加兩個經典動畫原理:**anticipation(反向預備)+ settle/follow-through(阻尼回擺)**。
   `tools/analyzer/beat_templates.py`:`gen_hit`(蓄力→命中→阻尼回擺,首尾 identity 可插 Loop 間)、`gen_reveal`
@@ -211,6 +226,7 @@
 > **主排程近況**:S1(分析器+build+keyframe 0d+**mesh deform 生成 0e**+**主秀 beat 模板 0f**)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
 > S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫(08-29)→ 接 build_spine 骨樹(08-30,--rig)→ 肢體樹自動推斷(08-31 s1)
 > → `--rig`×`--weighted` 併用(08-31 s2)→ 多跳 weighted 肢體鏈端到端(08-31 s3)已全部完成**;S4 已交獨立排程。
+> **S5×S1 組合閘(09-02)**:`--rig --animate` 生成主秀動畫下肢體繞關節擺、黏父件(5 AC + 負對照),並修 rig 徑向潛伏 bug。
 > ⚠️ **S5 達 L3 的唯一硬缺口 = 多 rig 真值,但 Award 只有機器人一件可拆肢體 rig → 屬使用者資源(C/資源類待辦)**。
 > **S5 的可自主子問題已收斂到位**(pivot 縫 + 樹推斷 + rig 組裝 + weighted 併用 + 多跳鏈,合成 fixture 覆蓋深度通用)。
 > 建議下一個 bounded chunk(擇一,皆可自主):
@@ -224,7 +240,14 @@
 > **(E) 主秀 beat 接進 genre 先驗庫**:把 0f 的 hit/reveal 併入 `genre_priors` 的 slot_bigwin/slot_reveal,
 >   讓 `build_spine --animate` 直接輸出含主秀節拍的完整演出(需同步 `validate_priors` 真值覆蓋,勿動已驗先驗);
 > **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f 的模板庫);
-> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心)。
+> **(G) ~~S1 (e) 關節 pivot 推斷接 keyframe~~ ✅ 完成(2026-09-02,見上里程碑)** —— 實查發現 `--rig --animate`
+>   已把生成 rotate timeline 掛在關節骨上(件繞關節轉),缺的是**組合驗證**:`validate_rig_anim.py` 逐幀證
+>   rig 接縫黏父件、非 rig 散架(5 AC),並修 In/Out 徑向在 rig 下算錯的潛伏 bug。cap `rig_anim_articulation` L2;區塊仍 HOLD。
+> **建議下一個(擇一,皆純自主):**
+> **(E) 主秀 beat 接進 genre 先驗庫**:把 0f 的 hit/reveal 併入 `genre_priors` 的 slot_bigwin/slot_reveal
+>   (目前 storyboard beats 為 In/Loop/Out,主秀 hit/reveal 尚未被 genre 先驗指派),讓 `build_spine --animate`
+>   直接輸出含主秀節拍的完整演出(需同步 `validate_priors` 真值覆蓋,勿動已驗先驗);
+> **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f 的模板庫)。
 
 ## 環境前置(已驗證可用)
 
@@ -241,6 +264,13 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-02(session 001):**S5×S1 組合:rig 關節樹 × 生成主秀動畫(里程碑)** — 證明 `build_spine --rig --animate`
+  組起來後肢體真的繞關節擺、且黏父件(補 validate_rig_build 只驗單角、validate_anim 只驗非 rig 的缺口)。
+  `validate_rig_anim.py` 逐幀量「子件接縫在父件座標系脫槽距離」,**5 AC 全 PASS**:rig 黏連(≤6.3px)、
+  負對照非 rig 散架(21/6.4/7px、單調、總和比 2.56/最大 6.2×)、三 beat mesh si=0、radial 修正。負對照=同動畫只差 rig 結構。
+  **修潛伏 bug**:In/Out 徑向誤用 rig 件骨 local 座標當畫布座標(頭/左手翻反)→ `_bone_world_origin` 沿父鏈累加修正
+  (非 rig 逐位相容;setup pose 不受影響)。cap `rig_anim_articulation` L2;anim-forge/rig-pivot 仍 HOLD(單一真值資產)。
+  見 `knowledge/s5-rig-anim-articulation.md`。
 - 2026-09-01(session 002):**S1 big-win 主秀 beat 模板(里程碑,candidate 0f)** — 補 0d 主秀節拍只有對稱脈衝的缺口,
   加 anticipation(反向預備)+ settle(阻尼回擺)兩動畫原理。`beat_templates.py`(gen_hit 首尾 identity、gen_reveal 首 collapsed
   尾 identity)wire 進 gen_animations(hit/reveal 新類別)+ `validate_beat_templates.py` 6AC 全 PASS(對真實 robot 5 拆件端到端)+
