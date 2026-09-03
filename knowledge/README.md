@@ -22,6 +22,7 @@
 ## 索引(本次執行起新增的發現)
 
 - [S1 big-win 主秀 beat 模板(0f)](s1-beat-templates.md) — 補 0d 只有對稱脈衝的缺口:hit/reveal 主秀節拍加 **anticipation(反向預備)+ settle(阻尼回擺)**。`beat_templates.py` + `validate_beat_templates.py` 6 AC 全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝。真值=結構簽章(非美感)。cap `storyboard_beat_templates` L2;anim-forge 仍 HOLD。
+- [S1 連擊 / rollup 主秀 beat 模板(0g)](s1-combo-template.md) — 補 0f 的下一個缺口:「同一拍內**多次遞減重音**」(連環中獎 / 金幣 rollup),In/Loop/Out 與單一 hit 都表達不了。`beat_templates.py::gen_combo`(N 次擊、`(peak-1)·decay^k` 遞減、擊間回 identity、首尾 identity)+ `validate_combo_template.py` **C1–C6 全 PASS**。**結構簽章 = ≥2 獨立正峰 ∧ 峰值嚴格遞減**;負對照(單擊/對稱脈衝→1 峰、**等幅重複/遞增→多峰但非遞減**)5/5 全抓 → 證「遞減」為鑑別子。只在 UNVALIDATED `slot_symbol` 加 combo beat 接線(不動已驗 slot_bigwin/reveal 先驗)。cap `storyboard_combo_beat` L2;anim-forge 仍 HOLD。
 
 - [S3 mesh 生成器](s3-mesh-generator.md) — 純 CPU PNG→Spine mesh 原型 + 評估器,合成資料 6 條 AC 全過(IoU 0.99)。
 

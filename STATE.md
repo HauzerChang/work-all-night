@@ -78,6 +78,18 @@
   踩雷:PSD 寫檔 mac_roman 不吃 CJK 圖層名→用 ASCII;旋轉某骨不移其自身原點→region 葉件看 attachment 世界點。
   新增 cap `rig_weighted_chain` L2 GREEN;`spine-rig-pivot` **仍 HOLD**(L3 缺口=多 rig 真值不變,防固化)。
   見 `knowledge/s5-rig-weighted-chain.md`。
+- **S1 連擊 / rollup 主秀 beat 模板(里程碑,2026-09-03,candidate 0g)** — 補 0f 的下一個缺口:
+  「**同一拍內多次遞減重音**」(連環中獎 / 金幣 rollup / 連莊),In/Loop/Out 與單一 hit 都表達不了(僅 1 正峰)。
+  `tools/analyzer/beat_templates.py::gen_combo`:N 次擊(預設 3),每擊 `(peak-1)·_COMBO_DECAY^k`(0.62)→**峰值遞減**
+  (follow-through),每擊 `蓄力 dip→peak_k→回落~1.0`、擊間回 identity 附近(獨立擊)、首尾皆 identity(可插 Loop 間 / 串接);
+  role-aware(limb 每擊甩鞭遞減、特效每擊亮度閃遞減、body/head 只 scale)。`validate_combo_template.py` 對**真實 robot 5 拆件+role**
+  端到端經 build_animations **C1–C6 全 PASS**:C1 well-formed / C2 首尾 identity / C3 **≥2 獨立正峰**(5 件皆 3 峰)/
+  C4 **峰值嚴格遞減** / C5 擊間回落 identity 附近+每擊 anticipation / **C6 負對照 5/5**(單擊 hit·對稱脈衝→FAIL C3 僅 1 峰;
+  **等幅重複脈衝·遞增脈衝→FAIL C4 多峰但非遞減**;真 combo 具簽章)。**關鍵:結構簽章 = 多峰 ∧ 遞減;「遞減」是分辨連擊 vs
+  天真等幅重複的鑑別子**(峰偵測 `peak_segments`:above-PROM 分段取極大,區段間須回落 → 峰獨立、長平台只算 1 峰)。
+  接線只動 **UNVALIDATED `slot_symbol`**(加 combo beat → `build_spine --animate --genre slot_symbol` 輸出 land/idle/win/**combo**);
+  **未動已驗 slot_bigwin/slot_reveal 先驗**,`validate_priors` 仍 PASS。回歸:0d/0e/0f 全 PASS。新增 cap `storyboard_combo_beat` L2 併入
+  `spine-anim-forge`(**仍 HOLD**:運動基元皆先驗、單一真值資產,防固化)。見 `knowledge/s1-combo-template.md`、圖 `figures/s1_combo_template.png`。
 - **S1 big-win 主秀 beat 模板(里程碑,2026-09-01,session 002,candidate 0f)** — 補 0d 主秀節拍只有
   `gen_pulse` 對稱三角脈衝的缺口,加兩個經典動畫原理:**anticipation(反向預備)+ settle/follow-through(阻尼回擺)**。
   `tools/analyzer/beat_templates.py`:`gen_hit`(蓄力→命中→阻尼回擺,首尾 identity 可插 Loop 間)、`gen_reveal`
@@ -221,10 +233,15 @@
 > **(C) weighted-forge / rig 併入 `spine-asset-forge` skill**(需 **C 類使用者拍板** sync;打包政策見 `skills/README.md`);
 > **(D) rig 真值資源**(**C/資源類**,阻塞 S5→L3):請使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot** 的分層/rig 檔。
 > **建議下一個(擇一,皆純自主):**
-> **(E) 主秀 beat 接進 genre 先驗庫**:把 0f 的 hit/reveal 併入 `genre_priors` 的 slot_bigwin/slot_reveal,
->   讓 `build_spine --animate` 直接輸出含主秀節拍的完整演出(需同步 `validate_priors` 真值覆蓋,勿動已驗先驗);
-> **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f 的模板庫);
-> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心)。
+> **(E) 主秀 beat 接進 genre 先驗庫**:⚠️ **已界定邊界(2026-09-03)** —— 實查 `slot_bigwin` 真值 `Award` 只有
+>   `<Tier>_In/Loop/Out`(climax=進場本身,**無獨立 hit 真值動畫**),`slot_reveal` 的 `open`/`hit` beat **已**分別 route 到
+>   gen_reveal/gen_hit(Symbol_Ww 已驗)。故「把 hit 加進已驗 slot_bigwin」會注入**無真值覆蓋的 beat**、違反「勿動已驗先驗」。
+>   → 新主秀節拍改**只接 UNVALIDATED genre**(如 0g 之於 slot_symbol),已驗先驗維持不動。此路已收斂,不再視為待辦。
+> **(F) 更多主秀節拍**:multi-hit combo **✅ 完成(2026-09-03,candidate 0g,`gen_combo`,`storyboard_combo_beat` L2,見上里程碑)**;
+>   **續**:cascade(**跨件錯開起始相位**的波浪擴散,屬 build_animations 層 per-part 相位偏移,非單模板)、anticipate-hold(長蓄力單放),各配結構簽章 AC;
+> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:⚠️ **已評估(2026-09-03)** —— `build_spine --rig --animate` 本就組合成立
+>   (生成的 limb rotate 掛在關節骨上 → 繞關節轉);但「繞關節 vs 繞件中心」的位移比**與角度無關**(∝2sin(θ/2) 在 ratio 中約掉),
+>   等同 `validate_rig_build` AC4 已證的**pivot 置放**性質 → 新 gate 只是**再證既有保證**,價值低。除非要驗「生成角度非平凡地驅動關節」的整合 gate,否則不優先。
 
 ## 環境前置(已驗證可用)
 
@@ -241,6 +258,12 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-03:**S1 連擊 / rollup 主秀 beat 模板(里程碑,candidate 0g)** — 補 0f 的下一缺口:「同一拍內多次遞減重音」
+  (連環中獎 / rollup),In/Loop/Out 與單一 hit 都只有 1 正峰、表達不了。`gen_combo`(N=3 擊、`(peak-1)·0.62^k` 遞減、擊間回
+  identity、首尾 identity、role-aware)+ `validate_combo_template.py` C1–C6 全 PASS(對真實 robot 5 拆件端到端經 build_animations)。
+  結構簽章=**≥2 獨立正峰 ∧ 峰值嚴格遞減**;C6 負對照 5/5(單擊/對稱脈衝→1 峰;等幅重複/遞增→多峰但非遞減)證「遞減」為鑑別子。
+  接線只動 UNVALIDATED slot_symbol(不碰已驗 slot_bigwin/reveal 先驗)。回歸 0d/0e/0f/priors 全 PASS。順帶界定 (E)/(G) 路線邊界
+  (見「下一步」)。cap `storyboard_combo_beat` L2;anim-forge 仍 HOLD。見 `knowledge/s1-combo-template.md`。
 - 2026-09-01(session 002):**S1 big-win 主秀 beat 模板(里程碑,candidate 0f)** — 補 0d 主秀節拍只有對稱脈衝的缺口,
   加 anticipation(反向預備)+ settle(阻尼回擺)兩動畫原理。`beat_templates.py`(gen_hit 首尾 identity、gen_reveal 首 collapsed
   尾 identity)wire 進 gen_animations(hit/reveal 新類別)+ `validate_beat_templates.py` 6AC 全 PASS(對真實 robot 5 拆件端到端)+

@@ -172,6 +172,13 @@ BLOCKS = [
                             "皆 setup identity/collapse 介面可與 In/Loop/Out 串接。6AC(well-formed/可串接介面/真峰/"
                             "anticipation/settle 阻尼回擺/負對照)全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝(gen_pulse "
                             "無反向預備+無阻尼回擺→非主秀)、不歸位、無峰。真值=結構簽章(非美感,美感留使用者 A類)"),
+            CAP("storyboard_combo_beat", "big-win 連擊/rollup beat 模板 gen_combo(多次遞減重音,0g)", "L2",
+                "python3 tools/analyzer/validate_combo_template.py",
+                "gen", note="補 0f 的下一缺口:同拍內多次遞減重音(連環中獎/rollup),In/Loop/Out 與單一 hit 都只 1 正峰。"
+                            "gen_combo:N=3 擊、(peak-1)·0.62^k 遞減、擊間回 identity、首尾 identity、role-aware。"
+                            "C1–C6 全 PASS(對真實 robot 5 拆件端到端經 build_animations)。結構簽章=≥2 獨立正峰 ∧ 峰值嚴格遞減;"
+                            "C6 負對照 5/5(單擊/對稱脈衝→1 峰;等幅重複/遞增→多峰但非遞減→證「遞減」為鑑別子)。"
+                            "接線只動 UNVALIDATED slot_symbol,不碰已驗 slot_bigwin/reveal 先驗。真值=結構簽章(手感 A類)"),
         ],
     },
 ]

@@ -27,6 +27,11 @@ from gen_animations import DUR as _BASE_DUR, _rot, _xy, _color
 DUR = dict(_BASE_DUR)
 DUR.setdefault("hit", 0.5)
 DUR.setdefault("reveal", 0.7)
+DUR.setdefault("combo", 1.2)   # 多跳連擊,時長較長(容納 N 次獨立擊)
+
+# combo 連擊參數。N 次擊、每擊 (peak-1) 乘 _COMBO_DECAY^k → 峰值遞減(follow-through 能量耗散)。
+_COMBO_N = 3
+_COMBO_DECAY = 0.62
 
 # role → impact 峰值倍率(scale overshoot)。特效/身體給大、末梢/頭給中。
 _PEAK = {"body": 1.28, "特效": 1.35, "head": 1.18, "limb": 1.18}
@@ -92,6 +97,47 @@ def gen_reveal(role, side_sign=1.0, radial=(0.0, 0.0)):
     return b, s
 
 
+def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0)):
+    """Multi-hit combo(連擊 / rollup):N 次**強度遞減**的重擊,擊間回到 identity 附近
+    (可分辨為獨立擊),首尾皆 identity(可插在 Loop 循環間或串接)。
+
+    big-win 常見「連環中獎 / 金幣 rollup」節拍:In/Loop/Out 與單一 hit 都無法表達
+    「同一拍內多次遞減重音」。其**結構簽章**(與單擊 / 對稱脈衝在負對照中明確分離):
+      1. **≥2 個獨立正峰**(擊間 scale 回落 identity 附近)—— 單擊 / 脈衝僅 1 峰;
+      2. **峰值嚴格遞減**(peak_k = 1+(peak-1)·decay^k)—— 天真「等幅重複脈衝」不具此簽章。
+    每擊 scale:1.0 →(蓄力 dip <1)→ peak_k →(回落)~1.0;role-aware:limb 每擊甩鞭(遞減)、
+    特效 每擊亮度閃(暗→亮,遞減)。所有內插 linear,結構簽章對取樣穩健。"""
+    T = DUR["combo"]
+    peak = _PEAK.get(role, 1.18)
+    amp = peak - 1.0
+    n = _COMBO_N
+    seg = 1.0 / n                                   # 每擊佔的時間比(τ)
+    env = [(0.0, 1.0)]                              # (τ, scale)
+    rot = [(0.0, 0.0)]                              # (τ, deg)
+    alp = [(0.0, 1.0)]                              # (τ, alpha)
+    for k in range(n):
+        base = k * seg
+        decay = _COMBO_DECAY ** k
+        pk = 1.0 + amp * decay                      # 遞減峰
+        anti = 1.0 - 0.05 * decay                   # 遞減蓄力(<1,anticipation)
+        env += [(base + 0.20 * seg, anti), (base + 0.45 * seg, pk), (base + 0.85 * seg, 1.0)]
+        whip = side_sign * 16.0 * decay             # limb 每擊甩鞭(遞減)
+        rot += [(base + 0.20 * seg, -0.4 * whip), (base + 0.45 * seg, whip), (base + 0.85 * seg, 0.0)]
+        dip = 1.0 - 0.28 * decay                    # 特效 每擊先暗(蓄)再亮(遞減幅度)
+        alp += [(base + 0.20 * seg, dip), (base + 0.45 * seg, 1.0), (base + 0.85 * seg, 1.0)]
+    env.append((1.0, 1.0))                          # 尾 identity
+    rot.append((1.0, 0.0)); alp.append((1.0, 1.0))
+
+    b, s = {}, {}
+    b["scale"] = _scale_frames(T, env)
+    if role == "limb":
+        b["rotate"] = _rot([(tau * T, a) for (tau, a) in rot])
+    elif role == "特效":
+        s["color"] = _color([(tau * T, a) for (tau, a) in alp])
+    return b, s
+
+
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
 HIT_KEYWORDS = ["hit", "impact", "punch", "throb", "slam", "打擊", "命中", "重擊", "衝擊"]
 REVEAL_KEYWORDS = ["reveal", "open", "burst", "showup", "appear_big", "揭曉", "現身", "炸開", "開獎"]
+COMBO_KEYWORDS = ["combo", "rollup", "cascade", "chain", "multi", "streak", "連擊", "連環", "累計", "連莊"]

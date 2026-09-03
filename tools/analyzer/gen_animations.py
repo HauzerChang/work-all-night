@@ -194,13 +194,14 @@ _DISPATCH = {"intro": gen_in, "loop": gen_loop, "outro": gen_out, "hold": gen_ho
 # candidate 0f — 註冊 big-win 主秀 beat 模板(anticipation+settle)。放檔尾避免與 beat_templates
 # 形成 import 迴圈:beat_templates 只需本檔上方已定義的 DUR/_rot/_xy/_color。
 try:
-    from beat_templates import gen_hit as _gen_hit, gen_reveal as _gen_reveal, \
-        HIT_KEYWORDS as _HIT_KW, REVEAL_KEYWORDS as _REVEAL_KW, DUR as _DUR_EXT
+    from beat_templates import gen_hit as _gen_hit, gen_reveal as _gen_reveal, gen_combo as _gen_combo, \
+        HIT_KEYWORDS as _HIT_KW, REVEAL_KEYWORDS as _REVEAL_KW, COMBO_KEYWORDS as _COMBO_KW, DUR as _DUR_EXT
     _DISPATCH["hit"] = _gen_hit
     _DISPATCH["reveal"] = _gen_reveal
-    DUR.update(_DUR_EXT)  # 讓 hit/reveal 時長對 spine_anim.duration 一致
+    _DISPATCH["combo"] = _gen_combo
+    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo 時長對 spine_anim.duration 一致
     # 主秀類別置前:exact/substring 命中優先於泛用 pulse
-    _CAT_KEYWORDS = {"hit": _HIT_KW, "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
+    _CAT_KEYWORDS = {"hit": _HIT_KW, "reveal": _REVEAL_KW, "combo": _COMBO_KW, **_CAT_KEYWORDS}
 except ImportError:
     pass
 
