@@ -78,6 +78,16 @@
   踩雷:PSD 寫檔 mac_roman 不吃 CJK 圖層名→用 ASCII;旋轉某骨不移其自身原點→region 葉件看 attachment 世界點。
   新增 cap `rig_weighted_chain` L2 GREEN;`spine-rig-pivot` **仍 HOLD**(L3 缺口=多 rig 真值不變,防固化)。
   見 `knowledge/s5-rig-weighted-chain.md`。
+- **S1×S5 生成分鏡動畫繞關節擺(里程碑,2026-09-03,candidate 0g)** — 補 S1 keyframe × S5 rig **組合運動**的
+  驗證盲點:機制本已組合(build_spine 先 rig_layout 移 `b_{nm}` 到關節、再 gen_animations 把 rotate 掛該骨),但既有閘
+  只驗『手動 25° 旋轉』(`validate_rig_build` AC4)或『非 rig 上的良構』(`validate_anim`),**從沒驗過 `gen_animations`
+  生成的 keyframe 有繞關節性質**。`tools/analyzer/validate_anim_rig.py`:用**生成 Loop 峰值角**(b_右手+5°/b_頭+3°/
+  b_左手−5°)把每個結構子件當剛體 pose,**以已驗關節 J 錨定 seam/distal**(避免自猜縫的量測雜訊)。**4 AC 全 PASS**:
+  G1 生成即接關節 / G2 seam 位移 rig<<非rig(4.7–8.0×) / G3 rig 末梢-縫比 10–17 vs 非rig≈1 / G4 0° 負對照殘餘 0。
+  內建主負對照 = 非 rig(骨在件中心 → 縫撕裂、對稱擺)。踩雷:①自猜縫(最近 body 30% 點)對大件/重疊件不穩(左手縫域 24→182px)
+  → 改用 J 真值錨定;②`_boundary_world` approxPolyDP 只剩 9–15 點雜訊大 → 新增 `_dense_world_contour`(~80 點)。
+  回歸 validate_rig_build/rig_weighted_build/anim/beat_templates 全 PASS;check_readiness 實跑確認全綠。新增 cap
+  `anim_rig_articulation` L2(併入 `spine-rig-pivot`,**仍 HOLD**:單一 robot rig)。見 `knowledge/s1-anim-rig-articulation.md`、圖 `figures/s1_anim_rig.png`。
 - **S1 big-win 主秀 beat 模板(里程碑,2026-09-01,session 002,candidate 0f)** — 補 0d 主秀節拍只有
   `gen_pulse` 對稱三角脈衝的缺口,加兩個經典動畫原理:**anticipation(反向預備)+ settle/follow-through(阻尼回擺)**。
   `tools/analyzer/beat_templates.py`:`gen_hit`(蓄力→命中→阻尼回擺,首尾 identity 可插 Loop 間)、`gen_reveal`
@@ -224,7 +234,12 @@
 > **(E) 主秀 beat 接進 genre 先驗庫**:把 0f 的 hit/reveal 併入 `genre_priors` 的 slot_bigwin/slot_reveal,
 >   讓 `build_spine --animate` 直接輸出含主秀節拍的完整演出(需同步 `validate_priors` 真值覆蓋,勿動已驗先驗);
 > **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f 的模板庫);
-> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心)。
+> **(G) ~~S1 (e) 關節 pivot 推斷接 keyframe~~ ✅ 完成(2026-09-03,candidate 0g,`anim_rig_articulation` L2,見上里程碑)** ——
+>   關鍵發現:機制**本已組合**,缺的是「生成端」的驗證;`validate_anim_rig.py` 4AC 證生成分鏡動畫在 --rig 下繞關節擺(非rig 為內建負對照)。
+> **建議下一個(擇一,皆純自主):**
+> **(G′) In/Out 徑向改用關節座標系**:0g 只驗 Loop(肢體純 rotate);In/Out 的 translate 目前由**畫布中心**算徑向(gen_animations `radial`),
+>   rig 下應改由**關節**算徑向(件由關節向外歸位),使入場/退場也尊重關節鏈。配 AC:入場末幀 setup identity 不變 + 徑向起點在關節外側。
+> **(E) 主秀 beat 接進 genre 先驗庫**、**(F) 更多主秀節拍**(anticipate-hold/multi-hit/cascade)如前述仍可做。
 
 ## 環境前置(已驗證可用)
 
@@ -241,6 +256,11 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-03(session 001):**S1×S5 生成分鏡動畫繞關節擺(里程碑,candidate 0g)** — 補 S1 keyframe × S5 rig 組合運動的驗證盲點
+  (既有閘只驗手動 25° 或非 rig 良構,沒驗 gen_animations 生成的 keyframe 有繞關節性質)。`validate_anim_rig.py` 用生成 Loop 峰值角
+  pose 肢體、以已驗關節 J 錨定 seam/distal,4AC 全 PASS(G2 seam rig<<非rig 4.7–8.0×、G3 rig 末梢/縫 10–17 vs 非rig≈1)。
+  內建負對照=非 rig(骨在件中心→縫撕裂)。踩雷:自猜縫對重疊件不穩→改 J 錨定;粗多邊形→稠密輪廓。cap `anim_rig_articulation` L2;
+  區塊仍 HOLD(單一 robot rig)。回歸全綠 + check_readiness 實跑確認。見 `knowledge/s1-anim-rig-articulation.md`。
 - 2026-09-01(session 002):**S1 big-win 主秀 beat 模板(里程碑,candidate 0f)** — 補 0d 主秀節拍只有對稱脈衝的缺口,
   加 anticipation(反向預備)+ settle(阻尼回擺)兩動畫原理。`beat_templates.py`(gen_hit 首尾 identity、gen_reveal 首 collapsed
   尾 identity)wire 進 gen_animations(hit/reveal 新類別)+ `validate_beat_templates.py` 6AC 全 PASS(對真實 robot 5 拆件端到端)+

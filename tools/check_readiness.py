@@ -147,6 +147,12 @@ BLOCKS = [
                      "鏈深 4≥3 非星形 / setup 0.00px / 遞迴帶動(轉 b_body→forearm 隔一跳仍隨動 80px、"
                      "轉 b_arm→forearm 動 body 不動、weighted-only 全脫鉤 0px)/ region 葉件隨鏈 / 逐幀 si=0。"
                      "演算法早已支援(接觸縫遞迴+控制骨掛關節骨),本閘證端到端成立。honest boundary:合成 fixture 非藝術家真值"),
+            CAP("anim_rig_articulation", "生成分鏡動畫繞關節擺(--rig × --animate 組合,0g)", "L2",
+                "python3 tools/analyzer/validate_anim_rig.py", "pipeline",
+                note="補 S1×S5 缺口:既有閘只驗『手動 25° 旋轉』(validate_rig_build AC4),沒驗 gen_animations "
+                     "『生成的』keyframe 有繞關節性質。用生成 Loop 峰值角 pose 肢體(以已驗關節 J 錨定 seam/distal):"
+                     "4AC PASS(G1 生成即接關節/G2 seam 位移 rig<<非rig 4.7–8.0×/G3 rig 末梢-縫比 10–17 vs 非rig≈1/"
+                     "G4 0° 負對照殘餘 0)。內建負對照=非 rig(骨在件中心→縫撕裂)。仍 L2:同 pivot_end2end,單一 robot rig"),
         ],
     },
     {
