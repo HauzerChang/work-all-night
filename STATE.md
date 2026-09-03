@@ -90,6 +90,21 @@
   正解(先驗手感),閘驗**客觀結構簽章非美感**;緩動幅度手感留使用者(A 類)。回歸:0d validate_anim(+selftest)、0e(+deform)、
   Symbol_Ww slot_reveal 全 PASS。新增 cap `storyboard_beat_templates` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、
   單一真值資產,防固化)。見 `knowledge/s1-beat-templates.md`、圖 `figures/s1_beat_templates.png`。
+- **S1 主秀 beat 併入 genre 先驗庫(里程碑,2026-09-03,candidate 0g)** — 把 0f 的主秀模板 hit/reveal
+  **真正接進 `build_spine --animate` 的生產路徑**(0f 只在手搭 storyboard 驗過,真實路徑走 genre 先驗庫的 beats,
+  而 `slot_bigwin` 先驗只有 In/Loop/Out → **端到端缺主秀 payoff**)。做法:先驗 beat 加**顯式 `cat`**(運動類別,
+  取代脆弱 beat 名關鍵字:`'burst'∈reveal 關鍵字` 會誤判)—— `analyze_target.build_storyboard` 帶 cat、
+  `gen_animations.build_animations` 顯式 cat 優先分派(缺省回退 `beat_category`,向後相容);`slot_bigwin` 加
+  **Burst(cat=hit,首尾 identity,接 In 後、Loop 前)payoff**(演出 In/Loop/Out → **In→Burst→Loop→Out**)、
+  `slot_reveal` open/hit 顯式標 reveal/hit。`validate_mainshow_wiring.py`(走 build_spine --animate 相同路徑)
+  **6 AC 全 PASS**:M1 bigwin payoff 端到端具 hit 簽章/M2 reveal open+hit 主秀(有 main_draw 真值)/**M3 cat 真驅
+  分派勝關鍵字**(同名 Burst:cat 判 hit 起 identity vs 關鍵字判 reveal 起 collapsed,兩路徑相異)/M4 串接介面/
+  M5 鑑別(In/Loop/Out 不具主秀簽章 + stripped 拔 cat/Burst → slot_bigwin 無任何 hit/reveal 類別 beat)/M6 回歸。
+  回歸:`validate_anim --selftest`(對含 Burst 產物)4AC+AC5、`validate_deform_gen` 7AC、`validate_build` round-trip、
+  `validate_priors` 兩 genre 覆蓋 1.0 皆 PASS。**關鍵:顯式 cat > beat 名關鍵字(解耦);鑑別靠結構簽章非單看 peak**
+  (特效 intro 也可達 1.25)。honest boundary:Award 真值把 payoff 收在 In 一支內、無獨立 anim,Burst 為可復用模板
+  提案(`validate_priors` 列 `prior_beats_unused`、覆蓋率不變);open/hit 則有 main_draw 真值支撐。新增 cap
+  `mainshow_wiring` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。見 `knowledge/s1-mainshow-wiring.md`。
 - **S1 mesh deform timeline 生成(里程碑,2026-09-01,candidate 0e,讓軟件 mesh 本身會動)** — 補 0d
   只產 bone TRS + slot alpha、mesh 本身不變形的缺口。`tools/analyzer/gen_deform.py`:把真實 main_draw
   窗簾/陰影 deform 場(`deform_eval.real_deform_field`,UV 座標可轉移)UV 內插轉移到目標 mesh,beat 包絡
@@ -208,7 +223,7 @@
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> **主排程近況**:S1(分析器+build+keyframe 0d+**mesh deform 生成 0e**+**主秀 beat 模板 0f**)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
+> **主排程近況**:S1(分析器+build+keyframe 0d+**mesh deform 生成 0e**+**主秀 beat 模板 0f**+**主秀併入先驗庫 0g**)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
 > S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫(08-29)→ 接 build_spine 骨樹(08-30,--rig)→ 肢體樹自動推斷(08-31 s1)
 > → `--rig`×`--weighted` 併用(08-31 s2)→ 多跳 weighted 肢體鏈端到端(08-31 s3)已全部完成**;S4 已交獨立排程。
 > ⚠️ **S5 達 L3 的唯一硬缺口 = 多 rig 真值,但 Award 只有機器人一件可拆肢體 rig → 屬使用者資源(C/資源類待辦)**。
@@ -221,10 +236,12 @@
 > **(C) weighted-forge / rig 併入 `spine-asset-forge` skill**(需 **C 類使用者拍板** sync;打包政策見 `skills/README.md`);
 > **(D) rig 真值資源**(**C/資源類**,阻塞 S5→L3):請使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot** 的分層/rig 檔。
 > **建議下一個(擇一,皆純自主):**
-> **(E) 主秀 beat 接進 genre 先驗庫**:把 0f 的 hit/reveal 併入 `genre_priors` 的 slot_bigwin/slot_reveal,
->   讓 `build_spine --animate` 直接輸出含主秀節拍的完整演出(需同步 `validate_priors` 真值覆蓋,勿動已驗先驗);
-> **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f 的模板庫);
-> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心)。
+> **(E) ~~主秀 beat 接進 genre 先驗庫~~ ✅ 完成(2026-09-03,candidate 0g,`mainshow_wiring` L2,見上里程碑)** ——
+>   顯式 `cat` 分派 + slot_bigwin Burst payoff,`build_spine --animate` 現輸出 In→Burst→Loop→Out;`validate_priors` 覆蓋率不變;
+> **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f/0g 的模板庫;可再用顯式 cat 併入先驗);
+> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心);
+>   —— **最高槓桿候選**:把 S5(接觸縫 pivot/樹)與 S1(keyframe)兩條線接起來,讓肢體節拍**繞真實關節**旋轉,
+>   可用 `validate_rig_build` AC4 式的「縫撕裂量 rig vs 非rig」量化(客觀、可自主)。
 
 ## 環境前置(已驗證可用)
 
@@ -241,6 +258,13 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-03:**S1 主秀 beat 併入 genre 先驗庫(里程碑,candidate 0g)** — 把 0f 主秀模板 hit/reveal 真正接進
+  `build_spine --animate` 生產路徑(0f 只手搭 storyboard 驗過;真實路徑走 genre 先驗庫,而 slot_bigwin 只有 In/Loop/Out
+  → 端到端缺主秀 payoff)。先驗 beat 加**顯式 cat**(取代脆弱 beat 名關鍵字)+ slot_bigwin 加 Burst(cat=hit)payoff
+  (In→Burst→Loop→Out)+ slot_reveal open/hit 顯式標。`validate_mainshow_wiring.py` 6AC 全 PASS(端到端 hit/reveal 簽章、
+  M3 cat 真驅分派勝關鍵字、串接介面、一般節拍不具主秀簽章 + stripped 無主秀 的鑑別、回歸)。回歸 validate_anim/deform_gen/
+  build/priors 全 PASS。關鍵:顯式 cat > beat 名關鍵字;鑑別靠結構簽章非單看 peak。honest:Award payoff 收在 In 內、
+  Burst 為模板提案(覆蓋率不變);open/hit 有 main_draw 真值。cap `mainshow_wiring` L2;anim-forge 仍 HOLD。見 `knowledge/s1-mainshow-wiring.md`。
 - 2026-09-01(session 002):**S1 big-win 主秀 beat 模板(里程碑,candidate 0f)** — 補 0d 主秀節拍只有對稱脈衝的缺口,
   加 anticipation(反向預備)+ settle(阻尼回擺)兩動畫原理。`beat_templates.py`(gen_hit 首尾 identity、gen_reveal 首 collapsed
   尾 identity)wire 進 gen_animations(hit/reveal 新類別)+ `validate_beat_templates.py` 6AC 全 PASS(對真實 robot 5 拆件端到端)+

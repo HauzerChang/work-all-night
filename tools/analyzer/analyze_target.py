@@ -135,7 +135,10 @@ def build_storyboard(parts_out, genre):
             act = rolemap.get(role) or rolemap.get("limb") or "(依先驗未定義)"
             rows.append({"part": p["name"], "role": "特效" if role == "effect" else role,
                          "action": act})
-        beats.append({"beat": b["key"], "desc": b["desc"], "parts": rows})
+        beat_entry = {"beat": b["key"], "desc": b["desc"], "parts": rows}
+        if b.get("cat"):                     # 顯式運動類別(供 gen_animations 直接分派)
+            beat_entry["cat"] = b["cat"]
+        beats.append(beat_entry)
     validated = prior.get("validated_against")
     status = (f"PROPOSAL(先驗已對真值 {validated} 驗證覆蓋)" if validated
               else "PROPOSAL(⚠️ 未驗證先驗,無對應真值 spine)")

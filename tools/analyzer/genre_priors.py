@@ -22,18 +22,26 @@ _BIGWIN_ROLES = _roles(
     "彈入+輕微 overshoot 縮放", "隨身體彈入+回正", "大幅甩入(旋轉+位移+放大)", "炸開:放大+旋轉+亮度峰值",
     "呼吸(±小幅縮放/位移)", "微點頭/傾", "末梢小幅擺盪(相位錯開)", "脈動/緩轉(alpha/scale 微幅循環)",
     "縮出/淡出", "收斂淡出")
+# 主秀 payoff(Burst):蓄力→命中→阻尼回擺,首尾皆 identity(可插在 In 之後、Loop 之前當重音)。
+_BIGWIN_ROLES["Burst"] = {
+    "body": "蓄力下蹲→放大命中→阻尼回擺", "head": "微抬預備→下砸→回彈",
+    "limb": "反向蓄力→甩出→阻尼回擺", "effect": "先暗(蓄)→亮度峰值→阻尼(旋轉甩)"}
 
 
 PRIORS = {
     "slot_bigwin": {
         "desc": "大獎主角:每檔位一組 進場/循環/退場",
         "tiers": ["Super", "Mega", "Omg", "Legend"],
+        # cat = 驅動 gen_animations 的運動類別(顯式,取代靠 beat 名關鍵字猜測);見 gen_animations._DISPATCH。
         "beats": [
-            {"key": "In", "kw": ["in", "intro", "enter", "start", "comeout"],
+            {"key": "In", "cat": "intro", "kw": ["in", "intro", "enter", "start", "comeout"],
              "desc": "入場爆發:主體放大/彈入,肢體大幅甩入,特效炸開(旋轉+放大+亮度峰值)"},
-            {"key": "Loop", "kw": ["loop", "idle"],
+            {"key": "Burst", "cat": "hit", "kw": ["burst", "hit", "win", "impact"],
+             "desc": "主秀 payoff(重擊):蓄力→命中放大峰值→阻尼回擺,首尾 identity(接在 In 後)。"
+                     "⚠️ Award 真值把 payoff 收在 In 一支內(無獨立 anim),此 beat 為可復用的主秀模板提案。"},
+            {"key": "Loop", "cat": "loop", "kw": ["loop", "idle"],
              "desc": "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉"},
-            {"key": "Out", "kw": ["out", "exit", "end", "close"],
+            {"key": "Out", "cat": "outro", "kw": ["out", "exit", "end", "close"],
              "desc": "退場:主體縮出/淡出,特效收斂"},
         ],
         "roles": _BIGWIN_ROLES,
@@ -42,14 +50,15 @@ PRIORS = {
     "slot_reveal": {
         "desc": "開獎/揭示物件:靜置→待機→登場→開獎主秀→命中強調→循環→收尾(觀測自 main_draw 9 支)",
         "tiers": None,
+        # cat 顯式驅動 gen_animations 運動類別(open=主秀 reveal、hit=命中重擊,皆有 main_draw 真值 anim)。
         "beats": [
-            {"key": "static", "kw": ["static"], "desc": "初始靜置(單幀/擺位)"},
-            {"key": "idle", "kw": ["idle"], "desc": "待機呼吸(多變體:idle/idle2/idle3 錯開節奏)"},
-            {"key": "comeout", "kw": ["comeout", "come", "appear", "enter", "in"], "desc": "登場:物件入畫"},
-            {"key": "open", "kw": ["open", "reveal", "draw"], "desc": "開獎主秀(最長,主體開啟/展開,特效峰值)"},
-            {"key": "hit", "kw": ["hit", "win", "match"], "desc": "命中強調(短促放大/閃光)"},
-            {"key": "loop", "kw": ["loop"], "desc": "結果循環"},
-            {"key": "close", "kw": ["close", "out", "end"], "desc": "收尾(收合/淡出)"},
+            {"key": "static", "cat": "hold", "kw": ["static"], "desc": "初始靜置(單幀/擺位)"},
+            {"key": "idle", "cat": "loop", "kw": ["idle"], "desc": "待機呼吸(多變體:idle/idle2/idle3 錯開節奏)"},
+            {"key": "comeout", "cat": "intro", "kw": ["comeout", "come", "appear", "enter", "in"], "desc": "登場:物件入畫"},
+            {"key": "open", "cat": "reveal", "kw": ["open", "reveal", "draw"], "desc": "開獎主秀(最長,主體開啟/展開,特效峰值)"},
+            {"key": "hit", "cat": "hit", "kw": ["hit", "win", "match"], "desc": "命中強調(短促放大/閃光)"},
+            {"key": "loop", "cat": "loop", "kw": ["loop"], "desc": "結果循環"},
+            {"key": "close", "cat": "outro", "kw": ["close", "out", "end"], "desc": "收尾(收合/淡出)"},
         ],
         # 開獎物件多為機構件:主體=開合,特效=光帶/粒子;沿用泛用動作模板
         "roles": {

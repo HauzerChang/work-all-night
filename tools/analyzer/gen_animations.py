@@ -236,7 +236,8 @@ def build_animations(skeleton, storyboard):
             n = math.hypot(dx, dy) or 1.0
             radial = (dx / n, dy / n)
 
-            cat = beat_category(name)
+            # 顯式 cat(genre 先驗宣告)優先;缺省才靠 beat 名關鍵字推斷(向後相容)。
+            cat = beat.get("cat") or beat_category(name)
             b, sdict = _DISPATCH[cat](role, side_sign, radial)
             if b:
                 bones_tl[bname] = b

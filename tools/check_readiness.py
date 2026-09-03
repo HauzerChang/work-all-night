@@ -172,6 +172,14 @@ BLOCKS = [
                             "皆 setup identity/collapse 介面可與 In/Loop/Out 串接。6AC(well-formed/可串接介面/真峰/"
                             "anticipation/settle 阻尼回擺/負對照)全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝(gen_pulse "
                             "無反向預備+無阻尼回擺→非主秀)、不歸位、無峰。真值=結構簽章(非美感,美感留使用者 A類)"),
+            CAP("mainshow_wiring", "主秀 beat 併入 genre 先驗庫(顯式 cat 分派 + slot_bigwin Burst payoff,0g)", "L2",
+                "python3 tools/analyzer/validate_mainshow_wiring.py",
+                "pipeline", note="補 0f 只在手搭 storyboard 驗過的缺口:讓 build_spine --animate 走 genre 先驗庫時"
+                            "真的輸出主秀節拍。先驗 beat 加顯式 cat(取代脆弱 beat 名關鍵字:'burst'∈reveal 關鍵字);"
+                            "slot_bigwin 加 Burst(cat=hit,首尾 identity,接 In 後)payoff、slot_reveal open/hit 顯式標。"
+                            "6AC(bigwin payoff 端到端具 hit 簽章/reveal open+hit 主秀/cat 真驅分派勝關鍵字/串接介面/"
+                            "一般節拍不具主秀簽章+stripped 無主秀 的鑑別/回歸)全 PASS。honest boundary:Award 真值把 payoff "
+                            "收在 In 一支內,Burst 為可復用模板提案(validate_priors 標 prior_beats_unused、覆蓋率不變)"),
         ],
     },
 ]

@@ -81,7 +81,11 @@ def validate(psd_path, award_path):
             tiers.add(t.group(1))
     proposed_beats = {b["beat"] for b in spec["3_motion_storyboard"]["beats"]}
     proposed_tiers = set(spec["3_motion_storyboard"]["tier_variants"] or [])
-    beats_ok = proposed_beats == beat_kinds
+    # 真值判準:提案須**重現 Award 觀測到的全部節拍**(In/Loop/Out)。分析器另可提**可復用的主秀模板
+    # 節拍**(如 Burst,candidate 0g),這類 Award 未獨立成 anim(payoff 收在 In 內)→ 允許為額外提案但
+    # 透明列出;故由「完全相等」放寬為「Award 節拍 ⊆ 提案」(缺任一真值節拍仍 FAIL,鑑別力保留)。
+    covers_award = beat_kinds <= proposed_beats
+    extra_beats = proposed_beats - beat_kinds
     tiers_hit = proposed_tiers & tiers
 
     # ⑤ 露出項合理性:露出需「遮擋者移開」或「被遮件自己移出」二者之一有足量運動
@@ -111,9 +115,11 @@ def validate(psd_path, award_path):
         "3_geometry_vs_award": {"per_part": geo_eval,
                                 "pass": all(v["verdict"] != "mismatch" for v in geo_eval.values())},
         "4_storyboard_structure": {"proposed_beats": sorted(proposed_beats),
-                                    "award_beats": sorted(beat_kinds), "beats_match": beats_ok,
+                                    "award_beats": sorted(beat_kinds),
+                                    "covers_award_beats": covers_award,
+                                    "extra_template_beats": sorted(extra_beats),
                                     "award_tiers": sorted(tiers), "tiers_hit": sorted(tiers_hit),
-                                    "pass": beats_ok and len(tiers_hit) >= 1},
+                                    "pass": covers_award and len(tiers_hit) >= 1},
         "5_reveal_motion_check": {"checks": reveal_checks,
                                   "mover_move_rate": round(reveal_move_rate, 3),
                                   "pass": reveal_move_rate >= 0.9},
