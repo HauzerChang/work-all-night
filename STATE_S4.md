@@ -7,6 +7,22 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 50(2026-09-04)**:承接 chunk 49 做法,獨立複查 chunk 48 留下的第三個「框有
+> 問題」案例 `hand_right`——換算 `suggestions.json` 像素框跟 chunk 48 報告的錯誤座標
+> 幾乎完全吻合,確認同樣是 chunk 43 草稿就錯,依既有慣例(chunk 26/49)在源頭修正。
+> **複查過程中額外發現 `hand_left` 也是同類「框完全沒對準」錯誤**——這一項先前沒有任何
+> chunk 標記過:chunk 47 用使用者當次手動調整過、未持久化進 repo 的真實決策檔測試,把
+> `hand_left` 列為「9 個明確正確」之一,但這次獨立用網格疊圖工具檢視 `suggestions.json`
+> 這份持久化草稿,發現它的 `hand_left` 框完全落在尾巴/翅膀狀毛髮紋理上,跟實際手部位置
+> 完全不重疊。兩個框都改對準畫面上實際的手(手腕紅色纏繞絲帶+完整五指),confidence
+> 從 high 下修為 medium。**自驗**:20 部件 `--contour rect --eval` AC1 pass,逐格複核
+> 修正後裁圖確實是完整左手/右手。**誠實限制**:驗證用決策檔仍非 chunk46-48 真實那份,
+> 不能延續其統計數字;`hand_left` 的落差提高一個疑慮——`suggestions.json` 草稿裡目前
+> 沒被回報過問題的其餘部件也可能有同類「使用者當次修好但未持久化」的落差,不能只靠
+> 「沒被回報」就假設框是對的,若要更全面盤點需逐一複查而非等下游回報;未重跑
+> `--contour sam`(容器未持久化 MobileSAM 權重)。見下方「chunk 50」段落與
+> `knowledge/s4-decompose-box-fix-hands.md`。
+>
 > **chunk 49(2026-09-04)**:執行 chunk 48 留下的選項 (a)(零成本、唯一已知有效的
 > 改進動作),本次排程無活人裁決,依既有慣例(chunk 26)執行不需授權的選項。**追溯
 > 錯誤來源**:chunk46-48 用的使用者手動確認決策檔未持久化進 repo,改查 repo 裡持久化
@@ -593,6 +609,19 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**修正 hand_left/hand_right 決策檔框位置錯誤(chunk 50)** — 承接 chunk 49
+  做法,獨立複查 chunk 48 留下的第三個「框有問題」案例 `hand_right`,換算
+  `suggestions.json` 像素框跟 chunk48 報告的錯誤座標幾乎完全吻合,確認同樣是 chunk43
+  草稿就錯,依源頭修正。複查過程額外發現 `hand_left` 也是同類錯誤(先前未被任何 chunk
+  標記——chunk47 用未持久化的真實決策檔判定 `hand_left`「明確正確」,但 `suggestions.
+  json` 這份持久化草稿的框其實完全落在毛髮紋理上、跟真實手部位置不重疊)。用網格疊圖
+  工具找出兩隻手實際位置(手腕紅色纏繞絲帶+完整五指)後改框,confidence 下修為
+  medium。自驗:20部件決策檔`--contour rect --eval`AC1 pass,逐格複核裁圖確認是完整
+  左手/右手(不再是毛髮紋理/符紙標籤+白紗)。誠實限制:驗證用決策檔仍非chunk46-48真實
+  那份不能延續統計;hand_left 的落差提高一個疑慮——`suggestions.json` 草稿裡目前沒被
+  回報過問題的其餘部件也可能有同類「使用者當次修好但未持久化」的落差,不能只靠「沒被
+  回報」就假設框是對的;未重跑sam(權重未持久化)。見
+  `knowledge/s4-decompose-box-fix-hands.md`、`log/s4-2026-09-04-050.md`。
 - 2026-09-04:**修正 leg_left/boot_left 決策檔框位置錯誤(chunk 49)** — 執行 chunk 48
   選項(a)(零成本、唯一已知有效的改進動作),無活人裁決依既有慣例執行不需授權的選項。
   追溯發現錯誤從 chunk43 我自己的原始 vision 草稿(`assets/jiuwei_yanlian_char_crop.

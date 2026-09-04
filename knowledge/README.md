@@ -481,3 +481,16 @@
   左右兩半(兩腿本來就視覺重疊、不可分,是素材限制不是分割問題);本次驗證用的20部件
   決策檔不是chunk46-48那份使用者手動調整過的真實決策檔,不能延續其統計數字;未重跑
   `--contour sam`(容器未持久化MobileSAM權重);`hand_right`框未對準問題本次未修正。
+
+- [修正hand_left/hand_right決策檔框位置錯誤(chunk 50)](s4-decompose-box-fix-hands.md) —
+  承接chunk49做法,獨立檢查chunk48留下的第三個「框有問題」案例`hand_right`(換算
+  `suggestions.json`像素框跟chunk48報告的錯誤座標幾乎完全吻合,確認同樣是chunk43草稿
+  就錯),並在複查中**額外發現`hand_left`也是同類錯誤**(先前未被任何chunk標記——
+  chunk47用未持久化的真實決策檔判定`hand_left`「明確正確」,但`suggestions.json`這份
+  持久化草稿裡的框其實完全落在毛髮紋理上、跟真實手部位置不重疊)。用網格疊圖工具找出
+  兩隻手實際位置後改框(手腕紅色纏繞絲帶+完整五指),confidence從high下修為medium。
+  自驗:20部件`--contour rect --eval`AC1 pass,逐格複核修正後裁圖確實是完整左手/右手
+  (不再是毛髮紋理/符紙標籤+白紗)。**誠實限制**:驗證用決策檔仍非chunk46-48真實那份,
+  不能延續其統計數字;`hand_left`的落差**提高一個疑慮**——`suggestions.json`草稿裡目前
+  沒被回報過問題的其餘部件也可能有同類「使用者當次修好但未持久化」的落差,不能只靠
+  「沒被回報」就假設框是對的;未重跑`--contour sam`(容器未持久化MobileSAM權重)。
