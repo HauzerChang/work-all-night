@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSD Viewer — S4 viewer V1</title>
+<style>
+  :root { --bg:#1a1d21; --panel:#23272e; --panel2:#2b3038; --line:#3a4049; --txt:#dfe3e8; --muted:#8b93a0; --accent:#6fb3ff; --ok:#5fd38a; --err:#ff6b6b; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--txt); font:13px/1.5 -apple-system,"Segoe UI",Roboto,"PingFang TC","Microsoft JhengHei",sans-serif; overflow:hidden; }
+  #app { display:grid; grid-template-columns:280px 1fr 320px; grid-template-rows:38px 1fr; height:100vh; }
+  #toolbar { grid-column:1/4; display:flex; align-items:center; gap:8px; padding:0 10px; background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  #toolbar .sp { flex:1; }
+  #left  { grid-column:1; grid-row:2; background:var(--panel); border-right:1px solid var(--line); overflow:auto; }
+  #center{ grid-column:2; grid-row:2; position:relative; background:#101214; overflow:auto; display:flex; align-items:center; justify-content:center; min-width:0; }
+  #right { grid-column:3; grid-row:2; background:var(--panel); border-left:1px solid var(--line); overflow:auto; }
+  h4 { margin:10px 10px 4px; font-size:11px; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); }
+  button, input[type=text]{ background:var(--panel2); color:var(--txt); border:1px solid var(--line); border-radius:5px; padding:4px 8px; font-size:12px; cursor:pointer; }
+  button:hover{ border-color:var(--accent); }
+  .tree{ padding:0 6px 8px; }
+  .node{ padding:3px 6px; border-radius:4px; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px; }
+  .node:hover{ background:var(--panel2); }
+  .node.sel{ background:#33405a; }
+  .node .nm{ overflow:hidden; text-overflow:ellipsis; }
+  .node .dim{ margin-left:auto; color:var(--muted); font-size:10px; flex:none; }
+  .node.hidden .nm{ color:var(--muted); font-style:italic; }
+  .tag{ font-size:9px; padding:0 4px; border-radius:6px; background:var(--panel2); color:var(--muted); flex:none; }
+  .tag.grp{ background:#c08cff; color:#1a1d21; }
+  #inspector{ padding:8px 10px; }
+  #inspector .row{ display:flex; justify-content:space-between; gap:8px; padding:2px 0; border-bottom:1px solid #2c313a; }
+  #inspector .row b{ color:var(--muted); font-weight:500; }
+  #layerCanvasWrap{ padding:8px 10px; border-top:1px solid var(--line); }
+  #layerCanvasWrap canvas{ max-width:100%; background:repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 50% / 16px 16px; border:1px solid var(--line); }
+  #compositeCanvas{ max-width:100%; max-height:100%; background:repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 50% / 16px 16px; }
+  #drop{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; color:var(--muted); pointer-events:none; text-align:center; }
+  #drop.hide{ display:none; }
+  #log{ position:absolute; left:8px; bottom:8px; right:8px; max-height:34%; overflow:auto; background:rgba(10,12,15,.86); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:11px/1.4 ui-monospace,monospace; display:none; z-index:5; }
+  #log .e{ color:var(--err); } #log .o{ color:var(--ok); } #log .i{ color:var(--muted); }
+  .hint{ color:var(--muted); font-size:11px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <strong style="color:var(--accent)">PSD Viewer</strong>
+    <span class="hint" id="verBadge">library: loading…</span>
+    <button id="btnOpen">開啟 PSD</button>
+    <input type="file" id="fileInput" accept=".psd" style="display:none">
+    <div class="sp"></div>
+    <button id="btnLog">Log</button>
+  </div>
+  <div id="left">
+    <h4>Layers</h4>
+    <div id="tree" class="tree"></div>
+  </div>
+  <div id="center">
+    <canvas id="compositeCanvas"></canvas>
+    <div id="drop">
+      <div>拖曳 .psd 檔到這裡，或按「開啟 PSD」</div>
+      <div class="hint">純瀏覽器端解析（ag-psd），不經過任何伺服器</div>
+    </div>
+  </div>
+  <div id="right">
+    <h4>Document</h4>
+    <div id="docInfo" class="row" style="padding:2px 10px"></div>
+    <h4>Inspector</h4>
+    <div id="inspector"><div class="hint" style="padding:0 10px">未選取圖層</div></div>
+    <div id="layerCanvasWrap"></div>
+  </div>
+  <div id="log"></div>
+</div>
+
+<script>
+/* PSD Viewer — S4 「viewer」路線圖 V1(見 knowledge/s4-viewer-plan.md)。
+   純瀏覽器端解析 PSD(ag-psd),不依賴此排程容器/任何伺服器。
+   Phase-2 API(比照 spine_inspector.html 的 window.spineTool 慣例)供 agent 自主驅動與驗收: window.psdViewerTool.* */
+const AGPSD_CDNS = [
+  "https://cdn.jsdelivr.net/npm/ag-psd@31.0.2/dist/bundle.js",
+  "https://unpkg.com/ag-psd@31.0.2/dist/bundle.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/ag-psd/31.0.2/bundle.js"
+];
+const LOG = document.getElementById('log');
+function log(msg, cls){ const d=document.createElement('div'); d.className=cls||'i'; d.textContent=msg; LOG.appendChild(d); LOG.scrollTop=LOG.scrollHeight; console.log('[psd-viewer]',msg); }
+document.getElementById('btnLog').onclick=()=>{ LOG.style.display = LOG.style.display==='none'?'block':'none'; };
+
+function loadLibrary(i){
+  i = i||0;
+  if(i>=AGPSD_CDNS.length){ log('所有 CDN 載入失敗，請檢查網路或改用其他來源(可自行改 AGPSD_CDNS 指向本機/其他鏡像)','e'); document.getElementById('verBadge').textContent='library: 載入失敗'; return; }
+  const s = document.createElement('script'); s.src = AGPSD_CDNS[i];
+  s.onload = ()=>{
+    if(window.agPsd && typeof window.agPsd.readPsd === 'function'){
+      log('ag-psd 載入成功: '+AGPSD_CDNS[i],'o');
+      document.getElementById('verBadge').textContent = 'library: ag-psd ✓';
+      state.libraryReady = true;
+      runReadyWaiters();
+    } else {
+      log('已載入但缺 readPsd，試下一個…','i');
+      loadLibrary(i+1);
+    }
+  };
+  s.onerror = ()=>{ log('載入失敗: '+AGPSD_CDNS[i],'i'); loadLibrary(i+1); };
+  document.head.appendChild(s);
+}
+loadLibrary();
+
+const state = { libraryReady:false, psd:null, flatLayers:[], selected:null };
+let readyWaiters = [];
+function runReadyWaiters(){ const w = readyWaiters; readyWaiters = []; w.forEach(fn=>fn()); }
+
+/* ---- 解析與扁平化 ---- */
+function flattenLayers(children, path, out){
+  path = path || [];
+  out = out || [];
+  // ag-psd children 由上到下排列（Photoshop 圖層面板順序）
+  children.forEach((layer, idx)=>{
+    const isGroup = 'children' in layer;
+    const rec = {
+      name: layer.name || '',
+      path: path.concat(layer.name || ('#'+idx)),
+      kind: isGroup ? 'group' : ('text' in layer ? 'text' : 'pixel'),
+      left: layer.left|0, top: layer.top|0, right: layer.right|0, bottom: layer.bottom|0,
+      width: (layer.right|0) - (layer.left|0), height: (layer.bottom|0) - (layer.top|0),
+      visible: !layer.hidden,
+      opacity: (typeof layer.opacity === 'number') ? layer.opacity : 1,
+      blendMode: layer.blendMode || 'normal',
+      clipping: !!layer.clipping,
+      depth: path.length,
+      _layer: layer
+    };
+    out.push(rec);
+    if(isGroup) flattenLayers(layer.children, rec.path, out);
+  });
+  return out;
+}
+
+function loadFromArrayBuffer(buf){
+  if(!state.libraryReady) throw new Error('ag-psd 尚未載入完成');
+  const psd = window.agPsd.readPsd(buf);
+  state.psd = psd;
+  state.flatLayers = flattenLayers(psd.children || []);
+  state.selected = null;
+  renderAll();
+  return { width: psd.width, height: psd.height, layerCount: state.flatLayers.length };
+}
+
+/* ---- UI 渲染 ---- */
+function renderAll(){
+  document.getElementById('drop').classList.add('hide');
+  const psd = state.psd;
+  document.getElementById('docInfo').innerHTML =
+    '<span><b>'+psd.width+' × '+psd.height+'</b> px, '+state.flatLayers.length+' layers</span>';
+  const cc = document.getElementById('compositeCanvas');
+  cc.width = psd.width; cc.height = psd.height;
+  const ctx = cc.getContext('2d');
+  ctx.clearRect(0,0,cc.width,cc.height);
+  if(psd.canvas){ ctx.drawImage(psd.canvas, 0, 0); }
+  else if(psd.imageData){ ctx.putImageData(psd.imageData, 0, 0); }
+  renderTree();
+  renderInspector();
+}
+
+function renderTree(){
+  const tree = document.getElementById('tree');
+  tree.innerHTML = '';
+  // 由下到上顯示比較符合「圖層面板」直覺(頂層在上);ag-psd children 已是 Photoshop 面板順序(上到下)
+  state.flatLayers.forEach((rec, i)=>{
+    const el = document.createElement('div');
+    el.className = 'node' + (rec===state.selected?' sel':'') + (rec.visible?'':' hidden');
+    el.style.paddingLeft = (6 + rec.depth*14) + 'px';
+    el.innerHTML =
+      (rec.kind==='group' ? '<span class="tag grp">GRP</span>' : '<span class="tag">'+rec.kind+'</span>') +
+      '<span class="nm">'+escapeHtml(rec.name)+'</span>' +
+      (rec.kind!=='group' ? '<span class="dim">'+rec.width+'×'+rec.height+'</span>' : '');
+    el.onclick = ()=>{ state.selected = rec; renderTree(); renderInspector(); };
+    tree.appendChild(el);
+  });
+}
+
+function renderInspector(){
+  const rec = state.selected;
+  const insp = document.getElementById('inspector');
+  const wrap = document.getElementById('layerCanvasWrap');
+  if(!rec){ insp.innerHTML = '<div class="hint" style="padding:0 10px">未選取圖層</div>'; wrap.innerHTML=''; return; }
+  const rows = [
+    ['name', rec.name], ['kind', rec.kind],
+    ['bbox', rec.left+','+rec.top+' → '+rec.right+','+rec.bottom],
+    ['size', rec.width+' × '+rec.height],
+    ['visible', rec.visible], ['opacity', rec.opacity],
+    ['blendMode', rec.blendMode], ['clipping', rec.clipping],
+    ['path', rec.path.join(' / ')]
+  ];
+  insp.innerHTML = rows.map(([k,v])=>'<div class="row"><b>'+k+'</b><span>'+escapeHtml(String(v))+'</span></div>').join('');
+  wrap.innerHTML = '';
+  if(rec.kind!=='group' && rec._layer.canvas){
+    const cv = document.createElement('canvas');
+    cv.width = rec.width; cv.height = rec.height;
+    cv.getContext('2d').drawImage(rec._layer.canvas, 0, 0);
+    wrap.appendChild(cv);
+  }
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---- 檔案開啟(手動 UI) ---- */
+document.getElementById('btnOpen').onclick = ()=> document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange = (e)=>{
+  const f = e.target.files[0];
+  if(f) f.arrayBuffer().then(buf=>{ try{ loadFromArrayBuffer(buf); } catch(err){ log('讀取失敗: '+err.message,'e'); } });
+};
+['dragover','drop'].forEach(evt=>document.addEventListener(evt, e=>e.preventDefault()));
+document.addEventListener('drop', e=>{
+  const f = e.dataTransfer.files[0];
+  if(f && /\.psd$/i.test(f.name)) f.arrayBuffer().then(buf=>{ try{ loadFromArrayBuffer(buf); } catch(err){ log('讀取失敗: '+err.message,'e'); } });
+});
+
+/* ---- Phase-2 API(供 agent/headless 測試呼叫,見 CLAUDE.md 慣例) ---- */
+window.psdViewerTool = {
+  ready(){ return new Promise(res=>{ if(state.libraryReady) res(true); else readyWaiters.push(()=>res(true)); }); },
+  loadFromArrayBuffer,
+  getDocInfo(){ return state.psd ? { width: state.psd.width, height: state.psd.height, layerCount: state.flatLayers.length } : null; },
+  getLayers(){ return state.flatLayers.map(r=>({ name:r.name, path:r.path.slice(), kind:r.kind, left:r.left, top:r.top, right:r.right, bottom:r.bottom, width:r.width, height:r.height, visible:r.visible, opacity:r.opacity, blendMode:r.blendMode, clipping:r.clipping, depth:r.depth })); },
+  getCompositeDataURL(){ return document.getElementById('compositeCanvas').toDataURL('image/png'); },
+  getLayerDataURL(name){
+    const rec = state.flatLayers.find(r=>r.name===name && r.kind!=='group');
+    if(!rec || !rec._layer.canvas) return null;
+    const cv = document.createElement('canvas'); cv.width = rec.width; cv.height = rec.height;
+    cv.getContext('2d').drawImage(rec._layer.canvas, 0, 0);
+    return cv.toDataURL('image/png');
+  },
+  selectLayer(name){ const rec = state.flatLayers.find(r=>r.name===name); if(rec){ state.selected = rec; renderTree(); renderInspector(); return true; } return false; }
+};
+</script>
+</body>
+</html>

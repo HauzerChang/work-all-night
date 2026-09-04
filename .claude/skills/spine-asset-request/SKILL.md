@@ -48,7 +48,7 @@ python3 tools/mesh_gen/atlas_crop.py <out_dir>/<layer>.png ...  # 併入 atlas(�
 ```
 - 驗收:`psd_slice.py` 內建的重組無損閘(合成 + 貼回原 composite 比對)必須 PASS。
 - 若 PSD 沒有分層(平圖):**既有結論是無法自動拆件**(見 `CLAUDE.md`「誠實界定」段落)。
-  **⚠️ 有一個尚未驗證的新候選路徑**(chunk 37,見 `knowledge/s4-genielabs-spine-ai-knowledge.md`):
+  **⚠️ 有一個尚未驗證的新候選路徑**(chunk 38,見 `knowledge/s4-genielabs-spine-ai-knowledge.md`):
   用生成式模型(候選17已打通的 gpt-image-2)把角色**重繪**成「部件已分離、留白間距、白底」
   的新版面(這是生成式模型擅長的任務,不是要求它「分割」原圖),再用簡單的 OpenCV
   connected-components 切開重繪後的乾淨版面——比直接對糾纏原圖做語意分割容易得多。此思路

@@ -7,23 +7,45 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
-> **chunk 37(2026-09-04)**:使用者分享外部開源 Claude skill(GenieLabs
+> **chunk 38(2026-09-04)**:使用者分享外部開源 Claude skill(GenieLabs
 > `spine-animation-ai`)要求評估優化 `spine-asset-request`。萃取兩個未驗證候選(生成式
 > 重繪拆件版面、SIFT+RANSAC自動擺位)更新進 skill,**授權為 PolyForm Noncommercial 禁止
-> 商業使用,只做知識萃取不抄程式碼**。見下方「chunk 37」段落與
+> 商業使用,只做知識萃取不抄程式碼**。見下方「chunk 38」段落與
 > `knowledge/s4-genielabs-spine-ai-knowledge.md`。
 >
-> **chunk 36(2026-09-04)**:使用者要求推進 viewer + skill 兩項。完成
-> `tools/mesh_gen/s4_ai_viewer.html`(純瀏覽器端,驗證 OpenAI API 允許 CORS,不需要中介
-> 後端/不依賴 Photoshop)+ `.claude/skills/spine-asset-request/SKILL.md`(初步版,把既有
-> S4 工具串成「需求→判斷缺口→驅動切圖/補圖→驗證→記錄」流程)。見下方「chunk 36」段落與
-> `knowledge/s4-ai-viewer-tool.md`。
+> **⚠️ chunk 36/37 是同一時段兩個並行 session 撞號的結果,合併時才發現(見下方兩段
+> 與 `knowledge/s4-viewer-plan.md`「與並行 session 的工作塊撞號」章節,下一個 session
+> 動工前務必先讀)**:
 >
-> **三項使用者裁決現況**:(1) 候選17——技術阻塞已解除(chunk 35),已完成第一次真實驗證,
-> 發現 1a 評分方法論可能不適合生成式輸出,下一步待定生成式專屬評分方式;(2) skill——**初步
-> 版已完成**(chunk 36),後續可依實戰使用回饋迭代;(3) viewer——**初步版已完成**(chunk 36),
-> 已用 Playwright mock API 驗證前端邏輯,未打真實付費 API 做端到端驗證。**候選15已裁決
-> 「無限期擱置」**,不再是待裁決項,見下方「chunk 33」段落。
+> **chunk 36(2026-09-04,使用者直接指示,時間較早)**:使用者要求推進 viewer + skill
+> 兩項。完成 `tools/mesh_gen/s4_ai_viewer.html`(純瀏覽器端,驗證 OpenAI API 允許 CORS,
+> 不需要中介後端/不依賴 Photoshop;PSD 解析仍留在 Python `psd_slice.py`,瀏覽器吃匯出的
+> manifest+PNG)+ `.claude/skills/spine-asset-request/SKILL.md`(初步版,把既有 S4 工具
+> 串成「需求→判斷缺口→驅動切圖/補圖→驗證→記錄」流程)。見 `knowledge/s4-ai-viewer-tool.md`。
+>
+> **chunk 37(2026-09-04,排程自動觸發,時間較晚,獨立不知情地做了同名工作)**:本次排程
+> session 環境變數**沒有 `OPENAI_API_KEY`**(chunk 34 記錄的 key 只在對話當次暫存變數
+> 用完即清,不會被下個 session 繼承)——候選17「先定評分方式再擴大樣本」的下一步結構性
+> 做不了。轉向不受此限制、chunk 34 已裁決但「尚未拆解成有界工作塊」的 **viewer** 方向:
+> 拆解為 V1~V5,完成 **V1(PSD 純瀏覽器端解析)**——`tools/mesh_gen/psd_viewer.html`
+> (架構不同於 chunk 36:直接引入 ag-psd 在瀏覽器端解析原始 .psd,不經過 Python 匯出)。
+> headless 驗證(Playwright + 本機 vendor 副本繞過此容器 CDN 阻塞,僅測試手段)對兩份
+> 真實 PSD 交叉比對 Python `psd-tools` 地面真值:圖層名稱/順序/bbox 100% 相符,composite
+> premultiplied 像素比對 mean diff 0.03~0.04/255。**合併後的定調**:`s4_ai_viewer.html`
+> (chunk 36)功能更完整、且是使用者直接指示,視為 viewer 主線;`psd_viewer.html`
+> (chunk 37)是獨立驗證過的次要能力(可不跑 Python 匯出、直接讀原始 .psd),不建議
+> 視為主線 V1→V2→V3 的必經步驟(主線的等價功能已經做完)。見下方「chunk 36」「chunk 37」
+> 兩段與 `knowledge/s4-viewer-plan.md`。
+>
+> **三項使用者裁決現況(合併兩邊後)**:(1) 候選17——技術阻塞(網路政策)已解除,已完成
+> 第一次真實驗證(chunk 35),發現 1a 評分方法論可能不適合生成式輸出、下一步待定生成式
+> 專屬評分方式;此外**缺持久化 API key 之前,自動化排程 session 無法繼續擴大樣本**,需
+> 使用者設定 environment secret;(2) skill——**初步版已完成**(chunk 36,
+> `spine-asset-request`),chunk 38 用外部知識萃取做了第一次優化(平圖拆件/自動擺位新增
+> 未驗證候選路徑),後續依實戰使用回饋繼續迭代;(3) viewer——**主線初步版已完成**
+> (chunk 36,`s4_ai_viewer.html`,已用 Playwright mock API 驗證前端邏輯,未打真實付費
+> API 做端到端驗證);次要能力 V1(chunk 37,`psd_viewer.html`)也已完成並驗證。
+> **候選15已裁決「無限期擱置」**,不再是待裁決項,見下方「chunk 33」段落。
 
 ## 範圍
 
@@ -475,7 +497,7 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
-- 2026-09-04:**外部知識吸收:GenieLabs `spine-animation-ai`,優化 skill(chunk 37)** —
+- 2026-09-04:**外部知識吸收:GenieLabs `spine-animation-ai`,優化 skill(chunk 38)** —
   使用者分享 `https://github.com/GenielabsOpenSource/spine-animation-ai`(一個已發布的
   開源 Claude skill,骨架綁定協駕員),要求評估能否優化 `spine-asset-request`。用
   `WebFetch` 讀 README/SKILL.md/`split_character.py`/LICENSE(未 clone 進 repo)。
@@ -490,8 +512,29 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
   兩條都標註為「未驗證候選,需要獨立重新實作+驗證,不可抄程式碼」,不誇大成已可用能力。
   順帶記錄該外部專案鎖定 Spine 4.2、與本專案 3.8 JSON 語法不通用(只有概念層可轉移)。
   本次未新增任何量化實驗、未改動 production 代碼。見
-  `knowledge/s4-genielabs-spine-ai-knowledge.md`、`log/s4-2026-09-04-037.md`。
-- 2026-09-04:**viewer + skill 初步版完成(chunk 36)** — 使用者要求推進 viewer(PSD檢視/編輯
+  `knowledge/s4-genielabs-spine-ai-knowledge.md`、`log/s4-2026-09-04-038.md`。
+- 2026-09-04:**⚠️ chunk 36/37 撞號說明(合併 push 時發現)** — 兩個並行 session 從同一份
+  chunk 35 狀態各自獨立推進 viewer,`git push` 才發現撞號。時間較早、使用者直接指示的
+  commit 保留編號 chunk 36(`s4_ai_viewer.html` + skill);時間較晚、排程自動觸發、獨立
+  不知情做了同名工作的 commit 重新編號為 chunk 37(`psd_viewer.html`)。兩者是不同架構
+  選擇,不是重複——但 chunk 36 功能更完整,視為 viewer 主線。詳見
+  `knowledge/s4-viewer-plan.md`「與並行 session 的工作塊撞號」章節、
+  `log/s4-2026-09-04-036.md`(主線)、`log/s4-2026-09-04-037.md`(次要能力)。
+- 2026-09-04:**viewer 路線圖 + V1(PSD 純瀏覽器端解析)完成(chunk 37,次要能力,見上方
+  撞號說明)** — 發現本次排程 session 無 `OPENAI_API_KEY`,候選17結構性無法繼續,轉向
+  chunk 34 裁決但未拆解的 viewer 方向。拆解為 V1~V5,完成 V1:新增
+  `tools/mesh_gen/psd_viewer.html`(ag-psd 直接在瀏覽器端解析原始 .psd,圖層樹+composite+
+  逐圖層 metadata,`window.psdViewerTool` Phase-2 API)。Playwright headless(page.route
+  攔截 CDN 請求到本機 `npm pack` vendor 副本,僅測試用,production 仍走真 CDN)對
+  `robot_parts.psd`(5層)/`Symbol_Ww.psd`(18層)交叉比對 Python `psd-tools` 地面真值:
+  圖層名稱/順序/bbox 100% 相符。踩到一個跟 `CLAUDE.md` PMA 雷點同構的校準坑(raw RGBA
+  比對被透明像素的無意義 RGB 值污染出假差異),改用 premultiplied 比對後 mean diff 僅
+  0.03~0.04/255。誠實限制:V1 僅檢視,無互動顯示/隱藏重繪;未測巢狀 group 素材;生產
+  CDN 可達性需使用者自己驗證;且既然 chunk 36 的 `s4_ai_viewer.html` 已是功能更完整的
+  主線,本檔的 V2~V5 不建議在未經使用者要求前繼續投入。同時記錄候選17若要在自動化排程
+  下持續推進,需使用者設定持久化 `OPENAI_API_KEY` environment secret。見
+  `knowledge/s4-viewer-plan.md`、`log/s4-2026-09-04-037.md`。
+- 2026-09-04:**viewer + skill 初步版完成(chunk 36,viewer 主線)** — 使用者要求推進 viewer(PSD檢視/編輯
   +與ChatGPT即時溝通,類Photoshop插件HTML版)與 skill(需求驅動切圖補圖)兩項。**關鍵前提
   驗證**:`curl -X OPTIONS https://api.openai.com/v1/images/edits` 帶 CORS preflight header,
   回傳 `access-control-allow-origin: *`——確認瀏覽器可以直接跨來源呼叫 OpenAI API,viewer

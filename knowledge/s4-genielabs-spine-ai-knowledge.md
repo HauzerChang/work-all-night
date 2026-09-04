@@ -1,6 +1,6 @@
 # S4 外部知識吸收:GenieLabs `spine-animation-ai`(開源 Claude skill)
 
-> 分支 `claude/spine-s4-inpainting`,2026-09-04(chunk 37)。使用者分享
+> 分支 `claude/spine-s4-inpainting`,2026-09-04(chunk 38)。使用者分享
 > `https://github.com/GenielabsOpenSource/spine-animation-ai`,要求評估能否優化
 > `spine-asset-request` skill。透過 `WebFetch` 讀取 README/SKILL.md/`split_character.py`/
 > LICENSE(未 clone 原始碼進本 repo)。
@@ -81,7 +81,7 @@ bezier,translate/scale/shear 用兩屬性 x/y+各 8 元素 bezier)。本專案�
 
 ## 這份 SKILL.md 本身的寫法,值得借鏡的結構(非內容)
 
-該專案的 `SKILL.md` 有三個結構性優點,已經在 chunk 37 這次更新裡部分採納到
+該專案的 `SKILL.md` 有三個結構性優點,已經在 chunk 38 這次更新裡部分採納到
 `spine-asset-request/SKILL.md`:
 1. **Decision Tree**(ASCII 樹狀圖):依「使用者提供了什麼」分支到對應動作,一眼看懂路由邏輯。
 2. **File Outputs 表格**:每個產出檔案配一句話用途,方便串接下游步驟。
