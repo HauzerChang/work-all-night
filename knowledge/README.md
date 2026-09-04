@@ -379,3 +379,15 @@
   (mock API,未花真實費用),但**新 prompt 本身尚未經真實付費呼叫重新驗證**。提醒候選17
   「拆解」子功能與「補圖」子功能呼叫模式完全不同(整張圖可編輯 vs 局部mask),可信度需
   獨立評估。
+
+- [拆解流程重新分階段:語意分析/使用者決策/幾何裁切/局部修補分離(chunk 43)](s4-decompose-restage-plan.md) —
+  承接 chunk 42 翅膀失敗案例,使用者裁示把「拆解」從「AI 一鍵重繪整張圖」改成六階段流程:
+  Claude語意分析→列部件/使用者框選確認邊界→純幾何裁切+PSD轉換→GPT只做局部邊緣修補→
+  viewer先簡化回只留補圖→做輔助拆圖viewer。**第5點已完成**:`s4_ai_viewer.html` 移除
+  切片/拆解/需求精靈,僅留補圖,Playwright驗證無回歸零錯誤。**第1/2點現場示範**:用
+  Claude vision(零成本,不呼叫API)分析`jiuwei_yanlian_char_crop.png`,產出結構化
+  part list JSON(id/label/confidence/bbox_pct/notes)——對清楚部件(頭/軀幹/四肢/配件)
+  信心高,對困難部件(九尾整體重疊、半透明袖子、飄逸拖尾)**誠實回報低信心+說明原因**,
+  不假裝有答案,驗證了「用Claude語意理解取代生成式重繪定位」的方向可行。尚待確認:輔助
+  viewer(第6點)UI設計、PSD寫入技術路徑(傾向ag-psd的writePsd,未測試)、GPT邊緣修補的
+  局部mask設計(可直接複用簡化後補圖介面)。等待使用者確認格式後再建第6點UI。
