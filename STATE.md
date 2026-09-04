@@ -78,6 +78,20 @@
   踩雷:PSD 寫檔 mac_roman 不吃 CJK 圖層名→用 ASCII;旋轉某骨不移其自身原點→region 葉件看 attachment 世界點。
   新增 cap `rig_weighted_chain` L2 GREEN;`spine-rig-pivot` **仍 HOLD**(L3 缺口=多 rig 真值不變,防固化)。
   見 `knowledge/s5-rig-weighted-chain.md`。
+- **S1 主秀 beat 接進 genre 先驗庫(里程碑,2026-09-04,candidate 0f→E)** — 把 0f 的主秀模板 hit/reveal
+  **接進已驗證的先驗庫**:0f 只在 fixture storyboard 觸發主秀,`slot_bigwin`(Award 大獎主角,主排程最核心 genre)
+  的 `In` 節拍卻被關鍵字歸為平淡 `intro`(gen_in 單峰無反向預備)→ 最該是主秀的大獎入場反而最平淡。
+  做法:先驗 beat 加可選 `"cat"` 明確宣告運動基元(不動關鍵字 → `validate_priors` 覆蓋率不受影響):
+  **slot_bigwin `In`=現身式 `reveal`**、slot_reveal `open`=`reveal`/`hit`=`hit`。改 3 檔(`genre_priors` 加
+  `VALID_CATS`+3 beat cat、`analyze_target.build_storyboard` 傳遞 cat、`gen_animations.build_animations`
+  優先用 `beat.get("cat")` 否則關鍵字回退)。`validate_priors_beats.py` 端到端(真實 robot 拆件,復用 0f 簽章度量)
+  **5 AC 全 PASS**:P1 cat 有效+兩 genre 覆蓋率仍 **1.0**;P2 `In` 每 bone 具 reveal 簽章(藏 0.02→峰 1.35→阻尼穿越≥2→尾 identity);
+  P3 open reveal 簽章 + hit hit 簽章((scale-1)變號≥3);P4 主秀尾 identity + Loop 首尾 identity(可串接);
+  **P5 鑑別負對照**——剝除 `cat` → `In` 退回 `intro`(gen_in 無簽章)→ 證「主秀簽章來源即這次接線」。
+  回歸:`validate_priors`(1.0/1.0)、`validate_anim`(slot_bigwin `--selftest`+slot_reveal robot/Symbol_Ww)、
+  `validate_beat_templates`(0f)、`validate_deform_gen`(0e)、`validate_build`(靜態幾何)全 PASS。
+  新增 cap `priors_beats_wiring` L2 併入 `spine-anim-forge`(**仍 HOLD**:填補接線覆蓋、非新演算法,運動基元為手感先驗+單一真值資產,防固化)。
+  見 `knowledge/s1-priors-beats-wiring.md`、圖 `figures/s1_priors_beats_wiring.png`。
 - **S1 big-win 主秀 beat 模板(里程碑,2026-09-01,session 002,candidate 0f)** — 補 0d 主秀節拍只有
   `gen_pulse` 對稱三角脈衝的缺口,加兩個經典動畫原理:**anticipation(反向預備)+ settle/follow-through(阻尼回擺)**。
   `tools/analyzer/beat_templates.py`:`gen_hit`(蓄力→命中→阻尼回擺,首尾 identity 可插 Loop 間)、`gen_reveal`
@@ -221,8 +235,8 @@
 > **(C) weighted-forge / rig 併入 `spine-asset-forge` skill**(需 **C 類使用者拍板** sync;打包政策見 `skills/README.md`);
 > **(D) rig 真值資源**(**C/資源類**,阻塞 S5→L3):請使用者提供**第二個含多肢體接觸縫 + 藝術家 pivot** 的分層/rig 檔。
 > **建議下一個(擇一,皆純自主):**
-> **(E) 主秀 beat 接進 genre 先驗庫**:把 0f 的 hit/reveal 併入 `genre_priors` 的 slot_bigwin/slot_reveal,
->   讓 `build_spine --animate` 直接輸出含主秀節拍的完整演出(需同步 `validate_priors` 真值覆蓋,勿動已驗先驗);
+> **(E) ~~主秀 beat 接進 genre 先驗庫~~ ✅ 完成(2026-09-04,candidate 0f→E,`priors_beats_wiring` L2,見上里程碑)** ——
+>   `genre_priors` beat 加 `cat`(slot_bigwin In=reveal、slot_reveal open=reveal/hit=hit)+ `validate_priors_beats.py` 5AC + 剝cat鑑別負對照;`validate_priors` 覆蓋率仍 1.0 不受影響;
 > **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f 的模板庫);
 > **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心)。
 
@@ -241,6 +255,13 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**S1 主秀 beat 接進 genre 先驗庫(里程碑,candidate 0f→E)** — 把 0f 的 hit/reveal 主秀模板接進**已驗證**先驗庫。
+  先驗 beat 加可選 `cat` 明確宣告運動基元(不動關鍵字→`validate_priors` 覆蓋率不受影響):slot_bigwin `In`=現身式 reveal
+  (原被關鍵字歸為平淡 intro)、slot_reveal `open`=reveal/`hit`=hit → `build_spine --animate` 對真實 genre 直接輸出主秀簽章。
+  改 3 檔(genre_priors 加 VALID_CATS+3 cat、analyze_target 傳 cat、gen_animations 優先用 cat 否則回退)。
+  `validate_priors_beats.py` 5AC 全 PASS(cat有效+覆蓋率1.0/In reveal簽章/open+hit簽章/尾identity可串接/**剝cat退回intro鑑別負對照**)。
+  回歸 validate_priors(1.0/1.0)/validate_anim(bigwin --selftest + reveal robot/Symbol_Ww)/beat_templates(0f)/deform_gen(0e)/build 全 PASS。
+  新增 cap `priors_beats_wiring` L2;anim-forge 仍 HOLD(填補接線覆蓋、非新演算法)。見 `knowledge/s1-priors-beats-wiring.md`。
 - 2026-09-01(session 002):**S1 big-win 主秀 beat 模板(里程碑,candidate 0f)** — 補 0d 主秀節拍只有對稱脈衝的缺口,
   加 anticipation(反向預備)+ settle(阻尼回擺)兩動畫原理。`beat_templates.py`(gen_hit 首尾 identity、gen_reveal 首 collapsed
   尾 identity)wire 進 gen_animations(hit/reveal 新類別)+ `validate_beat_templates.py` 6AC 全 PASS(對真實 robot 5 拆件端到端)+

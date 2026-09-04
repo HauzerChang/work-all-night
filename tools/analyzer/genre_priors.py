@@ -7,7 +7,17 @@
 **驗證優先**:validated_against 指向 repo 內真實 spine;`validate_priors.py` 會檢查
 該先驗的 beat 關鍵字能否覆蓋真實動畫命名(覆蓋率),確保先驗不是空想。
 未驗證的類型明確標 validated_against=None。
+
+**主秀節拍接線(candidate 0f→E)**:beat 可選填 `"cat"`,明確宣告該節拍要驅動哪個
+**運動基元類別**(gen_animations 的 _DISPATCH key:intro/loop/outro/hold/pulse/hit/reveal)。
+主秀模板 hit/reveal(anticipation+settle,見 `beat_templates.py`)即由此接進**已驗證**的
+先驗庫:大獎主角入場(slot_bigwin `In`)= 現身式 `reveal`、開獎主秀(slot_reveal `open`)= `reveal`、
+命中強調(`hit`)= `hit`。未填 `cat` 者由 `gen_animations.beat_category(name)` 以關鍵字回退
+(向後相容)。⚠️ `cat` 只改**運動基元選擇**,不動 beat 關鍵字 → `validate_priors` 覆蓋率不受影響。
 """
+
+# 合法運動基元類別(與 gen_animations._DISPATCH 對齊;供 build_storyboard/驗證檢查 cat 有效性)。
+VALID_CATS = {"intro", "loop", "outro", "hold", "pulse", "hit", "reveal"}
 
 # 動作模板:beat × 角色 → 建議動作(繁中,給 rigger)
 def _roles(in_body, in_head, in_limb, in_eff,
@@ -29,8 +39,8 @@ PRIORS = {
         "desc": "大獎主角:每檔位一組 進場/循環/退場",
         "tiers": ["Super", "Mega", "Omg", "Legend"],
         "beats": [
-            {"key": "In", "kw": ["in", "intro", "enter", "start", "comeout"],
-             "desc": "入場爆發:主體放大/彈入,肢體大幅甩入,特效炸開(旋轉+放大+亮度峰值)"},
+            {"key": "In", "kw": ["in", "intro", "enter", "start", "comeout"], "cat": "reveal",
+             "desc": "入場爆發:主體現身式炸開(藏→蓄勢→越過 identity overshoot→阻尼回穩),肢體甩入,特效峰值"},
             {"key": "Loop", "kw": ["loop", "idle"],
              "desc": "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉"},
             {"key": "Out", "kw": ["out", "exit", "end", "close"],
@@ -46,8 +56,8 @@ PRIORS = {
             {"key": "static", "kw": ["static"], "desc": "初始靜置(單幀/擺位)"},
             {"key": "idle", "kw": ["idle"], "desc": "待機呼吸(多變體:idle/idle2/idle3 錯開節奏)"},
             {"key": "comeout", "kw": ["comeout", "come", "appear", "enter", "in"], "desc": "登場:物件入畫"},
-            {"key": "open", "kw": ["open", "reveal", "draw"], "desc": "開獎主秀(最長,主體開啟/展開,特效峰值)"},
-            {"key": "hit", "kw": ["hit", "win", "match"], "desc": "命中強調(短促放大/閃光)"},
+            {"key": "open", "kw": ["open", "reveal", "draw"], "cat": "reveal", "desc": "開獎主秀(最長,主體現身式展開越過 identity 再回穩,特效峰值)"},
+            {"key": "hit", "kw": ["hit", "win", "match"], "cat": "hit", "desc": "命中強調(反向蓄力→命中 overshoot→阻尼回擺)"},
             {"key": "loop", "kw": ["loop"], "desc": "結果循環"},
             {"key": "close", "kw": ["close", "out", "end"], "desc": "收尾(收合/淡出)"},
         ],

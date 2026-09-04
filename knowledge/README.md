@@ -22,6 +22,7 @@
 ## 索引(本次執行起新增的發現)
 
 - [S1 big-win 主秀 beat 模板(0f)](s1-beat-templates.md) — 補 0d 只有對稱脈衝的缺口:hit/reveal 主秀節拍加 **anticipation(反向預備)+ settle(阻尼回擺)**。`beat_templates.py` + `validate_beat_templates.py` 6 AC 全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝。真值=結構簽章(非美感)。cap `storyboard_beat_templates` L2;anim-forge 仍 HOLD。
+- [S1 主秀 beat 接進 genre 先驗庫(0f→E)](s1-priors-beats-wiring.md) — 把 0f 的 hit/reveal 模板**接進已驗證先驗庫**:beat 加可選 `cat` 明確宣告運動基元 → **slot_bigwin `In`=現身式 reveal**(原被關鍵字歸為平淡 intro)、slot_reveal `open`=reveal/`hit`=hit,使 `build_spine --animate` 對真實 genre 直接輸出主秀簽章。`validate_priors_beats.py` **5 AC 全 PASS**(cat有效+覆蓋率仍1.0/In reveal簽章/open+hit簽章/尾identity可串接/**剝cat退回intro的鑑別負對照**)。關鍵:`cat` 只改基元選擇不動關鍵字 → `validate_priors` 覆蓋率不受影響。回歸 0d/0e/0f/build 全 PASS。cap `priors_beats_wiring` L2;anim-forge 仍 HOLD(填補接線覆蓋、非新演算法)。
 
 - [S3 mesh 生成器](s3-mesh-generator.md) — 純 CPU PNG→Spine mesh 原型 + 評估器,合成資料 6 條 AC 全過(IoU 0.99)。
 

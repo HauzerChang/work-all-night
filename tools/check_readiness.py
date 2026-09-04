@@ -172,6 +172,12 @@ BLOCKS = [
                             "皆 setup identity/collapse 介面可與 In/Loop/Out 串接。6AC(well-formed/可串接介面/真峰/"
                             "anticipation/settle 阻尼回擺/負對照)全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝(gen_pulse "
                             "無反向預備+無阻尼回擺→非主秀)、不歸位、無峰。真值=結構簽章(非美感,美感留使用者 A類)"),
+            CAP("priors_beats_wiring", "主秀 hit/reveal 接進已驗證 genre 先驗庫(0f→E)", "L2",
+                "python3 tools/analyzer/validate_priors_beats.py",
+                "pipeline", note="genre_priors beat 加 `cat` 明確宣告運動基元;slot_bigwin In=reveal 現身、"
+                            "slot_reveal open=reveal/hit=hit → build_spine --animate 對真實 genre 直接輸出主秀簽章。"
+                            "5AC(cat有效+覆蓋率仍1.0/In reveal簽章/open+hit簽章/尾identity可串接/剝cat退回intro的鑑別負對照)"
+                            "全 PASS。cat 只改基元選擇不動關鍵字 → validate_priors 覆蓋率不受影響"),
         ],
     },
 ]

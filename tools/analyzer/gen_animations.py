@@ -236,7 +236,10 @@ def build_animations(skeleton, storyboard):
             n = math.hypot(dx, dy) or 1.0
             radial = (dx / n, dy / n)
 
-            cat = beat_category(name)
+            # 先驗可明確宣告運動基元類別(主秀 hit/reveal 接線);未宣告或無效才以關鍵字回退。
+            cat = beat.get("cat")
+            if cat not in _DISPATCH:
+                cat = beat_category(name)
             b, sdict = _DISPATCH[cat](role, side_sign, radial)
             if b:
                 bones_tl[bname] = b
