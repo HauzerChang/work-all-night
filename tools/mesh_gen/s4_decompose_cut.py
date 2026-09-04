@@ -34,7 +34,10 @@ def clamp_bbox(bbox, W, H):
     return (int(x0c), int(y0c), int(x1c), int(y1c)), clamped
 
 
-def cut(image_path, decision_path, out_dir):
+def cut(image_path, decision_path, out_dir, contour="rect", sam_checkpoint=None, sam_src=None):
+    """contour='rect'(預設,原行為,純矩形硬邊界)或 'sam'(box-prompted MobileSAM 語意
+    分割,框內找不規則輪廓——見 s4_sam_segment.py 檔頭說明;需要 torch/timm + mobile_sam
+    原始碼 + 下載好的權重,缺任何一項會直接拋錯,不會偷偷退回矩形)。"""
     src = Image.open(image_path).convert("RGBA")
     W, H = src.size
     decision = json.load(open(decision_path, encoding="utf-8"))
@@ -43,8 +46,15 @@ def cut(image_path, decision_path, out_dir):
         print(f"WARNING: 決策檔 image_size={decision.get('image_size')} 跟實際來源圖 "
               f"{[W, H]} 不一致,仍用實際來源圖尺寸繼續,但座標可能對不齊。", file=sys.stderr)
 
+    segmenter = None
+    if contour == "sam":
+        from s4_sam_segment import SamSegmenter, DEFAULT_CHECKPOINT
+        segmenter = SamSegmenter(checkpoint=sam_checkpoint or DEFAULT_CHECKPOINT, mobile_sam_src=sam_src)
+        segmenter.set_image(np.array(src.convert("RGB")))
+
     os.makedirs(out_dir, exist_ok=True)
-    manifest = {"source": os.path.basename(image_path), "size": [W, H], "parts": []}
+    manifest = {"source": os.path.basename(image_path), "size": [W, H], "parts": [],
+                "contour_method": contour}
     parts_for_check = []
     warnings = []
 
@@ -63,6 +73,18 @@ def cut(image_path, decision_path, out_dir):
 
         x0, y0, x1, y1 = bbox
         crop = src.crop((x0, y0, x1, y1))
+        sam_info = None
+        if segmenter is not None:
+            mask, sam_info = segmenter.segment((x0, y0, x1, y1))
+            sub_mask = mask[y0:y1, x0:x1]
+            r, g, b, a = crop.split()
+            new_a = Image.fromarray((np.array(a) * sub_mask.astype(np.uint8)))
+            crop = Image.merge("RGBA", (r, g, b, new_a))
+            if sam_info["low_confidence"]:
+                warnings.append(
+                    f"part '{p.get('id')}' SAM分割low_confidence(框內{sam_info['fg_ratio_in_box']:.0%}"
+                    f"被判定前景,可能是框本身沒貼近目標物件,不代表分割結果可信)")
+
         pid = p.get("id") or f"part_{i}"
         safe = pid.replace("/", "__")
         fn = f"{i:02d}_{safe}.png"
@@ -73,6 +95,8 @@ def cut(image_path, decision_path, out_dir):
             "offset": [x0, y0], "size": [x1 - x0, y1 - y0], "file": fn,
             "id": pid, "confidence": p.get("confidence", ""), "notes": p.get("notes", ""),
         }
+        if sam_info is not None:
+            entry["sam_info"] = sam_info
         manifest["parts"].append(entry)
         parts_for_check.append((entry, crop))
 
@@ -133,8 +157,14 @@ def main():
     ap.add_argument("decision", help="s4_decompose_assist.html 匯出的決策檔 JSON")
     ap.add_argument("-o", "--out", required=True, help="輸出目錄(部件 PNG + manifest.json)")
     ap.add_argument("--eval", action="store_true", help="裁切後跑自驗閘並印報告")
+    ap.add_argument("--contour", choices=["rect", "sam"], default="rect",
+                     help="rect=純矩形(預設);sam=MobileSAM box-prompted語意分割找不規則輪廓")
+    ap.add_argument("--sam-checkpoint", default=None, help="MobileSAM權重路徑(預設見 s4_sam_segment.py)")
+    ap.add_argument("--sam-src", default=None, help="mobile_sam 原始碼路徑(非pip套件,需另外git clone)")
     a = ap.parse_args()
-    manifest, parts_for_check, src = cut(a.image, a.decision, a.out)
+    manifest, parts_for_check, src = cut(a.image, a.decision, a.out,
+                                          contour=a.contour, sam_checkpoint=a.sam_checkpoint,
+                                          sam_src=a.sam_src)
     print(json.dumps({k: v for k, v in manifest.items() if k != "parts"} |
                       {"parts": len(manifest["parts"])}, ensure_ascii=False, indent=2))
     if a.eval:

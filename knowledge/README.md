@@ -435,3 +435,18 @@
   框幾乎全是臉、choker框主要是裸肩),已超出使用者原本授權範疇,單靠第4點局部邊緣
   修補可能不夠。留給使用者裁決三個方向(接受現況硬做/升級成多邊形選取/認清高複雜度
   人物用更寬鬆標準分階段處理),未自行決定。
+
+- [box-prompted語意分割(MobileSAM)取代矩形裁切(chunk 47)](s4-sam-segment.md) —
+  使用者實測矩形結果後明確反對,要求框內精準找不規則輪廓。**候選1 OpenCV GrabCut
+  實測完全失敗**(head/choker/earrings三個測試案例全選錯,沒有語意理解,框內顯著色塊
+  蓋過標籤指定的小物件)。**候選2 MobileSAM**(Apache2.0商用無虞,CPU可跑~40MB)——
+  huggingface.co被org網路政策擋掉,改用raw.githubusercontent.com直接抓到權重(該repo
+  少見地把權重直接放repo裡,記錄可重現的下載指令+sha256)+git clone原始碼(非PyPI
+  套件)。整合進`s4_decompose_cut.py`(`--contour {rect,sam}`,預設不變)。真實20部件
+  決策檔完整測試+**逐格人工視覺複核**(不只信任聚合指標):9個明確正確、2個被自動
+  heuristic正確標記為low_confidence、2個是已知本來就難的案例、**5個(25%)是自動
+  heuristic完全沒抓到的靜默錯誤**(bodice選到頭髮、sleeve_right選到胸衣等,共同模式是
+  框跟鄰近部件視覺內容重疊,SAM選到了鄰居而非自己,且選錯後遮罩形狀乾淨信心不低,
+  兩個heuristic都測不出來)。**誠實結論**:比GrabCut好很多,但不是解決方案,是進步——
+  25%靜默錯誤率代表pipeline目前不能盲目信任自動輸出,每次都需要人工複核。提出兩個
+  未實作的改進方向(SAM原生支援的點提示輔助/收緊決策檔框邊界)供使用者決定是否投入。

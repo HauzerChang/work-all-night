@@ -8,3 +8,6 @@ specs/*_spine/
 # S4 拆解流程第3點:Node PSD 寫入工具的依賴(npm install 依 package-lock.json 重生,
 # 只有 node_modules 不進版控,package-lock.json 保留以鎖版本)
 tools/mesh_gen/psd_node/node_modules/
+# S4 拆解流程第3點:MobileSAM 權重(~40MB,見 knowledge/s4-sam-segment.md 重新下載
+# 指令+sha256,不進版控)
+tools/mesh_gen/models/

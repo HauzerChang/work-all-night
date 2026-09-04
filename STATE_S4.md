@@ -7,6 +7,15 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 47(2026-09-04)**:使用者實測矩形裁切後明確反對,要求框內精準找不規則輪廓。
+> **GrabCut(傳統色彩分割)實測完全失敗**(3/3測試案例全選錯,沒有語意理解)。改用
+> **MobileSAM**(Apache2.0,CPU可跑,huggingface.co被擋改用raw.githubusercontent.com
+> 直接抓權重)整合進 `s4_decompose_cut.py`(`--contour sam`)。真實20部件決策檔+
+> **逐格人工視覺複核**:9個明確正確、2個自動攔截、**5個(25%)自動heuristic完全沒
+> 抓到的靜默錯誤**(框跟鄰近部件重疊,SAM選到鄰居內容,遮罩乾淨信心不低,測不出來)。
+> 誠實結論:比GrabCut好很多但不是解決方案,pipeline目前不能盲目信任自動輸出。見下方
+> 「chunk 47」段落與 `knowledge/s4-sam-segment.md`。
+>
 > **chunk 46(2026-09-04)**:使用者裁示「排程上優先區塊一(切割),到一定技術水準再進
 > 區塊二」,建 `s4_decompose_cut.py`(決策檔→硬邊界矩形裁切→manifest.json)+
 > `psd_node/manifest_to_psd.js`(Node/ag-psd 組回PSD,不需node-canvas)。自驗閘經歷
@@ -557,6 +566,37 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**box-prompted語意分割(MobileSAM)取代矩形裁切(chunk 47)** — 使用者
+  對 chunk 46 的矩形裁切結果明確反對:「只切出矩形 不符合我的需求, 我想要的是 框選的
+  範圍內 精準找到部件 並切割出來, 你需照偵測各種不規則的輪廓 進行提取」。**候選1
+  OpenCV GrabCut**(不需下載模型,最低成本候選,先試):對 head/choker/earrings 三個
+  代表性部件測試(rect初始化+手動seed mask兩種模式)**全部選錯**——head選到背景暗色塊、
+  choker選到裸肩、earrings選到整張臉。根因:GrabCut只做顏色統計分割,沒有語意理解,
+  框裡如果同時有小物件跟視覺更顯著的內容,一律選顯著的那個,不管標籤寫什麼。**候選2
+  MobileSAM**(Meta Segment Anything輕量版,Apache2.0商用無虞,TinyViT encoder,
+  CPU可跑,權重~40MB):huggingface.co被org網路政策明確擋掉(gateway 403),使用者
+  同意開放後測試仍擋;改查發現該repo少見地把權重直接放在repo裡而非HuggingFace,改用
+  `raw.githubusercontent.com`(可用,不受repo授權範圍限制,跟`codeload.github.com`/
+  `api.github.com`不同)直接下載成功,記錄可重現指令+sha256;mobile_sam原始碼非PyPI
+  套件,用`git clone`取得(Apache2.0)。整合進`tools/mesh_gen/s4_decompose_cut.py`
+  新增`--contour {rect,sam}`參數(預設rect不動舊行為),新增`tools/mesh_gen/
+  s4_sam_segment.py`封裝SAM推論+兩個信心heuristic(前景比例過高/連通元件破碎)。
+  **真實20部件決策檔完整測試**(同chunk46使用者手動確認過的決策檔),**逐格人工視覺
+  複核,不只信任聚合指標或自動heuristic**:9個明確正確(head/fox_ears/hair_front/
+  choker/sleeve_left/tag_pendant/leg_right/boot_right/hand_left)、2個被自動heuristic
+  正確標記low_confidence(earrings框過鬆/sash_train破碎)、2個是Claude第1/2點分析時
+  已知本來就難的案例(hair_main/tails_mass同材質重疊)、**5個(25%)是自動heuristic
+  完全沒抓到的靜默錯誤**(bodice選到頭髮、leg_left/boot_left選到布料裝飾、
+  sleeve_right選到胸衣、hand_right選到袖子布料)。**共同失敗模式**:這5個案例的原始框
+  都跟鄰近部件的視覺內容大幅重疊,SAM選到了「框裡另一個看起來也像獨立物件的鄰居」而非
+  自己,且選錯後遮罩形狀通常乾淨、信心分數不低,前景比例跟破碎度兩個heuristic都測不出
+  來。**誠實結論**:比GrabCut好非常多(3/3全錯 vs 9/20明確對+2/20正確攔截),證實
+  「需要語意理解模型」判斷方向正確,**但不是解決方案,是進步**——25%靜默錯誤率意味著
+  這個pipeline目前不能盲目信任自動輸出,每次都需要人工複核(這次示範的做法)。提出
+  兩個未實作的改進方向留給使用者裁決是否投入:(a) SAM原生支援框+點提示組合,加一步
+  「點選目標物件內部」很可能直接解決這5個歧義案例;(b) 收緊決策檔階段的框邊界,降低
+  跟鄰居的重疊,不用改分割演算法本身。見 `knowledge/s4-sam-segment.md`、
+  `log/s4-2026-09-04-047.md`。
 - 2026-09-04:**拆解第3點正式落地:裁切工具+PSD組裝+使用者真實決策檔實測(chunk 46)**
   — 使用者裁示「排程上優先研究區塊一,達到一定技術水準後再進區塊二」,建
   `tools/mesh_gen/s4_decompose_cut.py`(讀決策檔→硬邊界矩形裁切各部件→輸出
