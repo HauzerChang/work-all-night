@@ -22,6 +22,15 @@ _BIGWIN_ROLES = _roles(
     "彈入+輕微 overshoot 縮放", "隨身體彈入+回正", "大幅甩入(旋轉+位移+放大)", "炸開:放大+旋轉+亮度峰值",
     "呼吸(±小幅縮放/位移)", "微點頭/傾", "末梢小幅擺盪(相位錯開)", "脈動/緩轉(alpha/scale 微幅循環)",
     "縮出/淡出", "收斂淡出")
+# candidate 0e/0f 主秀節拍(additive;經 gen_animations 路由到 beat_templates 的 gen_reveal/gen_hit)。
+# burst = 大獎主秀「現身炸開」(collapsed→蓄勢 hold→overshoot→阻尼回擺,首 collapsed 尾 identity)。
+# hit   = 慶祝期的衝擊重音(anticipation→impact→settle,首尾 identity → 可插在 Loop 循環間)。
+_BIGWIN_ROLES["burst"] = {
+    "body": "藏→蓄勢→炸開 overshoot→阻尼回穩", "head": "隨身體炸開+回正",
+    "limb": "內收→爆出旋轉→阻尼回正", "effect": "全暗蓄勢→亮爆+旋轉甩→回穩"}
+_BIGWIN_ROLES["hit"] = {
+    "body": "反向蓄力→命中放大→阻尼回擺", "head": "微抬預備→下砸→回彈",
+    "limb": "反向蓄力→whip 甩出→阻尼回擺", "effect": "先暗→亮度峰值→阻尼+旋轉甩"}
 
 
 PRIORS = {
@@ -31,6 +40,12 @@ PRIORS = {
         "beats": [
             {"key": "In", "kw": ["in", "intro", "enter", "start", "comeout"],
              "desc": "入場爆發:主體放大/彈入,肢體大幅甩入,特效炸開(旋轉+放大+亮度峰值)"},
+            # 主秀節拍(candidate 0f;PROPOSAL:主秀運動無唯一正解,閘驗結構簽章非美感)。
+            # Award 真值僅 In/Loop/Out → 此二 beat 於 validate_priors 顯示為 prior_beats_unused(誠實)。
+            {"key": "burst", "kw": ["burst", "reveal", "showup", "現身", "炸開", "開獎"],
+             "desc": "主秀現身:collapsed→蓄勢 hold→炸開 overshoot→阻尼回穩(首 collapsed 尾 identity)"},
+            {"key": "hit", "kw": ["hit", "impact", "punch", "打擊", "命中", "重擊"],
+             "desc": "慶祝衝擊重音:anticipation→impact→settle(首尾 identity,可插 Loop 間)"},
             {"key": "Loop", "kw": ["loop", "idle"],
              "desc": "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉"},
             {"key": "Out", "kw": ["out", "exit", "end", "close"],

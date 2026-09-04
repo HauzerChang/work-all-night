@@ -172,6 +172,15 @@ BLOCKS = [
                             "皆 setup identity/collapse 介面可與 In/Loop/Out 串接。6AC(well-formed/可串接介面/真峰/"
                             "anticipation/settle 阻尼回擺/負對照)全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝(gen_pulse "
                             "無反向預備+無阻尼回擺→非主秀)、不歸位、無峰。真值=結構簽章(非美感,美感留使用者 A類)"),
+            CAP("main_show_priors_integration", "主秀 beat 接進 genre 先驗庫(E,build --animate 直出主秀)", "L2",
+                "python3 tools/analyzer/validate_priors_beats.py", "pipeline",
+                note="把 0f 的 hit/reveal 併入 genre_priors:slot_bigwin 加 burst(reveal)+hit beat、slot_reveal 既有 "
+                     "open→reveal/hit→hit。與 validate_beat_templates 差別=本閘從**先驗庫**經 analyze_target.build_storyboard "
+                     "→ build_animations,證主秀節拍真的從先驗流到最終 animations(--animate 直出),非只驗合成模板。"
+                     "5AC PASS(P1 主秀 clip 真峰≥1.12/P2 介面契約 reveal collapse→identity・hit identity 首尾/"
+                     "P3 結構簽章 hit_signature+reveal collapse-hold+峰後穿越≥2/P4 已驗先驗覆蓋率仍 1.0 未擾動/"
+                     "P5 負對照 character_idle 產 0 主秀 clip・非主秀 beat 不具簽章)。honest:主秀運動仍先驗手感、burst/hit "
+                     "於 Award 真值無命名故 validate_priors 列 prior_beats_unused(誠實 PROPOSAL);單一真值資產"),
         ],
     },
 ]
