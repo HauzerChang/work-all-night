@@ -1,0 +1,10 @@
+{
+  "name": "s4-psd-node",
+  "private": true,
+  "version": "1.0.0",
+  "description": "S4 decompose pipeline: manifest.json + layer PNGs -> .psd (ag-psd, Node CLI). No browser needed.",
+  "dependencies": {
+    "ag-psd": "^24.0.0",
+    "pngjs": "^7.0.0"
+  }
+}

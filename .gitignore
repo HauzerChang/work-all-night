@@ -5,3 +5,6 @@ assets/test_layered.psd
 psd_parts/
 # S1 build_spine 產出(可由 build_spine.py 重生,不進版控)
 specs/*_spine/
+# S4 拆解流程第3點:Node PSD 寫入工具的依賴(npm install 依 package-lock.json 重生,
+# 只有 node_modules 不進版控,package-lock.json 保留以鎖版本)
+tools/mesh_gen/psd_node/node_modules/
