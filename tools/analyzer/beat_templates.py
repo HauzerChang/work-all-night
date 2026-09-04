@@ -173,8 +173,60 @@ def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0)):
     return b, s
 
 
+# candidate 0h — cascade(跨件錯開「波」):大獎主秀常見的「一件接一件依序亮起」節拍。
+# 與 0f/0g 的 hit/reveal/combo/charge 本質不同:那些是**單件內**的時間簽章(同一 beat 套到每件、
+# 每件時序相同);cascade 是**跨件**時間簽章 —— 每件依其**順序相位**錯開觸發,形成一道波。
+# 故其簽章不在單件曲線裡,而在「各件峰值時刻的排序與散佈」:peak 時刻隨件序**嚴格遞增**且散佈
+# 佔整段 ≥門檻(近同時觸發的 combo/hit 會 spread≈0 → 負對照分離)。
+#
+# 介面:採**pop 波**形(每件 identity→蓄力 dip→pop overshoot→阻尼回擺→identity),首尾皆 setup
+# identity(每件皆是),故與 In/Loop/Out 可無縫串接(同 combo/charge 的可插性)。
+# (另有「reveal 波」變體=每件 start collapsed 依序現身,首非 identity;pop 波保留可串接介面 + 乾淨 argmax
+#  峰時刻量測,選為預設。)相位 phase∈[0,1] 由 build_animations 依件序帶入(0=第一件、1=最後一件)。
+
+DUR.setdefault("cascade", 1.2)
+
+# cascade 波的相位窗:第一件峰落在 LEAD、最後一件峰落在 LEAD+SPAN(皆 τ∈[0,1])。
+CASCADE_LEAD = 0.16
+CASCADE_SPAN = 0.54
+
+
+def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0):
+    """跨件錯開波中的**單件** pop(依 phase 錯開)。回傳 (bone_timelines, slot_timelines)。
+
+    每件 scale 包絡(絕對 τ,中心 c=LEAD+phase*SPAN):
+      1.0(identity)→ hold 1.0 到輪到它 → 0.94(蓄力)→ peak(pop)→ 0.97→1.005(阻尼回擺)→ 1.0。
+    首尾皆 identity;全域峰落在 c → 各件峰時刻隨 phase 錯開 = cascade 跨件簽章。"""
+    T = DUR["cascade"]
+    peak = _PEAK.get(role, 1.18)
+    p = max(0.0, min(1.0, phase))
+    c = CASCADE_LEAD + p * CASCADE_SPAN
+    b, s = {}, {}
+    # 絕對 τ 關鍵幀(嚴格遞增;c-0.09≥0.07>0、c+0.16≤0.86<1 於 phase∈[0,1] 皆成立)
+    env = [(0.00, 1.000), (c - 0.09, 1.000),           # 起始 identity + hold 到輪到它
+           (c - 0.05, 0.940),                           # anticipation 蓄力
+           (c, peak),                                    # pop(全域峰 → 峰時刻=c)
+           (c + 0.06, 0.970), (c + 0.11, 1.005),         # 阻尼回擺(settle)
+           (c + 0.16, 1.000), (1.00, 1.000)]             # 回 identity + hold 到結束
+    b["scale"] = _scale_frames(T, env)
+
+    if role == "limb":
+        # 末梢隨波甩出(反向蓄力→甩→回),中心對齊 c
+        b["rotate"] = _rot([(0.0, 0.0), ((c - 0.05) * T, -side_sign * 6.0),
+                            (c * T, side_sign * 16.0), ((c + 0.08) * T, -side_sign * 4.0),
+                            ((c + 0.16) * T, 0.0), (T, 0.0)])
+    elif role == "特效":
+        # 每件輪到時亮度閃(蓄暗→亮→回);首尾 alpha=1(可串接),閃在 c
+        s["color"] = _color([(0.0, 1.0), ((c - 0.05) * T, 0.78), (c * T, 1.0),
+                            ((c + 0.08) * T, 0.9), (T, 1.0)])
+        b["rotate"] = _rot([(0.0, 0.0), ((c - 0.05) * T, -8.0), (c * T, 10.0),
+                            ((c + 0.1) * T, -3.0), (T, 0.0)])
+    return b, s
+
+
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
 HIT_KEYWORDS = ["hit", "impact", "punch", "throb", "slam", "打擊", "命中", "重擊", "衝擊"]
 REVEAL_KEYWORDS = ["reveal", "open", "burst", "showup", "appear_big", "揭曉", "現身", "炸開", "開獎"]
 COMBO_KEYWORDS = ["combo", "multihit", "multi_hit", "chain", "連擊", "連段", "連打"]
 CHARGE_KEYWORDS = ["charge", "windup", "wind_up", "chargeup", "anticipate_hold", "蓄力", "充能", "蓄勢"]
+CASCADE_KEYWORDS = ["cascade", "wave", "ripple", "sequence", "sweep", "wipe", "錯開", "波", "依序", "接連"]

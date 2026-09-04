@@ -93,6 +93,20 @@
   ——0f 模板要「被觸發」需先驗庫有對應 beat(又一「評估器/模板就緒 ≠ 生成器接上」實例)。新增 cap
   `main_show_priors_integration` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
   見 `knowledge/s1-main-show-priors-integration.md`、圖 `knowledge/figures/s1_priors_beats.png`。
+- **S1 cascade 跨件錯開波:第一個「跨件時序」主秀節拍(里程碑,2026-09-04,session 002,candidate 0h)** —
+  補 STATE 建議 (F 續) **cascade**(跨件錯開 reveal)。0f/0g 的 hit/reveal/combo/anticipate_hold 全是**單件內**
+  時序簽章(同 beat 套每件、每件時序相同);cascade 是**跨件**時序簽章 —— 每件依**件序相位** phase∈[0,1]
+  錯開觸發成一道波,簽章不在單件曲線而在「**各件峰時刻的排序與散佈**」。`beat_templates.py` `gen_cascade`
+  (pop 波:每件 identity→蓄力→pop(峰=c=LEAD+phase·SPAN)→阻尼回擺→identity,首尾 identity 可插 Loop 間)+
+  **`gen_animations` 架構變更**:新增 `_PHASE_AWARE={"cascade"}`,`build_animations` 先過濾有效件算總數再對
+  phase-aware 類別帶 `phase=pi/(nvalid-1)`(**這是生成器第一個 per-part 參數** threading;前四節拍對件無差別故不需)。
+  `validate_cascade.py`(端到端經 build_animations 才會帶入 phase → 順帶證 threading 接上)對真實 robot 5 拆件
+  **6 AC + 7 條負對照全 PASS**:C4 峰時刻 [0.158,0.296,0.429,0.567,0.700] 依件序嚴格遞增、散佈 0.542≥0.30;
+  負對照=combo(同時序)spread≈0 非波、打亂/反序件序非遞增、**cascade 單件非 combo 簽章(證與 0g 正交=不同維度)**、
+  單件無 spread 非波。回歸:0f/0g/(E) validate + build --animate/--selftest 全 PASS;keyword `Cascade_Wave`/`跨件波`/`sweep`→cascade。
+  **關鍵發現**:cascade 簽章要**端到端量**不能只測 gen_cascade(phase 是 build_animations 配的);「模板就緒 ≠ 生成器接上」
+  以新形式再現——這節拍**逼出** build_animations 的 per-part threading。新增 cap `cross_part_cascade` L2 併入
+  `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。見 `knowledge/s1-cascade-beat.md`、圖 `knowledge/figures/s1_cascade.png`。
 - **S1 擴充主秀 beat 庫:combo + anticipate_hold(里程碑,2026-09-04,candidate 0g)** — 補 STATE
   「下一個 bounded chunk」建議 (F)**更多主秀節拍**。續 0f 再加兩個 big-win 節拍,各有**互不相同、可量化**的
   客觀結構簽章:**combo**(連擊)=遞增 impact 峰數 ≥3(≥1.10 局部極大且嚴格遞增;單發 hit 僅 1 峰)、
@@ -249,9 +263,11 @@
 > **建議下一個(擇一,皆純自主):**
 > **(E) ~~主秀 beat 接進 genre 先驗庫~~ ✅ 完成(2026-09-04,`main_show_priors_integration` L2,見上里程碑)** ——
 >   slot_bigwin 補 burst/hit beat、slot_reveal 既有 open/hit;`validate_priors_beats.py` 5 AC + 覆蓋率仍 1.0;
-> **(F) ~~更多主秀節拍~~**:**✅ combo(多峰遞增)+ anticipate_hold(長蓄力)完成(2026-09-04,candidate 0g,
->   `beat_library_expansion` L2,見上里程碑)**;**續**:cascade(跨件錯開 reveal,需 build_animations 傳 per-part phase
->   —— 是**跨件時序**簽章,與 0g 的單件時序簽章互補)為下一個自然小步;
+> **(F) ~~更多主秀節拍~~**:**✅ combo + anticipate_hold(2026-09-04,candidate 0g)+ ✅ cascade 跨件錯開波
+>   (2026-09-04 session 002,candidate 0h,`cross_part_cascade` L2,見上里程碑)** —— cascade 是**跨件時序**簽章,
+>   與 0g 的單件時序簽章互補,已逼出 build_animations 的 per-part phase threading(`_PHASE_AWARE`)。
+>   **續**(擇一,皆自主):cascade **reveal 波變體**(每件 start collapsed 依序現身,首非 identity;需處理多件 collapse
+>   疊加對 argmax 的擾動)、或用**空間位置**決定波方向(左→右/中心外擴,件序相位改由 bd.x/徑向決定);
 > **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心;
 >   rigid rotation-about-pivot:對位於件原點 O 的 bone 加 rotate θ + translate Δ=(R(θ)−I)(O−P),P=關節 pivot;
 >   AC=旋轉後 pivot 世界點為不動點 vs 件中心旋轉會位移=內建負對照)。
@@ -273,6 +289,13 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04(session 002):**S1 cascade 跨件錯開波(里程碑,candidate 0h)** — 補 (F 續) cascade。第一個**跨件時序**
+  主秀節拍:0f/0g 皆單件內時序,cascade 每件依件序相位錯開成波,簽章在「各件峰時刻排序+散佈」。`gen_cascade`(pop 波,
+  首尾 identity)+ `gen_animations` 架構變更(`_PHASE_AWARE`,build_animations 配 `phase=pi/(nvalid-1)` —— 生成器**第一個
+  per-part 參數**)+ `validate_cascade.py` **6 AC + 7 條負對照全 PASS**(峰時刻依件序嚴格遞增散佈 0.542;負對照 combo 同時序
+  spread≈0、打亂/反序非遞增、單件非 combo 簽章=與 0g 正交)。關鍵:簽章要端到端量;cascade 逼出 build_animations 的 phase
+  threading(「模板就緒≠生成器接上」新形式)。回歸 0f/0g/(E)/anim(+selftest)全 PASS。cap `cross_part_cascade` L2;anim-forge 仍 HOLD。
+  見 `knowledge/s1-cascade-beat.md`。
 - 2026-09-04:**S1 擴充主秀 beat 庫(里程碑,candidate 0g)** — 補建議 (F) 更多主秀節拍。加 `gen_combo`(連擊,
   遞增 impact 峰數 ≥3)+ `gen_anticipate_hold`(蓄力充能,峰前長蓄力佔比 ≥0.35),各有**互不相同、可量化**的
   結構簽章,wire 進 `gen_animations`(combo/charge 類別)。`validate_more_beats.py` **6 AC + 9 條負對照全 PASS**

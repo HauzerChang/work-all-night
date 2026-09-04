@@ -195,19 +195,25 @@ _DISPATCH = {"intro": gen_in, "loop": gen_loop, "outro": gen_out, "hold": gen_ho
 # 形成 import 迴圈:beat_templates 只需本檔上方已定義的 DUR/_rot/_xy/_color。
 try:
     from beat_templates import gen_hit as _gen_hit, gen_reveal as _gen_reveal, \
-        gen_combo as _gen_combo, gen_anticipate_hold as _gen_charge, \
+        gen_combo as _gen_combo, gen_anticipate_hold as _gen_charge, gen_cascade as _gen_cascade, \
         HIT_KEYWORDS as _HIT_KW, REVEAL_KEYWORDS as _REVEAL_KW, \
-        COMBO_KEYWORDS as _COMBO_KW, CHARGE_KEYWORDS as _CHARGE_KW, DUR as _DUR_EXT
+        COMBO_KEYWORDS as _COMBO_KW, CHARGE_KEYWORDS as _CHARGE_KW, \
+        CASCADE_KEYWORDS as _CASCADE_KW, DUR as _DUR_EXT
     _DISPATCH["hit"] = _gen_hit
     _DISPATCH["reveal"] = _gen_reveal
     _DISPATCH["combo"] = _gen_combo
     _DISPATCH["charge"] = _gen_charge
-    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo/charge 時長對 spine_anim.duration 一致
-    # 主秀類別置前:exact/substring 命中優先於泛用 pulse(combo/charge 亦置前)
-    _CAT_KEYWORDS = {"combo": _COMBO_KW, "charge": _CHARGE_KW,
+    _DISPATCH["cascade"] = _gen_cascade
+    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo/charge/cascade 時長對 spine_anim.duration 一致
+    # 主秀類別置前:exact/substring 命中優先於泛用 pulse(combo/charge/cascade 亦置前)
+    _CAT_KEYWORDS = {"cascade": _CASCADE_KW, "combo": _COMBO_KW, "charge": _CHARGE_KW,
                      "hit": _HIT_KW, "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
 except ImportError:
     pass
+
+# cascade 是**跨件時序**類別:單件產生器需知道自己在件序中的相位(phase∈[0,1])。
+# 只有這類別要吃 phase,故集中列名,build_animations 依此決定是否帶入(其餘類別簽章不變)。
+_PHASE_AWARE = {"cascade"}
 
 
 def build_animations(skeleton, storyboard):
@@ -222,15 +228,17 @@ def build_animations(skeleton, storyboard):
     anims = {}
     for beat in storyboard["beats"]:
         name = beat["beat"]
+        cat = beat_category(name)
         bones_tl, slots_tl = {}, {}
         limb_seen = 0
-        for pe in beat["parts"]:
+        # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
+        valid = [pe for pe in beat["parts"] if bone_of.get(safe(pe["part"])) is not None]
+        nvalid = len(valid)
+        for pi, pe in enumerate(valid):
             part = pe["part"]; role = pe["role"]
             sname = safe(part)
             bname = "b_" + sname
             bd = bone_of.get(sname)
-            if bd is None:
-                continue
             # 左右反相:依遇到 limb 的順序交替 ±1(確定性)
             side_sign = 1.0
             if role == "limb":
@@ -241,8 +249,12 @@ def build_animations(skeleton, storyboard):
             n = math.hypot(dx, dy) or 1.0
             radial = (dx / n, dy / n)
 
-            cat = beat_category(name)
-            b, sdict = _DISPATCH[cat](role, side_sign, radial)
+            if cat in _PHASE_AWARE:
+                # 件序相位:第一件 0、最後一件 1(單件時 0)→ 各件峰時刻依序錯開
+                phase = 0.0 if nvalid <= 1 else pi / (nvalid - 1)
+                b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
+            else:
+                b, sdict = _DISPATCH[cat](role, side_sign, radial)
             if b:
                 bones_tl[bname] = b
             if sdict:

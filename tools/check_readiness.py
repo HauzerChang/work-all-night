@@ -187,6 +187,13 @@ BLOCKS = [
                      "anticipate_hold=峰前長蓄力時間佔比≥0.35(hit 蓄力僅短暫 dip)。皆保 setup identity 介面(可插 Loop 間)。"
                      "6AC PASS(well-formed/可串接介面/真峰/兩簽章各成立/共用 anticipation+settle/負對照)+9 條負對照全過:"
                      "兩簽章互斥、單發 hit 與對稱脈衝皆非 combo/charge、等峰 combo 非遞增。真值=結構簽章(美感留使用者 A類)"),
+            CAP("cross_part_cascade", "cascade 跨件錯開波(跨件時序簽章,0h)", "L2",
+                "python3 tools/analyzer/validate_cascade.py", "gen",
+                note="補 0f/0g 全是**單件內**時序簽章的缺口:cascade=每件依件序相位錯開觸發成一道波,簽章在**件之間**"
+                     "(各件峰時刻依件序嚴格遞增 + 散佈 ≥0.30),必須端到端經 build_animations 量測(證 per-part phase "
+                     "threading 有接上)。pop 波形首尾 identity 可插 Loop 間。6AC PASS(well-formed/可串接介面/真峰/跨件簽章/"
+                     "共用 anticipation+settle/負對照)+ 7 條負對照:combo(同時序)spread≈0 非波、打亂/反序件序非遞增、"
+                     "cascade 單件非 combo 簽章(證與 0g 正交)、單件無 spread 非波。真值=結構簽章(美感留使用者 A類)"),
         ],
     },
 ]
