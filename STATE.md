@@ -93,6 +93,17 @@
   ——0f 模板要「被觸發」需先驗庫有對應 beat(又一「評估器/模板就緒 ≠ 生成器接上」實例)。新增 cap
   `main_show_priors_integration` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
   見 `knowledge/s1-main-show-priors-integration.md`、圖 `knowledge/figures/s1_priors_beats.png`。
+- **S1 擴充主秀 beat 庫:combo + anticipate_hold(里程碑,2026-09-04,candidate 0g)** — 補 STATE
+  「下一個 bounded chunk」建議 (F)**更多主秀節拍**。續 0f 再加兩個 big-win 節拍,各有**互不相同、可量化**的
+  客觀結構簽章:**combo**(連擊)=遞增 impact 峰數 ≥3(≥1.10 局部極大且嚴格遞增;單發 hit 僅 1 峰)、
+  **anticipate_hold**(蓄力充能)=峰前長蓄力時間佔比 ≥0.35(hit 蓄力僅短暫 dip)。皆保 setup identity 介面
+  (可插 Loop 間)、共用 0f 的 anticipation+settle。`beat_templates.py`(+`gen_combo`/`gen_anticipate_hold`,wire 進
+  `gen_animations` combo/charge 類別)+ `validate_more_beats.py` **6 AC 全 PASS + 9 條負對照**:兩簽章**互斥**、
+  單發 hit 與對稱脈衝皆非 combo/charge、**等峰 combo 非遞增**(證「遞增」是必要條件非只看峰數)。
+  **關鍵發現:combo 鑑別子是「遞增」非只「多峰」;charge 用「時間佔比」非「深度」**(對峰值/取樣密度解耦最穩);
+  impact 門檻 1.10 乾淨切點(loop 微呼吸 ≤1.03、hit settle 回彈 ~1.015 皆在門檻下)。回歸:0f validate_beat_templates 6AC、
+  0d/0e validate_anim(+selftest)、(E) validate_priors 全 PASS。新增 cap `beat_library_expansion` L2 併入
+  `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。見 `knowledge/s1-more-beats.md`、圖 `figures/s1_more_beats.png`。
 - **S1 big-win 主秀 beat 模板(里程碑,2026-09-01,session 002,candidate 0f)** — 補 0d 主秀節拍只有
   `gen_pulse` 對稱三角脈衝的缺口,加兩個經典動畫原理:**anticipation(反向預備)+ settle/follow-through(阻尼回擺)**。
   `tools/analyzer/beat_templates.py`:`gen_hit`(蓄力→命中→阻尼回擺,首尾 identity 可插 Loop 間)、`gen_reveal`
@@ -238,8 +249,14 @@
 > **建議下一個(擇一,皆純自主):**
 > **(E) ~~主秀 beat 接進 genre 先驗庫~~ ✅ 完成(2026-09-04,`main_show_priors_integration` L2,見上里程碑)** ——
 >   slot_bigwin 補 burst/hit beat、slot_reveal 既有 open/hit;`validate_priors_beats.py` 5 AC + 覆蓋率仍 1.0;
-> **(F) 更多主秀節拍**:anticipate-hold / multi-hit combo / cascade,各配結構簽章 AC(續 0f 的模板庫);
-> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心)。
+> **(F) ~~更多主秀節拍~~**:**✅ combo(多峰遞增)+ anticipate_hold(長蓄力)完成(2026-09-04,candidate 0g,
+>   `beat_library_expansion` L2,見上里程碑)**;**續**:cascade(跨件錯開 reveal,需 build_animations 傳 per-part phase
+>   —— 是**跨件時序**簽章,與 0g 的單件時序簽章互補)為下一個自然小步;
+> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心;
+>   rigid rotation-about-pivot:對位於件原點 O 的 bone 加 rotate θ + translate Δ=(R(θ)−I)(O−P),P=關節 pivot;
+>   AC=旋轉後 pivot 世界點為不動點 vs 件中心旋轉會位移=內建負對照)。
+> **(H) combo/charge 接進 genre 先驗庫**:如 (E) 對 hit/reveal 所做,把 combo/charge 併入 `genre_priors` 讓
+>   `build_spine --animate` 直出(需同步 `validate_priors` 真值覆蓋、勿動已驗先驗)。
 
 ## 環境前置(已驗證可用)
 
@@ -256,6 +273,12 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**S1 擴充主秀 beat 庫(里程碑,candidate 0g)** — 補建議 (F) 更多主秀節拍。加 `gen_combo`(連擊,
+  遞增 impact 峰數 ≥3)+ `gen_anticipate_hold`(蓄力充能,峰前長蓄力佔比 ≥0.35),各有**互不相同、可量化**的
+  結構簽章,wire 進 `gen_animations`(combo/charge 類別)。`validate_more_beats.py` **6 AC + 9 條負對照全 PASS**
+  (兩簽章互斥、單發 hit/對稱脈衝皆非 combo/charge、等峰 combo 非遞增)。關鍵:combo 鑑別子是「遞增」非只「多峰」、
+  charge 用「時間佔比」非「深度」(解耦峰值/取樣);impact 門檻 1.10 為乾淨切點。回歸 0f/0d/0e/(E) 全 PASS。
+  新增 cap `beat_library_expansion` L2;anim-forge 仍 HOLD。見 `knowledge/s1-more-beats.md`。
 - 2026-09-04:**S1 (E) 主秀 beat 接進 genre 先驗庫(里程碑)** — 把 0f hit/reveal 併入 `genre_priors`,`build_spine
   --animate` 直出主秀。診斷 slot_bigwin 完全沒觸發 0f(只 In/Loop/Out)→ additive 補 burst(reveal)+hit beat;
   slot_reveal 因命名含 open/hit 已自動受惠。coverage 單調非遞減仍 1.0(Award 無 hit/burst token→列 unused,誠實 PROPOSAL)。

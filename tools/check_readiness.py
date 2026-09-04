@@ -181,6 +181,12 @@ BLOCKS = [
                      "P3 結構簽章 hit_signature+reveal collapse-hold+峰後穿越≥2/P4 已驗先驗覆蓋率仍 1.0 未擾動/"
                      "P5 負對照 character_idle 產 0 主秀 clip・非主秀 beat 不具簽章)。honest:主秀運動仍先驗手感、burst/hit "
                      "於 Award 真值無命名故 validate_priors 列 prior_beats_unused(誠實 PROPOSAL);單一真值資產"),
+            CAP("beat_library_expansion", "擴充主秀 beat 庫:combo(多峰遞增)+ anticipate_hold(長蓄力,0g)", "L2",
+                "python3 tools/analyzer/validate_more_beats.py", "gen",
+                note="續 0f 再加兩個大獎節拍,各有**互不相同**的客觀結構簽章:combo=遞增 impact 峰數≥3(單發 hit 僅 1 峰)、"
+                     "anticipate_hold=峰前長蓄力時間佔比≥0.35(hit 蓄力僅短暫 dip)。皆保 setup identity 介面(可插 Loop 間)。"
+                     "6AC PASS(well-formed/可串接介面/真峰/兩簽章各成立/共用 anticipation+settle/負對照)+9 條負對照全過:"
+                     "兩簽章互斥、單發 hit 與對稱脈衝皆非 combo/charge、等峰 combo 非遞增。真值=結構簽章(美感留使用者 A類)"),
         ],
     },
 ]

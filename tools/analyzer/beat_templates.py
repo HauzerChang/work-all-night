@@ -92,6 +92,89 @@ def gen_reveal(role, side_sign=1.0, radial=(0.0, 0.0)):
     return b, s
 
 
+# candidate 0g — 擴充主秀節拍庫:multi-hit combo(連擊)+ anticipate-hold(蓄力充能)。
+# 兩者仍是 setup identity 介面(首尾 identity → 可插 Loop 間),各有**可量化且互不相同**的結構
+# 簽章,與單發 hit / 對稱脈衝在負對照乾淨分離:
+#   - combo         : **多個遞增 impact 峰**(≥3 個 ≥1.10 的局部極大,且嚴格遞增)—— 單發 hit 只有 1 峰。
+#   - anticipate_hold: **延長蓄力 hold**(峰前有一段持續低於 setup 的長充能區,佔比 ≥0.35)—— hit 蓄力僅短暫 dip。
+# 兩者都仍保有 0f 的 anticipation(峰前 <1)+ settle(阻尼回擺,(scale-1) 變號 ≥3)通用簽章。
+
+DUR.setdefault("combo", 0.9)
+DUR.setdefault("anticipate_hold", 0.8)
+
+# 主秀 impact 峰門檻(區隔「真 impact」與 settle 回彈/loop 微呼吸)。loop 最大 ~1.03、hit settle ~1.015。
+IMPACT_PROM = 1.10
+
+
+def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0)):
+    """Multi-hit combo(連擊):三段**遞增** impact,各含蓄力 dip + 部分回擺,尾段阻尼回穩。首尾 identity。
+
+    scale 峰嚴格遞增 p1<p2<p3(=role peak);峰間回落 <1(下一擊的蓄力)→ 簽章 = 遞增 impact 峰數 ≥3
+    (單發 hit 僅 1 峰 → 負對照分離)。仍具通用 anticipation(峰前 <1)+ settle(尾段回擺變號 ≥3)。"""
+    T = DUR["combo"]
+    peak = _PEAK.get(role, 1.18)
+    q = peak - 1.0
+    # 遞增三峰;p1 夾 ≥1.10 確保計入 impact(role peak 最小 1.18 → q=0.18 → p1=1.108)。
+    p1 = max(1.10, 1.0 + 0.60 * q)
+    p2 = 1.0 + 0.80 * q
+    p3 = peak
+    b, s = {}, {}
+    env = [(0.00, 1.000),
+           (0.05, 0.950), (0.13, p1), (0.20, 0.980),   # hit 1
+           (0.26, 0.940), (0.35, p2), (0.43, 0.970),   # hit 2(蓄力更深)
+           (0.50, 0.920), (0.62, p3),                  # hit 3 finale(蓄力最深、峰最大)
+           (0.74, 0.955), (0.85, 1.030), (0.93, 0.995), (1.00, 1.000)]  # 阻尼回擺(<IMPACT_PROM)
+    b["scale"] = _scale_frames(T, env)
+
+    if role == "limb":
+        # 三連甩,末梢反向蓄力 → 甩出,幅度隨連擊遞增;首尾 0
+        b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, side_sign * 8.0), (0.20 * T, 0.0),
+                            (0.35 * T, side_sign * 12.0), (0.43 * T, 0.0),
+                            (0.62 * T, side_sign * 18.0), (0.74 * T, -side_sign * 5.0),
+                            (1.00 * T, 0.0)])
+    elif role == "head":
+        b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, -6.0), (0.20 * T, 0.0),
+                            (0.35 * T, -9.0), (0.43 * T, 0.0), (0.62 * T, -13.0),
+                            (0.74 * T, 4.0), (1.00 * T, 0.0)])
+    elif role == "特效":
+        # 每擊亮度閃(蓄暗→亮),遞增;首尾回 1
+        s["color"] = _color([(0.00 * T, 1.0), (0.05 * T, 0.80), (0.13 * T, 1.0),
+                             (0.26 * T, 0.78), (0.35 * T, 1.0), (0.50 * T, 0.72),
+                             (0.62 * T, 1.0), (1.00 * T, 1.0)])
+        b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, side_sign * 8.0),
+                            (0.35 * T, -side_sign * 8.0), (0.62 * T, side_sign * 14.0),
+                            (1.00 * T, 0.0)])
+    return b, s
+
+
+def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0)):
+    """Anticipate-hold(蓄力充能):長時間 squash 蓄力 hold → 單發大釋放 overshoot → 阻尼回擺。首尾 identity。
+
+    scale:1.0 →(快速下蹲)0.85 →(**長 hold** 充能,佔比 ≥0.35)0.85 → peak(釋放)→ 回擺 → 1.0。
+    簽章 = **峰前持續低於 0.97 的時間佔比 ≥0.35**(長蓄力)—— hit 的蓄力僅短暫 dip(佔比小)→ 負對照分離。"""
+    T = DUR["anticipate_hold"]
+    peak = _PEAK.get(role, 1.18)
+    b, s = {}, {}
+    env = [(0.00, 1.000), (0.08, 0.900), (0.15, 0.850), (0.45, 0.850),  # 長蓄力 hold(τ0.15–0.45)
+           (0.58, peak),                                                  # 釋放 overshoot
+           (0.70, 0.955), (0.82, 1.020), (0.92, 0.995), (1.00, 1.000)]   # 阻尼回擺
+    b["scale"] = _scale_frames(T, env)
+
+    if role == "limb":
+        # 反向蓄力拉滿並 hold → 爆甩 → 回正
+        b["rotate"] = _rot([(0.00 * T, 0.0), (0.15 * T, -side_sign * 10.0), (0.45 * T, -side_sign * 10.0),
+                            (0.58 * T, side_sign * 16.0), (0.75 * T, -side_sign * 4.0), (1.00 * T, 0.0)])
+    elif role == "特效":
+        # 蓄力期壓暗並 hold → 釋放瞬亮 → 回穩;旋轉蓄力拉滿再甩
+        s["color"] = _color([(0.00 * T, 1.0), (0.15 * T, 0.55), (0.45 * T, 0.55),
+                             (0.58 * T, 1.0), (1.00 * T, 1.0)])
+        b["rotate"] = _rot([(0.00 * T, 0.0), (0.15 * T, -18.0), (0.45 * T, -18.0),
+                            (0.58 * T, 8.0), (0.78 * T, -3.0), (1.00 * T, 0.0)])
+    return b, s
+
+
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
 HIT_KEYWORDS = ["hit", "impact", "punch", "throb", "slam", "打擊", "命中", "重擊", "衝擊"]
 REVEAL_KEYWORDS = ["reveal", "open", "burst", "showup", "appear_big", "揭曉", "現身", "炸開", "開獎"]
+COMBO_KEYWORDS = ["combo", "multihit", "multi_hit", "chain", "連擊", "連段", "連打"]
+CHARGE_KEYWORDS = ["charge", "windup", "wind_up", "chargeup", "anticipate_hold", "蓄力", "充能", "蓄勢"]

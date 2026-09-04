@@ -195,12 +195,17 @@ _DISPATCH = {"intro": gen_in, "loop": gen_loop, "outro": gen_out, "hold": gen_ho
 # 形成 import 迴圈:beat_templates 只需本檔上方已定義的 DUR/_rot/_xy/_color。
 try:
     from beat_templates import gen_hit as _gen_hit, gen_reveal as _gen_reveal, \
-        HIT_KEYWORDS as _HIT_KW, REVEAL_KEYWORDS as _REVEAL_KW, DUR as _DUR_EXT
+        gen_combo as _gen_combo, gen_anticipate_hold as _gen_charge, \
+        HIT_KEYWORDS as _HIT_KW, REVEAL_KEYWORDS as _REVEAL_KW, \
+        COMBO_KEYWORDS as _COMBO_KW, CHARGE_KEYWORDS as _CHARGE_KW, DUR as _DUR_EXT
     _DISPATCH["hit"] = _gen_hit
     _DISPATCH["reveal"] = _gen_reveal
-    DUR.update(_DUR_EXT)  # 讓 hit/reveal 時長對 spine_anim.duration 一致
-    # 主秀類別置前:exact/substring 命中優先於泛用 pulse
-    _CAT_KEYWORDS = {"hit": _HIT_KW, "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
+    _DISPATCH["combo"] = _gen_combo
+    _DISPATCH["charge"] = _gen_charge
+    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo/charge 時長對 spine_anim.duration 一致
+    # 主秀類別置前:exact/substring 命中優先於泛用 pulse(combo/charge 亦置前)
+    _CAT_KEYWORDS = {"combo": _COMBO_KW, "charge": _CHARGE_KW,
+                     "hit": _HIT_KW, "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
 except ImportError:
     pass
 
