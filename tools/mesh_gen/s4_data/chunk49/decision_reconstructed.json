@@ -1,0 +1,250 @@
+{
+  "source_image": "jiuwei_yanlian_char_crop.png",
+  "image_size": [
+    460,
+    898
+  ],
+  "generated_by": "chunk49: suggestions.json bbox_pct->bbox_px conversion (leg_left/boot_left corrected), NOT the user-manually-adjusted real decision file from chunk46-48 (that one was not persisted to repo)",
+  "parts": [
+    {
+      "id": "head",
+      "label": "頭部(含五官)",
+      "confidence": "high",
+      "notes": "邊界清楚",
+      "bbox_px": [
+        115,
+        27,
+        299,
+        162
+      ]
+    },
+    {
+      "id": "fox_ears",
+      "label": "狐耳(雙耳)",
+      "confidence": "high",
+      "notes": "與頭部相鄰但形狀獨立,可拆成單獨 slot 做耳朵擺動",
+      "bbox_px": [
+        138,
+        0,
+        345,
+        72
+      ]
+    },
+    {
+      "id": "hair_front",
+      "label": "瀏海/額前髮絲",
+      "confidence": "medium",
+      "notes": "與頭部/髮量主體邊界略模糊",
+      "bbox_px": [
+        129,
+        45,
+        285,
+        135
+      ]
+    },
+    {
+      "id": "hair_main",
+      "label": "長髮主體(後方+兩側)",
+      "confidence": "medium",
+      "notes": "與九尾狐尾在左下方大範圍重疊,顏色都偏白/粉,邊界需使用者確認",
+      "bbox_px": [
+        0,
+        45,
+        253,
+        494
+      ]
+    },
+    {
+      "id": "earrings",
+      "label": "耳環(雙耳)",
+      "confidence": "high",
+      "notes": "小型獨立配件",
+      "bbox_px": [
+        267,
+        135,
+        322,
+        189
+      ]
+    },
+    {
+      "id": "choker",
+      "label": "頸飾(紅色蝴蝶結+墜飾)",
+      "confidence": "high",
+      "notes": "",
+      "bbox_px": [
+        212,
+        171,
+        267,
+        224
+      ]
+    },
+    {
+      "id": "bodice",
+      "label": "上半身胸衣(紅色)",
+      "confidence": "high",
+      "notes": "",
+      "bbox_px": [
+        152,
+        198,
+        322,
+        359
+      ]
+    },
+    {
+      "id": "sleeve_left",
+      "label": "左側白紗寬袖",
+      "confidence": "medium",
+      "notes": "半透明材質,邊界柔和不銳利",
+      "bbox_px": [
+        60,
+        242,
+        184,
+        503
+      ]
+    },
+    {
+      "id": "sleeve_right",
+      "label": "右側白紗寬袖",
+      "confidence": "medium",
+      "notes": "同左袖,半透明",
+      "bbox_px": [
+        276,
+        242,
+        396,
+        458
+      ]
+    },
+    {
+      "id": "hand_left",
+      "label": "左手",
+      "confidence": "high",
+      "notes": "",
+      "bbox_px": [
+        60,
+        449,
+        120,
+        530
+      ]
+    },
+    {
+      "id": "hand_right",
+      "label": "右手",
+      "confidence": "high",
+      "notes": "",
+      "bbox_px": [
+        345,
+        422,
+        409,
+        512
+      ]
+    },
+    {
+      "id": "belt",
+      "label": "黑色腰帶+金色扣環",
+      "confidence": "high",
+      "notes": "",
+      "bbox_px": [
+        175,
+        332,
+        327,
+        404
+      ]
+    },
+    {
+      "id": "skirt",
+      "label": "裙擺(紅色短裙主體)",
+      "confidence": "high",
+      "notes": "",
+      "bbox_px": [
+        156,
+        359,
+        327,
+        548
+      ]
+    },
+    {
+      "id": "tag_pendant",
+      "label": "垂墜符紙標籤",
+      "confidence": "high",
+      "notes": "",
+      "bbox_px": [
+        262,
+        395,
+        317,
+        530
+      ]
+    },
+    {
+      "id": "sash_train",
+      "label": "流蘇/披帛長下擺(拖尾)",
+      "confidence": "low",
+      "notes": "大範圍飄逸拖尾,末端跟尾巴/地面陰影交疊,邊界高度不確定",
+      "bbox_px": [
+        129,
+        494,
+        350,
+        862
+      ]
+    },
+    {
+      "id": "leg_left",
+      "label": "左腿(大腿露出部分)",
+      "confidence": "medium",
+      "notes": "| chunk49修正:原框(bbox_pct[27,57,46,73])完全沒框住腿(裡面是手+尾巴毛髮),見chunk48發現;新框改對準畫面上可見的腿部裸膚區域左半(兩腿在畫面上緊貼重疊,視覺上只有一團連續膚色,非兩腿分離可辨)。",
+      "bbox_px": [
+        189,
+        458,
+        253,
+        548
+      ]
+    },
+    {
+      "id": "leg_right",
+      "label": "右腿",
+      "confidence": "high",
+      "notes": "",
+      "bbox_px": [
+        248,
+        485,
+        336,
+        638
+      ]
+    },
+    {
+      "id": "boot_left",
+      "label": "左靴(過膝黑靴)",
+      "confidence": "medium",
+      "notes": "| chunk49修正:原框(bbox_pct[27,67,49,99])完全沒框住靴子(裡面是絲帶布料+尾巴毛髮),見chunk48發現;新框改對準畫面上可見的靴子左半(兩靴同樣緊貼重疊成單一視覺輪廓,非兩靴分離可辨)。",
+      "bbox_px": [
+        189,
+        548,
+        258,
+        880
+      ]
+    },
+    {
+      "id": "boot_right",
+      "label": "右靴",
+      "confidence": "high",
+      "notes": "",
+      "bbox_px": [
+        225,
+        602,
+        336,
+        889
+      ]
+    },
+    {
+      "id": "tails_mass",
+      "label": "九尾狐尾(整體,無法個別拆分)",
+      "confidence": "low",
+      "notes": "九條尾巴顏色高度相近、彼此重疊,無法可靠指出個別邊界,需使用者決定要不要拆、怎麼拆",
+      "bbox_px": [
+        0,
+        269,
+        267,
+        898
+      ]
+    }
+  ]
+}

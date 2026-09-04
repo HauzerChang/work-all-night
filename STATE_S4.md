@@ -7,6 +7,24 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 49(2026-09-04)**:執行 chunk 48 留下的選項 (a)(零成本、唯一已知有效的
+> 改進動作),本次排程無活人裁決,依既有慣例(chunk 26)執行不需授權的選項。**追溯
+> 錯誤來源**:chunk46-48 用的使用者手動確認決策檔未持久化進 repo,改查 repo 裡持久化
+> 的 `assets/jiuwei_yanlian_char_crop.suggestions.json`(chunk43 我自己的原始草稿),
+> 換算 `leg_left`/`boot_left` 的 `bbox_pct`→像素,跟 chunk48 報告的錯誤座標完全吻合
+> ——確認錯誤從 chunk43 就已存在。用網格疊圖工具放大檢視來源圖,發現兩腿在畫面上緊貼
+> 重疊、肉眼分不出左右腿分界,靴子同理只有單一連續靴筒輪廓;比照已驗證正確的
+> `leg_right`/`boot_right`(框住連續膚色/靴筒右半),把兩個錯誤框改框到左半部,
+> confidence 從 high 下修為 medium 並記錄材質限制。**自驗**:20 部件
+> `--contour rect --eval` AC1 pass,逐格複核修正後裁圖確實是大腿膚色/黑色靴筒(不再
+> 是手/布料+毛髮)。**誠實限制**:框位置修對後,`leg_left`/`leg_right` 裁出的內容仍
+> 是同一團連續膚色的左右兩半(兩腿本來就視覺重疊、不可分,是素材限制不是分割問題,
+> 若後續要做成真正獨立擺動的兩個 spine slot 需另外處理);本次驗證用的 20 部件決策檔
+> 是從 `suggestions.json` 重新換算,不是 chunk46-48 那份使用者手動調整過的真實決策
+> 檔,不能延續其統計數字;未重跑 `--contour sam`(容器未持久化 MobileSAM 權重);
+> `hand_right` 框未對準問題本次未修正。見下方「chunk 49」段落與
+> `knowledge/s4-decompose-box-fix-legs.md`。
+>
 > **chunk 48(2026-09-04)**:使用者選 chunk 47 提案方向1(點提示)。**先於Python層直接
 > 驗證再蓋UI**:憑印象猜點第一輪失敗(方法論有瑕疵);第二輪放大逐格目視確認框內容,
 > 意外發現比點提示本身更重要的事——`leg_left`/`boot_left`根本不是分割問題,決策檔框
@@ -575,6 +593,17 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**修正 leg_left/boot_left 決策檔框位置錯誤(chunk 49)** — 執行 chunk 48
+  選項(a)(零成本、唯一已知有效的改進動作),無活人裁決依既有慣例執行不需授權的選項。
+  追溯發現錯誤從 chunk43 我自己的原始 vision 草稿(`assets/jiuwei_yanlian_char_crop.
+  suggestions.json`)就已存在(換算 bbox_pct→像素跟 chunk48 報告的錯誤座標完全吻合),
+  改在這份持久化檔案上修正,不需要使用者重新提供未持久化的真實決策檔。視覺定位:兩腿
+  在來源圖裡緊貼重疊、肉眼分不出左右分界,比照已驗證正確的 leg_right/boot_right(框
+  右半),把 leg_left/boot_left 改框到同一片連續膚色/靴筒的左半部,confidence 下修為
+  medium。自驗:20部件決策檔`--contour rect --eval`AC1 pass,逐格複核裁圖確認是大腿
+  膚色/黑色靴筒。誠實限制:兩腿視覺本來就重疊不可分(素材限制非分割問題)、驗證用決策
+  檔非chunk46-48真實那份不能延續統計、未重跑sam(權重未持久化)、hand_right未修正。
+  見 `knowledge/s4-decompose-box-fix-legs.md`、`log/s4-2026-09-04-049.md`。
 - 2026-09-04:**點提示能否修正SAM靜默錯誤?負面結果+更有用的發現(chunk 48)** —
   使用者對chunk47提出的兩個改進方向選了方向1(點提示)。**在蓋UI前先於Python層直接
   驗證演算法有沒有用,避免蓋一個沒被驗證有效的功能**:第一輪憑印象猜點測5個已知失敗

@@ -1,0 +1,352 @@
+{
+  "source": "jiuwei_yanlian_char_crop.png",
+  "size": [
+    460,
+    898
+  ],
+  "parts": [
+    {
+      "name": "頭部(含五官)",
+      "z": 0,
+      "opacity": 255,
+      "offset": [
+        115,
+        27
+      ],
+      "size": [
+        184,
+        135
+      ],
+      "file": "00_head.png",
+      "id": "head",
+      "confidence": "high",
+      "notes": "邊界清楚"
+    },
+    {
+      "name": "狐耳(雙耳)",
+      "z": 1,
+      "opacity": 255,
+      "offset": [
+        138,
+        0
+      ],
+      "size": [
+        207,
+        72
+      ],
+      "file": "01_fox_ears.png",
+      "id": "fox_ears",
+      "confidence": "high",
+      "notes": "與頭部相鄰但形狀獨立,可拆成單獨 slot 做耳朵擺動"
+    },
+    {
+      "name": "瀏海/額前髮絲",
+      "z": 2,
+      "opacity": 255,
+      "offset": [
+        129,
+        45
+      ],
+      "size": [
+        156,
+        90
+      ],
+      "file": "02_hair_front.png",
+      "id": "hair_front",
+      "confidence": "medium",
+      "notes": "與頭部/髮量主體邊界略模糊"
+    },
+    {
+      "name": "長髮主體(後方+兩側)",
+      "z": 3,
+      "opacity": 255,
+      "offset": [
+        0,
+        45
+      ],
+      "size": [
+        253,
+        449
+      ],
+      "file": "03_hair_main.png",
+      "id": "hair_main",
+      "confidence": "medium",
+      "notes": "與九尾狐尾在左下方大範圍重疊,顏色都偏白/粉,邊界需使用者確認"
+    },
+    {
+      "name": "耳環(雙耳)",
+      "z": 4,
+      "opacity": 255,
+      "offset": [
+        267,
+        135
+      ],
+      "size": [
+        55,
+        54
+      ],
+      "file": "04_earrings.png",
+      "id": "earrings",
+      "confidence": "high",
+      "notes": "小型獨立配件"
+    },
+    {
+      "name": "頸飾(紅色蝴蝶結+墜飾)",
+      "z": 5,
+      "opacity": 255,
+      "offset": [
+        212,
+        171
+      ],
+      "size": [
+        55,
+        53
+      ],
+      "file": "05_choker.png",
+      "id": "choker",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "name": "上半身胸衣(紅色)",
+      "z": 6,
+      "opacity": 255,
+      "offset": [
+        152,
+        198
+      ],
+      "size": [
+        170,
+        161
+      ],
+      "file": "06_bodice.png",
+      "id": "bodice",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "name": "左側白紗寬袖",
+      "z": 7,
+      "opacity": 255,
+      "offset": [
+        60,
+        242
+      ],
+      "size": [
+        124,
+        261
+      ],
+      "file": "07_sleeve_left.png",
+      "id": "sleeve_left",
+      "confidence": "medium",
+      "notes": "半透明材質,邊界柔和不銳利"
+    },
+    {
+      "name": "右側白紗寬袖",
+      "z": 8,
+      "opacity": 255,
+      "offset": [
+        276,
+        242
+      ],
+      "size": [
+        120,
+        216
+      ],
+      "file": "08_sleeve_right.png",
+      "id": "sleeve_right",
+      "confidence": "medium",
+      "notes": "同左袖,半透明"
+    },
+    {
+      "name": "左手",
+      "z": 9,
+      "opacity": 255,
+      "offset": [
+        60,
+        449
+      ],
+      "size": [
+        60,
+        81
+      ],
+      "file": "09_hand_left.png",
+      "id": "hand_left",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "name": "右手",
+      "z": 10,
+      "opacity": 255,
+      "offset": [
+        345,
+        422
+      ],
+      "size": [
+        64,
+        90
+      ],
+      "file": "10_hand_right.png",
+      "id": "hand_right",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "name": "黑色腰帶+金色扣環",
+      "z": 11,
+      "opacity": 255,
+      "offset": [
+        175,
+        332
+      ],
+      "size": [
+        152,
+        72
+      ],
+      "file": "11_belt.png",
+      "id": "belt",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "name": "裙擺(紅色短裙主體)",
+      "z": 12,
+      "opacity": 255,
+      "offset": [
+        156,
+        359
+      ],
+      "size": [
+        171,
+        189
+      ],
+      "file": "12_skirt.png",
+      "id": "skirt",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "name": "垂墜符紙標籤",
+      "z": 13,
+      "opacity": 255,
+      "offset": [
+        262,
+        395
+      ],
+      "size": [
+        55,
+        135
+      ],
+      "file": "13_tag_pendant.png",
+      "id": "tag_pendant",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "name": "流蘇/披帛長下擺(拖尾)",
+      "z": 14,
+      "opacity": 255,
+      "offset": [
+        129,
+        494
+      ],
+      "size": [
+        221,
+        368
+      ],
+      "file": "14_sash_train.png",
+      "id": "sash_train",
+      "confidence": "low",
+      "notes": "大範圍飄逸拖尾,末端跟尾巴/地面陰影交疊,邊界高度不確定"
+    },
+    {
+      "name": "左腿(大腿露出部分)",
+      "z": 15,
+      "opacity": 255,
+      "offset": [
+        189,
+        458
+      ],
+      "size": [
+        64,
+        90
+      ],
+      "file": "15_leg_left.png",
+      "id": "leg_left",
+      "confidence": "medium",
+      "notes": "| chunk49修正:原框(bbox_pct[27,57,46,73])完全沒框住腿(裡面是手+尾巴毛髮),見chunk48發現;新框改對準畫面上可見的腿部裸膚區域左半(兩腿在畫面上緊貼重疊,視覺上只有一團連續膚色,非兩腿分離可辨)。"
+    },
+    {
+      "name": "右腿",
+      "z": 16,
+      "opacity": 255,
+      "offset": [
+        248,
+        485
+      ],
+      "size": [
+        88,
+        153
+      ],
+      "file": "16_leg_right.png",
+      "id": "leg_right",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "name": "左靴(過膝黑靴)",
+      "z": 17,
+      "opacity": 255,
+      "offset": [
+        189,
+        548
+      ],
+      "size": [
+        69,
+        332
+      ],
+      "file": "17_boot_left.png",
+      "id": "boot_left",
+      "confidence": "medium",
+      "notes": "| chunk49修正:原框(bbox_pct[27,67,49,99])完全沒框住靴子(裡面是絲帶布料+尾巴毛髮),見chunk48發現;新框改對準畫面上可見的靴子左半(兩靴同樣緊貼重疊成單一視覺輪廓,非兩靴分離可辨)。"
+    },
+    {
+      "name": "右靴",
+      "z": 18,
+      "opacity": 255,
+      "offset": [
+        225,
+        602
+      ],
+      "size": [
+        111,
+        287
+      ],
+      "file": "18_boot_right.png",
+      "id": "boot_right",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "name": "九尾狐尾(整體,無法個別拆分)",
+      "z": 19,
+      "opacity": 255,
+      "offset": [
+        0,
+        269
+      ],
+      "size": [
+        267,
+        629
+      ],
+      "file": "19_tails_mass.png",
+      "id": "tails_mass",
+      "confidence": "low",
+      "notes": "九條尾巴顏色高度相近、彼此重疊,無法可靠指出個別邊界,需使用者決定要不要拆、怎麼拆"
+    }
+  ],
+  "contour_method": "rect",
+  "composite": "composite.png",
+  "cut_from_decision": "decision_reconstructed.json"
+}
