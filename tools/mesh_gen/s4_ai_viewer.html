@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<title>S4 AI 補圖/切圖 Viewer — 候選17即時工具 v2</title>
+<title>S4 AI 補圖/切圖 Viewer — 候選17即時工具 v3</title>
 <style>
   :root {
     --bg: #12151a; --panel: #1a1f27; --panel2: #20262f; --border: #2c3340;
@@ -40,23 +40,24 @@
   #status.err { color: var(--bad); }
   #status.ok { color: var(--ok); }
   #status.busy { color: var(--warn); }
-  .tabbar { display: flex; gap: 4px; padding: 8px 16px 0; border-bottom: 1px solid var(--border); background: var(--panel); }
-  .tabbtn {
+  .modebar { display: flex; gap: 4px; padding: 8px 16px 0; border-bottom: 1px solid var(--border); background: var(--panel); }
+  .modebtn {
     background: transparent; border: 1px solid transparent; border-bottom: none;
     color: var(--muted); padding: 8px 14px; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 13px;
   }
-  .tabbtn.active { color: #fff; background: var(--bg); border-color: var(--border); }
-  main { display: flex; gap: 14px; padding: 14px; }
+  .modebtn.active { color: #fff; background: var(--bg); border-color: var(--border); }
+  main { display: flex; gap: 14px; padding: 14px; align-items: flex-start; }
   .col { display: flex; flex-direction: column; gap: 10px; }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
   .panel h3 { margin: 0 0 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-  #layerPanel { width: 220px; flex-shrink: 0; max-height: 82vh; overflow: auto; }
+  #layerPanel { width: 220px; flex-shrink: 0; max-height: 88vh; overflow: auto; }
   .layer-row { padding: 5px 6px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
   .layer-row:hover { background: var(--panel2); }
   .layer-row.sel { background: #1c3253; color: #fff; }
   .layer-row img { width: 28px; height: 28px; object-fit: contain; background: #0008; border-radius: 3px; }
   .layer-row .dl { margin-left: auto; font-size: 10px; color: var(--muted); }
   .layer-row .dl:hover { color: var(--accent); }
+  .layer-row.composite { border-bottom: 1px solid var(--border); margin-bottom: 4px; padding-bottom: 8px; font-weight: 600; }
   #dropzone {
     border: 1px dashed var(--border); border-radius: 6px; padding: 24px 12px; text-align: center;
     color: var(--muted); font-size: 12px; cursor: pointer;
@@ -65,7 +66,8 @@
   .canvasWrap { position: relative; display: inline-block; background:
     repeating-conic-gradient(#e8e8e8 0% 25%, #cfcfcf 0% 50%) 50% / 16px 16px; border-radius: 6px; overflow: hidden; }
   canvas { display: block; max-width: 100%; }
-  #maskCanvas { position: absolute; top: 0; left: 0; opacity: .55; cursor: crosshair; }
+  #maskCanvas { position: absolute; top: 0; left: 0; opacity: .55; cursor: crosshair; pointer-events: none; display: none; }
+  #maskCanvas.active { pointer-events: auto; display: block; }
   .brushBar { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
   textarea {
     width: 100%; min-height: 70px; background: var(--panel2); border: 1px solid var(--border);
@@ -79,10 +81,10 @@
   #logTbl { width: 100%; border-collapse: collapse; font-size: 11px; }
   #logTbl th, #logTbl td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   #logTbl th { color: var(--muted); }
-  #logPanel { max-height: 220px; overflow: auto; }
-  .empty-hint { padding: 60px 20px; text-align: center; color: var(--muted); }
-  .tabpage { display: none; flex: 1; gap: 14px; }
-  .tabpage.active { display: flex; }
+  #logPanel { max-height: 180px; overflow: auto; }
+  .empty-hint { padding: 30px 20px; text-align: center; color: var(--muted); }
+  .modepage { display: none; }
+  .modepage.active { display: block; }
   .hint { color: var(--muted); font-size: 11px; }
   .radioCard {
     border: 1px solid var(--border); border-radius: 6px; padding: 10px; cursor: pointer; margin-bottom: 8px;
@@ -96,6 +98,8 @@
   .partThumb { display: inline-block; margin: 4px; text-align: center; }
   .partThumb canvas { border: 1px solid var(--border); border-radius: 4px; background:
     repeating-conic-gradient(#e8e8e8 0% 25%, #cfcfcf 0% 50%) 50% / 12px 12px; }
+  #targetLabel { font-size: 13px; color: var(--text); }
+  #targetLabel b { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -110,16 +114,11 @@
   <button class="btn" id="clearKeyBtn">清除</button>
   <span class="warn">⚠️ key 只存在你這個瀏覽器的 localStorage,不會送到任何地方(除了 api.openai.com);換瀏覽器/清 cookie 要重貼</span>
 </div>
-<div class="tabbar">
-  <button class="tabbtn active" data-tab="inpaint">補圖</button>
-  <button class="tabbtn" data-tab="slice">切片(PSD 圖層匯出)</button>
-  <button class="tabbtn" data-tab="decompose">拆解(平圖)<span class="badge exp">實驗性</span></button>
-  <button class="tabbtn" data-tab="wizard">需求精靈</button>
-</div>
+
 <main>
   <div class="col" id="layerPanel">
     <div class="panel">
-      <h3>圖層 / 圖片</h3>
+      <h3>圖層 / 圖片(單一檔案,所有功能共用)</h3>
       <div id="dropzone">拖曳 .psd 原檔、或 psd_slice.py 匯出資料夾(manifest.json+PNG)、
         或單張 PNG 進來,<br>也可用下面按鈕選檔</div>
       <input type="file" id="fileInput" multiple accept=".json,.png,.psd" style="margin-top:8px; font-size:11px;">
@@ -130,166 +129,167 @@
 
   <div class="col" style="flex:1;">
 
-    <!-- ===== 補圖 tab ===== -->
-    <div class="tabpage active" id="page-inpaint">
-      <div class="col" style="flex:1;">
-        <div class="panel" id="editPanel" style="display:none;">
-          <h3>遮罩 + Prompt</h3>
-          <div class="row brushBar">
-            <span>筆刷</span>
-            <input type="range" id="brushSize" min="4" max="120" value="30">
-            <span id="brushSizeLbl">30px</span>
-            <button class="btn" id="clearMaskBtn">清除遮罩</button>
-            <button class="btn" id="invertMaskBtn">反轉遮罩</button>
-            <span id="maskInfo" style="color:var(--muted)"></span>
-          </div>
-          <div class="canvasWrap" id="canvasWrap">
-            <canvas id="baseCanvas"></canvas>
-            <canvas id="maskCanvas"></canvas>
-          </div>
-          <div style="margin-top:10px;">
-            <textarea id="prompt" placeholder="描述要補的內容,例如:Restore the missing mechanical panel texture inside the masked hole, continuing the surrounding metallic surface style. Keep everything outside the mask unchanged."></textarea>
-          </div>
-          <div class="row" style="margin-top:8px;">
-            <label>model</label>
-            <select id="model">
-              <option value="gpt-image-2" selected>gpt-image-2</option>
-              <option value="gpt-image-1.5">gpt-image-1.5</option>
-              <option value="gpt-image-1">gpt-image-1</option>
-            </select>
-            <label>size</label>
-            <select id="size">
-              <option value="1024x1024" selected>1024x1024</option>
-              <option value="1024x1536">1024x1536</option>
-              <option value="1536x1024">1536x1024</option>
-            </select>
-            <label>quality</label>
-            <select id="quality">
-              <option value="low" selected>low(便宜)</option>
-              <option value="medium">medium</option>
-              <option value="high">high(貴)</option>
-            </select>
-            <button class="btn primary" id="sendBtn">送出補圖</button>
-            <span id="status">就緒</span>
-          </div>
-        </div>
+    <!-- ===== 主素材(所有分頁共用,持續顯示) ===== -->
+    <div class="panel">
+      <h3>主素材</h3>
+      <div id="targetLabel" class="hint">尚未載入任何檔案</div>
+      <div class="canvasWrap" id="canvasWrap" style="margin-top:8px;">
+        <canvas id="mainCanvas"></canvas>
+        <canvas id="maskCanvas" class="active"></canvas>
+      </div>
+    </div>
 
-        <div class="panel" id="resultPanel" style="display:none;">
-          <h3>結果</h3>
-          <div class="resultGrid">
-            <div class="cell"><div class="lbl">原圖</div><canvas id="origPreview"></canvas></div>
-            <div class="cell"><div class="lbl">AI 補丁(完整回傳)</div><canvas id="aiPreview"></canvas></div>
-            <div class="cell"><div class="lbl">套用後(只換遮罩區)</div><canvas id="mergedPreview"></canvas></div>
-          </div>
-          <div class="row" style="margin-top:8px;">
-            <button class="btn primary" id="applyBtn">套用(取代工作圖層)</button>
-            <button class="btn" id="downloadBtn">下載 PNG</button>
-          </div>
-        </div>
+    <div class="modebar">
+      <button class="modebtn active" data-mode="inpaint">補圖</button>
+      <button class="modebtn" data-mode="slice">切片(PSD 圖層匯出)</button>
+      <button class="modebtn" data-mode="decompose">拆解(平圖)<span class="badge exp">實驗性</span></button>
+      <button class="modebtn" data-mode="wizard">需求精靈</button>
+    </div>
 
-        <div class="panel">
-          <h3>本次 session 用量記錄</h3>
-          <div class="row" style="margin-bottom:6px;">
-            <button class="btn" id="connectLogBtn">連接本機 openai_usage.jsonl(自動接續寫入)</button>
-            <button class="btn" id="exportLogBtn">匯出這次 session 的紀錄(.jsonl)</button>
-            <span id="logFileStatus" style="color:var(--muted); font-size:11px;"></span>
-          </div>
-          <div id="logPanel">
-            <table id="logTbl"><thead><tr>
-              <th>時間</th><th>model</th><th>size</th><th>quality</th><th>mask%</th>
-              <th>in tok</th><th>out tok</th><th>耗時s</th><th>狀態</th>
-            </tr></thead><tbody></tbody></table>
-          </div>
+    <!-- ===== 補圖 mode ===== -->
+    <div class="modepage active" id="mode-inpaint">
+      <div class="panel">
+        <h3>遮罩 + Prompt(在上方主素材畫布上直接畫)</h3>
+        <div class="row brushBar">
+          <span>筆刷</span>
+          <input type="range" id="brushSize" min="4" max="120" value="30">
+          <span id="brushSizeLbl">30px</span>
+          <button class="btn" id="clearMaskBtn">清除遮罩</button>
+          <button class="btn" id="invertMaskBtn">反轉遮罩</button>
+          <span id="maskInfo" style="color:var(--muted)"></span>
+        </div>
+        <div style="margin-top:10px;">
+          <textarea id="prompt" placeholder="描述要補的內容,例如:Restore the missing mechanical panel texture inside the masked hole, continuing the surrounding metallic surface style. Keep everything outside the mask unchanged."></textarea>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <label>model</label>
+          <select id="model">
+            <option value="gpt-image-2" selected>gpt-image-2</option>
+            <option value="gpt-image-1.5">gpt-image-1.5</option>
+            <option value="gpt-image-1">gpt-image-1</option>
+          </select>
+          <label>size</label>
+          <select id="size">
+            <option value="1024x1024" selected>1024x1024</option>
+            <option value="1024x1536">1024x1536</option>
+            <option value="1536x1024">1536x1024</option>
+          </select>
+          <label>quality</label>
+          <select id="quality">
+            <option value="low" selected>low(便宜)</option>
+            <option value="medium">medium</option>
+            <option value="high">high(貴)</option>
+          </select>
+          <button class="btn primary" id="sendBtn">送出補圖</button>
+          <span id="status">就緒</span>
+        </div>
+      </div>
+
+      <div class="panel" id="resultPanel" style="display:none;">
+        <h3>結果</h3>
+        <div class="resultGrid">
+          <div class="cell"><div class="lbl">主素材(補前)</div><canvas id="origPreview"></canvas></div>
+          <div class="cell"><div class="lbl">AI 補丁(完整回傳)</div><canvas id="aiPreview"></canvas></div>
+          <div class="cell"><div class="lbl">套用後(只換遮罩區)</div><canvas id="mergedPreview"></canvas></div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button class="btn primary" id="applyBtn">套用(取代主素材,可繼續編輯)</button>
+          <button class="btn" id="downloadBtn">下載 PNG</button>
         </div>
       </div>
     </div>
 
-    <!-- ===== 切片 tab ===== -->
-    <div class="tabpage" id="page-slice">
-      <div class="col" style="flex:1;">
-        <div class="panel">
-          <h3>PSD 切片</h3>
-          <p class="hint">拖一份 .psd 原檔進左側「圖層/圖片」區(純瀏覽器端解析,ag-psd 函式庫,
-            不經過任何伺服器)。左側清單會列出所有圖層,每一列右邊有「↓」下載按鈕,可以把
-            任一圖層單獨存成透明背景 PNG——等同於 <code>psd_slice.py</code> 的功能,但不需要
-            跑 Python、不需要伺服器。</p>
-          <div id="sliceComposite" class="canvasWrap"></div>
-          <div class="row" style="margin-top:8px;">
-            <button class="btn" id="downloadAllLayersBtn">下載目前所有圖層(逐一另存)</button>
-            <span id="sliceStatus" class="hint"></span>
-          </div>
+    <!-- ===== 切片 mode ===== -->
+    <div class="modepage" id="mode-slice">
+      <div class="panel">
+        <h3>PSD 切片</h3>
+        <p class="hint">上方主素材已經是你載入的檔案(拖 .psd 原檔會用 ag-psd 在瀏覽器端解析,
+          不經過任何伺服器)。左側圖層清單每一列右邊有「↓」下載按鈕,可以把任一圖層單獨存成
+          透明背景 PNG——等同於 <code>psd_slice.py</code> 的功能,但不需要跑 Python。
+          點清單裡的圖層會切換上方主素材顯示內容,補圖/拆解也會對著你當時選的圖層操作。</p>
+        <div class="row" style="margin-top:8px;">
+          <button class="btn" id="downloadAllLayersBtn">下載目前所有圖層(逐一另存)</button>
+          <span id="sliceStatus" class="hint"></span>
         </div>
       </div>
     </div>
 
-    <!-- ===== 拆解 tab ===== -->
-    <div class="tabpage" id="page-decompose">
-      <div class="col" style="flex:1;">
-        <div class="panel">
-          <h3>平圖拆解(實驗性,尚未在真實素材驗證過)</h3>
-          <p class="hint">思路來自外部開源專案知識萃取(GenieLabs <code>spine-animation-ai</code>
-            的 <code>split_character.py</code>,見 <code>knowledge/s4-genielabs-spine-ai-knowledge.md</code>
-            ——只借思路,未複製程式碼)。做法:<b>不對原圖做語意分割</b>,改請 AI 把角色
-            <b>重繪</b>成「部件已分離、留白間距、白色背景」的乾淨版面,再用瀏覽器端的
-            connected-components 演算法切開這個乾淨版面。<b>⚠️ 這招對本專案素材是否有效尚未驗證,
-            結果可能不理想,用之前先心理準備可能要重跑幾次或調整 prompt。</b></p>
-          <div class="row">
-            <input type="file" id="decomposeInput" accept=".png,.jpg,.jpeg">
-          </div>
-          <div class="row" style="margin-top:8px;">
-            <textarea id="decomposePrompt" style="min-height:90px;">Redraw this character as a fully deconstructed 2D game sprite atlas for Spine animation rigging: separate the head, torso, arms, and legs/feet into individual isolated pieces, spaced apart with clear gaps, no overlap, on a plain white background. Exactly match the original character's art style, shading, and color tones. Do not add 3D rendering, do not change the style, do not add background clutter, do not draw a dynamic pose.</textarea>
-          </div>
-          <div class="row" style="margin-top:8px;">
-            <label>model</label>
-            <select id="decomposeModel">
-              <option value="gpt-image-2" selected>gpt-image-2</option>
-              <option value="gpt-image-1.5">gpt-image-1.5</option>
-            </select>
-            <label>size</label>
-            <select id="decomposeSize">
-              <option value="1024x1024" selected>1024x1024</option>
-              <option value="1536x1024">1536x1024</option>
-              <option value="1024x1536">1024x1536</option>
-            </select>
-            <label>quality</label>
-            <select id="decomposeQuality">
-              <option value="low" selected>low(便宜)</option>
-              <option value="medium">medium</option>
-            </select>
-            <button class="btn primary" id="decomposeSendBtn">1. AI 重繪拆件版面</button>
-            <span id="decomposeStatus" class="hint">尚未送出</span>
-          </div>
-          <div class="resultGrid" style="margin-top:10px;">
-            <div class="cell"><div class="lbl">原圖</div><canvas id="decomposeOrigCanvas"></canvas></div>
-            <div class="cell"><div class="lbl">AI 重繪版面</div><canvas id="decomposeAtlasCanvas"></canvas></div>
-          </div>
-          <div class="row" style="margin-top:10px;">
-            <label>背景門檻</label>
-            <input type="range" id="bgThreshold" min="180" max="254" value="240">
-            <span id="bgThresholdLbl">240</span>
-            <label>最小面積(px)</label>
-            <input type="range" id="minArea" min="50" max="3000" value="500">
-            <span id="minAreaLbl">500</span>
-            <label>padding(px)</label>
-            <input type="range" id="paddingPx" min="0" max="40" value="12">
-            <span id="paddingLbl">12</span>
-            <button class="btn primary" id="segmentBtn" disabled>2. 分割成獨立部件</button>
-          </div>
-          <div id="decomposeParts" style="margin-top:10px;"></div>
+    <!-- ===== 拆解 mode ===== -->
+    <div class="modepage" id="mode-decompose">
+      <div class="panel">
+        <h3>平圖拆解(實驗性,尚未在真實素材驗證過)</h3>
+        <p class="hint">思路來自外部開源專案知識萃取(GenieLabs <code>spine-animation-ai</code>
+          的 <code>split_character.py</code>,見 <code>knowledge/s4-genielabs-spine-ai-knowledge.md</code>
+          ——只借思路,未複製程式碼)。**直接對上方「主素材」目前顯示的內容**操作,不需要
+          另外上傳:請 AI 把角色重繪成「部件已分離、留白間距、白色背景」的乾淨版面,再用
+          瀏覽器端的 connected-components 演算法切開這個乾淨版面。<b>⚠️ 這招對本專案素材是否
+          有效尚未驗證,結果可能不理想,用之前先心理準備可能要重跑幾次或調整 prompt。</b></p>
+        <div class="row" style="margin-top:8px;">
+          <textarea id="decomposePrompt" style="min-height:90px;">Redraw this character as a fully deconstructed 2D game sprite atlas for Spine animation rigging: separate the head, torso, arms, and legs/feet into individual isolated pieces, spaced apart with clear gaps, no overlap, on a plain white background. Exactly match the original character's art style, shading, and color tones. Do not add 3D rendering, do not change the style, do not add background clutter, do not draw a dynamic pose.</textarea>
         </div>
+        <div class="row" style="margin-top:8px;">
+          <label>model</label>
+          <select id="decomposeModel">
+            <option value="gpt-image-2" selected>gpt-image-2</option>
+            <option value="gpt-image-1.5">gpt-image-1.5</option>
+          </select>
+          <label>size</label>
+          <select id="decomposeSize">
+            <option value="1024x1024" selected>1024x1024</option>
+            <option value="1536x1024">1536x1024</option>
+            <option value="1024x1536">1024x1536</option>
+          </select>
+          <label>quality</label>
+          <select id="decomposeQuality">
+            <option value="low" selected>low(便宜)</option>
+            <option value="medium">medium</option>
+          </select>
+          <button class="btn primary" id="decomposeSendBtn">1. 用主素材 AI 重繪拆件版面</button>
+          <span id="decomposeStatus" class="hint">尚未送出</span>
+        </div>
+        <div class="resultGrid" style="margin-top:10px;">
+          <div class="cell"><div class="lbl">AI 重繪版面</div><canvas id="decomposeAtlasCanvas"></canvas></div>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <label>背景門檻</label>
+          <input type="range" id="bgThreshold" min="180" max="254" value="240">
+          <span id="bgThresholdLbl">240</span>
+          <label>最小面積(px)</label>
+          <input type="range" id="minArea" min="50" max="3000" value="500">
+          <span id="minAreaLbl">500</span>
+          <label>padding(px)</label>
+          <input type="range" id="paddingPx" min="0" max="40" value="12">
+          <span id="paddingLbl">12</span>
+          <button class="btn primary" id="segmentBtn" disabled>2. 分割成獨立部件</button>
+        </div>
+        <div id="decomposeParts" style="margin-top:10px;"></div>
       </div>
     </div>
 
-    <!-- ===== 需求精靈 tab ===== -->
-    <div class="tabpage" id="page-wizard">
-      <div class="col" style="flex:1;">
-        <div class="panel">
-          <h3>需求精靈——描述你想要的 spine 動畫效果,判斷該走哪條路</h3>
-          <p class="hint">邏輯對照 <code>.claude/skills/spine-asset-request/SKILL.md</code> 的缺口
-            分類表(規則式判斷,不呼叫 AI,不花錢)。選一個最接近的情境:</p>
-          <div id="wizardOptions"></div>
-          <div id="wizardResult" class="panel" style="display:none; margin-top:10px; background:var(--panel2);"></div>
-        </div>
+    <!-- ===== 需求精靈 mode ===== -->
+    <div class="modepage" id="mode-wizard">
+      <div class="panel">
+        <h3>需求精靈——描述你想要的 spine 動畫效果,判斷該走哪條路</h3>
+        <p class="hint">邏輯對照 <code>.claude/skills/spine-asset-request/SKILL.md</code> 的缺口
+          分類表(規則式判斷,不呼叫 AI,不花錢)。選一個最接近的情境:</p>
+        <div id="wizardOptions"></div>
+        <div id="wizardResult" class="panel" style="display:none; margin-top:10px; background:var(--panel2);"></div>
+      </div>
+    </div>
+
+    <!-- ===== 用量記錄(所有模式共用) ===== -->
+    <div class="panel">
+      <h3>本次 session 用量記錄</h3>
+      <div class="row" style="margin-bottom:6px;">
+        <button class="btn" id="connectLogBtn">連接本機 openai_usage.jsonl(自動接續寫入)</button>
+        <button class="btn" id="exportLogBtn">匯出這次 session 的紀錄(.jsonl)</button>
+        <span id="logFileStatus" style="color:var(--muted); font-size:11px;"></span>
+      </div>
+      <div id="logPanel">
+        <table id="logTbl"><thead><tr>
+          <th>時間</th><th>來源</th><th>model</th><th>size</th><th>quality</th>
+          <th>in tok</th><th>out tok</th><th>耗時s</th><th>狀態</th>
+        </tr></thead><tbody></tbody></table>
       </div>
     </div>
 
@@ -299,17 +299,18 @@
 <script>
 const $ = (id) => document.getElementById(id);
 
-/* ---------- Tab 切換 ---------- */
-document.querySelectorAll(".tabbtn").forEach(btn => {
+/* ---------- Mode 切換(主素材面板固定不動,只換下方控制面板) ---------- */
+document.querySelectorAll(".modebtn").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".tabbtn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tabpage").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".modebtn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".modepage").forEach(p => p.classList.remove("active"));
     btn.classList.add("active");
-    $("page-" + btn.dataset.tab).classList.add("active");
+    $("mode-" + btn.dataset.mode).classList.add("active");
+    $("maskCanvas").classList.toggle("active", btn.dataset.mode === "inpaint");
   });
 });
-function switchTab(name) {
-  document.querySelector(`.tabbtn[data-tab="${name}"]`).click();
+function switchMode(name) {
+  document.querySelector(`.modebtn[data-mode="${name}"]`).click();
 }
 
 /* ---------- key handling ---------- */
@@ -329,12 +330,14 @@ function setStatus(text, cls) {
   el.className = cls || "";
 }
 
-/* ================= 圖層/圖片載入(共用:補圖 + 切片) ================= */
-let manifestParts = null;   // [{name, file|canvas, ...}]
-let fileMap = {};
-let workingImg = null;
-let workingName = "layer";
-let baseCtx, maskCtx;
+/* ================= 檔案載入(單一來源,補圖/切片/拆解共用) ================= */
+let manifestParts = null;   // [{name, file}]
+let fileMap = {};           // file key -> {file:File} | {canvas:HTMLCanvasElement}
+let compositeSource = null; // {canvas} | {file:File} | null
+let docLabel = "";          // 檔案/文件名稱,用於 targetLabel 顯示
+let mainImg = null;         // 目前主素材顯示的 Image
+let mainName = "";          // 目前主素材名稱(圖層名 或 "整體")
+let mainCtx, maskCtx;
 let drawing = false;
 
 /* ---- ag-psd(拖 .psd 原檔用)---- */
@@ -375,7 +378,7 @@ function flattenPsdLayers(children, path, out) {
   return out;
 }
 
-function loadPsdArrayBuffer(buf) {
+function loadPsdArrayBuffer(buf, filename) {
   if (!agPsdReady) { $("loaderStatus").textContent = "ag-psd 尚未載入完成,稍等一下再拖檔"; return; }
   const psd = window.agPsd.readPsd(buf);
   const flat = flattenPsdLayers(psd.children || []);
@@ -385,28 +388,17 @@ function loadPsdArrayBuffer(buf) {
     fileMap[key] = { canvas: r.canvas };
     return { name: r.name, file: key, left: r.left, top: r.top, width: r.width, height: r.height };
   });
-  psdComposite = psd;
+  compositeSource = psd.canvas ? { canvas: psd.canvas } : null;
+  docLabel = filename || "(.psd)";
   renderLayerList();
-  renderSliceComposite(psd);
   $("loaderStatus").textContent = `已解析 .psd:${psd.width}×${psd.height}px,${manifestParts.length} 個圖層`;
-}
-let psdComposite = null;
-
-function renderSliceComposite(psd) {
-  const wrap = $("sliceComposite");
-  wrap.innerHTML = "";
-  if (!psd) return;
-  const cv = document.createElement("canvas");
-  cv.width = psd.width; cv.height = psd.height;
-  const ctx = cv.getContext("2d");
-  if (psd.canvas) ctx.drawImage(psd.canvas, 0, 0);
-  wrap.appendChild(cv);
+  if (compositeSource) selectComposite(); else if (manifestParts.length) selectLayer(0);
 }
 
 function handleFiles(files) {
   const psdFile = files.find(f => /\.psd$/i.test(f.name));
   if (psdFile) {
-    psdFile.arrayBuffer().then(loadPsdArrayBuffer);
+    psdFile.arrayBuffer().then(buf => loadPsdArrayBuffer(buf, psdFile.name));
     return;
   }
   fileMap = {};
@@ -415,24 +407,28 @@ function handleFiles(files) {
     fileMap[f.name] = { file: f };
     if (f.name === "manifest.json") manifestFile = f;
   }
-  psdComposite = null;
-  renderSliceComposite(null);
   if (manifestFile) {
     manifestFile.file.text().then(txt => {
       const m = JSON.parse(txt);
       manifestParts = m.parts || m.methods || [];
+      compositeSource = (m.composite && fileMap[m.composite]) ? fileMap[m.composite] : null;
+      docLabel = "manifest.json";
       renderLayerList();
       $("loaderStatus").textContent = `已載入 manifest:${manifestParts.length} 個圖層`;
+      if (compositeSource) selectComposite(); else if (manifestParts.length) selectLayer(0);
     });
   } else {
     manifestParts = Object.keys(fileMap).filter(n => /\.(png|jpg|jpeg)$/i.test(n))
       .map(n => ({ name: n, file: n }));
+    compositeSource = null;
+    docLabel = manifestParts.length === 1 ? manifestParts[0].name : `${manifestParts.length} 張圖片`;
     renderLayerList();
     $("loaderStatus").textContent = `已載入 ${manifestParts.length} 張圖片`;
+    if (manifestParts.length) selectLayer(0);
   }
 }
 
-function layerSourceToObjectURL(src) {
+function sourceToObjectURL(src) {
   if (src.file instanceof File) return URL.createObjectURL(src.file);
   if (src.canvas) return src.canvas.toDataURL("image/png");
   return "";
@@ -441,12 +437,19 @@ function layerSourceToObjectURL(src) {
 function renderLayerList() {
   const el = $("layerList");
   el.innerHTML = "";
+  if (compositeSource) {
+    const row = document.createElement("div");
+    row.className = "layer-row composite";
+    row.innerHTML = `<span>◆ 整體(composite)</span>`;
+    row.addEventListener("click", selectComposite);
+    el.appendChild(row);
+  }
   manifestParts.forEach((p, i) => {
     const row = document.createElement("div");
     row.className = "layer-row";
     row.dataset.idx = i;
     const src = fileMap[p.file];
-    const thumbSrc = src ? layerSourceToObjectURL(src) : "";
+    const thumbSrc = src ? sourceToObjectURL(src) : "";
     row.innerHTML = `<img src="${thumbSrc}"><span>${p.name || p.file}</span><span class="dl" title="下載此圖層 PNG">⬇</span>`;
     row.addEventListener("click", () => selectLayer(i));
     row.querySelector(".dl").addEventListener("click", (e) => { e.stopPropagation(); downloadLayer(i); });
@@ -460,7 +463,7 @@ function loadLayerImage(i, cb) {
   if (!src) { setStatus("找不到檔案 " + p.file, "err"); return; }
   const img = new Image();
   img.onload = () => cb(img);
-  img.src = layerSourceToObjectURL(src);
+  img.src = sourceToObjectURL(src);
 }
 
 function downloadLayer(i) {
@@ -481,30 +484,40 @@ $("downloadAllLayersBtn").addEventListener("click", () => {
   manifestParts.forEach((_, i) => setTimeout(() => downloadLayer(i), i * 250));
 });
 
+/* ---------- 主素材選取(統一入口,補圖/切片/拆解都讀這裡的 mainImg) ---------- */
+function setMainAsset(img, name, isComposite) {
+  mainImg = img;
+  mainName = name;
+  const w = img.width, h = img.height;
+  const main = $("mainCanvas"), mask = $("maskCanvas");
+  main.width = w; main.height = h;
+  mask.width = w; mask.height = h;
+  mainCtx = main.getContext("2d");
+  maskCtx = mask.getContext("2d");
+  mainCtx.clearRect(0, 0, w, h);
+  mainCtx.drawImage(img, 0, 0);
+  maskCtx.clearRect(0, 0, w, h);
+  updateMaskInfo();
+  $("targetLabel").innerHTML = `文件:<b>${escapeHtml(docLabel)}</b> — 目前對象:<b>${escapeHtml(name)}</b>(${w}×${h})`;
+  $("resultPanel").style.display = "none";
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function selectComposite() {
+  document.querySelectorAll(".layer-row").forEach(r => r.classList.remove("sel"));
+  const row = document.querySelector(".layer-row.composite");
+  if (row) row.classList.add("sel");
+  const img = new Image();
+  img.onload = () => setMainAsset(img, "整體(composite)", true);
+  img.src = sourceToObjectURL(compositeSource);
+}
+
 function selectLayer(i) {
   document.querySelectorAll(".layer-row").forEach(r => r.classList.remove("sel"));
   const row = document.querySelector(`.layer-row[data-idx="${i}"]`);
   if (row) row.classList.add("sel");
-  workingName = manifestParts[i].name || manifestParts[i].file;
-  loadLayerImage(i, (img) => {
-    workingImg = img;
-    setupCanvases(img.width, img.height);
-    $("editPanel").style.display = "block";
-    setStatus(`已載入 ${workingName}(${img.width}×${img.height})`, "ok");
-    switchTab("inpaint");
-  });
-}
-
-function setupCanvases(w, h) {
-  const base = $("baseCanvas"), mask = $("maskCanvas");
-  base.width = w; base.height = h;
-  mask.width = w; mask.height = h;
-  baseCtx = base.getContext("2d");
-  maskCtx = mask.getContext("2d");
-  baseCtx.clearRect(0, 0, w, h);
-  baseCtx.drawImage(workingImg, 0, 0);
-  maskCtx.clearRect(0, 0, w, h);
-  updateMaskInfo();
+  const name = manifestParts[i].name || manifestParts[i].file;
+  loadLayerImage(i, (img) => setMainAsset(img, name, false));
 }
 
 $("dropzone").addEventListener("click", () => $("fileInput").click());
@@ -516,7 +529,7 @@ $("dropzone").addEventListener("drop", (e) => {
 });
 $("fileInput").addEventListener("change", (e) => handleFiles([...e.target.files]));
 
-/* ---------- mask drawing (補圖 tab) ---------- */
+/* ---------- mask drawing(補圖 mode,畫在主素材畫布上方) ---------- */
 $("brushSize").addEventListener("input", () => { $("brushSizeLbl").textContent = $("brushSize").value + "px"; });
 
 function maskPos(e) {
@@ -556,12 +569,13 @@ function getMaskBool() {
   return { arr, w, h };
 }
 function updateMaskInfo() {
+  if (!maskCtx) { $("maskInfo").textContent = ""; return; }
   const { arr } = getMaskBool();
   const on = arr.reduce((a, v) => a + v, 0);
   $("maskInfo").textContent = `遮罩涵蓋 ${(100 * on / arr.length).toFixed(1)}%`;
 }
 
-/* ================= OpenAI 呼叫(共用) ================= */
+/* ================= OpenAI 呼叫(共用:補圖 + 拆解) ================= */
 function canvasToPngBlob(canvas) {
   return new Promise(res => canvas.toBlob(res, "image/png"));
 }
@@ -583,8 +597,7 @@ function allEditableMaskCanvas(w, h) {
   const c = document.createElement("canvas");
   c.width = w; c.height = h;
   const ctx = c.getContext("2d");
-  ctx.fillStyle = "rgba(255,255,255,0)"; // alpha 0 全域 = 全可編輯
-  ctx.clearRect(0, 0, w, h);
+  ctx.clearRect(0, 0, w, h); // alpha 0 全域 = 全可編輯
   return c;
 }
 
@@ -594,8 +607,8 @@ async function appendUsageLog(record) {
   usageRows.push(record);
   const tb = document.querySelector("#logTbl tbody");
   const tr = document.createElement("tr");
-  tr.innerHTML = `<td>${record.ts}</td><td>${record.model}</td><td>${record.size}</td>
-    <td>${record.quality}</td><td>${record.mask_coverage_pct}</td>
+  tr.innerHTML = `<td>${record.ts}</td><td>${record.tag}</td><td>${record.model}</td><td>${record.size}</td>
+    <td>${record.quality}</td>
     <td>${record.usage?.input_tokens ?? "-"}</td><td>${record.usage?.output_tokens ?? "-"}</td>
     <td>${record.elapsed_s}</td><td style="color:${record.http_status===200?'var(--ok)':'var(--bad)'}">${record.http_status}</td>`;
   tb.appendChild(tr);
@@ -655,7 +668,7 @@ async function callOpenAiEdit({ baseCanvas, maskCanvas, prompt, model, size, qua
   const record = {
     ts: new Date().toISOString(), tag, model, size, quality,
     prompt_chars: prompt.length, image_px: `${baseCanvas.width}x${baseCanvas.height}`,
-    mask_coverage_pct: null, http_status: resp.status, elapsed_s: +elapsed.toFixed(2),
+    http_status: resp.status, elapsed_s: +elapsed.toFixed(2),
     usage: payload.usage || null,
     error: resp.ok ? undefined : JSON.stringify(payload).slice(0, 500),
   };
@@ -664,24 +677,25 @@ async function callOpenAiEdit({ baseCanvas, maskCanvas, prompt, model, size, qua
   return { b64: payload.data[0].b64_json, record };
 }
 
-/* ================= 補圖 tab 送出邏輯 ================= */
+/* ================= 補圖 送出邏輯(對 mainImg 操作) ================= */
 let lastAiResultImg = null;
 
 $("sendBtn").addEventListener("click", async () => {
+  if (!mainImg) { setStatus("請先在左側載入並選取一個檔案/圖層", "err"); return; }
   const prompt = $("prompt").value.trim();
   if (!prompt) { setStatus("請先寫 prompt", "err"); return; }
   const { arr: maskArr, w, h } = getMaskBool();
   const onCount = maskArr.reduce((a, v) => a + v, 0);
-  if (onCount === 0) { setStatus("請先用筆刷畫遮罩(要補的區域)", "err"); return; }
+  if (onCount === 0) { setStatus("請先在主素材上用筆刷畫遮罩(要補的區域)", "err"); return; }
 
   setStatus("呼叫中...", "busy");
   $("sendBtn").disabled = true;
   try {
     const maskCanvas = buildMaskPngCanvas(maskArr, w, h);
     const { b64 } = await callOpenAiEdit({
-      baseCanvas: baseCtx.canvas, maskCanvas, prompt,
+      baseCanvas: mainCtx.canvas, maskCanvas, prompt,
       model: $("model").value, size: $("size").value, quality: $("quality").value,
-      tag: "viewer:inpaint:" + workingName,
+      tag: "補圖:" + mainName,
     });
     const aiImg = new Image();
     aiImg.onload = () => {
@@ -699,14 +713,14 @@ $("sendBtn").addEventListener("click", async () => {
 
 function showResult(aiImg, maskArr, mw, mh) {
   $("resultPanel").style.display = "block";
-  const ow = workingImg.width, oh = workingImg.height;
+  const ow = mainImg.width, oh = mainImg.height;
   const origC = $("origPreview"); origC.width = ow; origC.height = oh;
-  origC.getContext("2d").drawImage(workingImg, 0, 0);
+  origC.getContext("2d").drawImage(mainImg, 0, 0);
   const aiC = $("aiPreview"); aiC.width = ow; aiC.height = oh;
   aiC.getContext("2d").drawImage(aiImg, 0, 0, aiImg.width, aiImg.height, 0, 0, ow, oh);
   const mergedC = $("mergedPreview"); mergedC.width = ow; mergedC.height = oh;
   const mctx = mergedC.getContext("2d");
-  mctx.drawImage(workingImg, 0, 0);
+  mctx.drawImage(mainImg, 0, 0);
   const aiScaled = document.createElement("canvas");
   aiScaled.width = ow; aiScaled.height = oh;
   aiScaled.getContext("2d").drawImage(aiImg, 0, 0, aiImg.width, aiImg.height, 0, 0, ow, oh);
@@ -724,57 +738,37 @@ function showResult(aiImg, maskArr, mw, mh) {
 $("applyBtn").addEventListener("click", () => {
   if (!lastAiResultImg) return;
   const img = new Image();
-  img.onload = () => { workingImg = img; setupCanvases(img.width, img.height); setStatus("已套用,工作圖層已更新(遮罩已清空)", "ok"); };
+  img.onload = () => { setMainAsset(img, mainName, false); setStatus("已套用,主素材已更新(遮罩已清空,可繼續編輯或切到其他分頁)", "ok"); };
   img.src = $("mergedPreview").toDataURL("image/png");
 });
 $("downloadBtn").addEventListener("click", () => {
   const a = document.createElement("a");
   a.href = $("mergedPreview").toDataURL("image/png");
-  a.download = workingName.replace(/\.[^.]+$/, "") + "_patched.png";
+  a.download = mainName.replace(/[\\/:*?"<>|.]/g, "_") + "_patched.png";
   a.click();
 });
 
-/* ================= 拆解 tab ================= */
-let decomposeOrigImg = null;
+/* ================= 拆解(對 mainImg 操作,不再另外上傳) ================= */
 let decomposeAtlasImg = null;
 
-["bgThreshold", "minArea", "paddingPx"].forEach(id => {
-  document.getElementById(id).addEventListener("input", () => {
-    $(id + "Lbl") ? ($(id + "Lbl").textContent = $(id).value) : null;
-  });
-});
 $("bgThreshold").addEventListener("input", () => $("bgThresholdLbl").textContent = $("bgThreshold").value);
 $("minArea").addEventListener("input", () => $("minAreaLbl").textContent = $("minArea").value);
 $("paddingPx").addEventListener("input", () => $("paddingLbl").textContent = $("paddingPx").value);
 
-$("decomposeInput").addEventListener("change", (e) => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const img = new Image();
-  img.onload = () => {
-    decomposeOrigImg = img;
-    const c = $("decomposeOrigCanvas");
-    c.width = img.width; c.height = img.height;
-    c.getContext("2d").drawImage(img, 0, 0);
-    $("decomposeStatus").textContent = `已載入 ${img.width}×${img.height}`;
-  };
-  img.src = URL.createObjectURL(f);
-});
-
 $("decomposeSendBtn").addEventListener("click", async () => {
-  if (!decomposeOrigImg) { $("decomposeStatus").textContent = "請先選一張圖"; return; }
+  if (!mainImg) { $("decomposeStatus").textContent = "請先在左側載入並選取一個檔案/圖層(當作要拆解的主素材)"; return; }
   const prompt = $("decomposePrompt").value.trim();
   $("decomposeStatus").textContent = "呼叫中...";
   $("decomposeSendBtn").disabled = true;
   try {
     const baseCanvas = document.createElement("canvas");
-    baseCanvas.width = decomposeOrigImg.width; baseCanvas.height = decomposeOrigImg.height;
-    baseCanvas.getContext("2d").drawImage(decomposeOrigImg, 0, 0);
+    baseCanvas.width = mainImg.width; baseCanvas.height = mainImg.height;
+    baseCanvas.getContext("2d").drawImage(mainImg, 0, 0);
     const maskCanvas = allEditableMaskCanvas(baseCanvas.width, baseCanvas.height);
     const { b64 } = await callOpenAiEdit({
       baseCanvas, maskCanvas, prompt,
       model: $("decomposeModel").value, size: $("decomposeSize").value, quality: $("decomposeQuality").value,
-      tag: "viewer:decompose",
+      tag: "拆解:" + mainName,
     });
     const img = new Image();
     img.onload = () => {
@@ -868,8 +862,7 @@ $("segmentBtn").addEventListener("click", () => {
   parts.forEach((p, i) => {
     const div = document.createElement("div");
     div.className = "partThumb";
-    const cv = p.canvas.cloneNode ? p.canvas : p.canvas; // canvas 已含內容
-    cv.style.maxWidth = "120px"; cv.style.maxHeight = "120px";
+    p.canvas.style.maxWidth = "120px"; p.canvas.style.maxHeight = "120px";
     const dlBtn = document.createElement("button");
     dlBtn.className = "btn"; dlBtn.textContent = `part_${i} ⬇ (${p.w}×${p.h}, ${p.area}px)`;
     dlBtn.addEventListener("click", () => {
@@ -885,41 +878,41 @@ $("segmentBtn").addEventListener("click", () => {
   });
 });
 
-/* ================= 需求精靈 tab ================= */
+/* ================= 需求精靈 ================= */
 const WIZARD_OPTIONS = [
   {
     key: "A", title: "A. 部件已經存在,只是沒被單獨拆成 slot",
     desc: "PSD 有分層,但該部位跟別的部位黏在同一張圖層裡",
-    action: "走「切片」:把 .psd 原檔拖進來,在切片分頁找到該圖層並下載。",
-    tab: "slice",
+    action: "走「切片」:確認左側已載入 .psd,在切片分頁找到該圖層並下載。",
+    mode: "slice",
   },
   {
     key: "B", title: "B. 部件已拆出,但露出時有缺口,只要求「不穿幫」",
     desc: "遮擋物拿掉/轉向後某塊區域會透明或不完整,但不用完全精確重現原本內容",
     action: "走「補圖」:先試免費的方式,若不夠好再用 AI 補圖(補圖分頁,CPU baseline 建議在\n" +
       "Python 端跑 inpaint_eval.py 的 1b 閘,這裡先直接用 AI 補圖也可以)。",
-    tab: "inpaint",
+    mode: "inpaint",
   },
   {
     key: "C", title: "C. 缺口需要精確重現特定內容(需表演)",
     desc: "例如需要眨眼、特定表情、特定紋理必須正確,不能只是「看起來合理」",
     action: "走「補圖」,並參考 knowledge/s4-inpaint-candidate17-gptimage2.md 的已知限制:\n" +
       "逐像素比對可能對生成式輸出不公平,肉眼複查比單看分數更重要。",
-    tab: "inpaint",
+    mode: "inpaint",
   },
   {
     key: "D", title: "D. 需要原圖不存在的視角(視角外推)",
     desc: "例如水平轉向要露出圖裡完全沒畫過的側面/背面",
     action: "⚠️ 目前沒有可靠解法。補圖演算法對「原圖不存在的內容」原理上無效。建議:跟美術要\n" +
       "額外參考圖、或在動畫設計上規避真轉向。",
-    tab: null,
+    mode: null,
   },
   {
     key: "E", title: "E. 我只有一張完整角色圖,完全沒有分層",
     desc: "沒有 PSD、沒有已拆件的部位,只有一張平面角色圖",
     action: "⚠️ 實驗性:去「拆解」分頁試試看用 AI 重繪成拆件版面再分割。這招尚未在真實素材\n" +
       "驗證過,效果可能不理想,是目前唯一有機會的路徑(次選:請美術提供分層檔)。",
-    tab: "decompose",
+    mode: "decompose",
   },
 ];
 function renderWizard() {
@@ -935,8 +928,8 @@ function renderWizard() {
       const r = $("wizardResult");
       r.style.display = "block";
       r.innerHTML = `<b>建議:</b><br>${opt.action.replace(/\n/g, "<br>")}` +
-        (opt.tab ? `<div style="margin-top:8px;"><button class="btn primary" id="wizardJump">前往「${document.querySelector(`.tabbtn[data-tab="${opt.tab}"]`).textContent}」分頁</button></div>` : "");
-      if (opt.tab) $("wizardJump").addEventListener("click", () => switchTab(opt.tab));
+        (opt.mode ? `<div style="margin-top:8px;"><button class="btn primary" id="wizardJump">前往「${document.querySelector(`.modebtn[data-mode="${opt.mode}"]`).textContent}」</button></div>` : "");
+      if (opt.mode) $("wizardJump").addEventListener("click", () => switchMode(opt.mode));
     });
     el.appendChild(div);
   });

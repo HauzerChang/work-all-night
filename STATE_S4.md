@@ -7,6 +7,12 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 40(2026-09-04)**:使用者要求 viewer 三功能對焦同一份檔案,不要各別載入。重構
+> `s4_ai_viewer.html` 為單一「主素材」狀態(`setMainAsset()` 唯一寫入點),拆解拿掉獨立
+> file picker 改讀共用主素材,新增 composite 偽圖層列自動選取。**寫測試抓到一個真實 bug**
+> (遮罩畫布預設模式下不能互動)並修正。5 組 Playwright 測試全過。見下方「chunk 40」段落
+> 與 `knowledge/s4-ai-viewer-v3-unified.md`。
+>
 > **chunk 39(2026-09-04)**:使用者要求 viewer 補上拆圖能力。在主線 `s4_ai_viewer.html`
 > 上擴充成 4 分頁(補圖/切片/拆解-實驗性/需求精靈),不另開新檔。切片沿用 chunk 37 驗證過
 > 的 ag-psd 解析;拆解萃取自 chunk 38 的 GenieLabs 知識(獨立重新實作);需求精靈是
@@ -506,6 +512,22 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**viewer v3:統一主素材架構(chunk 40)** — 使用者要求補圖/切片/拆解對焦到
+  同一份已載入檔案(「不要各別載入」)。v2 的拆解分頁有自己獨立的 file picker,跟左側
+  圖層清單無關,是要改掉的問題。重構:單一「主素材」面板(`mainCanvas`+`maskCanvas`)
+  持續顯示、跨模式共用;`setMainAsset(img, name, isComposite)` 是唯一狀態寫入點(點圖層
+  清單/composite偽列/補圖套用結果都走這裡);拆解拿掉 `#decomposeInput`,送出按鈕直接讀
+  `mainImg`;新增「◆整體(composite)」偽圖層列(PSD/manifest 含 composite.png 時),載入
+  後自動選取。**寫測試過程抓到一個真實 bug**:遮罩畫布(`#maskCanvas`)原本只在「切換到
+  補圖模式」的點擊事件裡才被 JS 加上 `.active`(pointer-events 生效),但補圖是頁面載入
+  時的預設模式,從未觸發那個事件——結果剛載入頁面時遮罩畫不出來(肉眼看畫面正常,只是
+  滑鼠事件被吃掉,若不寫自動化互動測試很可能不會發現)。已修正(`#maskCanvas` HTML 直接
+  帶初始 `class="active"`)並重新驗證。**5 組 Playwright 測試全過**(單張PNG自動成為主
+  素材/遮罩繪製修bug後正確算出28.7%涵蓋率+mock補圖+套用後主素材正確更新/真實PSD載入後
+  composite偽列自動選取+切圖層+切模式不重置主素材+切回composite/拆解確認無獨立upload
+  元素+直接用主素材送出+合成圖精確偵測3部件+用量記錄跨模式累積2筆/需求精靈跳轉),全程
+  mock 真實付費 API,零 JS console error。見 `knowledge/s4-ai-viewer-v3-unified.md`、
+  `log/s4-2026-09-04-040.md`。
 - 2026-09-04:**viewer v2:補上切片/拆解/需求精靈(chunk 39)** — 使用者要求 viewer 補上
   拆圖能力(當時只有補圖)。決定在主線 `s4_ai_viewer.html` 上直接擴充成 4 分頁,不另開
   新檔(既有補圖邏輯 `callOpenAiEdit()` 抽成共用函式,新分頁直接複用)。**切片**:沿用
