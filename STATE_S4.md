@@ -7,16 +7,23 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
-> **chunk 35(2026-09-04)**:使用者已放行 `api.openai.com`,候選17網路阻塞解除。完成獨立
-> (不依賴 Photoshop)呼叫模組 + 用量儀表板 + 第一次真實測試,見下方「chunk 35」段落與
-> `knowledge/s4-inpaint-candidate17-gptimage2.md`。**關鍵發現**:1a 逐像素評分方法論可能
-> 不適合生成式輸出(視覺上完全看不出破綻,但 ssim 因幾何形狀不同而判 fail)——下一步是先
-> 定生成式方法的正確評分方式,再擴大樣本。
+> **chunk 36(2026-09-04)**:本次排程 session 環境變數**沒有 `OPENAI_API_KEY`**(chunk 34
+> 記錄的 key 只在對話當次暫存變數用完即清,不會被下個 session 繼承)——候選17「先定評分
+> 方式再擴大樣本」的下一步結構性做不了(兩者都需要真的呼叫 API)。轉向不受此限制、chunk 34
+> 已裁決但「尚未拆解成有界工作塊」的 **viewer** 方向:拆解為 V1~V5,完成 **V1(PSD 純瀏覽器
+> 端解析)**——`tools/mesh_gen/psd_viewer.html`(ag-psd 解析,圖層樹+composite+逐圖層
+> metadata,`window.psdViewerTool` Phase-2 API)。headless 驗證(Playwright + 本機 vendor
+> 副本繞過此容器 CDN 阻塞,僅測試手段)對兩份真實 PSD 交叉比對 Python `psd-tools` 地面
+> 真值:圖層名稱/順序/bbox 100% 相符,composite premultiplied 像素比對 mean diff
+> 0.03~0.04/255。**⚠️ 對後續排程的重要提醒**:候選17若要在自動化排程下持續推進,需要
+> 使用者把 API key 設成持久化的 environment secret,否則每個新 session 都會卡在同一個
+> 「沒有 key」起點——見下方「chunk 36」段落與 `knowledge/s4-viewer-plan.md`。
 >
-> **三項使用者裁決現況**:(1) 候選17——技術阻塞已解除,正在驗證,見上;(2) skill(需求驅動
-> 切圖補圖)——方向已定,尚未拆解成有界工作塊;(3) viewer(Photoshop插件HTML版)——方向已定,
-> 尚未開工,不受候選17網路狀況影響,可獨立推進。**候選15已裁決「無限期擱置」**,不再是
-> 待裁決項,見下方「chunk 33」段落。
+> **三項使用者裁決現況**:(1) 候選17——技術阻塞(網路政策)已解除,但**缺持久化 API key
+> 之前,自動化排程 session 無法繼續**,需使用者設定 environment secret;(2) skill(需求
+> 驅動切圖補圖)——方向已定,待 viewer/候選17 有基礎後再整合,尚未拆解成有界工作塊;
+> (3) viewer(Photoshop插件HTML版)——**V1 已完成**,V2(互動遮罩+即時重繪)是下一個候選。
+> **候選15已裁決「無限期擱置」**,不再是待裁決項,見下方「chunk 33」段落。
 
 ## 範圍
 
@@ -468,6 +475,18 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**viewer 路線圖 + V1(PSD 純瀏覽器端解析)完成(chunk 36)** — 發現本次排程
+  session 無 `OPENAI_API_KEY`,候選17結構性無法繼續,轉向 chunk 34 裁決但未拆解的 viewer
+  方向。拆解為 V1~V5,完成 V1:新增 `tools/mesh_gen/psd_viewer.html`(ag-psd 解析 PSD,
+  圖層樹+composite+逐圖層 metadata,`window.psdViewerTool` Phase-2 API)。Playwright
+  headless(page.route 攔截 CDN 請求到本機 `npm pack` vendor 副本,僅測試用,production
+  仍走真 CDN)對 `robot_parts.psd`(5層)/`Symbol_Ww.psd`(18層)交叉比對 Python
+  `psd-tools` 地面真值:圖層名稱/順序/bbox 100% 相符。踩到一個跟 `CLAUDE.md` PMA 雷點
+  同構的校準坑(raw RGBA 比對被透明像素的無意義 RGB 值污染出假差異),改用 premultiplied
+  比對後 mean diff 僅 0.03~0.04/255。誠實限制:V1 僅檢視,無互動顯示/隱藏重繪(留 V2);
+  未測巢狀 group 素材;生產 CDN 可達性需使用者自己驗證。同時記錄候選17若要在自動化排程
+  下持續推進,需使用者設定持久化 `OPENAI_API_KEY` environment secret。見
+  `knowledge/s4-viewer-plan.md`、`log/s4-2026-09-04-036.md`。
 - 2026-09-04:**候選17網路阻塞解除 + 第一次真實驗證,發現 1a 評分方法論可能不適合生成式
   輸出(chunk 35)** — 使用者放行 `api.openai.com`。驗證步驟:(1) 不帶 key 測 models 端點
   拿到 401(非連線層級 403,確認網路已通);(2) 帶 key 測拿到 200,確認 `gpt-image-2` 在
