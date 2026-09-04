@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>S4 輔助拆圖 Viewer — 拆解第6點</title>
+<style>
+  :root {
+    --bg: #12151a; --panel: #1a1f27; --panel2: #20262f; --border: #2c3340;
+    --text: #dde3ec; --muted: #8b95a5; --accent: #4f9dff;
+    --ok: #3ecf6a; --warn: #f5b53c; --bad: #ff5d6c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 13px/1.5 -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  }
+  header {
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  main { display: flex; gap: 14px; padding: 14px; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 10px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .panel h3 { margin: 0 0 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  #leftPanel, #rightPanel { width: 260px; flex-shrink: 0; }
+  #rightPanel { max-height: 92vh; overflow: auto; }
+  #dropzone {
+    border: 1px dashed var(--border); border-radius: 6px; padding: 20px 10px; text-align: center;
+    color: var(--muted); font-size: 12px; cursor: pointer;
+  }
+  #dropzone.drag { border-color: var(--accent); color: var(--accent); }
+  .btn {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: #1c3253; border-color: var(--accent); color: #fff; }
+  .btn.danger:hover { border-color: var(--bad); color: var(--bad); }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .hint { color: var(--muted); font-size: 11px; }
+  input[type=text], textarea, select {
+    width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 5px; padding: 5px 7px; font: 12px/1.4 inherit;
+  }
+  textarea { min-height: 50px; resize: vertical; }
+  label.field { display: block; font-size: 11px; color: var(--muted); margin: 8px 0 2px; }
+  .canvasWrap { position: relative; display: inline-block; background:
+    repeating-conic-gradient(#e8e8e8 0% 25%, #cfcfcf 0% 50%) 50% / 16px 16px; border-radius: 6px; overflow: hidden; }
+  canvas { display: block; }
+  #overlayCanvas { position: absolute; top: 0; left: 0; cursor: crosshair; }
+  .partRow {
+    padding: 6px 8px; border-radius: 5px; cursor: pointer; margin-bottom: 4px;
+    border: 1px solid var(--border); display: flex; align-items: center; gap: 6px;
+  }
+  .partRow:hover { border-color: var(--accent); }
+  .partRow.sel { background: #1c3253; border-color: var(--accent); }
+  .partRow .swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .partRow .lbl { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+  .partRow .conf { font-size: 10px; color: var(--muted); }
+  .partRow .del { color: var(--muted); font-size: 12px; padding: 0 3px; }
+  .partRow .del:hover { color: var(--bad); }
+  .empty-hint { padding: 40px 20px; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>S4 輔助拆圖 Viewer</h1>
+  <span class="sub">拆解流程第6點 — 載入圖片+(選填)Claude 建議框,拖曳調整/新增/刪除/命名部件邊界,匯出決策檔給 Claude 執行實際拆解</span>
+</header>
+<main>
+  <div class="col" id="leftPanel">
+    <div class="panel">
+      <h3>1. 載入圖片</h3>
+      <div id="dropzone">拖曳單張 PNG/JPG 進來<br>(或 psd_slice.py 匯出的 composite.png)</div>
+      <input type="file" id="imgInput" accept=".png,.jpg,.jpeg" style="margin-top:8px; font-size:11px;">
+      <div id="imgStatus" class="hint" style="margin-top:6px;"></div>
+    </div>
+    <div class="panel">
+      <h3>2. 載入建議(選填)</h3>
+      <p class="hint">載入 Claude 產出的 part list JSON(<code>bbox_pct</code> 格式,見
+        <code>knowledge/s4-decompose-restage-plan.md</code>),會依目前圖片尺寸自動換算成像素框、
+        套用建議的信心色(綠=high/黃=medium/紅=low)。沒有的話也可以完全從零手動框。</p>
+      <input type="file" id="suggestInput" accept=".json" style="font-size:11px;">
+      <div id="suggestStatus" class="hint" style="margin-top:6px;"></div>
+    </div>
+    <div class="panel">
+      <h3>操作說明</h3>
+      <p class="hint">
+        • 在圖片空白處拖曳 = 畫新框<br>
+        • 點一個框 = 選取(右側可編輯)<br>
+        • 拖曳框內部 = 移動<br>
+        • 拖曳框邊角(小方塊)= 調整大小<br>
+        • 選取後按 Delete/Backspace = 刪除<br>
+        • Esc = 取消選取
+      </p>
+    </div>
+  </div>
+
+  <div class="col" style="flex:1; align-items:flex-start;">
+    <div class="panel">
+      <h3>畫布</h3>
+      <div class="canvasWrap" id="canvasWrap">
+        <canvas id="baseCanvas"></canvas>
+        <canvas id="overlayCanvas"></canvas>
+      </div>
+      <div id="emptyHint" class="empty-hint">請先在左側載入一張圖片</div>
+    </div>
+  </div>
+
+  <div class="col" id="rightPanel">
+    <div class="panel">
+      <h3>部件清單(<span id="partCount">0</span>)</h3>
+      <div id="partList"></div>
+      <div class="row" style="margin-top:8px;">
+        <button class="btn" id="clearAllBtn">清空全部</button>
+      </div>
+    </div>
+    <div class="panel" id="editPanel" style="display:none;">
+      <h3>編輯選取的部件</h3>
+      <label class="field">id</label>
+      <input type="text" id="fId">
+      <label class="field">label(名稱)</label>
+      <input type="text" id="fLabel">
+      <label class="field">confidence</label>
+      <select id="fConfidence">
+        <option value="high">high</option>
+        <option value="medium">medium</option>
+        <option value="low">low</option>
+        <option value="user_confirmed">user_confirmed(使用者已手動確認)</option>
+      </select>
+      <label class="field">notes</label>
+      <textarea id="fNotes"></textarea>
+      <div class="row" style="margin-top:8px;">
+        <button class="btn danger" id="deleteBoxBtn">刪除此部件</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>3. 匯出決策檔</h3>
+      <p class="hint">產出 JSON(像素座標,含你確認過的所有部件),下載後把這個檔案連同原圖
+        一起交給 Claude,由它執行實際拆解(第3點)。</p>
+      <button class="btn primary" id="exportBtn">匯出決策檔(.json)</button>
+      <div id="exportStatus" class="hint" style="margin-top:6px;"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const CONF_COLOR = { high: "#3ecf6a", medium: "#f5b53c", low: "#ff5d6c", user_confirmed: "#4f9dff" };
+
+let img = null;
+let imgName = "";
+let baseCtx, overlayCtx;
+let boxes = [];         // [{id,label,confidence,notes,x0,y0,x1,y1}]
+let nextPartNum = 1;
+let selectedId = null;
+let dragMode = null;    // null | 'draw' | 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se'
+let dragStart = null;   // {x,y} image px
+let dragSnapshot = null;
+let drawingBox = null;  // temp box while drawing
+
+/* ---------- 載入圖片 ---------- */
+function loadImageFile(f) {
+  const im = new Image();
+  im.onload = () => {
+    img = im;
+    imgName = f.name;
+    setupCanvases(im.width, im.height);
+    $("imgStatus").textContent = `已載入 ${f.name}(${im.width}×${im.height})`;
+    $("emptyHint").style.display = "none";
+  };
+  im.src = URL.createObjectURL(f);
+}
+function setupCanvases(w, h) {
+  const base = $("baseCanvas"), overlay = $("overlayCanvas");
+  base.width = w; base.height = h;
+  overlay.width = w; overlay.height = h;
+  baseCtx = base.getContext("2d");
+  overlayCtx = overlay.getContext("2d");
+  baseCtx.clearRect(0, 0, w, h);
+  baseCtx.drawImage(img, 0, 0);
+  render();
+}
+$("dropzone").addEventListener("click", () => $("imgInput").click());
+$("dropzone").addEventListener("dragover", (e) => { e.preventDefault(); $("dropzone").classList.add("drag"); });
+$("dropzone").addEventListener("dragleave", () => $("dropzone").classList.remove("drag"));
+$("dropzone").addEventListener("drop", (e) => {
+  e.preventDefault(); $("dropzone").classList.remove("drag");
+  const f = e.dataTransfer.files[0];
+  if (f) loadImageFile(f);
+});
+$("imgInput").addEventListener("change", (e) => { if (e.target.files[0]) loadImageFile(e.target.files[0]); });
+
+/* ---------- 載入建議 JSON ---------- */
+$("suggestInput").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  f.text().then(txt => {
+    if (!img) { $("suggestStatus").textContent = "請先載入圖片(需要圖片尺寸才能換算座標)"; return; }
+    let data;
+    try { data = JSON.parse(txt); } catch (err) { $("suggestStatus").textContent = "JSON 解析失敗:" + err.message; return; }
+    const parts = data.parts || [];
+    let added = 0;
+    parts.forEach(p => {
+      if (!p.bbox_pct || p.bbox_pct.some(v => v == null)) return; // 跳過座標不完整的(如範例裡的 wrist_wraps)
+      const [px0, py0, px1, py1] = p.bbox_pct;
+      boxes.push({
+        id: p.id || ("part_" + nextPartNum++),
+        label: p.label || p.id || "未命名",
+        confidence: p.confidence || "medium",
+        notes: p.notes || "",
+        x0: px0 / 100 * img.width, y0: py0 / 100 * img.height,
+        x1: px1 / 100 * img.width, y1: py1 / 100 * img.height,
+      });
+      added++;
+    });
+    $("suggestStatus").textContent = `已套用 ${added} 個建議框(${parts.length - added} 個因座標不完整跳過)`;
+    renderPartList();
+    render();
+  });
+});
+
+/* ---------- 座標換算 ---------- */
+function canvasPos(e) {
+  const rect = $("overlayCanvas").getBoundingClientRect();
+  const scaleX = $("overlayCanvas").width / rect.width;
+  const scaleY = $("overlayCanvas").height / rect.height;
+  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+}
+function norm(box) {
+  return { x0: Math.min(box.x0, box.x1), y0: Math.min(box.y0, box.y1), x1: Math.max(box.x0, box.x1), y1: Math.max(box.y0, box.y1) };
+}
+const HANDLE_R = 6;
+function hitTest(x, y) {
+  // 由後到前(最上層優先),先測角落 handle,再測內部(移動)
+  for (let i = boxes.length - 1; i >= 0; i--) {
+    const b = norm(boxes[i]);
+    const corners = { nw: [b.x0, b.y0], ne: [b.x1, b.y0], sw: [b.x0, b.y1], se: [b.x1, b.y1] };
+    for (const [name, [cx, cy]] of Object.entries(corners)) {
+      if (Math.abs(x - cx) <= HANDLE_R && Math.abs(y - cy) <= HANDLE_R) {
+        return { id: boxes[i].id, mode: "resize-" + name };
+      }
+    }
+  }
+  for (let i = boxes.length - 1; i >= 0; i--) {
+    const b = norm(boxes[i]);
+    if (x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1) {
+      return { id: boxes[i].id, mode: "move" };
+    }
+  }
+  return null;
+}
+
+/* ---------- 滑鼠互動 ---------- */
+$("overlayCanvas").addEventListener("mousedown", (e) => {
+  if (!img) return;
+  const { x, y } = canvasPos(e);
+  const hit = hitTest(x, y);
+  if (hit) {
+    selectedId = hit.id;
+    dragMode = hit.mode;
+    dragStart = { x, y };
+    dragSnapshot = { ...norm(boxes.find(b => b.id === hit.id)) };
+    selectPart(selectedId);
+  } else {
+    dragMode = "draw";
+    dragStart = { x, y };
+    drawingBox = { x0: x, y0: y, x1: x, y1: y };
+    selectedId = null;
+  }
+  render();
+});
+$("overlayCanvas").addEventListener("mousemove", (e) => {
+  if (!img || !dragMode) return;
+  const { x, y } = canvasPos(e);
+  if (dragMode === "draw") {
+    drawingBox.x1 = x; drawingBox.y1 = y;
+  } else if (dragMode === "move") {
+    const dx = x - dragStart.x, dy = y - dragStart.y;
+    const b = boxes.find(bb => bb.id === selectedId);
+    b.x0 = dragSnapshot.x0 + dx; b.y0 = dragSnapshot.y0 + dy;
+    b.x1 = dragSnapshot.x1 + dx; b.y1 = dragSnapshot.y1 + dy;
+  } else if (dragMode.startsWith("resize-")) {
+    const corner = dragMode.split("-")[1];
+    const b = boxes.find(bb => bb.id === selectedId);
+    if (corner.includes("n")) b.y0 = y; else b.y1 = y;
+    if (corner.includes("w")) b.x0 = x; else b.x1 = x;
+  }
+  render();
+});
+window.addEventListener("mouseup", () => {
+  if (dragMode === "draw" && drawingBox) {
+    const b = norm(drawingBox);
+    if (b.x1 - b.x0 > 4 && b.y1 - b.y0 > 4) {
+      const id = "part_" + (nextPartNum++);
+      boxes.push({ id, label: "新部件", confidence: "medium", notes: "", x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 });
+      selectedId = id;
+      selectPart(id);
+    }
+    drawingBox = null;
+  }
+  dragMode = null;
+  renderPartList();
+  render();
+});
+window.addEventListener("keydown", (e) => {
+  if (!selectedId) return;
+  if (e.key === "Delete" || e.key === "Backspace") {
+    if (document.activeElement && ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
+    deleteSelected();
+  } else if (e.key === "Escape") {
+    selectedId = null;
+    $("editPanel").style.display = "none";
+    renderPartList(); render();
+  }
+});
+
+/* ---------- 渲染 ---------- */
+function render() {
+  if (!img) return;
+  overlayCtx.clearRect(0, 0, overlayCtx.canvas.width, overlayCtx.canvas.height);
+  boxes.forEach(bb => {
+    const b = norm(bb);
+    const color = CONF_COLOR[bb.confidence] || "#8b95a5";
+    overlayCtx.strokeStyle = color;
+    overlayCtx.lineWidth = bb.id === selectedId ? 3 : 1.5;
+    overlayCtx.strokeRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+    overlayCtx.fillStyle = color;
+    overlayCtx.font = "12px sans-serif";
+    overlayCtx.fillText(bb.label, b.x0 + 3, Math.max(12, b.y0 - 3));
+    if (bb.id === selectedId) {
+      [[b.x0, b.y0], [b.x1, b.y0], [b.x0, b.y1], [b.x1, b.y1]].forEach(([cx, cy]) => {
+        overlayCtx.fillRect(cx - HANDLE_R / 2, cy - HANDLE_R / 2, HANDLE_R, HANDLE_R);
+      });
+    }
+  });
+  if (drawingBox) {
+    const b = norm(drawingBox);
+    overlayCtx.strokeStyle = "#fff";
+    overlayCtx.setLineDash([4, 3]);
+    overlayCtx.lineWidth = 1.5;
+    overlayCtx.strokeRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+    overlayCtx.setLineDash([]);
+  }
+}
+
+function renderPartList() {
+  $("partCount").textContent = boxes.length;
+  const el = $("partList");
+  el.innerHTML = "";
+  if (!boxes.length) { el.innerHTML = '<div class="hint">尚無部件,拖曳畫布或載入建議 JSON</div>'; return; }
+  boxes.forEach(bb => {
+    const row = document.createElement("div");
+    row.className = "partRow" + (bb.id === selectedId ? " sel" : "");
+    row.innerHTML = `<span class="swatch" style="background:${CONF_COLOR[bb.confidence] || '#8b95a5'}"></span>
+      <span class="lbl">${escapeHtml(bb.label)}</span><span class="conf">${bb.confidence}</span>
+      <span class="del" title="刪除">×</span>`;
+    row.addEventListener("click", (e) => {
+      if (e.target.classList.contains("del")) { deleteBox(bb.id); return; }
+      selectedId = bb.id; selectPart(bb.id); render(); renderPartList();
+    });
+    el.appendChild(row);
+  });
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function selectPart(id) {
+  const b = boxes.find(bb => bb.id === id);
+  if (!b) { $("editPanel").style.display = "none"; return; }
+  $("editPanel").style.display = "block";
+  $("fId").value = b.id;
+  $("fLabel").value = b.label;
+  $("fConfidence").value = b.confidence;
+  $("fNotes").value = b.notes;
+}
+["fLabel", "fConfidence", "fNotes"].forEach(fid => {
+  $(fid).addEventListener("input", () => {
+    if (!selectedId) return;
+    const b = boxes.find(bb => bb.id === selectedId);
+    if (!b) return;
+    b.label = $("fLabel").value;
+    b.confidence = $("fConfidence").value;
+    b.notes = $("fNotes").value;
+    render(); renderPartList();
+  });
+});
+$("fId").addEventListener("change", () => {
+  if (!selectedId) return;
+  const b = boxes.find(bb => bb.id === selectedId);
+  const newId = $("fId").value.trim();
+  if (!b || !newId || newId === b.id) return;
+  if (boxes.some(bb => bb.id === newId)) { $("fId").value = b.id; alert("id 重複,已還原"); return; }
+  b.id = newId; selectedId = newId;
+  renderPartList();
+});
+$("deleteBoxBtn").addEventListener("click", () => deleteSelected());
+function deleteSelected() { if (selectedId) deleteBox(selectedId); }
+function deleteBox(id) {
+  boxes = boxes.filter(b => b.id !== id);
+  if (selectedId === id) { selectedId = null; $("editPanel").style.display = "none"; }
+  render(); renderPartList();
+}
+$("clearAllBtn").addEventListener("click", () => {
+  if (!boxes.length) return;
+  if (!confirm("清空全部部件?")) return;
+  boxes = []; selectedId = null; $("editPanel").style.display = "none";
+  render(); renderPartList();
+});
+
+/* ---------- 匯出決策檔 ---------- */
+$("exportBtn").addEventListener("click", () => {
+  if (!img) { $("exportStatus").textContent = "請先載入圖片"; return; }
+  const out = {
+    source_image: imgName,
+    image_size: [img.width, img.height],
+    generated_by: "s4_decompose_assist.html (使用者手動確認)",
+    parts: boxes.map(bb => {
+      const b = norm(bb);
+      return {
+        id: bb.id, label: bb.label, confidence: bb.confidence, notes: bb.notes,
+        bbox_px: [Math.round(b.x0), Math.round(b.y0), Math.round(b.x1), Math.round(b.y1)],
+      };
+    }),
+  };
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (imgName.replace(/\.[^.]+$/, "") || "decompose") + "_decision.json";
+  a.click();
+  $("exportStatus").textContent = `已匯出 ${out.parts.length} 個部件的決策檔`;
+});
+
+renderPartList();
+</script>
+</body>
+</html>

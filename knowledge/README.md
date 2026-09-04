@@ -391,3 +391,16 @@
   不假裝有答案,驗證了「用Claude語意理解取代生成式重繪定位」的方向可行。尚待確認:輔助
   viewer(第6點)UI設計、PSD寫入技術路徑(傾向ag-psd的writePsd,未測試)、GPT邊緣修補的
   局部mask設計(可直接複用簡化後補圖介面)。等待使用者確認格式後再建第6點UI。
+
+- [輔助拆圖viewer(六階段第6點)+PSD寫入路徑驗證(chunk 44)](s4-decompose-assist-viewer.md) —
+  使用者確認 chunk 43 提案的 part list JSON schema 後,建
+  `tools/mesh_gen/s4_decompose_assist.html`:載入單張圖(選填載入 Claude 建議 JSON,
+  `bbox_pct`自動換算像素框+信心色)→ 互動式框選編輯(拖曳畫新框/選取/移動/調整大小/
+  刪除/改id·label·confidence·notes)→ 匯出使用者確認過的決策檔(`bbox_px`像素座標)。
+  純前端零API呼叫零花費。Playwright 用九尾焰蓮真實素材(20個建議部件)完整驗證:建議
+  載入換算正確、手動畫框、清單點選、欄位編輯同步、按鈕刪除、鍵盤刪除(含輸入框焦點時不
+  誤觸)、匯出JSON結構正確,零JS錯誤。**順帶關閉 chunk 43 留下的技術問題#2**:用
+  Playwright 呼叫瀏覽器端 `ag-psd` 的 `writePsd()` 產生 2 層合成 PSD,獨立用 Python
+  `psd-tools` 交叉驗證圖層名稱/bbox/像素顏色三項精確匹配——確認 `ag-psd` 讀寫能力足以
+  承擔第3點「裁切結果組回PSD」需求,不需另尋替代方案。第3(實際拆解+PSD組裝)、
+  第4點(GPT局部修補)仍未開始,等使用者用這個viewer產出真實決策檔後再繼續。

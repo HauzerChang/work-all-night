@@ -7,6 +7,15 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 44(2026-09-04)**:使用者確認 chunk 43 提案的 part list JSON schema 後,建
+> `tools/mesh_gen/s4_decompose_assist.html`(六階段第6點輔助拆圖viewer):載入圖+選填
+> 載入 Claude 建議JSON(`bbox_pct`自動換算像素框+信心色)→拖曳畫新框/選取/移動/調整
+> 大小/刪除/編輯欄位→匯出使用者確認過的決策檔(`bbox_px`像素座標)。純前端零API零花費,
+> Playwright用真實九尾焰蓮素材(20建議部件)完整驗證,零JS錯誤。**順帶關閉 chunk 43
+> 技術問題#2**:驗證瀏覽器端 `ag-psd` 的 `writePsd()` 可用(與獨立 Python `psd-tools`
+> 交叉驗證圖層名稱/bbox/像素完全匹配),足以承擔第3點PSD組裝需求。第3/4點仍未開始。
+> 見下方「chunk 44」段落與 `knowledge/s4-decompose-assist-viewer.md`。
+>
 > **chunk 43(2026-09-04)**:使用者裁示把「拆解」重新分成六階段(Claude語意分析→使用者
 > 確認邊界→幾何裁切+PSD轉換→GPT局部修補→viewer簡化回只留補圖→輔助拆圖viewer),取代
 > chunk 39/42 的「AI一鍵重繪整張圖」設計。**第5點已完成**(viewer 移除切片/拆解/需求
@@ -531,6 +540,33 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**輔助拆圖viewer(六階段第6點)+PSD寫入路徑驗證(chunk 44)** — 使用者對
+  chunk 43 提案的 part list JSON schema(`id`/`label`/`confidence`/`bbox_pct`/`notes`)
+  回「可以 先試試看」,授權建第6點。新建 `tools/mesh_gen/s4_decompose_assist.html`(單檔
+  純前端,~440行,零外部依賴):載入單張圖(拖曳/file input)→選填載入 Claude 建議JSON
+  (依圖片尺寸把`bbox_pct`換算成像素框,套信心色:綠high/黃medium/紅low/藍
+  user_confirmed,座標不完整的項目自動跳過)→ canvas 互動編輯(空白處拖曳畫新框、點框
+  選取、拖曳內部移動、拖曳四角handle調整大小、Delete/Backspace刪除、Esc取消選取)→右側
+  部件清單(即時同步,可點選/點×刪除,編輯面板改id/label/confidence/notes)→匯出決策檔
+  JSON(`bbox_px`像素座標,供下游第3點直接裁切不用再換算)。**Playwright驗證**(用真實
+  `jiuwei_yanlian_char_crop.png`460×898+對應20部件建議JSON,零API呼叫零花費):圖片
+  載入正確、建議JSON換算正確(20/20套用,抽樣核對`bbox_pct`→`bbox_px`換算誤差在四捨
+  五入範圍)、模擬滑鼠拖曳畫新框成功(20→21)、清單點選載入既有框資料正確、欄位編輯即時
+  同步清單顯示、刪除鈕與鍵盤刪除都正確(21→20→19,鍵盤刪除前先點畫布轉移焦點驗證不會
+  誤觸輸入框裡的Delete鍵)、匯出JSON結構正確(19部件,每個都有4元素合法`bbox_px`)。
+  全程**零JS console error**。**順帶用 Playwright 關閉 chunk 43 留下的技術問題#2**
+  (PSD寫入路徑未定):直接呼叫瀏覽器端 `ag-psd` 的 `writePsd({width,height,children:
+  [{name,left,top,right,bottom,canvas}]}）`,產出2層(不同座標/顏色)測試PSD,獨立用
+  Python `psd-tools`(非同一套函式庫)重新讀取交叉驗證——圖層名稱/bbox/像素顏色三項
+  全部精確匹配。**結論**:`ag-psd` 讀寫能力都足夠,承擔第3點「裁切結果組回PSD」不需要
+  另尋`pytoshop`等替代方案,這步不確定性已消除。**誠實限制**:這個viewer本身完全不做
+  任何影像處理(不裁切/不生成/不呼叫API),只負責「使用者確認邊界」;框沒有防呆(允許
+  超出畫布邊界/重疊,id重複已擋但其他無驗證);沒有undo機制(清空全部有二次確認,單一
+  刪除沒有);只支援單張圖不支援直接讀PSD(來源是PSD要先用既有工具匯出composite);
+  PSD寫入驗證只是2層100×100最小可行性測試,不是第3點完整實作。第3點(實際拆解+PSD組裝)
+  跟第4點(GPT局部修補,可直接複用簡化後`s4_ai_viewer.html`不需新工具)**仍未開始**,
+  等使用者用這個viewer對真實素材做出決策檔後再繼續。見
+  `knowledge/s4-decompose-assist-viewer.md`、`log/s4-2026-09-04-044.md`。
 - 2026-09-04:**拆解流程重新分階段(chunk 43)** — 承接 chunk 42 翅膀失敗案例,使用者裁示
   六階段重新設計:(1) Claude語意分析圖片(善用GenieLabs知識)(2) 列出認知部件/使用者
   框選範圍決定切點 (3) 執行拆解+PSD轉換+結果預覽 (4) 修飾階段才讓GPT參與,針對切割後
