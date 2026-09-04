@@ -288,3 +288,14 @@
   一致但形狀不同的合理替代方案」這種生成式輸出的本質不公平,可能從一開始就量錯了維度。
   n=1,未做正負對照校準,建議下一步先幫生成式方法設計專屬評分方式(1b 或 vision-proxy),
   再擴大樣本。
+
+- [S4 AI 補圖 Viewer:純瀏覽器端 Photoshop 插件替代品(chunk 36)](s4-ai-viewer-tool.md) —
+  使用者要求不被 Photoshop 綁定的「視覺化即時切圖補圖工具」。關鍵前提驗證:
+  `api.openai.com` 對 CORS preflight 回傳 `access-control-allow-origin: *`,證實瀏覽器
+  可以直接跨來源呼叫 OpenAI API,不需要中介後端。新增 `tools/mesh_gen/s4_ai_viewer.html`
+  (載入圖層→畫遮罩→prompt→直接呼叫 API→結果比對→套用/下載,key 只存本機
+  localStorage),用 Playwright mock API 呼叫驗證前端邏輯(未打真實付費 API)。同時建立
+  `.claude/skills/spine-asset-request/SKILL.md`(初步版):把「使用者描述動畫需求→判斷
+  缺口類型→驅動切圖/補圖工具→驗證→記錄」的既有工具串成一套可重複流程,含缺口分類表、
+  CPU優先/生成式後補的決策順序、以及誠實列出目前無法自動處理的情況(視角外推/平圖拆件/
+  生成結果像素漂移)。

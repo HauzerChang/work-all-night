@@ -7,16 +7,17 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
-> **chunk 35(2026-09-04)**:使用者已放行 `api.openai.com`,候選17網路阻塞解除。完成獨立
-> (不依賴 Photoshop)呼叫模組 + 用量儀表板 + 第一次真實測試,見下方「chunk 35」段落與
-> `knowledge/s4-inpaint-candidate17-gptimage2.md`。**關鍵發現**:1a 逐像素評分方法論可能
-> 不適合生成式輸出(視覺上完全看不出破綻,但 ssim 因幾何形狀不同而判 fail)——下一步是先
-> 定生成式方法的正確評分方式,再擴大樣本。
+> **chunk 36(2026-09-04)**:使用者要求推進 viewer + skill 兩項。完成
+> `tools/mesh_gen/s4_ai_viewer.html`(純瀏覽器端,驗證 OpenAI API 允許 CORS,不需要中介
+> 後端/不依賴 Photoshop)+ `.claude/skills/spine-asset-request/SKILL.md`(初步版,把既有
+> S4 工具串成「需求→判斷缺口→驅動切圖/補圖→驗證→記錄」流程)。見下方「chunk 36」段落與
+> `knowledge/s4-ai-viewer-tool.md`。
 >
-> **三項使用者裁決現況**:(1) 候選17——技術阻塞已解除,正在驗證,見上;(2) skill(需求驅動
-> 切圖補圖)——方向已定,尚未拆解成有界工作塊;(3) viewer(Photoshop插件HTML版)——方向已定,
-> 尚未開工,不受候選17網路狀況影響,可獨立推進。**候選15已裁決「無限期擱置」**,不再是
-> 待裁決項,見下方「chunk 33」段落。
+> **三項使用者裁決現況**:(1) 候選17——技術阻塞已解除(chunk 35),已完成第一次真實驗證,
+> 發現 1a 評分方法論可能不適合生成式輸出,下一步待定生成式專屬評分方式;(2) skill——**初步
+> 版已完成**(chunk 36),後續可依實戰使用回饋迭代;(3) viewer——**初步版已完成**(chunk 36),
+> 已用 Playwright mock API 驗證前端邏輯,未打真實付費 API 做端到端驗證。**候選15已裁決
+> 「無限期擱置」**,不再是待裁決項,見下方「chunk 33」段落。
 
 ## 範圍
 
@@ -468,6 +469,24 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**viewer + skill 初步版完成(chunk 36)** — 使用者要求推進 viewer(PSD檢視/編輯
+  +與ChatGPT即時溝通,類Photoshop插件HTML版)與 skill(需求驅動切圖補圖)兩項。**關鍵前提
+  驗證**:`curl -X OPTIONS https://api.openai.com/v1/images/edits` 帶 CORS preflight header,
+  回傳 `access-control-allow-origin: *`——確認瀏覽器可以直接跨來源呼叫 OpenAI API,viewer
+  不需要中介後端,「純前端 Photoshop 插件替代品」這個架構成立。新增
+  `tools/mesh_gen/s4_ai_viewer.html`:載入圖層(manifest.json+PNG 或單張 PNG)→畫遮罩
+  (canvas 筆刷)→prompt→直接 `fetch()` 呼叫 API→結果三欄比對→套用/下載;key 只存瀏覽器
+  localStorage;每次呼叫記錄用量(可選 File System Access API 直接寫入
+  `tools/mesh_gen/s4_data/openai_usage.jsonl`,跟儀表板共用)。用 Playwright 
+  headless Chromium 驗證前端邏輯(檔案載入/遮罩繪製/驗證擋錯/mock API 呼叫/套用/manifest
+  載入共6項),**mock 掉真實 API 呼叫,未花費真實金錢驗證**。踩到並確認一個已知環境限定
+  caveat(非工具 bug):Playwright `setInputFiles` 對中文檔名的限制,跟 `psd_preview.html`
+  先前記錄的是同一個問題。同時建立 `.claude/skills/spine-asset-request/SKILL.md`(初步版,
+  ⚠️ 位於 `.claude/skills/`,非本排程「檔案隔離契約」列出的 S4 專屬路徑,但屬使用者當面
+  直接要求的新增內容,不觸碰主排程任何既有檔案,判斷不違反契約精神):把「使用者描述動畫
+  需求→依 taxonomy 判斷缺口類型(A切圖/B補圖-CPU優先/C補圖-生成式/D視角外推無解)→驅動對應
+  S4 工具→真實場景驗證→記錄」串成一套可重複流程,含工具速查表與「誠實回報無法自動處理的
+  情況」清單。見 `knowledge/s4-ai-viewer-tool.md`、`log/s4-2026-09-04-036.md`。
 - 2026-09-04:**候選17網路阻塞解除 + 第一次真實驗證,發現 1a 評分方法論可能不適合生成式
   輸出(chunk 35)** — 使用者放行 `api.openai.com`。驗證步驟:(1) 不帶 key 測 models 端點
   拿到 401(非連線層級 403,確認網路已通);(2) 帶 key 測拿到 200,確認 `gpt-image-2` 在
