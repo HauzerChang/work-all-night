@@ -334,3 +334,15 @@
   「未驗證」+「授權限制不可抄程式碼」)。提醒:該專案鎖定 Spine 4.2 JSON 格式,與本專案
   Spine 3.8 語法不通用,只有概念層(preset generator/bezier緩動/相位差follow-through)可
   轉移。
+
+- [S4 AI Viewer v2:新增切片/拆解/需求精靈(chunk 39)](s4-ai-viewer-v2-slicing.md) —
+  使用者要求 viewer 補上拆圖能力(目前只有補圖)。在既有主線 `s4_ai_viewer.html` 上擴充
+  成 4 分頁(不另開新檔):**切片**——沿用 chunk 37 驗證過的 ag-psd 解析,拖 .psd 原檔即可
+  在瀏覽器端列出圖層並逐一下載 PNG,不需伺服器/Python;**拆解(實驗性)**——萃取自
+  GenieLabs `split_character.py` 的思路(獨立重新實作,不抄程式碼):請 gpt-image-2 把
+  平面角色圖重繪成「部件分離、留白、白底」版面,再用瀏覽器端 8-connected components
+  演算法分割,UI 明確標示「未在真實素材驗證過」;**需求精靈**——對照
+  `spine-asset-request/SKILL.md` 決策表做成可點選介面(規則式,不呼叫 AI 不花錢),選情境
+  給建議+一鍵跳轉分頁。5 組 Playwright 互動測試全過(tab切換/補圖回歸/真實PSD切片/合成圖
+  分割準確偵測3個部件/需求精靈跳轉),全程 mock 真實付費 API 呼叫。誠實限制:拆解功能的
+  核心假設完全未經真實 API 呼叫驗證;需求精靈是規則表非智慧規劃。

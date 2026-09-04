@@ -7,6 +7,13 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 39(2026-09-04)**:使用者要求 viewer 補上拆圖能力。在主線 `s4_ai_viewer.html`
+> 上擴充成 4 分頁(補圖/切片/拆解-實驗性/需求精靈),不另開新檔。切片沿用 chunk 37 驗證過
+> 的 ag-psd 解析;拆解萃取自 chunk 38 的 GenieLabs 知識(獨立重新實作);需求精靈是
+> `spine-asset-request` 決策表的可點選版本。5 組 Playwright 測試全過(含合成圖驗證分割
+> 演算法精確偵測3個部件),全程 mock 付費 API。見下方「chunk 39」段落與
+> `knowledge/s4-ai-viewer-v2-slicing.md`。
+>
 > **chunk 38(2026-09-04)**:使用者分享外部開源 Claude skill(GenieLabs
 > `spine-animation-ai`)要求評估優化 `spine-asset-request`。萃取兩個未驗證候選(生成式
 > 重繪拆件版面、SIFT+RANSAC自動擺位)更新進 skill,**授權為 PolyForm Noncommercial 禁止
@@ -44,7 +51,9 @@
 > `spine-asset-request`),chunk 38 用外部知識萃取做了第一次優化(平圖拆件/自動擺位新增
 > 未驗證候選路徑),後續依實戰使用回饋繼續迭代;(3) viewer——**主線初步版已完成**
 > (chunk 36,`s4_ai_viewer.html`,已用 Playwright mock API 驗證前端邏輯,未打真實付費
-> API 做端到端驗證);次要能力 V1(chunk 37,`psd_viewer.html`)也已完成並驗證。
+> API 做端到端驗證);次要能力 V1(chunk 37,`psd_viewer.html`)也已完成並驗證;**chunk 39
+> 補上拆圖能力**(切片/拆解-實驗性/需求精靈三分頁),viewer 目前功能涵蓋使用者原始三項
+> 需求(檢視/編輯 PSD、與 AI 即時溝通補圖、拆圖)。
 > **候選15已裁決「無限期擱置」**,不再是待裁決項,見下方「chunk 33」段落。
 
 ## 範圍
@@ -497,6 +506,26 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**viewer v2:補上切片/拆解/需求精靈(chunk 39)** — 使用者要求 viewer 補上
+  拆圖能力(當時只有補圖)。決定在主線 `s4_ai_viewer.html` 上直接擴充成 4 分頁,不另開
+  新檔(既有補圖邏輯 `callOpenAiEdit()` 抽成共用函式,新分頁直接複用)。**切片**:沿用
+  chunk 37 已驗證的 ag-psd 解析(同一套 CDN fallback+遞迴攤平),拖 .psd 原檔即可在瀏覽器
+  端列出圖層、composite 預覽、逐層下載 PNG,不需伺服器/Python(定位是快速預覽/單獨抽取,
+  不取代 `psd_slice.py` 完整 manifest pipeline)。**拆解(實驗性)**:萃取自 chunk 38 讀到
+  的 GenieLabs `split_character.py` 思路(獨立重新實作,不抄程式碼——授權限制):呼叫
+  gpt-image-2(mask 用全域可編輯的空白 canvas)把平面角色圖重繪成「部件分離、留白、白底」
+  版面,再用瀏覽器端 8-connected components(BFS 陣列佇列,避免遞迴爆疊)分割成獨立部件,
+  UI 明確標示「未在真實素材驗證過」+沿用該專案自己承認的限制(無命名/無z-order/無座標
+  映射回原圖)。**需求精靈**:對照 `spine-asset-request/SKILL.md` 決策表(A/B/C/D,新增
+  E類「完全沒分層平圖」)做成可點選介面,規則式判斷不呼叫 AI 不花錢,選情境給建議+一鍵
+  跳轉分頁。**驗證**:Playwright 5 組互動測試(tab切換、補圖流程回歸確認擴充沒壞既有功能、
+  真實 `robot_parts.psd` 切片正確顯示5圖層、**合成測試圖〔3個獨立色塊〕驗證分割演算法精確
+  偵測出3個部件**、需求精靈跳轉),全程 mock 真實付費 API(CDN 用 `npm pack` vendor 副本、
+  OpenAI 呼叫用假回應),零 JS console error。**誠實限制**:拆解功能的核心假設(生成式
+  重繪能否解決平圖拆件)完全未經真實付費 API 呼叫驗證,只驗證了分割演算法本身邏輯正確;
+  需求精靈是規則表非真正的智慧規劃(若要自然語言理解+規劃需要接 LLM 推理,是另一個量級的
+  工作,本次未做);切片下載的單一 PNG 不含 manifest 結構化資訊,不能直接餵給既有 Python
+  pipeline。見 `knowledge/s4-ai-viewer-v2-slicing.md`、`log/s4-2026-09-04-039.md`。
 - 2026-09-04:**外部知識吸收:GenieLabs `spine-animation-ai`,優化 skill(chunk 38)** —
   使用者分享 `https://github.com/GenielabsOpenSource/spine-animation-ai`(一個已發布的
   開源 Claude skill,骨架綁定協駕員),要求評估能否優化 `spine-asset-request`。用
