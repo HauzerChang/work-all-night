@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>S4 OpenAI 用量儀表板 — 候選17</title>
+<style>
+  :root {
+    --bg: #12151a; --panel: #1a1f27; --panel2: #20262f; --border: #2c3340;
+    --text: #dde3ec; --muted: #8b95a5; --accent: #4f9dff;
+    --ok: #3ecf6a; --bad: #ff5d6c; --warn: #f5b53c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 13px/1.5 -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  }
+  header {
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  .loader {
+    display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+    border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap;
+  }
+  .btn {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;
+  }
+  .btn:hover { border-color: var(--accent); }
+  #status { color: var(--muted); font-size: 12px; }
+  #status.err { color: var(--bad); }
+  #status.ok { color: var(--ok); }
+  main { padding: 16px; display: none; flex-direction: column; gap: 16px; }
+  main.show { display: flex; }
+  .cards { display: flex; gap: 12px; flex-wrap: wrap; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 18px; min-width: 140px; flex: 1;
+  }
+  .card .num { font-size: 22px; font-weight: 700; color: var(--text); }
+  .card .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .panel h3 { margin: 0 0 10px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  canvas { display: block; background: var(--panel2); border-radius: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
+  tr:hover td { background: var(--panel2); }
+  .tag-ok { color: var(--ok); }
+  .tag-bad { color: var(--bad); }
+  .tbl-wrap { max-height: 360px; overflow: auto; }
+  .empty-hint { padding: 60px 20px; text-align: center; color: var(--muted); }
+  .note { color: var(--muted); font-size: 11px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>S4 OpenAI 用量儀表板</h1>
+  <span class="sub">候選17(gpt-image-2)— 讀 tools/mesh_gen/s4_data/openai_usage.jsonl,純前端,不含任何 API key</span>
+</header>
+<div class="loader">
+  <input type="file" id="fileInput" accept=".jsonl,.json,.txt">
+  <button class="btn" id="loadSameDir">同目錄自動載入(需 http 伺服器)</button>
+  <span id="status">尚未載入</span>
+</div>
+<main id="main">
+  <div class="cards" id="cards"></div>
+  <div class="panel">
+    <h3>累積 image token(依呼叫順序)</h3>
+    <canvas id="chart" width="1100" height="220"></canvas>
+    <div class="note">藍線 = input image tokens 累積;橘線 = output image tokens 累積。未取得官方 $ 定價(platform.openai.com 目前未放行),先以 token 數為用量真值;要換算金額請自行對照 OpenAI 帳單頁。</div>
+  </div>
+  <div class="panel">
+    <h3>逐筆呼叫明細</h3>
+    <div class="tbl-wrap">
+      <table id="tbl">
+        <thead><tr>
+          <th>時間</th><th>tag</th><th>model</th><th>size</th><th>quality</th>
+          <th>mask%</th><th>in tok</th><th>out tok</th><th>total tok</th>
+          <th>耗時(s)</th><th>狀態</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+<div class="empty-hint" id="emptyHint">拖曳或選取 <code>openai_usage.jsonl</code> 檔案(或用 http 伺服器同目錄自動載入)</div>
+
+<script>
+let rows = [];
+
+function parseJsonl(text) {
+  return text.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+    try { return JSON.parse(l); } catch (e) { return null; }
+  }).filter(Boolean);
+}
+
+function render() {
+  document.getElementById("emptyHint").style.display = "none";
+  document.getElementById("main").classList.add("show");
+
+  const nCalls = rows.length;
+  const nOk = rows.filter(r => r.http_status === 200).length;
+  const nErr = nCalls - nOk;
+  const sumIn = rows.reduce((a, r) => a + (r.usage?.input_tokens || 0), 0);
+  const sumOut = rows.reduce((a, r) => a + (r.usage?.output_tokens || 0), 0);
+  const sumElapsed = rows.reduce((a, r) => a + (r.elapsed_s || 0), 0);
+
+  const cards = [
+    ["呼叫次數", nCalls],
+    ["成功", nOk],
+    ["失敗", nErr],
+    ["累積 input tokens", sumIn.toLocaleString()],
+    ["累積 output tokens", sumOut.toLocaleString()],
+    ["累積耗時(s)", sumElapsed.toFixed(1)],
+  ];
+  document.getElementById("cards").innerHTML = cards.map(([lbl, num]) =>
+    `<div class="card"><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`).join("");
+
+  const tbody = document.querySelector("#tbl tbody");
+  tbody.innerHTML = rows.map(r => `<tr>
+    <td>${(r.ts || "").replace("T", " ").replace("Z", "")}</td>
+    <td>${r.tag || ""}</td>
+    <td>${r.model || ""}</td>
+    <td>${r.size || ""}</td>
+    <td>${r.quality || ""}</td>
+    <td>${r.mask_coverage_pct ?? ""}</td>
+    <td>${r.usage?.input_tokens ?? "-"}</td>
+    <td>${r.usage?.output_tokens ?? "-"}</td>
+    <td>${r.usage?.total_tokens ?? "-"}</td>
+    <td>${r.elapsed_s ?? "-"}</td>
+    <td class="${r.http_status === 200 ? 'tag-ok' : 'tag-bad'}">${r.http_status ?? "?"}${r.error ? " " + r.error.slice(0,60) : ""}</td>
+  </tr>`).join("");
+
+  const canvas = document.getElementById("chart");
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (nCalls === 0) return;
+  const pad = 30;
+  let cumIn = 0, cumOut = 0;
+  const ptsIn = [], ptsOut = [];
+  rows.forEach(r => {
+    cumIn += (r.usage?.input_tokens || 0);
+    cumOut += (r.usage?.output_tokens || 0);
+    ptsIn.push(cumIn); ptsOut.push(cumOut);
+  });
+  const maxV = Math.max(...ptsIn, ...ptsOut, 1);
+  const xStep = (canvas.width - pad * 2) / Math.max(nCalls - 1, 1);
+  function drawLine(pts, color) {
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+    pts.forEach((v, i) => {
+      const x = pad + i * xStep;
+      const y = canvas.height - pad - (v / maxV) * (canvas.height - pad * 2);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "#2c3340"; ctx.beginPath();
+  ctx.moveTo(pad, pad); ctx.lineTo(pad, canvas.height - pad); ctx.lineTo(canvas.width - pad, canvas.height - pad);
+  ctx.stroke();
+  drawLine(ptsIn, "#4f9dff");
+  drawLine(ptsOut, "#f5b53c");
+}
+
+function loadText(text) {
+  rows = parseJsonl(text);
+  document.getElementById("status").textContent = `已載入 ${rows.length} 筆呼叫紀錄`;
+  document.getElementById("status").className = "ok";
+  render();
+}
+
+document.getElementById("fileInput").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  f.text().then(loadText);
+});
+
+document.getElementById("loadSameDir").addEventListener("click", () => {
+  fetch("s4_data/openai_usage.jsonl").then(r => {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.text();
+  }).then(loadText).catch(e => {
+    document.getElementById("status").textContent = "同目錄載入失敗(需在 http 伺服器下開啟,file:// 無法 fetch):" + e.message;
+    document.getElementById("status").className = "err";
+  });
+});
+</script>
+</body>
+</html>

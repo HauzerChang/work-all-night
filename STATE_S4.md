@@ -5,19 +5,18 @@
 
 ## 專案狀態
 
-`BLOCKED`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
+`ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
-> **chunk 34(2026-09-04,使用者對談中)**:使用者已就三項決策點全部表態——
-> (1) 候選17(gpt-image-2)**授權**(提供 key,無費用上限,需用量監控);
-> (2) 本排程走向:**精煉一個 skill,依 spine 動畫需求驅動切圖/補圖**;
-> (3) 新增:**viewer**(PSD 檢視/編輯 + 與 ChatGPT 即時溝通切圖補圖,類 Photoshop 插件 HTML 版)。
-> **但候選17落地卡在新發現的阻塞**:此排程容器的網路政策擋下 `api.openai.com`(proxy 403,
-> policy denial),headless 呼叫目前技術上走不通,需使用者確認能否放行,見下方「chunk 34」
-> 段落與 `log/s4-2026-09-04-034.md`。viewer(第3項)不受此阻塞影響,可獨立先推進。
-> **狀態維持 `BLOCKED`,新阻塞點 = 網路政策放行與否待確認**;確認後(或決定改走純瀏覽器端
-> 路線)下次執行請直接落地,並把狀態改回 `ACTIVE`。
+> **chunk 35(2026-09-04)**:使用者已放行 `api.openai.com`,候選17網路阻塞解除。完成獨立
+> (不依賴 Photoshop)呼叫模組 + 用量儀表板 + 第一次真實測試,見下方「chunk 35」段落與
+> `knowledge/s4-inpaint-candidate17-gptimage2.md`。**關鍵發現**:1a 逐像素評分方法論可能
+> 不適合生成式輸出(視覺上完全看不出破綻,但 ssim 因幾何形狀不同而判 fail)——下一步是先
+> 定生成式方法的正確評分方式,再擴大樣本。
 >
-> **候選15(chunk 33)已由使用者裁決「無限期擱置」,不再是待裁決項**,見下方「chunk 33」段落。
+> **三項使用者裁決現況**:(1) 候選17——技術阻塞已解除,正在驗證,見上;(2) skill(需求驅動
+> 切圖補圖)——方向已定,尚未拆解成有界工作塊;(3) viewer(Photoshop插件HTML版)——方向已定,
+> 尚未開工,不受候選17網路狀況影響,可獨立推進。**候選15已裁決「無限期擱置」**,不再是
+> 待裁決項,見下方「chunk 33」段落。
 
 ## 範圍
 
@@ -469,6 +468,24 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**候選17網路阻塞解除 + 第一次真實驗證,發現 1a 評分方法論可能不適合生成式
+  輸出(chunk 35)** — 使用者放行 `api.openai.com`。驗證步驟:(1) 不帶 key 測 models 端點
+  拿到 401(非連線層級 403,確認網路已通);(2) 帶 key 測拿到 200,確認 `gpt-image-2` 在
+  帳號模型清單裡。新增 `tools/mesh_gen/s4_openai_client.py`(獨立於 Photoshop 的 REST
+  呼叫模組,mask 用官方慣例編碼,key 只讀環境變數,每次呼叫記錄含真實 usage token 數的
+  metadata,不含 key/圖片)+ `tools/mesh_gen/s4_usage_dashboard.html`(純前端用量儀表板,
+  比照 `psd_preview.html` 架構;`platform.openai.com` 未放行查不到 $ 定價,先呈現 token
+  數)。對已知 1a 全 fail 的 `機器人拆件/左手` 跑第一次真實測試(`punch_hole` 同組參數,
+  `quality=low`)。**核心結果**:API 呼叫成功,1a 依然 fail(ssim 0.274,同量級 LaMa),
+  但 1b 大幅 pass 且是本專案至今最佳(tone_gap 5.04)。**關鍵發現**:三圖並排 4x 放大比對,
+  補丁視覺上完全看不出破綻(材質風格/反光/明暗一致,還合理加了螺絲細節),跟 CPU baseline
+  的「奶油糊」完全不同等級——但 ssim/premult_mae 判 fail 是因為生成了幾何形狀不同的
+  合理替代方案,不是重建同一組像素。**這代表逐像素比對 gt 的 1a 評分方法論可能從一開始
+  就不適合評估生成式輸出**,不是「gpt-image-2 也不行」的結論。n=1,未做正負對照校準,
+  建議下一步先定生成式方法的正確評分方式(1b 或 vision-proxy)再擴大樣本。順帶更正
+  `s4-gptfill-plugin-knowledge.md` 的 provenance 誤記(該插件是開源專案,非使用者自製,
+  使用者當面更正)。見 `knowledge/s4-inpaint-candidate17-gptimage2.md`、
+  `log/s4-2026-09-04-035.md`。
 - 2026-09-04:**使用者對談中三項裁決 + 關鍵網路阻塞發現(chunk 34)** — 使用者一次裁決:
   (1) 候選17授權(提供 API key,無費用上限,需用量可視化監控);(2) 本排程走向:精煉一個
   依 spine 動畫需求驅動切圖/補圖的 skill;(3) 新增 viewer 需求(PSD 檢視/編輯+與 ChatGPT
