@@ -356,3 +356,15 @@
   事件被吃掉)——已修正(HTML 初始就帶 active class)並重新驗證。5 組 Playwright 測試
   全過,含「切換模式主素材不重置」「拆解無需另外上傳直接讀主素材」「composite/圖層來回
   切換」等新架構專屬驗證,全程 mock 付費 API。
+
+- [新測試素材:「九尾・焰蓮」角色設定圖,高複雜度人物轉spine課題(chunk 41)](s4-highcomplexity-charsheet-jiuweiyanlian.md) —
+  使用者對話貼圖要求提取角色分析拆解,定調為「高複雜度人物轉spine」新課題,跟既有素材
+  (機器人拆件/Symbol_Ww)複雜度區隔。**取檔手法**:對話貼圖無現成存檔工具,改掃 Claude
+  Code session 的 JSONL 逐輪記錄找 base64 image content block 解碼復原(可重用技巧)。
+  存檔 `assets/jiuwei_yanlian_ref.webp`(完整資料表)+ `assets/jiuwei_yanlian_char_crop.png`
+  (裁出主圖,座標 0%,3%,45%,61.5%,視覺疊代裁出,OpenCV 自動偵測面板框線失敗)。**內容
+  解析**:多面板資料表,最有價值的不是主圖本身——三視圖(正/側/背)直接解掉「情境2視角
+  外推」難題、表情設定(6張)可直接支援spine臉部slot切換做法。**難度評估**(肉眼判斷,
+  未實驗):九尾狐尾同色重疊是「同材質語意召回0」的教科書案例,長髮跟尾巴同色系、雙臂
+  半透明材質都是額外難點,比既有測試素材複雜一個量級。本次只完成取檔+裁圖,未進行任何
+  拆解實驗。
