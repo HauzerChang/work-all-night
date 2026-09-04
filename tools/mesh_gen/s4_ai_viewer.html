@@ -225,7 +225,10 @@
           瀏覽器端的 connected-components 演算法切開這個乾淨版面。<b>⚠️ 這招對本專案素材是否
           有效尚未驗證,結果可能不理想,用之前先心理準備可能要重跑幾次或調整 prompt。</b></p>
         <div class="row" style="margin-top:8px;">
-          <textarea id="decomposePrompt" style="min-height:90px;">Redraw this character as a fully deconstructed 2D game sprite atlas for Spine animation rigging: separate the head, torso, arms, and legs/feet into individual isolated pieces, spaced apart with clear gaps, no overlap, on a plain white background. Exactly match the original character's art style, shading, and color tones. Do not add 3D rendering, do not change the style, do not add background clutter, do not draw a dynamic pose.</textarea>
+          <textarea id="decomposePrompt" style="min-height:110px;">Take the EXACT subject shown in the reference image — do not invent, replace, or substitute it with a different subject or character. Redraw that same subject as a fully deconstructed 2D game sprite atlas for animation rigging: separate its existing natural parts (whatever they are — e.g. if it has limbs, separate limbs/torso/head; if it is a pair of wings, separate each wing and its feather/segment clusters; if it is an object, separate its natural sub-components) into individual isolated pieces, spaced apart with clear gaps, no overlap, on a plain white background. Exactly match the original subject's shape, art style, shading, materials, and color tones — every piece must be recognizably part of the same original subject. Do not add 3D rendering, do not change the style, do not add unrelated new elements, do not draw a different character or object.</textarea>
+          <p class="hint" style="margin-top:4px;">⚠️ 2026-09-04 修正:舊版預設 prompt 寫死「head, torso, arms, legs」(假設人形角色),
+            對非人形主體(例如翅膀、道具)會誤導 AI 生出完全不相干的內容——已改成主體無關的通用版本,
+            但**這個新版本本身也還沒被真實付費呼叫驗證過**,請先用低成本設定測一次再放心大量使用。</p>
         </div>
         <div class="row" style="margin-top:8px;">
           <label>model</label>
@@ -500,6 +503,7 @@ function setMainAsset(img, name, isComposite) {
   updateMaskInfo();
   $("targetLabel").innerHTML = `文件:<b>${escapeHtml(docLabel)}</b> — 目前對象:<b>${escapeHtml(name)}</b>(${w}×${h})`;
   $("resultPanel").style.display = "none";
+  updateDecomposeSizeSuggestion(w, h);
 }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
@@ -754,6 +758,20 @@ let decomposeAtlasImg = null;
 $("bgThreshold").addEventListener("input", () => $("bgThresholdLbl").textContent = $("bgThreshold").value);
 $("minArea").addEventListener("input", () => $("minAreaLbl").textContent = $("minArea").value);
 $("paddingPx").addEventListener("input", () => $("paddingLbl").textContent = $("paddingPx").value);
+
+// 2026-09-04 修正:原本 size 下拉固定預設 1024x1024,若主素材是寬幅(如翅膀類左右展開的
+// 素材)或高幅圖片,會被硬塞進不合比例的正方形畫布,送出前整張圖被拉伸變形——不是這次
+// 「輸出完全不相干」bug 的主因(主因是下面的 prompt),但一併修正,降低變形風險。
+// 每次主素材更新時,依長寬比自動建議最接近的 size 選項(使用者仍可手動改回其他選項)。
+function updateDecomposeSizeSuggestion(w, h) {
+  const sel = $("decomposeSize");
+  if (!sel) return;
+  const ratio = w / h;
+  let best = "1024x1024";
+  if (ratio > 1.2) best = "1536x1024";
+  else if (ratio < 1 / 1.2) best = "1024x1536";
+  sel.value = best;
+}
 
 $("decomposeSendBtn").addEventListener("click", async () => {
   if (!mainImg) { $("decomposeStatus").textContent = "請先在左側載入並選取一個檔案/圖層(當作要拆解的主素材)"; return; }
