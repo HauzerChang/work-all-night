@@ -187,6 +187,14 @@ BLOCKS = [
                      "anticipate_hold=峰前長蓄力時間佔比≥0.35(hit 蓄力僅短暫 dip)。皆保 setup identity 介面(可插 Loop 間)。"
                      "6AC PASS(well-formed/可串接介面/真峰/兩簽章各成立/共用 anticipation+settle/負對照)+9 條負對照全過:"
                      "兩簽章互斥、單發 hit 與對稱脈衝皆非 combo/charge、等峰 combo 非遞增。真值=結構簽章(美感留使用者 A類)"),
+            CAP("cascade_stagger", "cascade 跨件錯開 reveal(**跨件時序**簽章,0h)", "L2",
+                "python3 tools/analyzer/validate_cascade.py", "gen",
+                note="補 0f/0g 的缺口:前述 beat 皆**單件**時間包絡,cascade 是第一個**跨件(cross-part)**簽章 —— 件依"
+                     "空間序(bone x)錯開 onset 逐一 reveal(掃出),非同時炸開。由 build_animations 特判(件間相位編排,"
+                     "非進 _DISPATCH)。6AC PASS(well-formed/reveal 家族介面 collapse→identity/每件真峰≥1.12/"
+                     "跨件簽章=stagger spread≥0.25 且峰時間沿 x 序嚴格遞增 monotone sweep/負對照/回歸 reveal 未破壞)。"
+                     "負對照證鑑別力:同時 reveal→spread≈0、打亂 onset(逆序)→spread 大但非遞增(證單調掃向為必要條件)、"
+                     "單發 hit→identity 起非 collapsed。真值=結構簽章(美感留使用者 A類);尚未併入 genre_priors(待 (H') 直出)"),
         ],
     },
 ]

@@ -173,8 +173,67 @@ def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0)):
     return b, s
 
 
+# candidate 0h — cascade(跨件錯開 reveal):**跨件時序**簽章,補 0f/0g 的**單件時序**簽章。
+# 前述 beat(hit/reveal/combo/charge)都描述**單一件**的時間包絡;cascade 則描述**多件之間**
+# 的相對時序 —— 各件依空間順序**錯開** onset 逐一 reveal(掃出 / 波狀 pop-in),而非同時炸開。
+# 因此 cascade 不是又一個 per-bone 包絡,而是 build_animations 對整個 beat 的**件間相位**編排;
+# 本模組只提供「單件在給定 onset 的錯開 reveal 包絡」,件間 onset 由 gen_animations 依 bone 空間序指派。
+#
+# cascade 的跨件簽章(validate_cascade.py 量化):
+#   - **stagger spread**:件的 scale 峰時間分佈跨度 /T ≥ 門檻(同時 reveal → 跨度≈0 → 負對照分離)。
+#   - **monotone sweep**:峰時間沿空間序(bone x)**嚴格遞增**(掃向一致;打亂 onset → 破)。
+# 介面同 reveal 家族:首 collapsed(scale~0/alpha 0)、尾 identity(可接 Loop)。
+DUR.setdefault("cascade", 1.4)
+
+
+def gen_cascade_part(role, side_sign, radial, onset, width, T, eps=1e-3):
+    """cascade 中**單一件**的錯開 reveal(時間單位為秒,非 τ)。
+
+    [0, onset] 維持 collapsed(scale~0.02 / alpha 0,件尚未輪到)→ [onset, onset+width] burst pop
+    (collapsed→overshoot→阻尼回擺→identity, alpha 0→1)→ [onset+width, T] hold identity。
+    首幀 collapsed、尾幀 identity(reveal 家族介面)。onset>0 的件在自己 onset 前保持隱藏,
+    故整個 beat 呈現「件依序 pop-in」的掃動;onset 由呼叫端(gen_animations)依空間序指派。"""
+    peak = _PEAK.get(role, 1.18)
+    on, w = float(onset), float(width)
+
+    def _seq(hold_val, mid_pairs, end_val):
+        """組件內時間序:首幀(hold_val)→[onset 維持 hold]→中段 mid_pairs→尾補 (T,end_val)。
+        onset≈0 時省略重複 hold 幀;on+w≈T 時省略尾幀(避免重複時間)。"""
+        seq = [(0.0, hold_val)]
+        if on > eps:
+            seq.append((on, hold_val))
+        seq += mid_pairs
+        if T - seq[-1][0] > eps:
+            seq.append((T, end_val))
+        return seq
+
+    # --- scale:collapsed hold → burst overshoot → 阻尼回擺 → identity ---
+    sc = _seq(0.020,
+              [(on + 0.45 * w, peak), (on + 0.70 * w, 0.950),
+               (on + 0.90 * w, 1.020), (on + w, 1.000)],
+              1.000)
+    b = {"scale": [{"time": round(t, 4), "x": round(v, 4), "y": round(v, 4)} for (t, v) in sc]}
+
+    # --- alpha:蓄勢期全透明,burst 起點漸亮,峰後保持 ---
+    al = _seq(0.0, [(on + 0.30 * w, 0.2), (on + 0.45 * w, 1.0)], 1.0)
+    b_color = _color(al)
+
+    # --- role rotate:在自身 window 內甩入回正(首尾皆隱藏姿/identity)---
+    if role == "limb":
+        rot = _seq(side_sign * 25.0,
+                   [(on + 0.45 * w, -side_sign * 8.0), (on + 0.70 * w, side_sign * 3.0), (on + w, 0.0)],
+                   0.0)
+        b["rotate"] = _rot(rot)
+    elif role == "特效":
+        rot = _seq(-30.0, [(on + 0.45 * w, 10.0), (on + 0.75 * w, -4.0), (on + w, 0.0)], 0.0)
+        b["rotate"] = _rot(rot)
+    return b, {"color": b_color}
+
+
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
 HIT_KEYWORDS = ["hit", "impact", "punch", "throb", "slam", "打擊", "命中", "重擊", "衝擊"]
 REVEAL_KEYWORDS = ["reveal", "open", "burst", "showup", "appear_big", "揭曉", "現身", "炸開", "開獎"]
 COMBO_KEYWORDS = ["combo", "multihit", "multi_hit", "chain", "連擊", "連段", "連打"]
 CHARGE_KEYWORDS = ["charge", "windup", "wind_up", "chargeup", "anticipate_hold", "蓄力", "充能", "蓄勢"]
+CASCADE_KEYWORDS = ["cascade", "sweep", "sequential", "stagger", "ripple", "wave",
+                    "錯開", "接連", "連鎖", "波", "掃"]

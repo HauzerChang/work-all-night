@@ -93,6 +93,24 @@
   ——0f 模板要「被觸發」需先驗庫有對應 beat(又一「評估器/模板就緒 ≠ 生成器接上」實例)。新增 cap
   `main_show_priors_integration` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
   見 `knowledge/s1-main-show-priors-integration.md`、圖 `knowledge/figures/s1_priors_beats.png`。
+- **S1 cascade 跨件錯開 reveal(里程碑,2026-09-04 session 002,candidate 0h)** — 補 STATE
+  「下一個自然小步」建議 **(cascade)**。0d–0g 所有主秀 beat 簽章都在**單一件**的時間包絡上;cascade 是
+  **第一個「跨件(cross-part)時序」簽章** —— 件依空間序(bone x)**錯開** onset 逐一 reveal(掃出一道波),
+  非同時炸開,與 0g 的單件時序簽章**互補**。架構上 cascade 不是又一個 per-bone 包絡,而是 `build_animations`
+  對整個 beat 的**件間相位編排**:`beat_templates.gen_cascade_part`(reveal 家族介面 collapse→identity,
+  onset>0 件在自己 onset 前保持隱藏)+ `gen_animations._cascade_beat`(**特判、不進 `_DISPATCH`**,因需全 beat
+  件集合;第 rank 件 onset=rank/(n−1)·0.5·T)。**跨件簽章**:①stagger spread(件 scale 峰時間跨度/dur)≥0.25
+  ②monotone sweep(峰時間沿 bone x **嚴格遞增**),二者兼備才算 cascade。`validate_cascade.py` 對真實 robot
+  5 拆件 role 端到端 **6 AC 全 PASS**(C1 well-formed / C2 reveal 介面 collapse→identity / C3 每件真峰≥1.12
+  實測 1.177–1.344 / C4 spread=**0.50**+峰時間 0.286→0.461→0.636→0.811→0.986 嚴格遞增 / C5 負對照 / C6 回歸 reveal 未破壞)。
+  **C5 負對照(鑑別力)**:同時 reveal→spread=**0.0** 非 cascade(件包絡相同、只差相位=核心內建負對照)、
+  **打亂 onset(逆空間序)→spread=0.5 仍大但峰時間遞減→monotone FAIL→非 cascade**(**證「單調掃向」是必要條件,
+  非只看跨度大小**)、單發 hit→identity 起非 collapsed→非 cascade。回歸:0f/0g/(E) validate_beat_templates/
+  validate_more_beats/validate_priors_beats、0d validate_anim(+--selftest AC5)、validate_priors 全 PASS;
+  check_readiness 實跑 cap `cascade_stagger` GREEN、`spine-anim-forge` 仍 HOLD(無誤觸發打包)。**關鍵發現:cascade
+  鑑別子是「件間相位」而非「件包絡形狀」(同時/錯開 reveal 單件包絡可完全相同);且「跨度大」不足以判 cascade,
+  還要「單調掃向」**。新增 cap `cascade_stagger` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
+  見 `knowledge/s1-cascade-stagger.md`、圖 `knowledge/figures/s1_cascade.png`。
 - **S1 擴充主秀 beat 庫:combo + anticipate_hold(里程碑,2026-09-04,candidate 0g)** — 補 STATE
   「下一個 bounded chunk」建議 (F)**更多主秀節拍**。續 0f 再加兩個 big-win 節拍,各有**互不相同、可量化**的
   客觀結構簽章:**combo**(連擊)=遞增 impact 峰數 ≥3(≥1.10 局部極大且嚴格遞增;單發 hit 僅 1 峰)、
@@ -250,13 +268,16 @@
 > **(E) ~~主秀 beat 接進 genre 先驗庫~~ ✅ 完成(2026-09-04,`main_show_priors_integration` L2,見上里程碑)** ——
 >   slot_bigwin 補 burst/hit beat、slot_reveal 既有 open/hit;`validate_priors_beats.py` 5 AC + 覆蓋率仍 1.0;
 > **(F) ~~更多主秀節拍~~**:**✅ combo(多峰遞增)+ anticipate_hold(長蓄力)完成(2026-09-04,candidate 0g,
->   `beat_library_expansion` L2,見上里程碑)**;**續**:cascade(跨件錯開 reveal,需 build_animations 傳 per-part phase
->   —— 是**跨件時序**簽章,與 0g 的單件時序簽章互補)為下一個自然小步;
+>   `beat_library_expansion` L2)**;**續 cascade(跨件錯開 reveal)✅ 完成(2026-09-04 session 002,candidate 0h,
+>   `cascade_stagger` L2,見上里程碑)** —— 第一個**跨件時序**簽章(spread+monotone sweep),與 0g 單件時序互補;
 > **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心;
 >   rigid rotation-about-pivot:對位於件原點 O 的 bone 加 rotate θ + translate Δ=(R(θ)−I)(O−P),P=關節 pivot;
 >   AC=旋轉後 pivot 世界點為不動點 vs 件中心旋轉會位移=內建負對照)。
 > **(H) combo/charge 接進 genre 先驗庫**:如 (E) 對 hit/reveal 所做,把 combo/charge 併入 `genre_priors` 讓
 >   `build_spine --animate` 直出(需同步 `validate_priors` 真值覆蓋、勿動已驗先驗)。
+> **(H') cascade 接進 genre 先驗庫**:同 (H),把 0h 的 cascade beat 併入 `genre_priors`(slot_bigwin/slot_reveal)
+>   讓 `build_spine --animate` 直出跨件掃動;同步 `validate_priors` 覆蓋(cascade 於 Award 真值無命名→誠實 PROPOSAL,
+>   如 (E) 的 burst/hit)。與 (H) 是同一收尾動作的兩個主題,可一併做。
 
 ## 環境前置(已驗證可用)
 
@@ -273,6 +294,15 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04(session 002):**S1 cascade 跨件錯開 reveal(里程碑,candidate 0h)** — 補建議「下一個自然小步」(cascade)。
+  0d–0g 主秀 beat 簽章皆**單件**包絡;cascade 是**第一個跨件(cross-part)時序**簽章:件依空間序(bone x)**錯開** onset
+  逐一 reveal(掃出),非同時炸開。架構上非又一 per-bone 包絡,而是 `build_animations` 對整 beat 的**件間相位編排**
+  (`gen_cascade_part` reveal 家族介面 + `_cascade_beat` **特判不進 `_DISPATCH`**)。跨件簽章=①stagger spread≥0.25
+  ②峰時間沿 x 序嚴格遞增(monotone sweep)。`validate_cascade.py` 對真實 robot 5 拆件 **6 AC 全 PASS**(well-formed/
+  reveal 介面/每件真峰≥1.12/spread=0.50+峰時間嚴格遞增/負對照/回歸 reveal)。**負對照**:同時 reveal→spread=0.0、
+  **打亂 onset(逆序)→spread 大但非遞增→非 cascade(證單調掃向為必要條件)**、單發 hit→identity 起非 collapsed。
+  回歸 0f/0g/(E)/0d(+selftest)/priors 全 PASS;check_readiness cap `cascade_stagger` GREEN、anim-forge 仍 HOLD。
+  發現:cascade 鑑別子是「件間相位」非「件包絡形狀」;跨度大≠cascade,還要單調掃向。見 `knowledge/s1-cascade-stagger.md`。
 - 2026-09-04:**S1 擴充主秀 beat 庫(里程碑,candidate 0g)** — 補建議 (F) 更多主秀節拍。加 `gen_combo`(連擊,
   遞增 impact 峰數 ≥3)+ `gen_anticipate_hold`(蓄力充能,峰前長蓄力佔比 ≥0.35),各有**互不相同、可量化**的
   結構簽章,wire 進 `gen_animations`(combo/charge 類別)。`validate_more_beats.py` **6 AC + 9 條負對照全 PASS**

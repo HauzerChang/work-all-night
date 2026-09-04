@@ -197,17 +197,61 @@ try:
     from beat_templates import gen_hit as _gen_hit, gen_reveal as _gen_reveal, \
         gen_combo as _gen_combo, gen_anticipate_hold as _gen_charge, \
         HIT_KEYWORDS as _HIT_KW, REVEAL_KEYWORDS as _REVEAL_KW, \
-        COMBO_KEYWORDS as _COMBO_KW, CHARGE_KEYWORDS as _CHARGE_KW, DUR as _DUR_EXT
+        COMBO_KEYWORDS as _COMBO_KW, CHARGE_KEYWORDS as _CHARGE_KW, \
+        CASCADE_KEYWORDS as _CASCADE_KW, DUR as _DUR_EXT
     _DISPATCH["hit"] = _gen_hit
     _DISPATCH["reveal"] = _gen_reveal
     _DISPATCH["combo"] = _gen_combo
     _DISPATCH["charge"] = _gen_charge
-    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo/charge 時長對 spine_anim.duration 一致
-    # 主秀類別置前:exact/substring 命中優先於泛用 pulse(combo/charge 亦置前)
-    _CAT_KEYWORDS = {"combo": _COMBO_KW, "charge": _CHARGE_KW,
+    # 注意:cascade 不進 _DISPATCH(它是**跨件**相位編排,非單件包絡),
+    # 由 build_animations 特判(見 _cascade_beat);此處只需讓 beat_category 能歸類 cascade。
+    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo/charge/cascade 時長對 spine_anim.duration 一致
+    # 主秀類別置前:exact/substring 命中優先於泛用 pulse(cascade/combo/charge 亦置前)
+    _CAT_KEYWORDS = {"cascade": _CASCADE_KW, "combo": _COMBO_KW, "charge": _CHARGE_KW,
                      "hit": _HIT_KW, "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
 except ImportError:
     pass
+
+
+def _cascade_beat(beat, bone_of, cx, cy):
+    """cascade beat:件依**空間序**(bone x, y, name)錯開 onset 逐一 reveal。
+
+    跨件相位編排(而非單件包絡):把 beat 內所有可用件排序,第 rank 件 onset = rank/(n-1)*SPAN*T,
+    再用 beat_templates.gen_cascade_part 產出各件在其 onset 的錯開 reveal。回傳 (bones_tl, slots_tl)。
+    件間 onset 遞增 → scale 峰時間沿空間序遞增(monotone sweep,cross-part 簽章)。"""
+    from beat_templates import gen_cascade_part
+    T = DUR.get("cascade", 1.4)
+    SPAN, WFRAC = 0.5, 0.45         # onset 分佈於前半;每件 pop 寬 0.45T(末件 onset+W=0.95T<T)
+    W = WFRAC * T
+    entries, limb_seen = [], 0
+    for pe in beat["parts"]:
+        part, role = pe["part"], pe["role"]
+        sname = safe(part)
+        bd = bone_of.get(sname)
+        if bd is None:
+            continue
+        side_sign = 1.0
+        if role == "limb":
+            side_sign = 1.0 if limb_seen % 2 == 0 else -1.0
+            limb_seen += 1
+        dx, dy = bd.get("x", cx) - cx, bd.get("y", cy) - cy
+        nrm = math.hypot(dx, dy) or 1.0
+        entries.append({"sname": sname, "bname": "b_" + sname, "role": role,
+                        "side": side_sign, "radial": (dx / nrm, dy / nrm),
+                        "x": bd.get("x", 0.0), "y": bd.get("y", 0.0)})
+    # 確定性空間序:左→右掃(x 主,y、名為 tie-break)
+    order = sorted(range(len(entries)), key=lambda i: (entries[i]["x"], entries[i]["y"], entries[i]["sname"]))
+    n = len(order)
+    bones_tl, slots_tl = {}, {}
+    for rank, idx in enumerate(order):
+        e = entries[idx]
+        onset = (rank / max(n - 1, 1)) * SPAN * T if n > 1 else 0.0
+        b, sdict = gen_cascade_part(e["role"], e["side"], e["radial"], onset, W, T)
+        if b:
+            bones_tl[e["bname"]] = b
+        if sdict:
+            slots_tl[e["sname"]] = sdict
+    return bones_tl, slots_tl
 
 
 def build_animations(skeleton, storyboard):
@@ -222,31 +266,35 @@ def build_animations(skeleton, storyboard):
     anims = {}
     for beat in storyboard["beats"]:
         name = beat["beat"]
-        bones_tl, slots_tl = {}, {}
-        limb_seen = 0
-        for pe in beat["parts"]:
-            part = pe["part"]; role = pe["role"]
-            sname = safe(part)
-            bname = "b_" + sname
-            bd = bone_of.get(sname)
-            if bd is None:
-                continue
-            # 左右反相:依遇到 limb 的順序交替 ±1(確定性)
-            side_sign = 1.0
-            if role == "limb":
-                side_sign = 1.0 if limb_seen % 2 == 0 else -1.0
-                limb_seen += 1
-            # 徑向外側單位向量(件中心相對畫布中心)
-            dx, dy = bd.get("x", cx) - cx, bd.get("y", cy) - cy
-            n = math.hypot(dx, dy) or 1.0
-            radial = (dx / n, dy / n)
+        cat = beat_category(name)
+        if cat == "cascade":
+            # cascade 是**跨件**相位編排(件間錯開 onset),非單件包絡 → 特判(見 _cascade_beat)
+            bones_tl, slots_tl = _cascade_beat(beat, bone_of, cx, cy)
+        else:
+            bones_tl, slots_tl = {}, {}
+            limb_seen = 0
+            for pe in beat["parts"]:
+                part = pe["part"]; role = pe["role"]
+                sname = safe(part)
+                bname = "b_" + sname
+                bd = bone_of.get(sname)
+                if bd is None:
+                    continue
+                # 左右反相:依遇到 limb 的順序交替 ±1(確定性)
+                side_sign = 1.0
+                if role == "limb":
+                    side_sign = 1.0 if limb_seen % 2 == 0 else -1.0
+                    limb_seen += 1
+                # 徑向外側單位向量(件中心相對畫布中心)
+                dx, dy = bd.get("x", cx) - cx, bd.get("y", cy) - cy
+                n = math.hypot(dx, dy) or 1.0
+                radial = (dx / n, dy / n)
 
-            cat = beat_category(name)
-            b, sdict = _DISPATCH[cat](role, side_sign, radial)
-            if b:
-                bones_tl[bname] = b
-            if sdict:
-                slots_tl[sname] = sdict
+                b, sdict = _DISPATCH[cat](role, side_sign, radial)
+                if b:
+                    bones_tl[bname] = b
+                if sdict:
+                    slots_tl[sname] = sdict
         anim = {}
         if bones_tl:
             anim["bones"] = bones_tl
