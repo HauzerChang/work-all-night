@@ -289,18 +289,34 @@
   n=1,未做正負對照校準,建議下一步先幫生成式方法設計專屬評分方式(1b 或 vision-proxy),
   再擴大樣本。
 
-- [S4 viewer 路線圖 + V1:PSD 純瀏覽器端解析完成(chunk 36)](s4-viewer-plan.md) —
-  chunk 34 使用者裁決的 viewer 方向(Photoshop 插件 HTML 版)拆解為 V1~V5 有界工作塊,
-  本次完成 V1:`tools/mesh_gen/psd_viewer.html`(單檔,ag-psd 解析 PSD,圖層樹+composite+
-  逐圖層 metadata,`window.psdViewerTool` Phase-2 API)。**選擇這個工作塊的原因**:候選17
-  下一步需要真的呼叫 API 才能擴大樣本,但本次排程 session 環境變數沒有 `OPENAI_API_KEY`
-  (使用者對話中貼的 key 只在當次暫存變數用完即清,不會被下個 session 繼承)——結構性
-  無法繼續,故轉向不受此限制的 viewer。**驗證**:Playwright headless(page.route 攔截
-  CDN 請求到本機 `npm pack` 下載的 vendor 副本,僅測試手段,production 仍走真 CDN)對
-  `robot_parts.psd`(5層)/`Symbol_Ww.psd`(18層)兩份真實素材,逐圖層 bbox/名稱/composite
-  與獨立的 Python `psd-tools` 地面真值交叉比對,結構與 bbox 100% 相符;composite 像素比對
-  改用 premultiplied-alpha(踩到一個跟 `CLAUDE.md` PMA 雷點同構的校準坑——raw RGBA 比對
-  會被透明像素不具意義的 RGB 值污染出假差異,premult 後兩份素材 mean diff 僅 0.03~0.04/255)。
-  **誠實限制**:未做互動式顯示/隱藏重繪(留 V2)、未測巢狀 group 素材、生產環境 CDN 可達性
-  無法在此容器驗證(需使用者自己的瀏覽器測)。同時記錄:候選17若要在自動化排程下持續推進,
-  需要使用者把 API key 設成持久化的 environment secret,而非每次對話貼一次。
+- [S4 AI 補圖 Viewer:純瀏覽器端 Photoshop 插件替代品(chunk 36,viewer 主線)](s4-ai-viewer-tool.md) —
+  使用者要求不被 Photoshop 綁定的「視覺化即時切圖補圖工具」。關鍵前提驗證:
+  `api.openai.com` 對 CORS preflight 回傳 `access-control-allow-origin: *`,證實瀏覽器
+  可以直接跨來源呼叫 OpenAI API,不需要中介後端。新增 `tools/mesh_gen/s4_ai_viewer.html`
+  (載入圖層→畫遮罩→prompt→直接呼叫 API→結果比對→套用/下載,key 只存本機
+  localStorage),用 Playwright mock API 呼叫驗證前端邏輯(未打真實付費 API)。同時建立
+  `.claude/skills/spine-asset-request/SKILL.md`(初步版):把「使用者描述動畫需求→判斷
+  缺口類型→驅動切圖/補圖工具→驗證→記錄」的既有工具串成一套可重複流程,含缺口分類表、
+  CPU優先/生成式後補的決策順序、以及誠實列出目前無法自動處理的情況(視角外推/平圖拆件/
+  生成結果像素漂移)。
+
+- [S4 viewer 路線圖 + V1:PSD 純瀏覽器端解析完成(chunk 37,次要能力,見下方撞號說明)](s4-viewer-plan.md) —
+  chunk 34 使用者裁決的 viewer 方向拆解為 V1~V5 有界工作塊,本次完成 V1:
+  `tools/mesh_gen/psd_viewer.html`(單檔,ag-psd 直接在瀏覽器端解析原始 .psd,圖層樹+
+  composite+逐圖層 metadata,`window.psdViewerTool` Phase-2 API)。**選擇這個工作塊的
+  原因**:候選17下一步需要真的呼叫 API 才能擴大樣本,但本次排程 session 環境變數沒有
+  `OPENAI_API_KEY`(使用者對話中貼的 key 只在當次暫存變數用完即清,不會被下個 session
+  繼承)——結構性無法繼續,故轉向不受此限制的 viewer。**驗證**:Playwright headless
+  (page.route 攔截 CDN 請求到本機 `npm pack` 下載的 vendor 副本,僅測試手段,production
+  仍走真 CDN)對 `robot_parts.psd`(5層)/`Symbol_Ww.psd`(18層)兩份真實素材,逐圖層
+  bbox/名稱/composite 與獨立的 Python `psd-tools` 地面真值交叉比對,結構與 bbox 100%
+  相符;composite 像素比對改用 premultiplied-alpha(踩到一個跟 `CLAUDE.md` PMA 雷點
+  同構的校準坑——raw RGBA 比對會被透明像素不具意義的 RGB 值污染出假差異,premult 後
+  兩份素材 mean diff 僅 0.03~0.04/255)。**⚠️ 撞號說明**:此工作塊與 chunk 36 是兩個
+  並行 session 從同一份 chunk 35 狀態各自獨立做出的,`git push` 時才發現——chunk 36
+  時間較早、使用者直接指示、功能更完整(mask+API呼叫+skill),視為 viewer 主線;本篇
+  是不同架構選擇(瀏覽器端直接解析原始 .psd,而非吃 Python 匯出的 manifest+PNG),保留
+  作為獨立驗證過的次要能力,不建議視為主線必經步驟。**誠實限制**:未做互動式顯示/隱藏
+  重繪、未測巢狀 group 素材、生產環境 CDN 可達性無法在此容器驗證。同時記錄:候選17若要
+  在自動化排程下持續推進,需要使用者把 API key 設成持久化的 environment secret,而非
+  每次對話貼一次。

@@ -7,22 +7,37 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
-> **chunk 36(2026-09-04)**:本次排程 session 環境變數**沒有 `OPENAI_API_KEY`**(chunk 34
-> 記錄的 key 只在對話當次暫存變數用完即清,不會被下個 session 繼承)——候選17「先定評分
-> 方式再擴大樣本」的下一步結構性做不了(兩者都需要真的呼叫 API)。轉向不受此限制、chunk 34
-> 已裁決但「尚未拆解成有界工作塊」的 **viewer** 方向:拆解為 V1~V5,完成 **V1(PSD 純瀏覽器
-> 端解析)**——`tools/mesh_gen/psd_viewer.html`(ag-psd 解析,圖層樹+composite+逐圖層
-> metadata,`window.psdViewerTool` Phase-2 API)。headless 驗證(Playwright + 本機 vendor
-> 副本繞過此容器 CDN 阻塞,僅測試手段)對兩份真實 PSD 交叉比對 Python `psd-tools` 地面
-> 真值:圖層名稱/順序/bbox 100% 相符,composite premultiplied 像素比對 mean diff
-> 0.03~0.04/255。**⚠️ 對後續排程的重要提醒**:候選17若要在自動化排程下持續推進,需要
-> 使用者把 API key 設成持久化的 environment secret,否則每個新 session 都會卡在同一個
-> 「沒有 key」起點——見下方「chunk 36」段落與 `knowledge/s4-viewer-plan.md`。
+> **⚠️ chunk 36/37 是同一時段兩個並行 session 撞號的結果,合併時才發現(見下方兩段
+> 與 `knowledge/s4-viewer-plan.md`「與並行 session 的工作塊撞號」章節,下一個 session
+> 動工前務必先讀)**:
 >
-> **三項使用者裁決現況**:(1) 候選17——技術阻塞(網路政策)已解除,但**缺持久化 API key
-> 之前,自動化排程 session 無法繼續**,需使用者設定 environment secret;(2) skill(需求
-> 驅動切圖補圖)——方向已定,待 viewer/候選17 有基礎後再整合,尚未拆解成有界工作塊;
-> (3) viewer(Photoshop插件HTML版)——**V1 已完成**,V2(互動遮罩+即時重繪)是下一個候選。
+> **chunk 36(2026-09-04,使用者直接指示,時間較早)**:使用者要求推進 viewer + skill
+> 兩項。完成 `tools/mesh_gen/s4_ai_viewer.html`(純瀏覽器端,驗證 OpenAI API 允許 CORS,
+> 不需要中介後端/不依賴 Photoshop;PSD 解析仍留在 Python `psd_slice.py`,瀏覽器吃匯出的
+> manifest+PNG)+ `.claude/skills/spine-asset-request/SKILL.md`(初步版,把既有 S4 工具
+> 串成「需求→判斷缺口→驅動切圖/補圖→驗證→記錄」流程)。見 `knowledge/s4-ai-viewer-tool.md`。
+>
+> **chunk 37(2026-09-04,排程自動觸發,時間較晚,獨立不知情地做了同名工作)**:本次排程
+> session 環境變數**沒有 `OPENAI_API_KEY`**(chunk 34 記錄的 key 只在對話當次暫存變數
+> 用完即清,不會被下個 session 繼承)——候選17「先定評分方式再擴大樣本」的下一步結構性
+> 做不了。轉向不受此限制、chunk 34 已裁決但「尚未拆解成有界工作塊」的 **viewer** 方向:
+> 拆解為 V1~V5,完成 **V1(PSD 純瀏覽器端解析)**——`tools/mesh_gen/psd_viewer.html`
+> (架構不同於 chunk 36:直接引入 ag-psd 在瀏覽器端解析原始 .psd,不經過 Python 匯出)。
+> headless 驗證(Playwright + 本機 vendor 副本繞過此容器 CDN 阻塞,僅測試手段)對兩份
+> 真實 PSD 交叉比對 Python `psd-tools` 地面真值:圖層名稱/順序/bbox 100% 相符,composite
+> premultiplied 像素比對 mean diff 0.03~0.04/255。**合併後的定調**:`s4_ai_viewer.html`
+> (chunk 36)功能更完整、且是使用者直接指示,視為 viewer 主線;`psd_viewer.html`
+> (chunk 37)是獨立驗證過的次要能力(可不跑 Python 匯出、直接讀原始 .psd),不建議
+> 視為主線 V1→V2→V3 的必經步驟(主線的等價功能已經做完)。見下方「chunk 36」「chunk 37」
+> 兩段與 `knowledge/s4-viewer-plan.md`。
+>
+> **三項使用者裁決現況(合併兩邊後)**:(1) 候選17——技術阻塞(網路政策)已解除,已完成
+> 第一次真實驗證(chunk 35),發現 1a 評分方法論可能不適合生成式輸出、下一步待定生成式
+> 專屬評分方式;此外**缺持久化 API key 之前,自動化排程 session 無法繼續擴大樣本**,需
+> 使用者設定 environment secret;(2) skill——**初步版已完成**(chunk 36,
+> `spine-asset-request`),後續依實戰使用回饋迭代;(3) viewer——**主線初步版已完成**
+> (chunk 36,`s4_ai_viewer.html`,已用 Playwright mock API 驗證前端邏輯,未打真實付費
+> API 做端到端驗證);次要能力 V1(chunk 37,`psd_viewer.html`)也已完成並驗證。
 > **候選15已裁決「無限期擱置」**,不再是待裁決項,見下方「chunk 33」段落。
 
 ## 範圍
@@ -475,18 +490,45 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
-- 2026-09-04:**viewer 路線圖 + V1(PSD 純瀏覽器端解析)完成(chunk 36)** — 發現本次排程
-  session 無 `OPENAI_API_KEY`,候選17結構性無法繼續,轉向 chunk 34 裁決但未拆解的 viewer
-  方向。拆解為 V1~V5,完成 V1:新增 `tools/mesh_gen/psd_viewer.html`(ag-psd 解析 PSD,
-  圖層樹+composite+逐圖層 metadata,`window.psdViewerTool` Phase-2 API)。Playwright
-  headless(page.route 攔截 CDN 請求到本機 `npm pack` vendor 副本,僅測試用,production
-  仍走真 CDN)對 `robot_parts.psd`(5層)/`Symbol_Ww.psd`(18層)交叉比對 Python
-  `psd-tools` 地面真值:圖層名稱/順序/bbox 100% 相符。踩到一個跟 `CLAUDE.md` PMA 雷點
-  同構的校準坑(raw RGBA 比對被透明像素的無意義 RGB 值污染出假差異),改用 premultiplied
-  比對後 mean diff 僅 0.03~0.04/255。誠實限制:V1 僅檢視,無互動顯示/隱藏重繪(留 V2);
-  未測巢狀 group 素材;生產 CDN 可達性需使用者自己驗證。同時記錄候選17若要在自動化排程
+- 2026-09-04:**⚠️ chunk 36/37 撞號說明(合併 push 時發現)** — 兩個並行 session 從同一份
+  chunk 35 狀態各自獨立推進 viewer,`git push` 才發現撞號。時間較早、使用者直接指示的
+  commit 保留編號 chunk 36(`s4_ai_viewer.html` + skill);時間較晚、排程自動觸發、獨立
+  不知情做了同名工作的 commit 重新編號為 chunk 37(`psd_viewer.html`)。兩者是不同架構
+  選擇,不是重複——但 chunk 36 功能更完整,視為 viewer 主線。詳見
+  `knowledge/s4-viewer-plan.md`「與並行 session 的工作塊撞號」章節、
+  `log/s4-2026-09-04-036.md`(主線)、`log/s4-2026-09-04-037.md`(次要能力)。
+- 2026-09-04:**viewer 路線圖 + V1(PSD 純瀏覽器端解析)完成(chunk 37,次要能力,見上方
+  撞號說明)** — 發現本次排程 session 無 `OPENAI_API_KEY`,候選17結構性無法繼續,轉向
+  chunk 34 裁決但未拆解的 viewer 方向。拆解為 V1~V5,完成 V1:新增
+  `tools/mesh_gen/psd_viewer.html`(ag-psd 直接在瀏覽器端解析原始 .psd,圖層樹+composite+
+  逐圖層 metadata,`window.psdViewerTool` Phase-2 API)。Playwright headless(page.route
+  攔截 CDN 請求到本機 `npm pack` vendor 副本,僅測試用,production 仍走真 CDN)對
+  `robot_parts.psd`(5層)/`Symbol_Ww.psd`(18層)交叉比對 Python `psd-tools` 地面真值:
+  圖層名稱/順序/bbox 100% 相符。踩到一個跟 `CLAUDE.md` PMA 雷點同構的校準坑(raw RGBA
+  比對被透明像素的無意義 RGB 值污染出假差異),改用 premultiplied 比對後 mean diff 僅
+  0.03~0.04/255。誠實限制:V1 僅檢視,無互動顯示/隱藏重繪;未測巢狀 group 素材;生產
+  CDN 可達性需使用者自己驗證;且既然 chunk 36 的 `s4_ai_viewer.html` 已是功能更完整的
+  主線,本檔的 V2~V5 不建議在未經使用者要求前繼續投入。同時記錄候選17若要在自動化排程
   下持續推進,需使用者設定持久化 `OPENAI_API_KEY` environment secret。見
-  `knowledge/s4-viewer-plan.md`、`log/s4-2026-09-04-036.md`。
+  `knowledge/s4-viewer-plan.md`、`log/s4-2026-09-04-037.md`。
+- 2026-09-04:**viewer + skill 初步版完成(chunk 36,viewer 主線)** — 使用者要求推進 viewer(PSD檢視/編輯
+  +與ChatGPT即時溝通,類Photoshop插件HTML版)與 skill(需求驅動切圖補圖)兩項。**關鍵前提
+  驗證**:`curl -X OPTIONS https://api.openai.com/v1/images/edits` 帶 CORS preflight header,
+  回傳 `access-control-allow-origin: *`——確認瀏覽器可以直接跨來源呼叫 OpenAI API,viewer
+  不需要中介後端,「純前端 Photoshop 插件替代品」這個架構成立。新增
+  `tools/mesh_gen/s4_ai_viewer.html`:載入圖層(manifest.json+PNG 或單張 PNG)→畫遮罩
+  (canvas 筆刷)→prompt→直接 `fetch()` 呼叫 API→結果三欄比對→套用/下載;key 只存瀏覽器
+  localStorage;每次呼叫記錄用量(可選 File System Access API 直接寫入
+  `tools/mesh_gen/s4_data/openai_usage.jsonl`,跟儀表板共用)。用 Playwright 
+  headless Chromium 驗證前端邏輯(檔案載入/遮罩繪製/驗證擋錯/mock API 呼叫/套用/manifest
+  載入共6項),**mock 掉真實 API 呼叫,未花費真實金錢驗證**。踩到並確認一個已知環境限定
+  caveat(非工具 bug):Playwright `setInputFiles` 對中文檔名的限制,跟 `psd_preview.html`
+  先前記錄的是同一個問題。同時建立 `.claude/skills/spine-asset-request/SKILL.md`(初步版,
+  ⚠️ 位於 `.claude/skills/`,非本排程「檔案隔離契約」列出的 S4 專屬路徑,但屬使用者當面
+  直接要求的新增內容,不觸碰主排程任何既有檔案,判斷不違反契約精神):把「使用者描述動畫
+  需求→依 taxonomy 判斷缺口類型(A切圖/B補圖-CPU優先/C補圖-生成式/D視角外推無解)→驅動對應
+  S4 工具→真實場景驗證→記錄」串成一套可重複流程,含工具速查表與「誠實回報無法自動處理的
+  情況」清單。見 `knowledge/s4-ai-viewer-tool.md`、`log/s4-2026-09-04-036.md`。
 - 2026-09-04:**候選17網路阻塞解除 + 第一次真實驗證,發現 1a 評分方法論可能不適合生成式
   輸出(chunk 35)** — 使用者放行 `api.openai.com`。驗證步驟:(1) 不帶 key 測 models 端點
   拿到 401(非連線層級 403,確認網路已通);(2) 帶 key 測拿到 200,確認 `gpt-image-2` 在

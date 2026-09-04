@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>S4 AI 補圖 Viewer — 候選17即時工具</title>
+<style>
+  :root {
+    --bg: #12151a; --panel: #1a1f27; --panel2: #20262f; --border: #2c3340;
+    --text: #dde3ec; --muted: #8b95a5; --accent: #4f9dff;
+    --ok: #3ecf6a; --bad: #ff5d6c; --warn: #f5b53c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 13px/1.5 -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  }
+  header {
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  .keybar {
+    display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+    border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap;
+  }
+  .keybar input[type=password], .keybar input[type=text] {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 5px 8px; border-radius: 5px; font-size: 12px;
+  }
+  .keybar .warn { color: var(--warn); font-size: 11px; }
+  .btn {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.primary { background: #1c3253; border-color: var(--accent); color: #fff; }
+  #status { color: var(--muted); font-size: 12px; }
+  #status.err { color: var(--bad); }
+  #status.ok { color: var(--ok); }
+  #status.busy { color: var(--warn); }
+  main { display: flex; gap: 14px; padding: 14px; }
+  .col { display: flex; flex-direction: column; gap: 10px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .panel h3 { margin: 0 0 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  #layerPanel { width: 220px; flex-shrink: 0; max-height: 82vh; overflow: auto; }
+  .layer-row { padding: 5px 6px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .layer-row:hover { background: var(--panel2); }
+  .layer-row.sel { background: #1c3253; color: #fff; }
+  .layer-row img { width: 28px; height: 28px; object-fit: contain; background: #0008; border-radius: 3px; }
+  #dropzone {
+    border: 1px dashed var(--border); border-radius: 6px; padding: 30px; text-align: center;
+    color: var(--muted); font-size: 12px; cursor: pointer;
+  }
+  #dropzone.drag { border-color: var(--accent); color: var(--accent); }
+  .canvasWrap { position: relative; display: inline-block; background:
+    repeating-conic-gradient(#e8e8e8 0% 25%, #cfcfcf 0% 50%) 50% / 16px 16px; border-radius: 6px; overflow: hidden; }
+  canvas { display: block; }
+  #maskCanvas { position: absolute; top: 0; left: 0; opacity: .55; cursor: crosshair; }
+  .brushBar { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+  textarea {
+    width: 100%; min-height: 70px; background: var(--panel2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px; padding: 8px; font: 12px/1.4 inherit; resize: vertical;
+  }
+  select { background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 5px; padding: 4px 6px; font-size: 12px; }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .resultGrid { display: flex; gap: 10px; }
+  .resultGrid .cell { text-align: center; }
+  .resultGrid .cell .lbl { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  #logTbl { width: 100%; border-collapse: collapse; font-size: 11px; }
+  #logTbl th, #logTbl td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  #logTbl th { color: var(--muted); }
+  #logPanel { max-height: 220px; overflow: auto; }
+  .empty-hint { padding: 60px 20px; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>S4 AI 補圖 Viewer</h1>
+  <span class="sub">候選17 — 純瀏覽器端,直接呼叫 OpenAI images/edits,不經過任何伺服器,不依賴 Photoshop</span>
+</header>
+<div class="keybar">
+  <label>OpenAI API key:</label>
+  <input type="password" id="apiKey" placeholder="sk-..." size="30">
+  <button class="btn" id="saveKeyBtn">存到本機瀏覽器(localStorage)</button>
+  <button class="btn" id="clearKeyBtn">清除</button>
+  <span class="warn">⚠️ key 只存在你這個瀏覽器的 localStorage,不會送到任何地方(除了 api.openai.com);換瀏覽器/清 cookie 要重貼</span>
+</div>
+<main>
+  <div class="col" id="layerPanel">
+    <div class="panel">
+      <h3>圖層 / 圖片</h3>
+      <div id="dropzone">拖曳 psd_slice.py 匯出資料夾(含 manifest.json)<br>或單張 PNG 進來,<br>也可用下面按鈕選檔</div>
+      <input type="file" id="fileInput" multiple accept=".json,.png" style="margin-top:8px; font-size:11px;">
+      <div id="layerList"></div>
+    </div>
+  </div>
+
+  <div class="col" style="flex:1;">
+    <div class="panel" id="editPanel" style="display:none;">
+      <h3>遮罩 + Prompt</h3>
+      <div class="row brushBar">
+        <span>筆刷</span>
+        <input type="range" id="brushSize" min="4" max="120" value="30">
+        <span id="brushSizeLbl">30px</span>
+        <button class="btn" id="clearMaskBtn">清除遮罩</button>
+        <button class="btn" id="invertMaskBtn">反轉遮罩</button>
+        <span id="maskInfo" style="color:var(--muted)"></span>
+      </div>
+      <div class="canvasWrap" id="canvasWrap">
+        <canvas id="baseCanvas"></canvas>
+        <canvas id="maskCanvas"></canvas>
+      </div>
+      <div style="margin-top:10px;">
+        <textarea id="prompt" placeholder="描述要補的內容,例如:Restore the missing mechanical panel texture inside the masked hole, continuing the surrounding metallic surface style. Keep everything outside the mask unchanged."></textarea>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label>model</label>
+        <select id="model">
+          <option value="gpt-image-2" selected>gpt-image-2</option>
+          <option value="gpt-image-1.5">gpt-image-1.5</option>
+          <option value="gpt-image-1">gpt-image-1</option>
+        </select>
+        <label>size</label>
+        <select id="size">
+          <option value="1024x1024" selected>1024x1024</option>
+          <option value="1024x1536">1024x1536</option>
+          <option value="1536x1024">1536x1024</option>
+        </select>
+        <label>quality</label>
+        <select id="quality">
+          <option value="low" selected>low(便宜)</option>
+          <option value="medium">medium</option>
+          <option value="high">high(貴)</option>
+        </select>
+        <button class="btn primary" id="sendBtn">送出補圖</button>
+        <span id="status">就緒</span>
+      </div>
+    </div>
+
+    <div class="panel" id="resultPanel" style="display:none;">
+      <h3>結果</h3>
+      <div class="resultGrid">
+        <div class="cell"><div class="lbl">原圖</div><canvas id="origPreview"></canvas></div>
+        <div class="cell"><div class="lbl">AI 補丁(完整回傳)</div><canvas id="aiPreview"></canvas></div>
+        <div class="cell"><div class="lbl">套用後(只換遮罩區)</div><canvas id="mergedPreview"></canvas></div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button class="btn primary" id="applyBtn">套用(取代工作圖層)</button>
+        <button class="btn" id="downloadBtn">下載 PNG</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>本次 session 用量記錄</h3>
+      <div class="row" style="margin-bottom:6px;">
+        <button class="btn" id="connectLogBtn">連接本機 openai_usage.jsonl(自動接續寫入)</button>
+        <button class="btn" id="exportLogBtn">匯出這次 session 的紀錄(.jsonl)</button>
+        <span id="logFileStatus" style="color:var(--muted); font-size:11px;"></span>
+      </div>
+      <div id="logPanel">
+        <table id="logTbl"><thead><tr>
+          <th>時間</th><th>model</th><th>size</th><th>quality</th><th>mask%</th>
+          <th>in tok</th><th>out tok</th><th>耗時s</th><th>狀態</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let manifestParts = null;   // [{name, file, ...}] from psd_slice manifest, if loaded
+let fileMap = {};           // filename -> File object (for local loading)
+let workingImg = null;      // ImageBitmap/Image currently being edited
+let workingName = "layer";
+let baseCtx, maskCtx;
+let drawing = false;
+let usageRows = [];
+let logFileHandle = null;
+
+function setStatus(text, cls) {
+  const el = $("status");
+  el.textContent = text;
+  el.className = cls || "";
+}
+
+// ---------- key handling ----------
+$("apiKey").value = localStorage.getItem("s4_openai_key") || "";
+$("saveKeyBtn").addEventListener("click", () => {
+  localStorage.setItem("s4_openai_key", $("apiKey").value.trim());
+  setStatus("key 已存到 localStorage", "ok");
+});
+$("clearKeyBtn").addEventListener("click", () => {
+  localStorage.removeItem("s4_openai_key");
+  $("apiKey").value = "";
+  setStatus("key 已清除", "ok");
+});
+
+// ---------- loading ----------
+function handleFiles(files) {
+  fileMap = {};
+  let manifestFile = null;
+  for (const f of files) {
+    fileMap[f.name] = f;
+    if (f.name === "manifest.json") manifestFile = f;
+  }
+  if (manifestFile) {
+    manifestFile.text().then(txt => {
+      const m = JSON.parse(txt);
+      manifestParts = m.parts || m.methods || [];
+      renderLayerList();
+    });
+  } else {
+    // 單張/多張 PNG,無 manifest,直接各自當一個圖層
+    manifestParts = Object.keys(fileMap).filter(n => n.toLowerCase().endsWith(".png"))
+      .map(n => ({ name: n, file: n }));
+    renderLayerList();
+  }
+}
+
+function renderLayerList() {
+  const el = $("layerList");
+  el.innerHTML = "";
+  manifestParts.forEach((p, i) => {
+    const row = document.createElement("div");
+    row.className = "layer-row";
+    row.dataset.idx = i;
+    const f = fileMap[p.file];
+    const thumbSrc = f ? URL.createObjectURL(f) : "";
+    row.innerHTML = `<img src="${thumbSrc}"><span>${p.name || p.file}</span>`;
+    row.addEventListener("click", () => selectLayer(i));
+    el.appendChild(row);
+  });
+}
+
+function selectLayer(i) {
+  document.querySelectorAll(".layer-row").forEach(r => r.classList.remove("sel"));
+  const row = document.querySelector(`.layer-row[data-idx="${i}"]`);
+  if (row) row.classList.add("sel");
+  const p = manifestParts[i];
+  workingName = p.name || p.file;
+  const f = fileMap[p.file];
+  if (!f) { setStatus("找不到檔案 " + p.file, "err"); return; }
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => {
+    workingImg = img;
+    setupCanvases(img.width, img.height);
+    $("editPanel").style.display = "block";
+    setStatus(`已載入 ${workingName}(${img.width}×${img.height})`, "ok");
+  };
+  img.src = url;
+}
+
+function setupCanvases(w, h) {
+  const base = $("baseCanvas"), mask = $("maskCanvas");
+  base.width = w; base.height = h;
+  mask.width = w; mask.height = h;
+  baseCtx = base.getContext("2d");
+  maskCtx = mask.getContext("2d");
+  baseCtx.clearRect(0, 0, w, h);
+  baseCtx.drawImage(workingImg, 0, 0);
+  maskCtx.clearRect(0, 0, w, h);
+  updateMaskInfo();
+}
+
+$("dropzone").addEventListener("click", () => $("fileInput").click());
+$("dropzone").addEventListener("dragover", (e) => { e.preventDefault(); $("dropzone").classList.add("drag"); });
+$("dropzone").addEventListener("dragleave", () => $("dropzone").classList.remove("drag"));
+$("dropzone").addEventListener("drop", (e) => {
+  e.preventDefault(); $("dropzone").classList.remove("drag");
+  const files = [...e.dataTransfer.files];
+  handleFiles(files);
+});
+$("fileInput").addEventListener("change", (e) => handleFiles([...e.target.files]));
+
+// ---------- mask drawing ----------
+$("brushSize").addEventListener("input", () => { $("brushSizeLbl").textContent = $("brushSize").value + "px"; });
+
+function maskPos(e) {
+  const rect = $("maskCanvas").getBoundingClientRect();
+  const scaleX = $("maskCanvas").width / rect.width;
+  const scaleY = $("maskCanvas").height / rect.height;
+  return [(e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY];
+}
+function paintAt(x, y) {
+  const r = parseInt($("brushSize").value, 10) / 2;
+  maskCtx.fillStyle = "rgba(255,60,60,1)";
+  maskCtx.beginPath(); maskCtx.arc(x, y, r, 0, Math.PI * 2); maskCtx.fill();
+}
+$("maskCanvas").addEventListener("mousedown", (e) => { drawing = true; paintAt(...maskPos(e)); updateMaskInfo(); });
+$("maskCanvas").addEventListener("mousemove", (e) => { if (drawing) { paintAt(...maskPos(e)); updateMaskInfo(); } });
+window.addEventListener("mouseup", () => { drawing = false; });
+$("clearMaskBtn").addEventListener("click", () => {
+  maskCtx.clearRect(0, 0, maskCtx.canvas.width, maskCtx.canvas.height);
+  updateMaskInfo();
+});
+$("invertMaskBtn").addEventListener("click", () => {
+  const w = maskCtx.canvas.width, h = maskCtx.canvas.height;
+  const d = maskCtx.getImageData(0, 0, w, h);
+  for (let i = 0; i < d.data.length; i += 4) {
+    const on = d.data[i + 3] > 0;
+    d.data[i] = 255; d.data[i + 1] = 60; d.data[i + 2] = 60;
+    d.data[i + 3] = on ? 0 : 255;
+  }
+  maskCtx.putImageData(d, 0, 0);
+  updateMaskInfo();
+});
+function getMaskBool() {
+  const w = maskCtx.canvas.width, h = maskCtx.canvas.height;
+  const d = maskCtx.getImageData(0, 0, w, h).data;
+  const arr = new Uint8Array(w * h);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) arr[p] = d[i + 3] > 0 ? 1 : 0;
+  return { arr, w, h };
+}
+function updateMaskInfo() {
+  const { arr } = getMaskBool();
+  const on = arr.reduce((a, v) => a + v, 0);
+  $("maskInfo").textContent = `遮罩涵蓋 ${(100 * on / arr.length).toFixed(1)}%`;
+}
+
+// ---------- OpenAI call ----------
+function canvasToPngBlob(canvas) {
+  return new Promise(res => canvas.toBlob(res, "image/png"));
+}
+
+function buildMaskPngCanvas(maskBool, w, h) {
+  // OpenAI 官方慣例:alpha 0=可編輯,255=保留
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const ctx = c.getContext("2d");
+  const img = ctx.createImageData(w, h);
+  for (let p = 0; p < maskBool.length; p++) {
+    const i = p * 4;
+    img.data[i] = 255; img.data[i + 1] = 255; img.data[i + 2] = 255;
+    img.data[i + 3] = maskBool[p] ? 0 : 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+
+async function appendUsageLog(record) {
+  usageRows.push(record);
+  const tb = document.querySelector("#logTbl tbody");
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${record.ts}</td><td>${record.model}</td><td>${record.size}</td>
+    <td>${record.quality}</td><td>${record.mask_coverage_pct}</td>
+    <td>${record.usage?.input_tokens ?? "-"}</td><td>${record.usage?.output_tokens ?? "-"}</td>
+    <td>${record.elapsed_s}</td><td style="color:${record.http_status===200?'var(--ok)':'var(--bad)'}">${record.http_status}</td>`;
+  tb.appendChild(tr);
+
+  if (logFileHandle) {
+    try {
+      const existing = await (await logFileHandle.getFile()).text();
+      const writable = await logFileHandle.createWritable();
+      await writable.write(existing + JSON.stringify(record) + "\n");
+      await writable.close();
+      $("logFileStatus").textContent = "已寫入本機 openai_usage.jsonl";
+    } catch (e) {
+      $("logFileStatus").textContent = "寫入本機檔案失敗:" + e.message;
+    }
+  }
+}
+
+$("connectLogBtn").addEventListener("click", async () => {
+  if (!window.showOpenFilePicker) {
+    $("logFileStatus").textContent = "此瀏覽器不支援 File System Access API(建議用 Chrome/Edge),改用「匯出」按鈕手動合併";
+    return;
+  }
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: "JSONL", accept: { "application/jsonl": [".jsonl"] } }],
+    });
+    logFileHandle = handle;
+    $("logFileStatus").textContent = "已連接:" + handle.name + "(之後每次呼叫自動 append)";
+  } catch (e) { /* 使用者取消 */ }
+});
+
+$("exportLogBtn").addEventListener("click", () => {
+  const text = usageRows.map(r => JSON.stringify(r)).join("\n") + "\n";
+  const blob = new Blob([text], { type: "application/jsonl" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `s4_ai_viewer_usage_${Date.now()}.jsonl`;
+  a.click();
+});
+
+let lastAiResultImg = null;
+let lastMaskBool = null;
+
+$("sendBtn").addEventListener("click", async () => {
+  const key = $("apiKey").value.trim();
+  if (!key) { setStatus("請先貼 API key", "err"); return; }
+  const prompt = $("prompt").value.trim();
+  if (!prompt) { setStatus("請先寫 prompt", "err"); return; }
+  const { arr: maskArr, w, h } = getMaskBool();
+  const onCount = maskArr.reduce((a, v) => a + v, 0);
+  if (onCount === 0) { setStatus("請先用筆刷畫遮罩(要補的區域)", "err"); return; }
+
+  setStatus("呼叫中...", "busy");
+  $("sendBtn").disabled = true;
+  const t0 = performance.now();
+
+  try {
+    const baseBlob = await canvasToPngBlob(baseCtx.canvas);
+    const maskCanvas = buildMaskPngCanvas(maskArr, w, h);
+    const maskBlob = await canvasToPngBlob(maskCanvas);
+
+    const model = $("model").value, size = $("size").value, quality = $("quality").value;
+    const fd = new FormData();
+    fd.append("model", model);
+    fd.append("image", baseBlob, "image.png");
+    fd.append("mask", maskBlob, "mask.png");
+    fd.append("prompt", prompt);
+    fd.append("size", size);
+    fd.append("quality", quality);
+    fd.append("n", "1");
+
+    const resp = await fetch("https://api.openai.com/v1/images/edits", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + key },
+      body: fd,
+    });
+    const elapsed = (performance.now() - t0) / 1000;
+    const payload = await resp.json();
+
+    const record = {
+      ts: new Date().toISOString(), tag: "viewer:" + workingName, model, size, quality,
+      prompt_chars: prompt.length, image_px: `${w}x${h}`,
+      mask_coverage_pct: +(100 * onCount / maskArr.length).toFixed(3),
+      http_status: resp.status, elapsed_s: +elapsed.toFixed(2),
+      usage: payload.usage || null,
+      error: resp.ok ? undefined : JSON.stringify(payload).slice(0, 500),
+    };
+    await appendUsageLog(record);
+
+    if (!resp.ok) { setStatus("API 錯誤 " + resp.status, "err"); $("sendBtn").disabled = false; return; }
+
+    const b64 = payload.data[0].b64_json;
+    const aiImg = new Image();
+    aiImg.onload = () => {
+      lastAiResultImg = aiImg;
+      lastMaskBool = { arr: maskArr, w, h };
+      showResult(aiImg, maskArr, w, h);
+      setStatus("完成", "ok");
+      $("sendBtn").disabled = false;
+    };
+    aiImg.src = "data:image/png;base64," + b64;
+  } catch (e) {
+    setStatus("失敗:" + e.message, "err");
+    $("sendBtn").disabled = false;
+  }
+});
+
+function showResult(aiImg, maskArr, mw, mh) {
+  $("resultPanel").style.display = "block";
+  const ow = workingImg.width, oh = workingImg.height;
+
+  const origC = $("origPreview"); origC.width = ow; origC.height = oh;
+  origC.getContext("2d").drawImage(workingImg, 0, 0);
+
+  const aiC = $("aiPreview"); aiC.width = ow; aiC.height = oh;
+  aiC.getContext("2d").drawImage(aiImg, 0, 0, aiImg.width, aiImg.height, 0, 0, ow, oh);
+
+  // merged: 原圖為底,只把遮罩區換成 AI 結果(遮罩畫在 workingImg 原尺寸座標系,
+  // 若 base 送出時未縮放,mw/mh 應等於 ow/oh)
+  const mergedC = $("mergedPreview"); mergedC.width = ow; mergedC.height = oh;
+  const mctx = mergedC.getContext("2d");
+  mctx.drawImage(workingImg, 0, 0);
+  const aiScaled = document.createElement("canvas");
+  aiScaled.width = ow; aiScaled.height = oh;
+  aiScaled.getContext("2d").drawImage(aiImg, 0, 0, aiImg.width, aiImg.height, 0, 0, ow, oh);
+  const aiData = aiScaled.getContext("2d").getImageData(0, 0, ow, oh);
+  const baseData = mctx.getImageData(0, 0, ow, oh);
+  for (let p = 0; p < maskArr.length; p++) {
+    if (maskArr[p]) {
+      const i = p * 4;
+      baseData.data[i] = aiData.data[i];
+      baseData.data[i + 1] = aiData.data[i + 1];
+      baseData.data[i + 2] = aiData.data[i + 2];
+      baseData.data[i + 3] = aiData.data[i + 3];
+    }
+  }
+  mctx.putImageData(baseData, 0, 0);
+}
+
+$("applyBtn").addEventListener("click", () => {
+  if (!lastAiResultImg) return;
+  const mergedC = $("mergedPreview");
+  const img = new Image();
+  img.onload = () => {
+    workingImg = img;
+    setupCanvases(img.width, img.height);
+    setStatus("已套用,工作圖層已更新(遮罩已清空)", "ok");
+  };
+  img.src = mergedC.toDataURL("image/png");
+});
+
+$("downloadBtn").addEventListener("click", () => {
+  const mergedC = $("mergedPreview");
+  const a = document.createElement("a");
+  a.href = mergedC.toDataURL("image/png");
+  a.download = workingName.replace(/\.[^.]+$/, "") + "_patched.png";
+  a.click();
+});
+</script>
+</body>
+</html>

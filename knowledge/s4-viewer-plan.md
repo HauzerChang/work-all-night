@@ -1,6 +1,6 @@
 # S4「viewer」路線圖 + V1(PSD 純瀏覽器端解析)完成
 
-> 分支 `claude/spine-s4-inpainting`,2026-09-04(chunk 36)。前置:chunk 34 使用者裁決
+> 分支 `claude/spine-s4-inpainting`,2026-09-04(chunk 37)。前置:chunk 34 使用者裁決
 > 三項方向之一——「viewer(Photoshop 插件 HTML 版):PSD 檢視/編輯 + 與 ChatGPT 即時
 > 溝通」,方向已定但「尚未拆解成有界工作塊」。chunk 35 把當次排程資源用在候選17(需要
 > API key,本次 session 環境變數未帶 key,技術上做不了),故本次改推進不依賴 API key、
@@ -39,7 +39,7 @@ architecture)。依 `RULES.md`「步驟太大→先拆子步驟,這次只做第�
   `s4-gptfill-plugin-knowledge.md` §3),V3/V4 若要真的可用,晚一點需要搬插件的五層對位
   邏輯(平移/縮放/位移場/次像素/接受門檻),量級與 V1-V4 加總相當,獨立列出。
 
-**本次(chunk 36)只做 V1**,且做完就有自己的驗收證據,不與 V2+ 混在同一輪。
+**本次(chunk 37)只做 V1**,且做完就有自己的驗收證據,不與 V2+ 混在同一輪。
 
 ## V1 實作:`tools/mesh_gen/psd_viewer.html`
 
@@ -116,16 +116,48 @@ repo 目前的慣例是把「一次性驗收證據」(截圖/比對圖)排除在
   此容器內直接驗證(網路政策擋),使用者實際瀏覽器環境是否暢通需要使用者自己打開驗證;
   若使用者環境也擋 CDN,`AGPSD_CDNS` 陣列可以改指向使用者能連到的鏡像或自行 vendor。
 
-## 下一步(建議)
+## ⚠️ 與並行 session 的工作塊撞號(合併時發現,務必先讀)
 
-1. 若要繼續 viewer:V2(互動遮罩繪製 + 顯示/隱藏即時重繪)是下一個有界工作塊,可獨立
-   於候選17的 API key 狀態推進。
-2. 候選17(擴大 gpt-image-2 樣本)需要使用者在排程環境設定持久化的 `OPENAI_API_KEY`
+本檔完成並 commit 後 push 時發現:**同一時段有另一個 session 直接收到使用者指令**
+(「可以開始製作viewer, 建立初步skill」,見 `log/s4-2026-09-04-036.md`)並已推進了
+viewer,產出 `tools/mesh_gen/s4_ai_viewer.html` + `.claude/skills/spine-asset-request/
+SKILL.md` + `knowledge/s4-ai-viewer-tool.md`,比本檔規劃的 V1~V5 更完整(一次做到
+「PSD manifest 載入 + 滑鼠畫遮罩 + 真的接 OpenAI images/edits fetch + 套用/下載 +
+用量記錄」,大約等於本檔 V1+V2+V3 的合集),且已完成 Playwright mock-API 互動驗證。
+兩個 commit 各自基於同一個 parent(chunk 35)獨立推進,merge 時才發現撞號——已把
+本檔工作塊改編號為 **chunk 37**(原比對過程中一度誤植為 36,已修正),讓 36 保留給
+時間上更早、且是使用者直接指示的那個 commit。
+
+**架構差異需要記住,避免下一個 session 誤用**:`s4_ai_viewer.html` 刻意選擇「PSD 二進位
+解析仍留在 Python(`psd_slice.py` 匯出 manifest+PNG),瀏覽器只吃匯出物」,明確理由是
+「不重新發明 PSD 格式解析」;本檔的 `psd_viewer.html` 則是反其道而行,直接在瀏覽器端
+解析原始 `.psd`(引入 ag-psd 這個新相依)。兩者不是同一件事的兩個版本,是**兩種不同
+架構選擇**——`s4_ai_viewer.html` 目前顯然是使用者實際會用、功能更完整的那條路徑,
+**視為 viewer 的主線**;`psd_viewer.html` 保留作為一個獨立驗證過的能力(可以不跑 Python
+匯出、直接拖 .psd 原檔進瀏覽器查看),但**不應被當成 V1→V2→V3 路徑上的必經步驟**——
+若之後要繼續往 `s4_ai_viewer.html` 那條主線疊加功能,不需要先接 ag-psd。本檔原本規劃的
+V2(互動遮罩)/V3(ChatGPT溝通)在主線上已經完成,不需要重做。
+
+## 下一步(建議,已依撞號現況更新)
+
+1. viewer 主線(`s4_ai_viewer.html`)已完成初版且經 mock 驗證,尚未打過真實付費 API
+   端到端驗證——建議使用者第一次真實使用時先用小遮罩/低 quality 跑一次確認。
+2. `psd_viewer.html`(本檔產出)若要繼續獨立發展,原規劃的 V4(寫回 PSD)/V5(像素對位
+   管線)仍是合理候選,但優先度應該重新評估——如果主線已經走 manifest+PNG 路徑,「瀏覽器
+   端直接讀寫原始 .psd」的價值主要在「不必先跑一次 Python 匯出」這個便利性,不是核心
+   缺口,不建議在還沒被使用者要求前貿然繼續投入。
+3. 候選17(擴大 gpt-image-2 樣本)需要使用者在排程環境設定持久化的 `OPENAI_API_KEY`
    (例如透過 Claude Code on the web 的 environment secrets 機制,而非每次對話貼一次),
    否則自動化排程 session 結構性地無法繼續——這點應該明確回報使用者,不要每次排程都
    重新發現同一個阻塞。
-3. skill(需求驅動切圖補圖,chunk 34 第2項裁決)仍如 chunk 34 判斷:待 viewer/候選17
-   兩塊有一定基礎後再整合,避免底層積木未穩就蓋上層抽象。
+4. skill(`spine-asset-request`)已有初步版,後續依實際使用回饋迭代即可,不需要本檔
+   額外規劃。
+5. **流程面教訓**:這次撞號的根因是兩個 session 都從同一個 stale `STATE_S4.md`(chunk
+   35 版本)出發,其中一個是使用者直接對話觸發、另一個是排程自動觸發,彼此看不到對方
+   進度就都推進了同一個方向。目前的檔案隔離契約防的是「S4 排程 vs 主排程」衝突,沒有
+   涵蓋「多個 S4 session 並行」這個情境——如果使用者會同時開對話 session 又讓排程跑,
+   之後可以考慮在動工前先 `git fetch` 確認 remote HEAD 是否已經前進,而不是只看本地
+   checkout 當下的 `STATE_S4.md`。
 
 ## 檔案
 
