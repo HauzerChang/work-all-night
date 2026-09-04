@@ -299,3 +299,17 @@
   缺口類型→驅動切圖/補圖工具→驗證→記錄」的既有工具串成一套可重複流程,含缺口分類表、
   CPU優先/生成式後補的決策順序、以及誠實列出目前無法自動處理的情況(視角外推/平圖拆件/
   生成結果像素漂移)。
+
+- [外部知識吸收:GenieLabs `spine-animation-ai`(開源 Claude skill,chunk 37)](s4-genielabs-spine-ai-knowledge.md) —
+  使用者分享 GitHub 連結,評估能否優化 `spine-asset-request` skill。**⚠️ 授權 PolyForm
+  Noncommercial 明確禁止商業使用**(本專案 lula slot game 屬商業),本檔只做知識萃取,不
+  複製任何程式碼。兩個對本專案有價值的**未驗證候選**:(1) `split_character.py` 的思路——
+  不對原圖做語意分割,改請生成式模型把角色**重繪**成「部件已分離、留白、白底」的乾淨版面,
+  再用簡單 OpenCV connected-components 分割,直接回應本專案「平圖自動拆件 CPU 到頂」的既有
+  死結,原理上可換我們已打通的 gpt-image-2 嘗試同一招;(2) `position_parts.py` 的
+  SIFT+RANSAC 特徵匹配自動擺位+遮擋投票定 z-order,對 S5(骨架半自動)是互補候選,含具體
+  調校參數(contrast threshold 0.02/Lowe's ratio 0.80/RANSAC≥4 inliers/縮放0.3~3.0x/
+  旋轉±20°)。已同步更新 `spine-asset-request/SKILL.md` 標註這兩個候選路徑(明確標示
+  「未驗證」+「授權限制不可抄程式碼」)。提醒:該專案鎖定 Spine 4.2 JSON 格式,與本專案
+  Spine 3.8 語法不通用,只有概念層(preset generator/bezier緩動/相位差follow-through)可
+  轉移。

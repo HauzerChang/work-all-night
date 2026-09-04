@@ -47,8 +47,16 @@ python3 tools/mesh_gen/psd_slice.py <psd> -o <out_dir>          # 切出各圖�
 python3 tools/mesh_gen/atlas_crop.py <out_dir>/<layer>.png ...  # 併入 atlas(注意 derotate 方向)
 ```
 - 驗收:`psd_slice.py` 內建的重組無損閘(合成 + 貼回原 composite 比對)必須 PASS。
-- 若 PSD 沒有分層(平圖):**目前無法自動拆件**(見 `CLAUDE.md`「誠實界定」段落),回報使用者
-  需要美術提供分層檔,或走 S5(骨架半自動)+ 生成式路線(比 S4 範圍大,不在本 skill 內)。
+- 若 PSD 沒有分層(平圖):**既有結論是無法自動拆件**(見 `CLAUDE.md`「誠實界定」段落)。
+  **⚠️ 有一個尚未驗證的新候選路徑**(chunk 37,見 `knowledge/s4-genielabs-spine-ai-knowledge.md`):
+  用生成式模型(候選17已打通的 gpt-image-2)把角色**重繪**成「部件已分離、留白間距、白底」
+  的新版面(這是生成式模型擅長的任務,不是要求它「分割」原圖),再用簡單的 OpenCV
+  connected-components 切開重繪後的乾淨版面——比直接對糾纏原圖做語意分割容易得多。此思路
+  來自外部開源專案知識萃取(**⚠️ 該專案授權 PolyForm Noncommercial 禁止商業使用,只能借
+  思路重新實作,絕不可複製其程式碼**,本專案〔lula slot game〕屬商業用途)。**在對本專案
+  素材做過合成真值驗證(比照既有補圖閘的校準紀律)之前,不要假設這招可行**,回報使用者前
+  先誠實標註「未驗證候選」。若使用者不想先驗證,直接回報:需要美術提供分層檔,或走 S5
+  (骨架半自動)路線(比 S4 範圍大,不在本 skill 內)。
 
 ### 第 3 步:補圖
 
@@ -106,7 +114,13 @@ python3 tools/mesh_gen/atlas_patch.py ...                                 # 貼�
 - **情境2(視角外推)**:原圖不存在的視角/內容,不是補圖演算法問題。回報使用者:需要美術
   提供額外參考圖、走生成式 AI 從頭生成、或動畫設計端規避真轉向(見
   `knowledge/s4-inpaint-taxonomy.md`)。
-- **平圖(未分層)自動拆件**:CPU 完全做不到語意分割,回報使用者需要分層 PSD 或人工拆件。
+- **平圖(未分層)自動拆件**:CPU 直接語意分割做不到。有一個未驗證候選(生成式重繪拆件版面
+  +簡單分割,見第2步/`knowledge/s4-genielabs-spine-ai-knowledge.md`)可以先跟使用者確認要不要
+  花時間驗證;不驗證或驗證後不可行,回報使用者需要分層 PSD 或人工拆件。
+- **需要幫既有部件在參考圖上自動擺位/算 z-order**(骨架半自動,S5 範疇,不在本 skill 核心
+  範圍):有一個未驗證的外部技術參考(SIFT+RANSAC特徵匹配+遮擋投票,見
+  `knowledge/s4-genielabs-spine-ai-knowledge.md` 第2節),需要獨立重新實作+驗證才能用
+  (授權限制,不可抄程式碼),目前本 skill 不處理這塊,回報使用者這屬於獨立工作項。
 - **候選17生成結果有明顯像素漂移**:目前沒有自動對位管線,不要硬套,回報使用者需要人工
   微調或等對位管線做出來。
 
@@ -120,3 +134,5 @@ python3 tools/mesh_gen/atlas_patch.py ...                                 # 貼�
 - 寫回/驗證:`psd_inplace_patch.py`、`atlas_patch.py`、`s4_spine_render_harness.html`、
   `spine_inspector.html`、`s4_award_screenshot_compare.py`
 - 分類法/驗收標準:`knowledge/s4-inpaint-taxonomy.md`
+- 外部知識參考(未驗證候選,授權限制不可抄程式碼):`knowledge/s4-genielabs-spine-ai-knowledge.md`
+  (生成式重繪拆件版面、SIFT+RANSAC自動擺位)

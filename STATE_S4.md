@@ -7,6 +7,12 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 37(2026-09-04)**:使用者分享外部開源 Claude skill(GenieLabs
+> `spine-animation-ai`)要求評估優化 `spine-asset-request`。萃取兩個未驗證候選(生成式
+> 重繪拆件版面、SIFT+RANSAC自動擺位)更新進 skill,**授權為 PolyForm Noncommercial 禁止
+> 商業使用,只做知識萃取不抄程式碼**。見下方「chunk 37」段落與
+> `knowledge/s4-genielabs-spine-ai-knowledge.md`。
+>
 > **chunk 36(2026-09-04)**:使用者要求推進 viewer + skill 兩項。完成
 > `tools/mesh_gen/s4_ai_viewer.html`(純瀏覽器端,驗證 OpenAI API 允許 CORS,不需要中介
 > 後端/不依賴 Photoshop)+ `.claude/skills/spine-asset-request/SKILL.md`(初步版,把既有
@@ -469,6 +475,22 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-04:**外部知識吸收:GenieLabs `spine-animation-ai`,優化 skill(chunk 37)** —
+  使用者分享 `https://github.com/GenielabsOpenSource/spine-animation-ai`(一個已發布的
+  開源 Claude skill,骨架綁定協駕員),要求評估能否優化 `spine-asset-request`。用
+  `WebFetch` 讀 README/SKILL.md/`split_character.py`/LICENSE(未 clone 進 repo)。
+  **⚠️ 授權 PolyForm Noncommercial 明確禁止商業使用**(本專案 lula slot game 屬商業),
+  故只做知識萃取,不複製任何程式碼,並在知識檔與 skill 更新處都標註此限制。**萃取兩個未
+  驗證候選**:(1) `split_character.py` 思路——不對原圖語意分割,改請生成式模型把角色
+  重繪成「部件已分離、留白、白底」乾淨版面,再用簡單 OpenCV connected-components 分割,
+  直接回應本專案「平圖自動拆件 CPU 到頂」的既有死結,原理上可換候選17已打通的 gpt-image-2
+  嘗試;(2) `position_parts.py` 思路——SIFT+RANSAC 特徵匹配自動擺位+遮擋投票定 z-order,
+  對 S5(骨架半自動)是互補候選,含具體調校參數起始值。更新
+  `.claude/skills/spine-asset-request/SKILL.md`:「平圖拆件」與新增「自動擺位/z-order」
+  兩條都標註為「未驗證候選,需要獨立重新實作+驗證,不可抄程式碼」,不誇大成已可用能力。
+  順帶記錄該外部專案鎖定 Spine 4.2、與本專案 3.8 JSON 語法不通用(只有概念層可轉移)。
+  本次未新增任何量化實驗、未改動 production 代碼。見
+  `knowledge/s4-genielabs-spine-ai-knowledge.md`、`log/s4-2026-09-04-037.md`。
 - 2026-09-04:**viewer + skill 初步版完成(chunk 36)** — 使用者要求推進 viewer(PSD檢視/編輯
   +與ChatGPT即時溝通,類Photoshop插件HTML版)與 skill(需求驅動切圖補圖)兩項。**關鍵前提
   驗證**:`curl -X OPTIONS https://api.openai.com/v1/images/edits` 帶 CORS preflight header,
