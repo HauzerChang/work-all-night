@@ -26,6 +26,22 @@
   接上」再現**(S5 早能推 pivot,keyframe 這次才用上);非線性補償**必須 densify**(正確性要件非美化)。
   新增 cap `pivot_rotate_keyframe` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
   見 `knowledge/s1-pivot-rotation-keyframe.md`、圖 `knowledge/figures/s1_pivot_rotation.png`。
+- **S1 件繞關節 pivot 縮放(里程碑,2026-09-05 session 002,candidate 0i 延伸 G-3)** — 把 0i 的「繞關節
+  pivot **轉**」推廣到「繞關節 pivot **縮放**」。In/Out/pulse 給件的 `scale`(In s≈0.02→1 長大、Out →0、
+  pulse 峰 1.08)非 rig 下繞**件中心**脹縮 —— 手臂該**從肩伸長**。**一條公式統一旋轉+縮放**:
+  `Δ=(M−I)(O−P)`,**M=R(θ)·diag(sx,sy)**(Spine TRS);0i 是 `S=I` 特例、`θ=0,s=1` 時 Δ=0(identity 保持)。
+  **純均勻 scale 約 pivot 是相似變換**:`∀x |world(x)−P|=s·|x−P|`(取代 0i 剛性 AC 的判準)。
+  `pivot_rotation.py` 延伸(`transform_matrix`/`pivot_delta_full`/`pivot_channels_srt`/
+  `apply_pivots(include_scale=)` —— **`include_scale=False` 預設 = 0i 路徑逐位元不變**)+
+  `build_spine --animate --scale-pivot`(含 `--pivot-rotate` 語意)。踩雷同 0i:**Δ 對 θ、s 皆非線性 →
+  rotate 與 scale 都密網格重取樣**。`validate_scale_pivot.py` 對真實 Award 左手+推得肩 pivot(|O−P|=117px)
+  **7 AC 全 PASS**:AC1 不動點 **0.0001px**、AC2 負對照繞件中心 **70.46px**(=0.6×117)、AC3 件最遠點相對變化 0.600、
+  AC4 s=1 端點 Δ=0、AC5 相似 |w−P|=s|x−P| 偏差 **0.0001px**、AC6 **rotate 24°+scale 1.6 併** 0.037px(證 M=R·S 組合)、
+  AC7 端到端經 `build_animations` pulse(limb scale+rotate 無 translate)pivot 不動 0.014px vs 負對照 22.14px。
+  回歸:0i `validate_pivot_rotation`(逐 AC PASS)、`validate_anim`(+selftest)、round-trip `validate_build`
+  對 `--scale-pivot` build 全綠(setup pose 不變)。**關鍵發現:0i 與 G-3 是同一仿射補償的兩分量、相似≠等距**
+  (0i 到 P 距離不變、G-3 等比 s 倍)。新增 cap `scale_pivot_keyframe` L2 併入 `spine-anim-forge`(**仍 HOLD**)。
+  見 `knowledge/s1-scale-pivot-keyframe.md`、圖 `knowledge/figures/s1_scale_pivot.png`。
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
@@ -290,7 +306,11 @@
 >   (G-1) `--rig` × `--pivot-rotate` 語意去重(rig 已把 bone 搬到關節,pivot-rotate 應自動略過該件,現以 `not rig` 全域關掉;
 >    可細到 per-bone:effect 件在 rig 下掛 root/body 仍可受惠 pivot-rotate);
 >   (G-2) pivot-rotate 套到 **hit/combo/cascade** 等主秀 beat 的 limb rotate(現各 beat 都會被 apply_pivots 掃到,
->    可加 AC 驗主秀節拍下 limb 也繞關節);(G-3) **scale-about-pivot**(件繞 pivot 縮放,類似公式 Δ=(I−sR)(P−O)),補齊「繞關節伸縮」。
+>    可加 AC 驗主秀節拍下 limb 也繞關節);**(G-3) ~~scale-about-pivot~~ ✅ 完成(2026-09-05 session 002,
+>    `scale_pivot_keyframe` L2,見上里程碑)** —— 一條公式 `Δ=(M−I)(O−P)`、M=R·S 統一旋轉+縮放,`build_spine
+>    --scale-pivot`,`validate_scale_pivot.py` 7AC(AC5 相似性=scale 版等距、AC6 rotate+scale 併證組合)。**續**(擇一,皆自主):
+>    (G-1) 上述 `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重;(G-2) 主秀 beat 下 limb 繞關節的 AC;
+>    (G-4) **shear-about-pivot / 非均勻 scale 的 AC**(Δ 公式已通用,只差非均勻 scale 的相似性→仿射保形驗證)。
 > **(H) combo/charge 接進 genre 先驗庫**:如 (E) 對 hit/reveal 所做,把 combo/charge 併入 `genre_priors` 讓
 >   `build_spine --animate` 直出(需同步 `validate_priors` 真值覆蓋、勿動已驗先驗)。
 
@@ -309,6 +329,14 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-05(session 002):**S1 件繞關節 pivot 縮放(里程碑,candidate 0i 延伸 G-3)** — 把 0i「繞 pivot 轉」
+  推廣到「繞 pivot 縮放」。In/Out/pulse 的 `scale` 非 rig 下繞件中心脹縮(手臂該從肩伸長)。**一條公式統一**:
+  `Δ=(M−I)(O−P)`,M=R·S(0i 是 S=I 特例)。純均勻 scale 約 pivot 為相似變換 `|w−P|=s|x−P|`(取代 0i 剛性判準)。
+  `pivot_rotation.py` 延伸(`pivot_delta_full`/`pivot_channels_srt`/`apply_pivots(include_scale=)`,0i 路徑不變)+
+  `build_spine --scale-pivot`。`validate_scale_pivot.py` **7 AC 全 PASS**(AC1 0.0001px / AC2 負對照 70.5px=0.6×117 /
+  AC5 相似 0.0001px / AC6 rotate+scale 併 0.037px 證 M=R·S / AC7 端到端 pulse)。回歸 0i/validate_anim(+selftest)/
+  round-trip 全綠。發現:0i 與 G-3 是同一仿射補償的兩分量、相似≠等距、非線性 scale 亦須 densify。
+  cap `scale_pivot_keyframe` L2;anim-forge 仍 HOLD。見 `knowledge/s1-scale-pivot-keyframe.md`。
 - 2026-09-05:**S1 件繞關節 pivot 轉 keyframe(里程碑,candidate 0i)** — 補建議 (G):把 S5 接觸縫 pivot 接進
   S1 keyframe。第一個把 **S5 rig 幾何 → S1 keyframe** 接起來的能力。非 rig 下 bone 落件中心 O,原 rotate 讓件繞 O 轉
   (對肢體不物理);`pivot_rotation.py` 加補償 translate Δ(θ)=(R(θ)−I)(O−P) → 淨效果繞 pivot P 轉,**不動骨架結構**

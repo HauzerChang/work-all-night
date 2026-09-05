@@ -204,6 +204,18 @@ BLOCKS = [
                      "AC5 剛性等距 0.01px、AC6 端到端經 build_animations 產 loop→apply_pivots 後仍有限/無縫/pivot 不動(內建負對照未套用會動 9.75px)、"
                      "AC7 bezier 緩動仍成立。回歸:validate_anim(+selftest)、round-trip build 對 --pivot-rotate build 全 PASS(setup pose 不變)。"
                      "真值=幾何不動點(客觀);繞 pivot 是否貼手感的美術微調留使用者(A類)。honest boundary:單一 rig 真值、與 anim-forge 同 HOLD"),
+            CAP("scale_pivot_keyframe", "件繞關節 pivot 縮放(0i 延伸 G-3,把旋轉+縮放統一成 M=R·S 補償)", "L2",
+                "python3 tools/analyzer/validate_scale_pivot.py", "pipeline",
+                note="把 0i「繞關節 pivot 轉」推廣到「繞關節 pivot 縮放」:In/Out/pulse 給件的 scale 非 rig 下繞件中心脹縮(手臂該從肩伸長)。"
+                     "一條公式統一——Δ=(M−I)(O−P),M=R(θ)·diag(sx,sy)(Spine TRS);0i 是 S=I 特例、θ=0,s=1 時 Δ=0(identity 保持)。"
+                     "純均勻 scale 約 pivot 是相似變換 ∀x |world(x)−P|=s·|x−P|(取代 0i 剛性 AC 的判準)。pivot_rotation.py 延伸"
+                     "(pivot_delta_full/pivot_channels_srt/apply_pivots(include_scale=),include_scale=False 預設=0i 路徑逐位元不變)+ "
+                     "build_spine --scale-pivot(含 --pivot-rotate 語意)。踩雷同 0i:Δ 對 θ、s 皆非線性 → rotate 與 scale 都密網格重取樣。"
+                     "7AC PASS(對真實 Award 左手+推得肩 pivot |O−P|=117px):AC1 不動點 0.0001px、AC2 負對照繞件中心 70.46px(=0.6×117)、"
+                     "AC3 件最遠點相對變化 0.600、AC4 s=1 端點 Δ=0、AC5 相似 |w−P|=s|x−P| 偏差 0.0001px、AC6 rotate 24°+scale 1.6 併 0.037px"
+                     "(證 M=R·S 組合)、AC7 端到端經 build_animations pulse(limb scale+rotate 無 translate)pivot 不動 0.014px vs 負對照 22.14px。"
+                     "回歸:0i validate_pivot_rotation(逐 AC PASS,路徑不變)、validate_anim(+selftest)、round-trip 對 --scale-pivot build 全綠。"
+                     "honest boundary:pivot 真值仍 S5 接觸縫草案、單一 rig、只非 rig 下套用;縮放幅度手感留使用者(A類)。與 anim-forge 同 HOLD"),
         ],
     },
 ]

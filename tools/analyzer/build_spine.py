@@ -189,7 +189,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
 
 
 def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False,
-          deform=False, pivot_rotate=False,
+          deform=False, pivot_rotate=False, scale_pivot=False,
           deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
@@ -302,8 +302,9 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         # candidate 0d:把 #3 分鏡具體化為 Spine timeline,讓素材「會動」
         from gen_animations import build_animations
         skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"])
-        if pivot_rotate and not rig:
+        if (pivot_rotate or scale_pivot) and not rig:
             # candidate 0i:件繞**關節 pivot** 轉而非件中心(keyframe 級,不動骨架)。
+            # 延伸 G-3:`--scale-pivot` 再把 `scale` 也補償(M=R·S)→ 件繞關節 pivot **旋轉+縮放**。
             # 復用 rig_layout 的樹+接觸縫推斷取 pivot;非 rig 下 bone 皆 root 子(世界=parent 座標)。
             from pivot_rotation import apply_pivots
             rlay, _body, _ = rig_layout(metas, names, sizes, offsets, H, note, parts_dir)
@@ -312,7 +313,7 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
             pivot_of = {f"b_{nm}": (float(rlay[nm]["world"][0]), float(rlay[nm]["world"][1]))
                         for nm in rlay if rlay[nm]["joint"]}
             for beat in skeleton["animations"].values():
-                apply_pivots(beat, bone_origin, pivot_of)
+                apply_pivots(beat, bone_origin, pivot_of, include_scale=scale_pivot)
         if deform:
             # candidate 0e:再讓軟件/特效 mesh 本身 deform(真實布料律動場轉移),非只被控制骨搬動
             from gen_deform import build_deform, load_source_field
@@ -344,10 +345,12 @@ def main():
     ap.add_argument("--rig", action="store_true", help="S5:pivot→bone 父子樹(結構子件綁 body、關節落接觸縫)")
     ap.add_argument("--pivot-rotate", dest="pivot_rotate", action="store_true",
                     help="candidate 0i:件繞關節 pivot 轉(keyframe 級,不動骨架;非 rig 用,需 --animate)")
+    ap.add_argument("--scale-pivot", dest="scale_pivot", action="store_true",
+                    help="G-3:件繞關節 pivot 旋轉+縮放(M=R·S 補償;含 --pivot-rotate 語意;非 rig 用,需 --animate)")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
     s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,
-              pivot_rotate=a.pivot_rotate)
+              pivot_rotate=a.pivot_rotate, scale_pivot=a.scale_pivot)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 
