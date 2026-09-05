@@ -508,3 +508,15 @@
   (另一耳被長髮遮住);`bodice`/`sleeve_right`/`tag_pendant`/`skirt`裁圖後仍有跟鄰近
   部件重疊跡象,本次未處理(前兩者是chunk48已知的演算法歧異案例,後兩者是新觀察到、
   還沒深入定位的疑慮);驗證用決策檔仍非chunk46-48真實那份;未重跑`--contour sam`。
+
+- [修正tag_pendant決策檔框位置錯誤,複核skirt(chunk 52)](s4-decompose-box-fix-tag-pendant.md) —
+  承接chunk51留下的候選項,聚焦`tag_pendant`/`skirt`這兩個chunk51新觀察到、還沒深入定位
+  的疑慮(`bodice`/`sleeve_right`維持chunk48已知演算法歧異案例,不重複)。**`tag_pendant`
+  確認是同類「框完全落錯」錯誤**——原框裝的是紅色胸衣衣料+金色刺繡紋樣,完全沒框到標籤
+  (垂墜符紙木牌)任何一部分,用網格疊圖工具定位實際標籤位置(偏右約74px、偏下約18px)後
+  改框,confidence從high下修為medium。**`skirt`複核後判定框正確、不修改**——夾帶的手/
+  前臂/大腿是矩形框裁切非矩形重疊人形素材的正常bleed,跟「框完全沒碰到目標」是不同性質
+  問題,`notes`記錄複核結論避免後續重複判斷。自驗:20部件`--contour rect --eval`AC1
+  pass,從實際pipeline輸出(非ad-hoc裁圖腳本)複核兩張裁圖確認結論。**至此chunk47-52
+  累計已對20個部件全部至少裁圖複核過一次**(`bodice`/`sleeve_right`除外,兩者是已知
+  案例非未檢視),「框完全落錯」類問題目前已無新的未檢視候選。

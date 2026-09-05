@@ -7,6 +7,22 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 52(2026-09-05)**:承接 chunk 51 留下的候選項,聚焦 `tag_pendant`/`skirt` 這兩個
+> chunk 51 新觀察到、還沒深入定位的疑慮(`bodice`/`sleeve_right` 維持 chunk 48 已知演算法
+> 歧異案例,不重複)。**`tag_pendant` 確認是同類「框完全落錯」錯誤**——原框(`bbox_pct
+> [57,44,69,59]`)裝的是紅色胸衣衣料+金色刺繡紋樣,完全沒框到標籤(垂墜符紙木牌)任何一
+> 部分;用網格疊圖工具定位實際標籤位置(偏右約74px、偏下約18px)後改框為 `[73,46,82,59]`,
+> confidence 從 `high` 下修為 `medium`。**`skirt` 複核後判定框正確、不修改**——裁圖確認
+> 內容確實是裙擺紅色衣料主體,夾帶的手/前臂/大腿是矩形框裁切非矩形重疊人形素材的正常
+> bleed,跟「框完全沒碰到目標」不是同一性質問題,`notes` 記錄複核結論避免後續重複判斷。
+> **自驗**:20 部件 `--contour rect --eval` AC1 pass,從實際 pipeline 輸出(非 ad-hoc
+> 裁圖腳本)複核 `tag_pendant`/`skirt` 兩張裁圖確認結論。**至此 chunk 47-52 累計已對
+> `suggestions.json` 全部 20 個部件都做過至少一次裁圖複核**(`bodice`/`sleeve_right` 除外,
+> 兩者是已知案例、非未檢視),「框完全落錯」這類問題目前已無新的未檢視候選;剩餘懸而未決
+> 的只有 `bodice`/`sleeve_right`(需使用者裁決處理方式)與 `hair_front` 精確語意邊界
+> (需使用者用 assist viewer 確認)。未重跑 `--contour sam`(容器未持久化 MobileSAM 權重)。
+> 見下方「chunk 52」段落與 `knowledge/s4-decompose-box-fix-tag-pendant.md`。
+>
 > **chunk 51(2026-09-05)**:承接 chunk 50 留下的候選項,對 `suggestions.json` 尚未驗證過
 > 的部件全部裁圖複核(先前 chunk 47-50 只查過下半身手/腿/靴子),盤點角色頭/頸部一帶,
 > 發現 **5 個部件(`head`/`fox_ears`/`hair_front`/`earrings`/`choker`)框全部對不準**,原
@@ -624,6 +640,20 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
   屬非阻塞性——本排程建議轉維護模式而非標 `BLOCKED`/`DONE`。
 
 ## 進度摘要 (progress log)
+
+- 2026-09-05:**修正 tag_pendant 決策檔框位置錯誤,複核 skirt(chunk 52)** — 承接 chunk 51
+  留下的候選項,聚焦 `tag_pendant`/`skirt` 這兩個 chunk51 新觀察到、還沒深入定位的疑慮
+  (`bodice`/`sleeve_right` 維持 chunk48 已知演算法歧異案例,不重複)。`tag_pendant` 確認
+  是同類「框完全落錯」錯誤——原框裝的是紅色胸衣衣料+金色刺繡紋樣,完全沒框到標籤(垂墜
+  符紙木牌)任何一部分;用網格疊圖工具定位實際標籤位置後改框,confidence 從 high 下修為
+  medium。`skirt` 複核後判定框正確、不修改——夾帶的手/前臂/大腿是矩形框裁切非矩形重疊
+  人形素材的正常 bleed,跟「框完全沒碰到目標」不是同一性質問題,`notes` 記錄複核結論。
+  自驗:20 部件 `--contour rect --eval` AC1 pass,從實際 pipeline 輸出複核兩張裁圖確認
+  結論。**至此 chunk 47-52 累計已對全部 20 個部件都做過至少一次裁圖複核**(`bodice`/
+  `sleeve_right` 除外,兩者是已知案例),「框完全落錯」類問題目前已無新的未檢視候選;
+  剩餘懸而未決的是 `bodice`/`sleeve_right`(需使用者裁決)與 `hair_front` 精確語意邊界
+  (需使用者用 assist viewer 確認)。未重跑 `--contour sam`(容器未持久化 MobileSAM
+  權重)。見 `knowledge/s4-decompose-box-fix-tag-pendant.md`、`log/s4-2026-09-05-052.md`。
 
 - 2026-09-05:**修正 head/fox_ears/hair_front/earrings/choker 決策檔框位置錯誤(chunk 51)** —
   承接 chunk 50 留下的候選項,對 `suggestions.json` 尚未驗證過的部件全部裁圖複核(先前
