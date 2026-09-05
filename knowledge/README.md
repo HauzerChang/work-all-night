@@ -520,3 +520,14 @@
   pass,從實際pipeline輸出(非ad-hoc裁圖腳本)複核兩張裁圖確認結論。**至此chunk47-52
   累計已對20個部件全部至少裁圖複核過一次**(`bodice`/`sleeve_right`除外,兩者是已知
   案例非未檢視),「框完全落錯」類問題目前已無新的未檢視候選。
+
+- [九尾焰蓮拆解:第一份完整組裝PSD(chunk 53)](s4-decompose-first-production-psd.md) —
+  chunk47-52已把`suggestions.json`框位置修正到位但每次只驗證單一部件裁圖,從未真的
+  組出一份.psd交付物。本次複用chunk52修正後的決策檔快照,跑完整第3點pipeline
+  (`s4_decompose_cut.py`→`manifest_to_psd.js`)產出`jiuwei_yanlian_decompose.psd`
+  (20圖層)。自驗三項皆可重跑量化檢查:AC1裁切20/20產出;AC2用psd-tools重開PSD逐圖層
+  比對manifest的name/offset/size**20/20相符**;AC3每圖層`composite(force=True)`跟
+  裁圖PNG逐像素比對**20/20 `max_diff=0`**(位元級無損round-trip)。**誠實限制**:這份
+  PSD保留`bodice`/`sleeve_right`(演算法歧異)/`hair_front`(語意邊界)三個已知問題
+  原樣未解,是「目前最佳框」快照非最終定案;邊緣bleed按chunk46既有授權原樣保留;未做
+  第4點GPT局部修補(需API key授權,同候選17阻塞點)。

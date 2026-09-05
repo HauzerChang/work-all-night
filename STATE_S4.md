@@ -7,6 +7,24 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 53(2026-09-05)**:chunk 47-52 把 `suggestions.json` 框位置修正到位,但每次
+> 只驗證單一部件裁圖,從未真的組出一份 .psd 交付物——第3點(幾何裁切+PSD組裝)工具鏈
+> chunk 46 就做好了,卻只用過使用者當次手動調整、未持久化進 repo 的決策檔跑過一次。
+> **本次選擇零成本、不需授權的動作,把 chunk 47-52 的修正成果變成真正產出**:複用
+> chunk 52 修正後的決策檔快照,跑完整 `s4_decompose_cut.py --contour rect --eval` →
+> `manifest_to_psd.js` pipeline,產出 `tools/mesh_gen/s4_data/chunk53/
+> jiuwei_yanlian_decompose.psd`(20 圖層)。**自驗三項皆可重跑量化檢查**:AC1 裁切
+> 20/20 產出、`overall_pass: true`;AC2 用 psd-tools 重開 PSD,逐圖層比對
+> `manifest.json` 的 `name`/`offset`/`size`——**20/20 完全相符**;AC3 每圖層
+> `composite(force=True)` 跟裁圖 PNG 逐像素比對——**20/20 `max_diff=0`**(位元級無損
+> round-trip)。`psd.composite(force=True)` 健全(460×898 RGBA,全 alpha=1.0)。**誠實
+> 限制**:這份 PSD 原樣保留三個已知問題未解——`bodice`/`sleeve_right`(chunk48 演算法
+> 歧異案例,需人工/SAM 決策)、`hair_front`(跟 `head`/`fox_ears` 精確語意邊界重疊,需
+> 使用者用 assist viewer 確認),是「目前最佳框」的快照,不是最終定案,這兩類問題底定後
+> 需重跑本 pipeline 產生新版;邊緣 bleed 按 chunk46 既有授權原樣保留,非新限制;未做
+> 第4點 GPT 局部修補(候選17同一阻塞點,需 API key 授權);未重跑 `--contour sam`。
+> 見下方「chunk 53」段落與 `knowledge/s4-decompose-first-production-psd.md`。
+>
 > **chunk 52(2026-09-05)**:承接 chunk 51 留下的候選項,聚焦 `tag_pendant`/`skirt` 這兩個
 > chunk 51 新觀察到、還沒深入定位的疑慮(`bodice`/`sleeve_right` 維持 chunk 48 已知演算法
 > 歧異案例,不重複)。**`tag_pendant` 確認是同類「框完全落錯」錯誤**——原框(`bbox_pct
@@ -641,6 +659,18 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-05:**九尾焰蓮拆解第一份完整組裝 PSD(chunk 53)** — chunk 47-52 的框位置修正
+  成果從未真的組成一份 .psd 交付物(第3點工具鏈 chunk46 已建好,只用過未持久化的測試
+  決策檔跑過一次)。複用 chunk52 修正後的決策檔快照(`tools/mesh_gen/s4_data/chunk53/
+  decision_final.json`),跑 `s4_decompose_cut.py --contour rect --eval`(20/20 產出,
+  `overall_pass: true`)→ `npm install`(`psd_node` 首次在本環境裝依賴)→
+  `manifest_to_psd.js` → `jiuwei_yanlian_decompose.psd`(20 圖層)。自驗:用 psd-tools
+  重開 PSD,逐圖層比對 manifest 的 name/offset/size(20/20 相符)+ 逐圖層
+  `composite(force=True)` 跟裁圖 PNG 逐像素比對(20/20 `max_diff=0`,位元級無損
+  round-trip);`psd.composite(force=True)` 健全。誠實限制:原樣保留三個已知未解問題
+  (`bodice`/`sleeve_right` 演算法歧異、`hair_front` 語意邊界),是「目前最佳框」快照
+  非最終定案;未做第4點 GPT 局部修補(需 API key 授權);未重跑 `--contour sam`。見
+  `knowledge/s4-decompose-first-production-psd.md`、`log/s4-2026-09-05-053.md`。
 - 2026-09-05:**修正 tag_pendant 決策檔框位置錯誤,複核 skirt(chunk 52)** — 承接 chunk 51
   留下的候選項,聚焦 `tag_pendant`/`skirt` 這兩個 chunk51 新觀察到、還沒深入定位的疑慮
   (`bodice`/`sleeve_right` 維持 chunk48 已知演算法歧異案例,不重複)。`tag_pendant` 確認
