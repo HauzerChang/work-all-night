@@ -10,6 +10,22 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 件繞關節 pivot 轉 keyframe(里程碑,2026-09-05,candidate 0i)** — 補 STATE 建議 **(G)**:把 S5 的
+  接觸縫 pivot 餵進 S1 keyframe 生成器,讓件**繞關節 pivot 轉**而非件中心。**第一個把 S5(rig 幾何)→
+  S1(keyframe)接起來的能力**。非 rig 下 bone 落件中心 O,原 `rotate` 讓件繞 O 轉(對肢體不物理:手臂
+  該繞肩、頭該繞頸);`tools/analyzer/pivot_rotation.py` 在 rotate 外加**補償 translate**
+  Δ(θ)=(R(θ)−I)(O−P),淨效果=繞 pivot P 轉,**完全不動骨架結構**(與 `--rig` 搬骨的結構性解法互補)。
+  `build_spine --animate --pivot-rotate`(非 rig)**復用 `rig_layout` 的樹+接觸縫推斷**取 pivot。
+  踩雷:**Δ 對 θ 非線性 → rotate 通道加密重取樣(dt=1/60)**才不會幀間漏(殘差 ~(1/8)|O−P|(dθ_rad)²)。
+  `validate_pivot_rotation.py` 對**真實 Award 左手世界幾何 + 推得肩 pivot**(|O−P|=117px)**7 AC 全 PASS**:
+  AC1 pivot 不動點殘差 **0.01px**、AC2 負對照繞件中心位移 **48.8px**(>>AC1)、AC3 件最遠點轉 94px、
+  AC4 θ=0 幀 Δ=0(identity 介面保持)、AC5 剛性等距 0.01px、AC6 **端到端**經 `build_animations` 產 loop→
+  `apply_pivots` 後仍有限/無縫/pivot 不動(內建負對照未套用會動 9.75px)、AC7 bezier 緩動仍成立。
+  回歸:`validate_anim`(+`--selftest`)、round-trip `validate_build` 對 `--pivot-rotate` build 全 PASS
+  (setup pose 與源 PSD **完全一致** —— 補償在 setup=identity 時為 0)。**關鍵發現:「幾何/模板就緒 ≠ 生成器
+  接上」再現**(S5 早能推 pivot,keyframe 這次才用上);非線性補償**必須 densify**(正確性要件非美化)。
+  新增 cap `pivot_rotate_keyframe` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
+  見 `knowledge/s1-pivot-rotation-keyframe.md`、圖 `knowledge/figures/s1_pivot_rotation.png`。
 - **S3 mesh 生成器：完成且對 4 個真實 mesh 收斂達標**(v2 strip 通用,見 `knowledge/s3-four-mesh-generalization.md`)。
 - **S2 評估器套件:切圖閘已完成** — `evaluate_slicing.py`,main_draw 45/45 region 重組 MAE=0/0孤兒/0重疊,
   雙向負對照確認鑑別力(見 `knowledge/s2-slicing-evaluator.md`)。S2 尚缺:補圖閘、骨架閘。
@@ -248,7 +264,7 @@
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> **主排程近況**:S1(分析器+build+keyframe 0d+**mesh deform 生成 0e**+**主秀 beat 模板 0f**)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
+> **主排程近況**:S1(分析器+build+keyframe 0d+**mesh deform 生成 0e**+**主秀 beat 模板 0f/0g/0h**+**件繞關節 pivot 轉 0i**)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
 > S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫(08-29)→ 接 build_spine 骨樹(08-30,--rig)→ 肢體樹自動推斷(08-31 s1)
 > → `--rig`×`--weighted` 併用(08-31 s2)→ 多跳 weighted 肢體鏈端到端(08-31 s3)已全部完成**;S4 已交獨立排程。
 > ⚠️ **S5 達 L3 的唯一硬缺口 = 多 rig 真值,但 Award 只有機器人一件可拆肢體 rig → 屬使用者資源(C/資源類待辦)**。
@@ -268,9 +284,13 @@
 >   與 0g 的單件時序簽章互補,已逼出 build_animations 的 per-part phase threading(`_PHASE_AWARE`)。
 >   **續**(擇一,皆自主):cascade **reveal 波變體**(每件 start collapsed 依序現身,首非 identity;需處理多件 collapse
 >   疊加對 argmax 的擾動)、或用**空間位置**決定波方向(左→右/中心外擴,件序相位改由 bd.x/徑向決定);
-> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心;
->   rigid rotation-about-pivot:對位於件原點 O 的 bone 加 rotate θ + translate Δ=(R(θ)−I)(O−P),P=關節 pivot;
->   AC=旋轉後 pivot 世界點為不動點 vs 件中心旋轉會位移=內建負對照)。
+> **(G) ~~S1 (e) 關節 pivot 推斷接 keyframe~~ ✅ 完成(2026-09-05,candidate 0i,`pivot_rotate_keyframe` L2,見上里程碑)** ——
+>   `pivot_rotation.py`(Δ=(R(θ)−I)(O−P) + 非線性 densify)+ `build_spine --pivot-rotate` + `validate_pivot_rotation.py`
+>   7AC(AC2 繞件中心=內建負對照)。**續**(擇一,皆自主):
+>   (G-1) `--rig` × `--pivot-rotate` 語意去重(rig 已把 bone 搬到關節,pivot-rotate 應自動略過該件,現以 `not rig` 全域關掉;
+>    可細到 per-bone:effect 件在 rig 下掛 root/body 仍可受惠 pivot-rotate);
+>   (G-2) pivot-rotate 套到 **hit/combo/cascade** 等主秀 beat 的 limb rotate(現各 beat 都會被 apply_pivots 掃到,
+>    可加 AC 驗主秀節拍下 limb 也繞關節);(G-3) **scale-about-pivot**(件繞 pivot 縮放,類似公式 Δ=(I−sR)(P−O)),補齊「繞關節伸縮」。
 > **(H) combo/charge 接進 genre 先驗庫**:如 (E) 對 hit/reveal 所做,把 combo/charge 併入 `genre_priors` 讓
 >   `build_spine --animate` 直出(需同步 `validate_priors` 真值覆蓋、勿動已驗先驗)。
 
@@ -289,6 +309,15 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-05:**S1 件繞關節 pivot 轉 keyframe(里程碑,candidate 0i)** — 補建議 (G):把 S5 接觸縫 pivot 接進
+  S1 keyframe。第一個把 **S5 rig 幾何 → S1 keyframe** 接起來的能力。非 rig 下 bone 落件中心 O,原 rotate 讓件繞 O 轉
+  (對肢體不物理);`pivot_rotation.py` 加補償 translate Δ(θ)=(R(θ)−I)(O−P) → 淨效果繞 pivot P 轉,**不動骨架結構**
+  (與 --rig 搬骨互補)。`build_spine --animate --pivot-rotate` 復用 rig_layout 樹+接觸縫。踩雷:**Δ 對 θ 非線性 →
+  rotate 加密重取樣(dt=1/60)**才不幀間漏。`validate_pivot_rotation.py` 對真實 Award 左手+推得肩 pivot **7AC 全 PASS**
+  (AC1 不動點 0.01px / AC2 負對照繞件中心 48.8px / AC3 件最遠點 94px / AC4 θ=0 Δ=0 identity / AC5 剛性 0.01px /
+  AC6 端到端經 build_animations 無縫+pivot 不動+內建負對照 9.75px / AC7 bezier 緩動)。回歸 validate_anim(+selftest)、
+  round-trip 對 --pivot-rotate build 全 PASS(setup 不變)。發現:「幾何就緒 ≠ 生成器接上」再現;非線性補償必須 densify。
+  cap `pivot_rotate_keyframe` L2 併入 spine-anim-forge(仍 HOLD)。見 `knowledge/s1-pivot-rotation-keyframe.md`。
 - 2026-09-04(session 002):**S1 cascade 跨件錯開波(里程碑,candidate 0h)** — 補 (F 續) cascade。第一個**跨件時序**
   主秀節拍:0f/0g 皆單件內時序,cascade 每件依件序相位錯開成波,簽章在「各件峰時刻排序+散佈」。`gen_cascade`(pop 波,
   首尾 identity)+ `gen_animations` 架構變更(`_PHASE_AWARE`,build_animations 配 `phase=pi/(nvalid-1)` —— 生成器**第一個

@@ -194,6 +194,16 @@ BLOCKS = [
                      "threading 有接上)。pop 波形首尾 identity 可插 Loop 間。6AC PASS(well-formed/可串接介面/真峰/跨件簽章/"
                      "共用 anticipation+settle/負對照)+ 7 條負對照:combo(同時序)spread≈0 非波、打亂/反序件序非遞增、"
                      "cascade 單件非 combo 簽章(證與 0g 正交)、單件無 spread 非波。真值=結構簽章(美感留使用者 A類)"),
+            CAP("pivot_rotate_keyframe", "件繞關節 pivot 轉(keyframe 級,把 S5 接觸縫 pivot 接進 keyframe,0i)", "L2",
+                "python3 tools/analyzer/validate_pivot_rotation.py", "pipeline",
+                note="把 S5 的接觸縫 pivot 餵進 S1 keyframe 生成器:件繞**關節 pivot** 轉而非件中心。非 rig 下 bone 落件中心 O,"
+                     "原 rotate 讓件繞 O 轉(對肢體不物理);本能力在 rotate 外加補償 translate Δ(θ)=(R(θ)−I)(O−P),淨效果=繞 pivot P 轉,"
+                     "**完全不動骨架結構**(與 --rig 搬骨的結構性解法互補)。Δ 對 θ 非線性 → rotate 通道加密重取樣(dt=1/60)使幀間殘差<<0.1px。"
+                     "build_spine --animate --pivot-rotate 復用 rig_layout 的樹+接觸縫推斷取 pivot。7AC PASS(對真實 Award 左手世界幾何+推得肩 pivot):"
+                     "AC1 pivot 不動點殘差 0.01px、AC2 負對照繞件中心位移 48.8px(>>AC1)、AC3 件最遠點轉 94px、AC4 θ=0 幀 Δ=0(identity 保持)、"
+                     "AC5 剛性等距 0.01px、AC6 端到端經 build_animations 產 loop→apply_pivots 後仍有限/無縫/pivot 不動(內建負對照未套用會動 9.75px)、"
+                     "AC7 bezier 緩動仍成立。回歸:validate_anim(+selftest)、round-trip build 對 --pivot-rotate build 全 PASS(setup pose 不變)。"
+                     "真值=幾何不動點(客觀);繞 pivot 是否貼手感的美術微調留使用者(A類)。honest boundary:單一 rig 真值、與 anim-forge 同 HOLD"),
         ],
     },
 ]
