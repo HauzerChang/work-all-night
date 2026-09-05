@@ -7,6 +7,22 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 51(2026-09-05)**:承接 chunk 50 留下的候選項,對 `suggestions.json` 尚未驗證過
+> 的部件全部裁圖複核(先前 chunk 47-50 只查過下半身手/腿/靴子),盤點角色頭/頸部一帶,
+> 發現 **5 個部件(`head`/`fox_ears`/`hair_front`/`earrings`/`choker`)框全部對不準**,原
+> 信心多標 `high`。共同模式:這張圖是帶版面文字的角色設定圖(標題「JIUWEI·YANLIAN」+
+> 引言疊在上方深色背景),臉部要到畫面中段才開始,原始框卻普遍偏在最上方的文字區域,跟
+> 先前發現的「跟鄰居部件內容混淆」不是同一種錯誤,是更基礎的「壓根沒框到內容」。用網格
+> 疊圖工具定位五官/耳朵/耳環/頸飾實際像素位置後改框,confidence 從 high 下修為 medium。
+> **自驗**:20 部件 `--contour rect --eval` AC1 pass,逐格複核修正後裁圖確實是完整臉部/
+> 雙耳/髮絲/耳環/頸飾。**誠實限制**:`hair_front` 跟 `head`/`fox_ears` 新框大幅重疊(髮型
+> 本身無清楚瀏海分界,留待使用者用 assist viewer 確認);`earrings` 只框到畫面上唯一可見
+> 的單耳耳環(另一耳被長髮遮住);`bodice`/`sleeve_right`/`tag_pendant`/`skirt` 裁圖後仍
+> 有跟鄰近部件重疊跡象,本次未處理(前兩者是 chunk 48 已知演算法歧異案例,後兩者是新觀察
+> 到、還沒深入定位的疑慮);驗證用決策檔仍非 chunk46-48 真實那份,不能延續其統計數字;
+> 未重跑 `--contour sam`(容器未持久化 MobileSAM 權重)。見下方「chunk 51」段落與
+> `knowledge/s4-decompose-box-fix-face.md`。
+>
 > **chunk 50(2026-09-04)**:承接 chunk 49 做法,獨立複查 chunk 48 留下的第三個「框有
 > 問題」案例 `hand_right`——換算 `suggestions.json` 像素框跟 chunk 48 報告的錯誤座標
 > 幾乎完全吻合,確認同樣是 chunk 43 草稿就錯,依既有慣例(chunk 26/49)在源頭修正。
@@ -608,6 +624,21 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
   屬非阻塞性——本排程建議轉維護模式而非標 `BLOCKED`/`DONE`。
 
 ## 進度摘要 (progress log)
+
+- 2026-09-05:**修正 head/fox_ears/hair_front/earrings/choker 決策檔框位置錯誤(chunk 51)** —
+  承接 chunk 50 留下的候選項,對 `suggestions.json` 尚未驗證過的部件全部裁圖複核(先前
+  chunk 47-50 只查過下半身手/腿/靴子),盤點角色頭/頸部一帶,發現 5 個部件框全部對不準
+  (`head`/`fox_ears`/`hair_front`/`earrings`/`choker`,原信心多標 `high`)。共同模式:
+  這張圖是帶版面文字的角色設定圖(標題+引言疊在上方深色背景),臉部要到畫面中段才開始,
+  原始框卻普遍偏在最上方的文字區域——跟先前發現的「跟鄰居部件內容混淆」不同,是更基礎的
+  「壓根沒框到內容」。用網格疊圖工具定位五官/耳朵/耳環/頸飾實際像素位置後改框,confidence
+  從 high 下修為 medium。自驗:20 部件 `--contour rect --eval` AC1 pass,逐格複核修正後
+  裁圖確實是完整臉部/雙耳/髮絲/耳環/頸飾。**誠實限制**:`hair_front` 跟 `head`/`fox_ears`
+  新框大幅重疊(髮型本身無清楚瀏海分界,留待使用者用 assist viewer 確認);`earrings` 只
+  框到畫面上唯一可見的單耳耳環(另一耳被長髮遮住);`bodice`/`sleeve_right`/`tag_pendant`/
+  `skirt` 裁圖後仍有跟鄰近部件重疊跡象,本次未處理;驗證用決策檔仍非 chunk46-48 真實那份,
+  不能延續其統計數字;未重跑 `--contour sam`(容器未持久化 MobileSAM 權重)。見
+  `knowledge/s4-decompose-box-fix-face.md`、`log/s4-2026-09-05-051.md`。
 
 - 2026-09-04:**修正 hand_left/hand_right 決策檔框位置錯誤(chunk 50)** — 承接 chunk 49
   做法,獨立複查 chunk 48 留下的第三個「框有問題」案例 `hand_right`,換算

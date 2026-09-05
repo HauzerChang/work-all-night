@@ -1,0 +1,229 @@
+{
+  "source_image": "jiuwei_yanlian_char_crop.png",
+  "image_size": [
+    460,
+    898
+  ],
+  "parts": [
+    {
+      "id": "head",
+      "label": "頭部(含五官)",
+      "bbox_px": [
+        184,
+        90,
+        359,
+        216
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "fox_ears",
+      "label": "狐耳(雙耳)",
+      "bbox_px": [
+        175,
+        9,
+        359,
+        171
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "hair_front",
+      "label": "瀏海/額前髮絲",
+      "bbox_px": [
+        161,
+        18,
+        368,
+        180
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "hair_main",
+      "label": "長髮主體(後方+兩側)",
+      "bbox_px": [
+        0,
+        45,
+        253,
+        494
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "earrings",
+      "label": "耳環(雙耳)",
+      "bbox_px": [
+        313,
+        144,
+        336,
+        189
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "choker",
+      "label": "頸飾(紅色蝴蝶結+墜飾)",
+      "bbox_px": [
+        221,
+        171,
+        331,
+        233
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "bodice",
+      "label": "上半身胸衣(紅色)",
+      "bbox_px": [
+        152,
+        198,
+        322,
+        359
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "sleeve_left",
+      "label": "左側白紗寬袖",
+      "bbox_px": [
+        60,
+        242,
+        184,
+        503
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "sleeve_right",
+      "label": "右側白紗寬袖",
+      "bbox_px": [
+        276,
+        242,
+        396,
+        458
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "hand_left",
+      "label": "左手",
+      "bbox_px": [
+        133,
+        422,
+        216,
+        557
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "hand_right",
+      "label": "右手",
+      "bbox_px": [
+        377,
+        440,
+        451,
+        584
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "belt",
+      "label": "黑色腰帶+金色扣環",
+      "bbox_px": [
+        175,
+        332,
+        327,
+        404
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "skirt",
+      "label": "裙擺(紅色短裙主體)",
+      "bbox_px": [
+        156,
+        359,
+        327,
+        548
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "tag_pendant",
+      "label": "垂墜符紙標籤",
+      "bbox_px": [
+        262,
+        395,
+        317,
+        530
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "sash_train",
+      "label": "流蘇/披帛長下擺(拖尾)",
+      "bbox_px": [
+        129,
+        494,
+        350,
+        862
+      ],
+      "confidence": "low"
+    },
+    {
+      "id": "leg_left",
+      "label": "左腿(大腿露出部分)",
+      "bbox_px": [
+        189,
+        458,
+        253,
+        548
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "leg_right",
+      "label": "右腿",
+      "bbox_px": [
+        248,
+        485,
+        336,
+        638
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "boot_left",
+      "label": "左靴(過膝黑靴)",
+      "bbox_px": [
+        189,
+        548,
+        258,
+        880
+      ],
+      "confidence": "medium"
+    },
+    {
+      "id": "boot_right",
+      "label": "右靴",
+      "bbox_px": [
+        225,
+        602,
+        336,
+        889
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "tails_mass",
+      "label": "九尾狐尾(整體,無法個別拆分)",
+      "bbox_px": [
+        0,
+        269,
+        267,
+        898
+      ],
+      "confidence": "low"
+    }
+  ]
+}

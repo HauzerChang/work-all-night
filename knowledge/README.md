@@ -494,3 +494,17 @@
   不能延續其統計數字;`hand_left`的落差**提高一個疑慮**——`suggestions.json`草稿裡目前
   沒被回報過問題的其餘部件也可能有同類「使用者當次修好但未持久化」的落差,不能只靠
   「沒被回報」就假設框是對的;未重跑`--contour sam`(容器未持久化MobileSAM權重)。
+
+- [修正head/fox_ears/hair_front/earrings/choker決策檔框位置錯誤(chunk 51)](s4-decompose-box-fix-face.md) —
+  承接chunk50留下的候選項,對`suggestions.json`剩餘未驗證部件全部裁圖複核(先前
+  chunk47-50只查過下半身手/腿/靴子),盤點角色頭/頸部一帶,發現**5個部件框全部對不準**
+  (`head`/`fox_ears`/`hair_front`/`earrings`/`choker`,原信心多標`high`)——共同模式是
+  框大部分落在畫面上方的標題文字/引言文字區域(圖片本身是帶版面文字的角色設定圖,臉部
+  從畫面中段才開始),而非鄰近部件內容混淆。用網格疊圖工具定位五官/耳朵/耳環/頸飾實際
+  像素位置後改框,confidence從high下修為medium。自驗:20部件`--contour rect --eval`
+  AC1 pass,逐格複核修正後裁圖確實是完整臉部/雙耳/髮絲/耳環/頸飾。**誠實限制**:
+  `hair_front`跟`head`/`fox_ears`新框大幅重疊,「瀏海」精確語意邊界這個髮型本身沒有
+  清楚分界,留待使用者用assist viewer確認;`earrings`只框到畫面上唯一可見的單耳耳環
+  (另一耳被長髮遮住);`bodice`/`sleeve_right`/`tag_pendant`/`skirt`裁圖後仍有跟鄰近
+  部件重疊跡象,本次未處理(前兩者是chunk48已知的演算法歧異案例,後兩者是新觀察到、
+  還沒深入定位的疑慮);驗證用決策檔仍非chunk46-48真實那份;未重跑`--contour sam`。
