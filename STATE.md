@@ -93,6 +93,22 @@
   ——0f 模板要「被觸發」需先驗庫有對應 beat(又一「評估器/模板就緒 ≠ 生成器接上」實例)。新增 cap
   `main_show_priors_integration` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
   見 `knowledge/s1-main-show-priors-integration.md`、圖 `knowledge/figures/s1_priors_beats.png`。
+- **S1 關節 pivot 感知 keyframe:件繞關節旋轉(里程碑,2026-09-05,candidate 0i)** — 補 STATE 建議 **(G)**
+  「S5 接觸縫 pivot 接 keyframe」。`gen_animations` 給結構子件加 `rotate` 時 bone 在**件中心** O → 件原地打轉;
+  本 chunk 加**同步 translate 補償** Δ=(R(θ)−I)(O−P) 讓件繞**解剖關節** P 旋轉(純 keyframe 路徑,不需 --rig 結構重綁)。
+  這是 **S5 pivot(接觸縫)↔ S1 keyframe 的首個接點**(先前 S5 pivot 只服務 --rig)。`pivot_keyframe.py`
+  (閉式 Δ + `compensate_bone`,對 Δ 的非線性**細分 8 段**逼近,幀間殘差 sub-0.001px)+ `gen_animations`
+  (`build_animations(..., pivots=None)`,未給則原行為向後相容)+ `build_spine --pivot`(復用 `rig_layout`
+  的 joint 判定=infer_tree+contact_seam,與 --rig 一致;非併用而**互補**)。`validate_pivot_keyframe.py`
+  對 robot_parts **6 AC 全 PASS**:①formula 閉式(err<1e-9,θ=0→Δ=0);②端到端 Loop 肢體 pivot 世界點
+  不動 **0.0001px**;③負對照無補償位移 **14.326/2.62/10.998px 精確吻合閉式 2|P-O|sin(θpk/2)**(證確為繞件中心)
+  且被壓掉 **>20000×**;④件遠端仍旋轉 13~32px;⑤`validate_anim` 全 AC 仍過(θ=0→Δ=0 對介面契約天然中性);
+  ⑥鑑別力(隨機 pivot 不動但**真 P 動 18.97px**=P 專屬、P==O→Δ≡0 no-op)。**關鍵發現**:無補償位移**逐 bone
+  精確等於閉式** → 一次證世界模型 + 無補償=繞件中心;頭位移小(2.62px)是**忠實反映**(nod 3°、頸距 50px)非弱點
+  → AC3 改用**閉式吻合+相對壓縮比**而非絕對門檻。honest boundary:不動點對**旋轉分量**成立(scale/徑向仍搬 P →
+  驗於 loop 肢體純 rotate 段);--rig 與 --pivot 互補非併用。回歸:anim(+selftest)/cascade/more_beats/
+  beat_templates/priors_beats/priors/rig_build 全 PASS。新增 cap `pivot_aware_keyframe` L2 併入 `spine-anim-forge`
+  (**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。見 `knowledge/s1-pivot-keyframe.md`。
 - **S1 cascade 跨件錯開波:第一個「跨件時序」主秀節拍(里程碑,2026-09-04,session 002,candidate 0h)** —
   補 STATE 建議 (F 續) **cascade**(跨件錯開 reveal)。0f/0g 的 hit/reveal/combo/anticipate_hold 全是**單件內**
   時序簽章(同 beat 套每件、每件時序相同);cascade 是**跨件**時序簽章 —— 每件依**件序相位** phase∈[0,1]
@@ -222,7 +238,8 @@
 下一個 bounded chunk 候選:
 0. **S1 分析器接續**:(a) ~~規格 → 實際素材~~ ✅;(b) ~~平圖流程~~ ✅ baseline(CPU 到頂);
    (c) ~~分鏡先驗庫~~ ✅ 2 類型;(d) ~~分鏡 → 動畫 keyframe~~ **✅ 完成(2026-08-27,candidate 0d,見上)**;
-   **續**:(e) 關節 pivot 推斷(件中心→相鄰件關節),供 S5;(f) keyframe 補 hit/open/reveal 主秀 beat 模板。
+   **續**:(e) ~~關節 pivot 推斷接 keyframe(件繞關節轉而非件中心)~~ **✅ 完成(2026-09-05,candidate 0i,見上里程碑)**;
+   (f) ~~keyframe 補 hit/open/reveal 主秀 beat 模板~~ ✅(0f/0g/0h)。
 1. ~~PSD件→S3 mesh→對照 Award 真實 mesh~~ **✅ 已完成**。3 件靜態覆蓋率全 PASS。
 2. **~~S3 weighted mesh + 內部取樣密度 + BBW 權重~~ ✅ 全部完成(2026-08-27,weighted-forge READY)**。
    - ✅ **前置閘已完成(2026-08-27)**:`weighted_deform_eval.py` + `validate_weighted_deform.py`,
@@ -268,11 +285,15 @@
 >   與 0g 的單件時序簽章互補,已逼出 build_animations 的 per-part phase threading(`_PHASE_AWARE`)。
 >   **續**(擇一,皆自主):cascade **reveal 波變體**(每件 start collapsed 依序現身,首非 identity;需處理多件 collapse
 >   疊加對 argmax 的擾動)、或用**空間位置**決定波方向(左→右/中心外擴,件序相位改由 bd.x/徑向決定);
-> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心;
->   rigid rotation-about-pivot:對位於件原點 O 的 bone 加 rotate θ + translate Δ=(R(θ)−I)(O−P),P=關節 pivot;
->   AC=旋轉後 pivot 世界點為不動點 vs 件中心旋轉會位移=內建負對照)。
+> **(G) ~~S1 (e) 關節 pivot 推斷接 keyframe~~ ✅ 完成(2026-09-05,candidate 0i,`pivot_aware_keyframe` L2,見上里程碑)** ——
+>   `pivot_keyframe.py`(Δ=(R(θ)−I)(O−P) 補償)+ `build_spine --pivot` + `validate_pivot_keyframe.py` 6 AC;
+>   件繞解剖關節旋轉(不動點 0.0001px vs 無補償吻合閉式);**S5 pivot ↔ S1 keyframe 首個接點**;--rig 與 --pivot 互補。
 > **(H) combo/charge 接進 genre 先驗庫**:如 (E) 對 hit/reveal 所做,把 combo/charge 併入 `genre_priors` 讓
 >   `build_spine --animate` 直出(需同步 `validate_priors` 真值覆蓋、勿動已驗先驗)。
+> **建議下一個(擇一,皆自主):**
+> **(I) pivot 補償推廣到 pulse/hit 等主秀 beat**:目前只驗 loop 肢體純 rotate 段;pulse/hit 並存 scale+徑向 translate,
+>   需設計「**分離旋轉分量**」的更嚴不動點 AC(先扣掉 scale/徑向貢獻再量 pivot 漂移),或先只對 rotate-only beat 套用;
+> **(J) cascade × pivot**:跨件錯開波(0h)+ 各件繞**自身關節** pivot 旋轉(兩正交維度疊加,AC=波簽章不變 + 各件 pivot 不動)。
 
 ## 環境前置(已驗證可用)
 
@@ -289,6 +310,13 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-05:**S1 關節 pivot 感知 keyframe(里程碑,candidate 0i)** — 補建議 (G)。把 S5 接觸縫 pivot 餵給
+  keyframe 生成器:結構子件加同步 translate 補償 Δ=(R(θ)−I)(O−P) → 繞**解剖關節**旋轉而非件中心(純 keyframe,
+  不需 --rig)。`pivot_keyframe.py`(閉式+細分 8 段)+ `build_animations(pivots=)`(向後相容)+ `build_spine --pivot`
+  (復用 rig_layout joint 判定)+ `validate_pivot_keyframe.py` **6 AC 全 PASS**(formula err<1e-9 / Loop pivot 不動
+  0.0001px / 無補償位移精確吻合閉式 2|P-O|sin(θpk/2) 且壓掉>20000× / 遠端仍旋轉 / validate_anim 全過 / 隨機 pivot
+  +P==O 鑑別)。關鍵:無補償位移逐 bone==閉式(證繞件中心 + 世界模型);θ=0→Δ=0 對介面天然中性;--rig 與 --pivot 互補。
+  這是 **S5 pivot ↔ S1 keyframe 首個接點**。回歸全綠。cap `pivot_aware_keyframe` L2;anim-forge 仍 HOLD。見 `knowledge/s1-pivot-keyframe.md`。
 - 2026-09-04(session 002):**S1 cascade 跨件錯開波(里程碑,candidate 0h)** — 補 (F 續) cascade。第一個**跨件時序**
   主秀節拍:0f/0g 皆單件內時序,cascade 每件依件序相位錯開成波,簽章在「各件峰時刻排序+散佈」。`gen_cascade`(pop 波,
   首尾 identity)+ `gen_animations` 架構變更(`_PHASE_AWARE`,build_animations 配 `phase=pi/(nvalid-1)` —— 生成器**第一個

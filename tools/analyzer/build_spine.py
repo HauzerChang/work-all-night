@@ -188,8 +188,18 @@ def shelf_pack(sizes, pad=2, max_w=2048):
     return placements, (W, H)
 
 
+def compute_part_pivots(metas, names, sizes, offsets, H, note, parts_dir):
+    """candidate 0i:算各**結構子件**的關節 pivot(接觸縫),鍵為 safe(件名)、值為世界座標。
+    直接復用 `rig_layout`(infer_tree + contact_seam_joint)的 joint 判定,與 --rig 一致;
+    只取 joint==True 的件(頭/肢體),root(body)與特效件不含(維持繞件中心)。"""
+    rlay, _body, _order = rig_layout(metas, names, sizes, offsets, H, note, parts_dir)
+    return {safe(nm): (float(rlay[nm]["world"][0]), float(rlay[nm]["world"][1]))
+            for nm in rlay if rlay[nm]["joint"]}
+
+
 def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False,
-          deform=False, deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
+          deform=False, pivot=False,
+          deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
     psd, manifest, parts = slice_psd(psd_path, parts_dir)     # 切件 PNG(裁到 bbox)+ manifest
@@ -300,7 +310,15 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
     if animate:
         # candidate 0d:把 #3 分鏡具體化為 Spine timeline,讓素材「會動」
         from gen_animations import build_animations
-        skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"])
+        # candidate 0i:--pivot(非 rig 時)→ 結構子件旋轉繞關節而非件中心(keyframe 補償)。
+        #   rig 已把 bone 搬到關節,故 --rig 時不需(旋轉本就繞關節);兩者互補、非併用。
+        piv = None
+        if pivot and not rig:
+            piv = compute_part_pivots(metas, names, sizes, offsets, H, note, parts_dir)
+            for nm, p in piv.items():           # 記錄 pivot(供 validate_pivot_keyframe 讀真值)
+                if nm in build_meta:
+                    build_meta[nm]["pivot"] = [round(p[0], 3), round(p[1], 3)]
+        skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"], pivots=piv)
         if deform:
             # candidate 0e:再讓軟件/特效 mesh 本身 deform(真實布料律動場轉移),非只被控制骨搬動
             from gen_deform import build_deform, load_source_field
@@ -330,9 +348,10 @@ def main():
     ap.add_argument("--animate", action="store_true", help="同時由 #3 分鏡生成 animations(candidate 0d)")
     ap.add_argument("--deform", action="store_true", help="candidate 0e:mesh 件產真實律動 deform timeline(需 --animate)")
     ap.add_argument("--rig", action="store_true", help="S5:pivot→bone 父子樹(結構子件綁 body、關節落接觸縫)")
+    ap.add_argument("--pivot", action="store_true", help="candidate 0i:非rig 時,結構子件旋轉繞關節 pivot(keyframe 補償,需 --animate)")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
-    s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform)
+    s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform, pivot=a.pivot)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

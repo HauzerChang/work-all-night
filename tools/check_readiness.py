@@ -194,6 +194,15 @@ BLOCKS = [
                      "threading 有接上)。pop 波形首尾 identity 可插 Loop 間。6AC PASS(well-formed/可串接介面/真峰/跨件簽章/"
                      "共用 anticipation+settle/負對照)+ 7 條負對照:combo(同時序)spread≈0 非波、打亂/反序件序非遞增、"
                      "cascade 單件非 combo 簽章(證與 0g 正交)、單件無 spread 非波。真值=結構簽章(美感留使用者 A類)"),
+            CAP("pivot_aware_keyframe", "關節 pivot 感知 keyframe(件繞關節旋轉,0i)", "L2",
+                "python3 tools/analyzer/validate_pivot_keyframe.py", "pipeline",
+                note="把 S5 接觸縫 pivot 餵給 keyframe 生成器:結構子件(頭/肢體)加同步 translate 補償 "
+                     "Δ=(R(θ)−I)(O−P) → 繞**解剖關節**旋轉而非繞件中心(純 keyframe 路徑,不需 --rig 重綁)。"
+                     "build_spine --pivot 端到端(復用 rig_layout 的 joint 判定)。6AC PASS:formula 閉式(err<1e-9)/"
+                     "端到端 Loop pivot 不動點 0.0001px/負對照無補償位移**精確吻合閉式 2|P-O|sin(θpk/2)**(證確為繞件中心)"
+                     "且被壓掉 >20000×/遠端仍旋轉/介面契約 validate_anim 仍全過(θ=0→Δ=0 天然中性)/鑑別力(隨機 pivot 不動"
+                     "但真 P 動 18.97px、P==O→Δ≡0 no-op)。honest boundary:不動點對**旋轉分量**成立(scale/徑向 translate "
+                     "仍搬動 P,故驗於 loop 肢體純 rotate 段);--rig 與 --pivot 互補非併用。真值=幾何不動點(美感留使用者 A類)"),
         ],
     },
 ]

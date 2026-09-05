@@ -216,10 +216,17 @@ except ImportError:
 _PHASE_AWARE = {"cascade"}
 
 
-def build_animations(skeleton, storyboard):
-    """回傳 animations dict(beat 名為 key)。"""
+def build_animations(skeleton, storyboard, pivots=None):
+    """回傳 animations dict(beat 名為 key)。
+
+    pivots(candidate 0i,選用):{safe_part_name: (Px,Py)} —— 該結構子件的關節 pivot
+      (S5 接觸縫,與 bone x/y 同一世界座標)。給定後,凡該件有 rotate timeline,即以
+      `pivot_keyframe.compensate_bone` 加同步 translate 補償,讓件**繞關節**而非**繞件中心**旋轉。
+      未提供(預設)⟹ 原行為(繞件中心),完全向後相容。"""
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
+    if pivots:
+        from pivot_keyframe import compensate_bone
     # 畫布中心(用於徑向)
     W = skeleton["skeleton"]["width"]
     H = skeleton["skeleton"]["height"]
@@ -255,6 +262,10 @@ def build_animations(skeleton, storyboard):
                 b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
             else:
                 b, sdict = _DISPATCH[cat](role, side_sign, radial)
+            # candidate 0i:有推得 pivot 的結構子件 → 旋轉繞關節(加 translate 補償)
+            if b and pivots and sname in pivots and "rotate" in b:
+                O = (bd.get("x", cx), bd.get("y", cy))
+                compensate_bone(b, O, pivots[sname])
             if b:
                 bones_tl[bname] = b
             if sdict:
