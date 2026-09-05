@@ -93,6 +93,24 @@
   ——0f 模板要「被觸發」需先驗庫有對應 beat(又一「評估器/模板就緒 ≠ 生成器接上」實例)。新增 cap
   `main_show_priors_integration` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
   見 `knowledge/s1-main-show-priors-integration.md`、圖 `knowledge/figures/s1_priors_beats.png`。
+- **S1 (e) 關節 pivot 接 keyframe:件繞關節轉而非件中心(里程碑,2026-09-05,candidate 0i)** — 補 STATE
+  建議 (G):把 **S5 接觸縫關節 pivot**(`infer_pivots`)餵回 **S1 keyframe 生成器**。非 rig 的 build_spine
+  把 bone 放件中心 → limb `rotate` 是「繞件中心自轉」拖走關節;本能力用**補償平移** `Δ=(R(θ)−I)(O−P)`
+  讓 bone 留在件中心也能**繞關節 P 轉**(P 為不動點),不必動骨架(對照 `--rig` 的結構重組,這是 keyframe 級技巧)。
+  `tools/analyzer/articulate.py`(primitive:`rot_apply`(R 單一真相 CCW=Spine 一致 → 產物真引擎正確)/
+  `pivot_translate`/`articulate_about_pivot`(rotate 與既有 translate 共同密取樣到同格,格點精確、格點間 O(step²),
+  samples 為精度旋鈕;首尾 θ=0→Δ=0 保介面)/`world_point`);`gen_animations.build_animations` 加 **向後相容**
+  `pivots=None` 參數;`build_spine --animate --pivot-articulate`(pivot 取自 `rig_layout` 接觸縫關節)。
+  `validate_pivot_articulation.py` 對真實 Award 5 拆件端到端 **6 AC 全 PASS**:A1 端到端關節逐幀不動 <0.5px
+  (頭/左手/右手 ≤0.007)、A2 負對照繞件中心漂移 >5px(左手 10.24)、A3 件確實旋轉+到 P 半徑守恆 <0.5px、
+  A4 首尾 identity 介面保留、A5 與 base translate 正確疊加(格點 0.0095px)、**A6 primitive 45° 精確 + 不補償版
+  位移實測 133.88 == 2sin(θ/2)\|O−P\| 解析 133.88(<1e-6)= 閘度量自證可信**。回歸:`validate_anim`(+selftest)
+  對 `--animate` 與 `--animate --pivot-articulate` 皆 PASS;cascade/more_beats/beat_templates/priors_beats 全 PASS
+  (pivots=None 預設路徑未動)。**關鍵發現**:繞件中心 vs 繞關節可**純用 keyframe** 解決(補償平移),產物在真
+  Spine 正確;不動點在格點精確、格點間 O(step²);評估器用**解析核對**(2sin(θ/2)|O−P|)自證。踩雷:beat 名
+  `"loop_swing"` 含 `"in"`(sw**in**g)被誤判為 intro → validator 改精確 beat 名 `"loop"` + assert。honest:只消
+  rotation 對 pivot 位移,scale-pop 仍繞件中心(另議)。新增 cap `pivot_articulation` L2 併入 `spine-anim-forge`
+  (**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。見 `knowledge/s1-pivot-articulation.md`。
 - **S1 cascade 跨件錯開波:第一個「跨件時序」主秀節拍(里程碑,2026-09-04,session 002,candidate 0h)** —
   補 STATE 建議 (F 續) **cascade**(跨件錯開 reveal)。0f/0g 的 hit/reveal/combo/anticipate_hold 全是**單件內**
   時序簽章(同 beat 套每件、每件時序相同);cascade 是**跨件**時序簽章 —— 每件依**件序相位** phase∈[0,1]
@@ -268,9 +286,11 @@
 >   與 0g 的單件時序簽章互補,已逼出 build_animations 的 per-part phase threading(`_PHASE_AWARE`)。
 >   **續**(擇一,皆自主):cascade **reveal 波變體**(每件 start collapsed 依序現身,首非 identity;需處理多件 collapse
 >   疊加對 argmax 的擾動)、或用**空間位置**決定波方向(左→右/中心外擴,件序相位改由 bd.x/徑向決定);
-> **(G) S1 (e) 關節 pivot 推斷接 keyframe**:把 S5 的接觸縫 pivot 餵給 keyframe 生成器(件繞關節轉而非件中心;
->   rigid rotation-about-pivot:對位於件原點 O 的 bone 加 rotate θ + translate Δ=(R(θ)−I)(O−P),P=關節 pivot;
->   AC=旋轉後 pivot 世界點為不動點 vs 件中心旋轉會位移=內建負對照)。
+> **(G) ~~S1 (e) 關節 pivot 推斷接 keyframe~~ ✅ 完成(2026-09-05,candidate 0i,`pivot_articulation` L2,見上里程碑)** ——
+>   `articulate.py`(Δ=(R(θ)−I)(O−P) 補償平移)+ `build_animations(pivots=)` + `build_spine --animate --pivot-articulate`;
+>   `validate_pivot_articulation.py` 6 AC(A1 不動點/A2 負對照/A3 純旋轉/A4 介面/A5 base 疊加/A6 primitive+解析核對)全 PASS。
+>   **續**(擇一,皆自主):把 scale-pop 也補償成繞關節脹縮(消目前 honest boundary);或把 pivot articulation 接進
+>   genre 先驗庫讓 `--animate` 直接用(如 (E)/(H) 對 beat 所做,免手動 `--pivot-articulate`)。
 > **(H) combo/charge 接進 genre 先驗庫**:如 (E) 對 hit/reveal 所做,把 combo/charge 併入 `genre_priors` 讓
 >   `build_spine --animate` 直出(需同步 `validate_priors` 真值覆蓋、勿動已驗先驗)。
 
@@ -289,6 +309,14 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-05:**S1 (e) 關節 pivot 接 keyframe(里程碑,candidate 0i)** — 補建議 (G)。把 S5 接觸縫關節餵回
+  keyframe 生成器:非 rig 下 bone 在件中心,用補償平移 Δ=(R(θ)−I)(O−P) 讓 limb/head 繞關節 P 轉(P 不動點),
+  不動骨架(對照 --rig 結構重組)。`articulate.py`(primitive)+ `build_animations(pivots=)` 向後相容 +
+  `build_spine --animate --pivot-articulate`。`validate_pivot_articulation.py` 對真實 Award 5 拆件 6 AC 全 PASS
+  (A1 關節不動<0.5px/A2 負對照繞件中心>5px/A3 純旋轉半徑守恆/A4 介面 identity/A5 疊加 base translate/A6 primitive
+  45°精確+不補償位移==2sin(θ/2)|O−P| 解析自證)。回歸 validate_anim(+selftest,含 --pivot-articulate)/cascade/
+  more_beats/beat_templates/priors_beats 全 PASS。關鍵:繞關節可純用 keyframe 解、產物真引擎正確(R=CCW);格點精確
+  格點間 O(step²);踩雷 beat 名含 "in" 誤判 intro。cap `pivot_articulation` L2;anim-forge 仍 HOLD。見 `knowledge/s1-pivot-articulation.md`。
 - 2026-09-04(session 002):**S1 cascade 跨件錯開波(里程碑,candidate 0h)** — 補 (F 續) cascade。第一個**跨件時序**
   主秀節拍:0f/0g 皆單件內時序,cascade 每件依件序相位錯開成波,簽章在「各件峰時刻排序+散佈」。`gen_cascade`(pop 波,
   首尾 identity)+ `gen_animations` 架構變更(`_PHASE_AWARE`,build_animations 配 `phase=pi/(nvalid-1)` —— 生成器**第一個

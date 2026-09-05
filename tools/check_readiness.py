@@ -194,6 +194,13 @@ BLOCKS = [
                      "threading 有接上)。pop 波形首尾 identity 可插 Loop 間。6AC PASS(well-formed/可串接介面/真峰/跨件簽章/"
                      "共用 anticipation+settle/負對照)+ 7 條負對照:combo(同時序)spread≈0 非波、打亂/反序件序非遞增、"
                      "cascade 單件非 combo 簽章(證與 0g 正交)、單件無 spread 非波。真值=結構簽章(美感留使用者 A類)"),
+            CAP("pivot_articulation", "關節 pivot 接 keyframe:件繞關節轉而非件中心(S1 (e)/0i)", "L2",
+                "python3 tools/analyzer/validate_pivot_articulation.py", "pipeline",
+                note="把 S5 infer_pivots 的接觸縫關節餵回 keyframe:非 rig 下 bone 在件中心,故用補償平移 "
+                     "Δ=(R(θ)−I)(O−P) 讓 limb 繞關節 P 轉(P 為不動點)。end-to-end 經 build_animations(pivots=) + "
+                     "build_spine --animate --pivot-articulate。6AC PASS(A1 端到端關節不動<0.5px/A2 負對照繞件中心漂移>5px/"
+                     "A3 件確實旋轉+半徑守恆/A4 首尾 identity 介面保留/A5 與 base translate 正確疊加/A6 primitive 45°精確+"
+                     "不補償版位移==2sin(θ/2)|O−P| 解析核對)。honest:僅消 rotation 對 pivot 的位移;scale-pop 仍繞件中心(另議)"),
         ],
     },
 ]

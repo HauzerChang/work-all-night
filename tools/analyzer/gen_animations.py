@@ -216,8 +216,13 @@ except ImportError:
 _PHASE_AWARE = {"cascade"}
 
 
-def build_animations(skeleton, storyboard):
-    """回傳 animations dict(beat 名為 key)。"""
+def build_animations(skeleton, storyboard, pivots=None):
+    """回傳 animations dict(beat 名為 key)。
+
+    pivots(可選,candidate 0i / S1 (e)):{safe_part_name: (Px, Py)} 關節 pivot 世界座標
+      (與 bone 的 x/y 同一座標系)。提供時,產生 `rotate` 通道的件(limb/head/特效)改為
+      **繞關節 pivot 旋轉**而非繞件中心(bone 原點),用補償平移實現(見 `articulate`)。
+      預設 None → 完全沿用原行為(向後相容,既有 validator 不受影響)。"""
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
@@ -255,6 +260,16 @@ def build_animations(skeleton, storyboard):
                 b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
             else:
                 b, sdict = _DISPATCH[cat](role, side_sign, radial)
+            # candidate 0i(S1 (e)):有 pivot 且該件產了 rotate → 改繞關節 pivot 旋轉。
+            # 件 bone 仍在件中心 O=(bd.x,bd.y);pivot P 由 S5 infer_pivots 推得。
+            if pivots and b.get("rotate") and sname in pivots:
+                from articulate import articulate_about_pivot
+                O = (bd.get("x", cx), bd.get("y", cy))
+                nr, nt = articulate_about_pivot(b["rotate"], O, pivots[sname],
+                                                base_translate=b.get("translate"))
+                b["rotate"] = nr
+                if nt:
+                    b["translate"] = nt
             if b:
                 bones_tl[bname] = b
             if sdict:

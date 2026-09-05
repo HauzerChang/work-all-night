@@ -189,7 +189,8 @@ def shelf_pack(sizes, pad=2, max_w=2048):
 
 
 def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False,
-          deform=False, deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
+          deform=False, pivot_articulate=False,
+          deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
     psd, manifest, parts = slice_psd(psd_path, parts_dir)     # 切件 PNG(裁到 bbox)+ manifest
@@ -300,7 +301,14 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
     if animate:
         # candidate 0d:把 #3 分鏡具體化為 Spine timeline,讓素材「會動」
         from gen_animations import build_animations
-        skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"])
+        # candidate 0i(S1 (e)):把 S5 接觸縫 pivot 餵給 keyframe → limb 繞關節轉而非件中心。
+        # 非 rig 下 bone 在件中心,故用補償平移(見 articulate);pivot 取自 rig_layout 的關節。
+        pivots = None
+        if pivot_articulate:
+            rlay_p, _body_p, _ord_p = rig_layout(metas, names, sizes, offsets, H, note, parts_dir)
+            pivots = {nm: (float(rlay_p[nm]["world"][0]), float(rlay_p[nm]["world"][1]))
+                      for nm in rlay_p if rlay_p[nm]["joint"]}
+        skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"], pivots=pivots)
         if deform:
             # candidate 0e:再讓軟件/特效 mesh 本身 deform(真實布料律動場轉移),非只被控制骨搬動
             from gen_deform import build_deform, load_source_field
@@ -330,9 +338,12 @@ def main():
     ap.add_argument("--animate", action="store_true", help="同時由 #3 分鏡生成 animations(candidate 0d)")
     ap.add_argument("--deform", action="store_true", help="candidate 0e:mesh 件產真實律動 deform timeline(需 --animate)")
     ap.add_argument("--rig", action="store_true", help="S5:pivot→bone 父子樹(結構子件綁 body、關節落接觸縫)")
+    ap.add_argument("--pivot-articulate", dest="pivot_articulate", action="store_true",
+                    help="candidate 0i:limb 繞 S5 接觸縫關節轉(補償平移;需 --animate,非 rig 亦可)")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
-    s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform)
+    s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,
+              pivot_articulate=a.pivot_articulate)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

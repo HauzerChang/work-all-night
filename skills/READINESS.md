@@ -1,8 +1,8 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-09-01 run 002(S1 candidate 0f big-win 主秀 beat 模板:補 0d 只有對稱脈衝的缺口,加 anticipation+settle 兩動畫原理。`spine-anim-forge` 新增 cap `storyboard_beat_templates` L2 → 區塊仍 HOLD;運動基元先驗、單一真值資產,防固化。3 區塊仍 READY 不變)。
-> (前次 run 001:candidate 0e mesh deform timeline 生成,新增區塊 `spine-anim-forge`。)
+> 更新於 2026-09-05(S1 candidate 0i 關節 pivot 接 keyframe:件繞關節轉而非件中心。`spine-anim-forge` 新增 cap `pivot_articulation` L2 → 區塊仍 HOLD;運動基元先驗、單一真值資產,防固化。3 區塊仍 READY 不變)。
+> (歷次 anim-forge 累積:0e mesh deform 生成、0f hit/reveal 主秀 beat、(E) 主秀 beat 接 genre 先驗庫、0g combo+anticipate_hold、0h cascade 跨件波、0i 關節 pivot 接 keyframe。)
 
 ```
 ==============================================================================
@@ -64,6 +64,10 @@ skill 化完成度矩陣(已實跑全部 validator)
     [L2] 分鏡→bone TRS + slot alpha timeline(0d)  閘:GREEN (gen)  «4AC(有限/loop無縫/pose不擾動/beat串接)+ --selftest 負對照全偵測;role→運動基元為先驗手感提案(非學自真值),緩動美感留使用者(A類)»
     [L2] 分鏡→mesh deform timeline(真實律動場轉移,0e)    閘:GREEN (pipeline)  «補 0d 只動 bone/slot 的缺口:軟件/特效 mesh 本身 deform。運動=真實 main_draw 窗簾/陰影 deform 場(deform_eval.real_deform_field)UV 轉移到目標 mesh;beat 包絡首尾回 setup(無縫)。7AC PASS(結構/逐幀乾淨/loop無縫/setup介面/幅度≤真實裕度/負對照 scramble×3 全破+連貫×4不破/build_spine --animate --deform 端到端生成 mesh 逐幀乾淨)。gate=deform_eval(真實位移場,已驗可信)。honest boundary:件role→律動場來源為先驗映射(預設軟布料模板);單一真值資產»
     [L2] big-win 主秀 beat 模板 hit/reveal(anticipation+settle,0f)  閘:GREEN (gen)  «補 0d 只有對稱脈衝的缺口:hit=反向預備→命中→阻尼回擺、reveal=藏→蓄勢→炸開→回穩,皆 setup identity/collapse 介面可與 In/Loop/Out 串接。6AC(well-formed/可串接介面/真峰/anticipation/settle 阻尼回擺/負對照)全 PASS;負對照證閘能分辨主秀 hit 與天真對稱脈衝(gen_pulse 無反向預備+無阻尼回擺→非主秀)、不歸位、無峰。真值=結構簽章(非美感,美感留使用者 A類)»
+    [L2] 主秀 beat 接進 genre 先驗庫(E,build --animate 直出主秀)  閘:GREEN (pipeline)  «把 0f hit/reveal 併入 genre_priors:slot_bigwin 加 burst(reveal)+hit、slot_reveal 既有 open→reveal/hit→hit。從**先驗庫**經 build_storyboard→build_animations 證主秀節拍真流到最終 animations。5AC PASS;honest:burst/hit 於 Award 真值無命名→列 prior_beats_unused(誠實 PROPOSAL);單一真值資產»
+    [L2] 擴充主秀 beat 庫:combo + anticipate_hold(0g)  閘:GREEN (gen)  «combo=遞增 impact 峰數≥3(單發 hit 僅 1 峰)、anticipate_hold=峰前長蓄力佔比≥0.35。6AC+9 條負對照全過(兩簽章互斥、等峰 combo 非遞增)。combo 鑑別子=「遞增」非只「多峰」;charge 用「時間佔比」非「深度」。真值=結構簽章»
+    [L2] cascade 跨件錯開波(跨件時序簽章,0h)  閘:GREEN (gen)  «補 0f/0g 全是單件內時序的缺口:cascade=每件依件序相位錯開成波,簽章在件之間(峰時刻依件序嚴格遞增+散佈≥0.30),端到端經 build_animations 量測(證 per-part phase threading 接上)。6AC+7 條負對照全過(combo 同時序 spread≈0、打亂/反序非遞增、單件非 combo=與 0g 正交)»
+    [L2] 關節 pivot 接 keyframe:件繞關節轉而非件中心(S1 (e)/0i)  閘:GREEN (pipeline)  «把 S5 infer_pivots 接觸縫關節餵回 keyframe:非 rig 下 bone 在件中心,用補償平移 Δ=(R(θ)−I)(O−P) 讓 limb 繞關節 P 轉(P 不動點)。end-to-end 經 build_animations(pivots=) + build_spine --animate --pivot-articulate。6AC PASS(A1 關節不動<0.5px/A2 負對照繞件中心>5px/A3 純旋轉半徑守恆/A4 identity 介面/A5 疊加 base translate/A6 primitive 45°精確+不補償位移==2sin(θ/2)|O−P| 解析核對)。honest:僅消 rotation 位移,scale-pop 仍繞件中心»
 
 ==============================================================================
 可 skill 化(達門檻): spine-mesh-doctor, spine-asset-forge, spine-weighted-forge
