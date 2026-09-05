@@ -7,6 +7,25 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 54(2026-09-05)**:chunk47-53 每次都記錄「未重跑 `--contour sam`」,本次補上這個
+>延後的驗證——**框位置修正後,SAM 的靜默錯誤是否也一併解決?**用 chunk53 定案的決策檔
+> (`decision_final.json`)重跑 `--contour sam`(需重裝 torch/timm/MobileSAM 原始碼,
+> 容器不持久化,已記錄可重現指令)。**結果分兩半**:(1) chunk49-52 修正的 5 個部件
+> (`leg_left`/`boot_left`/`hand_left`/`hand_right`/`tag_pendant`)這次 SAM 分割視覺
+> 確認**全部正確**——證實「框從一開始沒框到目標」這類錯誤,源頭修正框位置後 SAM 不需
+> 任何演算法改動就能正確分割,chunk48「不管換哪種分割演算法都救不回來,正確修法是重新
+> 框」的判斷首次在最終決策檔上完整驗證。(2) 已知「框正確但SAM選錯鄰居內容」案例
+> (`bodice`/`sleeve_right`)修框後依然失敗,不意外但確認問題本質不在框。**新發現**:
+> `skirt`(chunk52確認框正確)這次首度用SAM測試,選到皮膚而非裙擺紅布,是新的靜默錯誤
+> 案例,heuristic 未攔截;`head`(chunk51修正後的正確框)這次被 heuristic 正確攔截
+> (fragmented),對照 chunk53 的矩形裁圖確認框本身是對的,純粹分割本身在臉部/髮絲
+> 邊界失效;`hair_front` 的失敗具體化了已知的框重疊問題(選到耳朵而非瀏海)。**統計**:
+> 20 部件中仍有 ~4 個(20%)落在「框正確、SAM選錯」模式,跟 chunk47 的 25% 同量級——
+> 框修正解決了「框完全落錯」類錯誤,但沒解決 SAM 本身的核心限制。heuristic 這次攔截
+> 2/20,對真正有問題的部件攔截率仍偏低。**未改動任何 production 代碼**,未產出第二份
+> SAM 版 PSD(4 個已知錯誤部件存在,組裝意義不大)。見下方「chunk 54」段落與
+> `knowledge/s4-sam-rerun-after-box-fixes.md`。
+>
 > **chunk 53(2026-09-05)**:chunk 47-52 把 `suggestions.json` 框位置修正到位,但每次
 > 只驗證單一部件裁圖,從未真的組出一份 .psd 交付物——第3點(幾何裁切+PSD組裝)工具鏈
 > chunk 46 就做好了,卻只用過使用者當次手動調整、未持久化進 repo 的決策檔跑過一次。
@@ -652,6 +671,13 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
   `passes()`/`passes_1b()` 實際生產判定門檻,兩個代表材質在真實 1b 門檻下本來就已 PASS,
   接不接受都不影響任何真實上線判定——使用者裁決無限期擱置(非永久否決,保留未來重新評估
   彈性)。詳見 `knowledge/s4-inpaint-alpha-taper-candidate14.md`、`log/s4-2026-09-04-033.md`。
+- ✅ **「框修正後 SAM 靜默錯誤是否解決」已驗證(chunk 54,2026-09-05)**:框完全落錯類
+  (leg_left/boot_left/hand_left/hand_right/tag_pendant)修正後 SAM 全部正確;框正確
+  但SAM選鄰居內容類(bodice/sleeve_right,+ 新發現 skirt)修框無效,是 SAM 本身限制,
+  非框問題。見上方 chunk 54 段落。**懸而未決,新增到候選清單**:`skirt` 需要跟
+  `bodice`/`sleeve_right` 一樣的處理方式決策(點提示已對後兩者測試 4 次無效,`skirt`
+  尚未測試任何修法);`hair_front`/`head`/`fox_ears` 語意邊界仍待使用者用 assist viewer
+  確認(chunk51 已提出,chunk54 用 SAM 具體示範了重疊會導致選錯子物件)。
 - ✅ **里程碑審查完成(chunk 26,2026-09-02)**:S4 核心研究問題已全部有交叉驗證的答案
   (見上方「里程碑審查」段落與 `knowledge/s4-convergence-review.md`)。候選15/17 是唯二
   剩餘的執行層決策(非研究缺口),連同「本排程接下來走向」共三項一併彙整交還使用者裁決,
@@ -659,6 +685,18 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-05:**框位置修正後重跑 `--contour sam`,驗證是否解決靜默錯誤(chunk 54)** —
+  承接 chunk47-53 每次都延後的「未重跑 --contour sam」,用 chunk53 定案決策檔重跑。
+  chunk49-52 修正的 5 個部件(`leg_left`/`boot_left`/`hand_left`/`hand_right`/
+  `tag_pendant`)這次 SAM 分割全部正確,證實源頭修框位置後 SAM 不需演算法改動就能正確
+  分割。已知「框正確但SAM選錯鄰居內容」案例(`bodice`/`sleeve_right`)依然失敗。新發現
+  `skirt`(此前只用矩形裁切驗證過)首度測 SAM,選到皮膚而非裙擺紅布,heuristic 未攔截;
+  `head`(chunk51正確框)這次被 heuristic 正確攔截(fragmented),確認框本身沒問題、
+  是分割本身在臉部/髮絲邊界失效;`hair_front` 失敗具體化了已知的框重疊問題。統計:20
+  部件中仍有 ~4 個(20%)落在「框正確、SAM選錯」模式,跟 chunk47 的 25% 同量級——框
+  修正解決「框完全落錯」類錯誤,未解決 SAM 本身核心限制。未改動任何 production 代碼,
+  未產出第二份 SAM 版 PSD。見 `knowledge/s4-sam-rerun-after-box-fixes.md`、
+  `log/s4-2026-09-05-054.md`。
 - 2026-09-05:**九尾焰蓮拆解第一份完整組裝 PSD(chunk 53)** — chunk 47-52 的框位置修正
   成果從未真的組成一份 .psd 交付物(第3點工具鏈 chunk46 已建好,只用過未持久化的測試
   決策檔跑過一次)。複用 chunk52 修正後的決策檔快照(`tools/mesh_gen/s4_data/chunk53/

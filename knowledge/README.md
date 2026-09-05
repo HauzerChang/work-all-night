@@ -531,3 +531,15 @@
   PSD保留`bodice`/`sleeve_right`(演算法歧異)/`hair_front`(語意邊界)三個已知問題
   原樣未解,是「目前最佳框」快照非最終定案;邊緣bleed按chunk46既有授權原樣保留;未做
   第4點GPT局部修補(需API key授權,同候選17阻塞點)。
+
+- [框位置修正後重跑--contour sam,驗證是否解決靜默錯誤(chunk 54)](s4-sam-rerun-after-box-fixes.md) —
+  chunk47-53每次都記錄「未重跑--contour sam」,本次補上。用chunk53定案決策檔重跑SAM
+  分割:**chunk49-52修正的5個部件**(`leg_left`/`boot_left`/`hand_left`/`hand_right`/
+  `tag_pendant`)這次SAM分割**全部正確**,證實框從一開始沒框到目標這類錯誤,源頭修正
+  框位置後SAM不需任何演算法改動就能正確分割。已知「框正確但SAM選錯鄰居內容」案例
+  (`bodice`/`sleeve_right`)修框後依然失敗,確認是SAM能力限制非框問題。**新發現**:
+  `skirt`(chunk52確認框正確)首度測SAM,選到皮膚而非裙擺紅布,heuristic未攔截;
+  `head`(chunk51正確框)這次被heuristic正確攔截(fragmented),確認是分割本身在
+  臉部/髮絲邊界失效非框問題;`hair_front`失敗具體化了已知的框重疊問題。統計:20部件
+  仍有~4個(20%)落在「框正確、SAM選錯」模式,跟chunk47的25%同量級——框修正解決
+  「框完全落錯」類錯誤,未解決SAM本身核心限制。未改動任何production代碼。
