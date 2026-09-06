@@ -7,6 +7,27 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 55(2026-09-06)**:承接 chunk 54 留下的候選 1——`skirt` 是 chunk54 才新發現
+> 的靜默錯誤(SAM 選到皮膚而非裙擺紅布),跟 chunk48 已測 4 次無效的 `bodice`/
+> `sleeve_right` 材質/重疊模式不同,chunk54 明確標註值得獨立測試而非直接假設無效。
+> **結果:點提示對 `skirt` 有效**,跟 `bodice`/`sleeve_right` 的負面結果不同。先用
+> `skirt` 的框(來自 chunk53 決策檔)重跑純 box-prompted SAM 重現 baseline 失敗
+> (`fg_ratio_in_box=0.196`,跟 chunk54 原始記錄的 `0.20` 一致,確認腳本重現正確),
+> 用網格疊圖工具放大確認裙擺紅布/皮膚實際像素位置後,測 5 種點提示組合(2 正向點、
+> 正向+負向點、3 種不同座標的單一正向點)**全部成功**——不需要負向點,單一正向點就
+> 足夠讓 SAM 選出乾淨單一連通元件的裙擺輪廓,`fg_ratio_in_box` 穩定落在
+> `0.44~0.46`(5/5 一致,已對其中 3 組做視覺疊圖確認、非單看數字)。**結論**:「框
+> 正確、SAM選錯」這個症狀底下至少有兩種不同病因——候選物件在特徵空間離目標很近
+> (`bodice`/`sleeve_right`:胸衣/髮絲、袖子/胸衣)點提示救不了;候選物件特徵空間
+> 差異夠大、只是純 box prompt 缺方向性訊息(`skirt`:裙擺布料/皮膚)加一點就能扭轉
+> ——不能只看「框正確、SAM選錯」這個症狀本身就預判點提示有沒有用,需要逐案實測。
+> **誠實限制**:未改動任何 production 代碼(`s4_sam_segment.py` 的 `segment()` 目前
+> 只接受 `bbox_xyxy`,不支援點提示參數),要讓這個發現真正解決 `skirt` 的分割問題,
+> 需要把點提示接線進 production(decision JSON schema 加點欄位 + assist viewer UI +
+> `s4_decompose_cut.py` 接線),這些都還沒做;未對 `hair_front`(語意邊界問題,非
+> 候選選錯問題)測點提示,故意跳過;未產出新版 PSD。見下方「chunk 55」段落與
+> `knowledge/s4-sam-point-prompt-skirt.md`。
+>
 > **chunk 54(2026-09-05)**:chunk47-53 每次都記錄「未重跑 `--contour sam`」,本次補上這個
 >延後的驗證——**框位置修正後,SAM 的靜默錯誤是否也一併解決?**用 chunk53 定案的決策檔
 > (`decision_final.json`)重跑 `--contour sam`(需重裝 torch/timm/MobileSAM 原始碼,
@@ -674,10 +695,16 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 - ✅ **「框修正後 SAM 靜默錯誤是否解決」已驗證(chunk 54,2026-09-05)**:框完全落錯類
   (leg_left/boot_left/hand_left/hand_right/tag_pendant)修正後 SAM 全部正確;框正確
   但SAM選鄰居內容類(bodice/sleeve_right,+ 新發現 skirt)修框無效,是 SAM 本身限制,
-  非框問題。見上方 chunk 54 段落。**懸而未決,新增到候選清單**:`skirt` 需要跟
-  `bodice`/`sleeve_right` 一樣的處理方式決策(點提示已對後兩者測試 4 次無效,`skirt`
-  尚未測試任何修法);`hair_front`/`head`/`fox_ears` 語意邊界仍待使用者用 assist viewer
-  確認(chunk51 已提出,chunk54 用 SAM 具體示範了重疊會導致選錯子物件)。
+  非框問題。見上方 chunk 54 段落。~~懸而未決:`skirt` 需要跟 `bodice`/`sleeve_right`
+  一樣的處理方式決策~~ → **已解(chunk 55,2026-09-06)**:對 `skirt` 測點提示,5 種
+  組合全部成功(單一正向點即可),跟 `bodice`/`sleeve_right` 是不同病因、不需要走同一
+  套「接受/人工/放棄」裁決。**新增候選**:把點提示接線進 production(decision JSON
+  schema + assist viewer UI + `s4_decompose_cut.py`),讓 `skirt` 真正在正式流程被
+  修正而非停在 ad-hoc 驗證腳本——這是目前唯一「已知有效但未落地」的改進動作。
+  `bodice`/`sleeve_right` 仍是 A 類岔路(點提示已測 4 次無效,需使用者裁決處理方式);
+  `hair_front`/`head`/`fox_ears` 語意邊界仍待使用者用 assist viewer 確認(chunk51
+  已提出,chunk54 用 SAM 具體示範了重疊會導致選錯子物件)。見上方 chunk 55 段落與
+  `knowledge/s4-sam-point-prompt-skirt.md`。
 - ✅ **里程碑審查完成(chunk 26,2026-09-02)**:S4 核心研究問題已全部有交叉驗證的答案
   (見上方「里程碑審查」段落與 `knowledge/s4-convergence-review.md`)。候選15/17 是唯二
   剩餘的執行層決策(非研究缺口),連同「本排程接下來走向」共三項一併彙整交還使用者裁決,
@@ -685,6 +712,18 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-06:**對 `skirt` 測點提示,正面結果(chunk 55)** — 承接 chunk54 候選1。
+  `skirt` 是 chunk54 才新發現的靜默錯誤(SAM選到皮膚非裙擺紅布),跟已測4次無效的
+  `bodice`/`sleeve_right` 材質不同,獨立測試。重裝 torch/timm/MobileSAM(容器不
+  持久化,沿用 chunk54 記錄的可重現指令)後,先用純框重跑重現 baseline 失敗
+  (`fg_ratio_in_box=0.196`,跟 chunk54 原始數字 `0.20` 一致),放大確認裙擺/皮膚
+  座標後測 5 種點提示組合(2正向點/正向+負向/3種單一正向點座標)**全部成功**——單一
+  正向點即可讓 SAM 選出乾淨單一連通元件裙擺輪廓,`fg_ratio_in_box` 穩定 0.44~0.46,
+  其中3組已視覺疊圖確認非只看數字。結論:「框正確、SAM選錯」症狀底下至少兩種病因
+  (候選特徵空間近如bodice/sleeve_right→點提示救不了;特徵空間夠遠只缺方向性訊息如
+  skirt→加一點就夠),不能只看症狀預判點提示有效性,需逐案實測。未改動任何production
+  代碼,新增候選「把點提示接線進production」。見 `knowledge/s4-sam-point-prompt-skirt.md`、
+  `log/s4-2026-09-06-055.md`。
 - 2026-09-05:**框位置修正後重跑 `--contour sam`,驗證是否解決靜默錯誤(chunk 54)** —
   承接 chunk47-53 每次都延後的「未重跑 --contour sam」,用 chunk53 定案決策檔重跑。
   chunk49-52 修正的 5 個部件(`leg_left`/`boot_left`/`hand_left`/`hand_right`/

@@ -1,0 +1,67 @@
+[
+  {
+    "case": "box_only",
+    "scores": [
+      0.8474,
+      0.8973,
+      0.8233
+    ],
+    "chosen": 1,
+    "fg_ratio_in_box": 0.1964,
+    "n_components": 2,
+    "largest_component_frac": 0.8192,
+    "overlay": "skirt_box_only.png"
+  },
+  {
+    "case": "pos_only",
+    "scores": [
+      0.6556,
+      0.8914,
+      0.891
+    ],
+    "chosen": 1,
+    "fg_ratio_in_box": 0.4446,
+    "n_components": 1,
+    "largest_component_frac": 1.0,
+    "overlay": "skirt_pos_only.png"
+  },
+  {
+    "case": "pos_neg",
+    "scores": [
+      0.7367,
+      0.9212,
+      0.9335
+    ],
+    "chosen": 2,
+    "fg_ratio_in_box": 0.4588,
+    "n_components": 3,
+    "largest_component_frac": 0.9983,
+    "overlay": "skirt_pos_neg.png"
+  },
+  {
+    "case": "single_pt_A",
+    "note": "robustness check: single positive point at (260,395), no overlay saved",
+    "scores": [0.538, 0.892, 0.872],
+    "fg_ratio_in_box": 0.453,
+    "n_components": 1,
+    "largest_component_frac": 1.0
+  },
+  {
+    "case": "single_pt_B",
+    "note": "robustness check: single positive point at (290,420)",
+    "scores": [0.569, 0.856, 0.855],
+    "fg_ratio_in_box": 0.448,
+    "n_components": 1,
+    "largest_component_frac": 1.0,
+    "overlay": "skirt_single_pt_B.png"
+  },
+  {
+    "case": "single_pt_C",
+    "note": "robustness check: single positive point at (230,410)",
+    "scores": [0.594, 0.853, 0.823],
+    "fg_ratio_in_box": 0.457,
+    "n_components": 1,
+    "largest_component_frac": 1.0,
+    "overlay": "skirt_single_pt_C.png"
+  }
+]

@@ -543,3 +543,16 @@
   臉部/髮絲邊界失效非框問題;`hair_front`失敗具體化了已知的框重疊問題。統計:20部件
   仍有~4個(20%)落在「框正確、SAM選錯」模式,跟chunk47的25%同量級——框修正解決
   「框完全落錯」類錯誤,未解決SAM本身核心限制。未改動任何production代碼。
+
+- [對skirt測點提示,正面結果(chunk 55)](s4-sam-point-prompt-skirt.md) — 承接chunk54
+  候選1,`skirt`是chunk54新發現的靜默錯誤(選到皮膚非裙擺紅布),跟chunk48已測4次無效的
+  `bodice`/`sleeve_right`材質/重疊模式不同,值得獨立測試。**結果:點提示對skirt有效**,
+  跟`bodice`/`sleeve_right`負面結果不同。先重現baseline失敗(`fg_ratio=0.196`,同
+  chunk54數字),放大確認裙擺布料/皮膚座標後測5種點提示組合(2正向點、正向+負向、3種
+  不同座標的單一正向點)**全部成功**——單一正向點就足夠,選出乾淨單一連通元件的裙擺
+  輪廓,`fg_ratio`穩定落在0.44~0.46。結論:「框正確、SAM選錯」症狀底下至少有兩種病因
+  (候選物件特徵空間離目標近如bodice/sleeve_right→點提示救不了;候選物件特徵空間差異
+  夠大只是純box prompt缺方向性如skirt→加一點就夠),不能只看症狀就預判點提示有效性,
+  需逐案實測。**未改動任何production代碼**(`s4_sam_segment.py`尚不支援點提示參數),
+  新增候選:把點提示接線進production(decision JSON schema+assist viewer UI+
+  `s4_decompose_cut.py`),讓skirt真正在正式流程被修正。
