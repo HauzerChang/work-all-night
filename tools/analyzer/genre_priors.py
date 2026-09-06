@@ -137,6 +137,20 @@ PRIORS = {
 
 DEFAULT_GENRE = "slot_bigwin"
 
+# candidate (J) — 檔位(tier)主秀幅度差異化的 gain 政策(先驗知識,故住在先驗庫)。
+# tiers=[Super,Mega,Omg,Legend] 由低到高:第 i 檔 gain = 1 + i*STEP(單調遞增,Super=1.0=base)。
+# gain 乘在「主秀 overshoot(peak−1)」上(見 beat_templates._tier_peak),端點介面契約不受影響。
+# STEP 為手感先驗(A 類主觀留使用者微調),閘只驗**單調遞增**這客觀結構性質(非特定數值)。
+TIER_GAIN_STEP = 0.2
+
+
+def tier_gains(genre):
+    """回傳 {tier名: gain}(單調遞增)或 None(該類型無 tiers)。Super=1.0(=base,與未分檔一致)。"""
+    tiers = get(genre).get("tiers")
+    if not tiers:
+        return None
+    return {t: round(1.0 + i * TIER_GAIN_STEP, 4) for i, t in enumerate(tiers)}
+
 
 def get(genre):
     return PRIORS.get(genre, PRIORS[DEFAULT_GENRE])

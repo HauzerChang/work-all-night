@@ -189,7 +189,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
 
 
 def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False,
-          deform=False, pivot_rotate=False, scale_pivot=False,
+          deform=False, pivot_rotate=False, scale_pivot=False, tiers=False,
           deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
@@ -301,7 +301,8 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
     if animate:
         # candidate 0d:把 #3 分鏡具體化為 Spine timeline,讓素材「會動」
         from gen_animations import build_animations
-        skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"])
+        # candidate (J):--tiers 讓主秀節拍依檔位(Super…Legend)展開,幅度單調遞增(見 gen_animations)。
+        skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"], tiers=tiers)
         if (pivot_rotate or scale_pivot) and not rig:
             # candidate 0i:件繞**關節 pivot** 轉而非件中心(keyframe 級,不動骨架)。
             # 延伸 G-3:`--scale-pivot` 再把 `scale` 也補償(M=R·S)→ 件繞關節 pivot **旋轉+縮放**。
@@ -347,10 +348,12 @@ def main():
                     help="candidate 0i:件繞關節 pivot 轉(keyframe 級,不動骨架;非 rig 用,需 --animate)")
     ap.add_argument("--scale-pivot", dest="scale_pivot", action="store_true",
                     help="G-3:件繞關節 pivot 旋轉+縮放(M=R·S 補償;含 --pivot-rotate 語意;非 rig 用,需 --animate)")
+    ap.add_argument("--tiers", action="store_true",
+                    help="candidate (J):主秀節拍依檔位(Super…Legend)展開,幅度單調遞增(需 --animate)")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
     s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,
-              pivot_rotate=a.pivot_rotate, scale_pivot=a.scale_pivot)
+              pivot_rotate=a.pivot_rotate, scale_pivot=a.scale_pivot, tiers=a.tiers)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

@@ -240,6 +240,19 @@ BLOCKS = [
                      "副產:I5 逼出「跨件簽章需散佈+遞增兩條件並立」——Loop 散佈 0.5 甚至 > 門檻但無序→正確判非波(此鑑別力 0h 只在手搭 "
                      "fixture 驗過,本次在真實產線再現)。honest:主秀運動仍先驗手感、cascade 於 Award 真值無命名列 prior_beats_unused(誠實 "
                      "PROPOSAL);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("tier_amplitude_differentiation", "檔位主秀幅度差異化(J,build --animate --tiers 直出 Super…Legend 遞增)", "L2",
+                "python3 tools/analyzer/validate_priors_tiers.py", "pipeline",
+                note="slot_bigwin 一直宣告 tiers[Super,Mega,Omg,Legend] 卻只是 metadata(build_animations 對所有檔位產同幅度主秀,"
+                     "『檔位』形同虛設)。本能力把檔位 gain 政策(genre_priors.tier_gains,單調遞增)乘在主秀 overshoot(peak−1)上"
+                     "(beat_templates._tier_peak),經 build_animations(tiers=True) 把主秀節拍展開成 <Tier>_<beat>(Super_hit…Legend_hit),"
+                     "幅度隨檔位單調遞增,而端點介面契約與 back-compat 完全不受影響(_tier_peak 對 identity 恆回 1.0)。又一『模板/metadata "
+                     "就緒 ≠ 生成器接上』的補上。從**先驗庫**經 build_storyboard → **真實 build_spine 骨架** → build_animations(tiers=True) "
+                     "對真實 robot 5 拆件 5AC PASS(T1 present+routing 4檔×5節拍=20 支 <Tier>_<beat> 路由正確+真峰≥1.12、框架節拍不展開、"
+                     "tiers=False 無檔位前綴/T2 interface 保留 每檔端點逐一==base 端點+base 尾端 setup identity/T3 crux 每節拍每 bone "
+                     "scale 峰值嚴格遞增 Super<Mega<Omg<Legend、Legend/Super overshoot 比=1.6≈gain 比/T4 back-compat Super_<beat> 逐位元"
+                     "==<beat>(tiers=False)+覆蓋率仍 1.0/T5 負對照 slot_reveal(無 tiers)不展開・等 gain 令嚴格遞增失敗(鑑別力)・"
+                     "框架節拍不展開)。關鍵:把新自由度掛在對介面點恆為零的變換上(同 0i/G-3『補償在 identity 時為 0』手法)→ 放大與介面正交。"
+                     "honest:gain STEP 是手感先驗(A類),閘只驗**單調遞增+介面不破**這客觀性質;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

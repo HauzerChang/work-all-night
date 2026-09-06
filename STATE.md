@@ -10,6 +10,30 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 檔位主秀幅度差異化(里程碑,2026-09-06 session 003,candidate J)** — `slot_bigwin` 一直宣告
+  tiers `[Super, Mega, Omg, Legend]` 卻只是 **metadata**:`build_animations` 對所有檔位產**同幅度**主秀,
+  「檔位」形同虛設(又一「模板/metadata 就緒 ≠ 生成器接上」)。本次把**檔位 gain 政策**
+  (`genre_priors.tier_gains(genre)`,單調遞增 `gain_i=1+i·STEP`,`TIER_GAIN_STEP=0.2` → Super1.0/Mega1.2/
+  Omg1.4/Legend1.6)乘在主秀 overshoot(peak−1)上(`beat_templates._tier_peak`),經
+  `build_animations(skeleton, storyboard, tiers=True)` 把 `_MAIN_SHOW_TIERED={hit,reveal,combo,charge,
+  cascade}` 的 beat **展開**成 `<Tier>_<beat>`(intensity=該檔 gain),框架節拍 In/Loop/Out 檔位無關單一;
+  `build_spine --animate --tiers` 暴露之。**核心設計=端點恆等不變式**:`_tier_peak(base,g)=1+g(base−1)`
+  對 identity(base=1.0)**恆回 1.0** → 放大只發生在曲線內部,端點/介面/back-compat 皆不受 g 影響
+  (與 0i/G-3「補償在 setup=identity 時為 0」同手法)。整合閘 `validate_priors_tiers.py`(從**先驗庫**經
+  `build_storyboard`→**真實 build_spine 骨架**→`build_animations(tiers=True)`)對真實 robot 5 拆件 **5 AC 全 PASS**:
+  T1 present+routing(4檔×5節拍=20 支 `<Tier>_<beat>` 路由回正確主秀類別+全域真峰≥1.12、框架節拍不展開、
+  tiers=False 無檔位前綴)、T2 interface 保留(每檔變體端點 t=0/t=dur 各 bone TRS+特效 alpha **逐一==base**、
+  base 尾端 setup identity)、**T3 crux 單調放大**(每節拍每 bone scale 峰值**嚴格遞增** Super<Mega<Omg<Legend、
+  Legend/Super overshoot 比=1.6≈gain 比,證 gain 真的套上)、T4 back-compat(`Super_<beat>`(tiers=True)
+  與 `<beat>`(tiers=False)**逐位元一致**+validate_priors 覆蓋率仍 1.0)、T5 負對照(slot_reveal(tier_gains=None)
+  即使 tiers=True 不展開・**等 gain(全 1.0)令嚴格遞增判準失敗**=證鑑別力・框架節拍不展開)。
+  **關鍵發現:放大與介面正交** —— 因新自由度掛在對介面點恆為零的變換上,「主秀更大」與「可串接介面」
+  不再互相牽制(端點逐位元不變、Super 逐位元回退未分檔);且 T5(b) 用等 gain 證判準能被證偽(非恆真)。
+  回歸:validate_priors_tiers(新,5AC)、validate_priors、validate_priors_cascade(I)、combo_charge(H)、
+  beats(E)、more_beats(0g)、beat_templates(0f)、cascade(0h)、validate_anim、pivot_rotation(0i)、
+  scale_pivot(G-3)、round-trip validate_build(對 --tiers build)全 PASS。新增 cap
+  `tier_amplitude_differentiation` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
+  見 `knowledge/s1-tier-amplitude-differentiation.md`、圖 `knowledge/figures/s1_tier_priors.png`。
 - **S1 cascade 接進 genre 先驗庫(里程碑,2026-09-06 session 002,candidate I)** — 續 (E)/(H) 對 hit/reveal、
   combo/charge 所做,把 0h 的 **cascade(跨件錯開波)** 主秀節拍併入 `genre_priors.slot_bigwin`(additive),
   讓 `build_spine --animate --genre slot_bigwin` **直出** cascade(接 I 前先驗僅 In/burst/hit/combo/charge/Loop/Out,
@@ -321,7 +345,7 @@
 6. **S1 反推分析器(影片輸入)**:需一支 benchmark 影片(repo 無影片資產,屬使用者提供)。
 7. ~~spine_inspector 實機 round-trip~~:**⛔ CDN(jsDelivr)被網路政策擋(403);需使用者改政策或提供離線 spine-webgl。**
 
-> **主排程近況**:S1(分析器+build+keyframe 0d+**mesh deform 生成 0e**+**主秀 beat 模板 0f/0g/0h**+**件繞關節 pivot 轉 0i**)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
+> **主排程近況**:S1(分析器+build+keyframe 0d+**mesh deform 生成 0e**+**主秀 beat 模板 0f/0g/0h**+**件繞關節 pivot 轉/縮放 0i/G-3**+**主秀 beat 接進先驗庫 E/H/I**+**檔位幅度差異化 J**)、S3(mesh 生成+weighted 生成+變形評估,weighted-forge READY)、
 > S2(切圖閘)皆已達里程碑;**S5 rig pivot 接觸縫(08-29)→ 接 build_spine 骨樹(08-30,--rig)→ 肢體樹自動推斷(08-31 s1)
 > → `--rig`×`--weighted` 併用(08-31 s2)→ 多跳 weighted 肢體鏈端到端(08-31 s3)已全部完成**;S4 已交獨立排程。
 > ⚠️ **S5 達 L3 的唯一硬缺口 = 多 rig 真值,但 Award 只有機器人一件可拆肢體 rig → 屬使用者資源(C/資源類待辦)**。
@@ -358,9 +382,13 @@
 > **(I) ~~cascade 接進 genre 先驗庫~~ ✅ 完成(2026-09-06 session 002,candidate I,`cascade_priors_integration` L2,見上里程碑)** ——
 >   如 (E)/(H),把 0h 的 cascade 跨件波併入 `genre_priors.slot_bigwin`,`build_spine --animate` 直出跨件波;
 >   `validate_priors_cascade.py` 5 AC(I3 crux 件序相位 threading 端到端存活、覆蓋率仍 1.0),副產「跨件簽章需散佈+遞增兩條件並立」鑑別點(Loop 散佈 0.5 但無序→非波)。
+> **(J) ~~tier 變體幅度差異化~~ ✅ 完成(2026-09-06 session 003,candidate J,`tier_amplitude_differentiation` L2,見上里程碑)** ——
+>   把檔位 gain 政策(`genre_priors.tier_gains`)乘在主秀 overshoot 上,`build_spine --animate --tiers` 展開
+>   `<Tier>_<beat>` 幅度單調遞增;`validate_priors_tiers.py` 5 AC(T3 crux 每 bone 峰值嚴格遞增+overshoot 比≈gain 比、
+>   T4 back-compat Super 逐位元==未分檔、T5 等 gain 令判準失敗證鑑別力)。**關鍵:端點恆等不變式讓放大與介面正交**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(J) tier 變體幅度差異化**:`slot_bigwin` 有 tiers=[Super,Mega,Omg,Legend] 但目前所有 tier 共用同一組 beat 幅度;
->   可讓愈高檔位主秀幅度/連擊數遞增(需結構簽章 AC 驗「Legend 幅度 > Super」且皆保持介面契約);
+> **(J-2) 連擊數隨檔位遞增**:現只放大 combo 三峰幅度;讓 Legend 4 連擊 vs Super 3(改 combo 包絡結構,
+>   簽章加「峰數隨檔位遞增」且保介面);**(J-3) 檔位差異也套 rotate/whip 幅度**(現只放大 scale 峰);
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
 > **(G-4) shear / 非均勻 scale 仿射保形 AC**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 

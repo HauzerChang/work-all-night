@@ -32,18 +32,29 @@ DUR.setdefault("reveal", 0.7)
 _PEAK = {"body": 1.28, "特效": 1.35, "head": 1.18, "limb": 1.18}
 
 
+def _tier_peak(base, intensity):
+    """檔位放大:把「相對 setup 的 overshoot(base−1)」乘以 intensity gain。
+
+    candidate (J) — 讓愈高檔位主秀幅度愈大(Legend>Omg>Mega>Super)。
+    **關鍵不變式**:對 identity(base==1.0)恆回 1.0 → 端點介面契約與 intensity 無關保持;
+    intensity==1.0 時 = 1.0 + 1.0*(base−1.0),經下游 round(4) 與原字面值**逐位元一致**(back-compat)。
+    只放大峰值(scale overshoot),端點/collapsed/anticipation 常數不動 → 簽章乾淨、單調可證。"""
+    return 1.0 + intensity * (base - 1.0)
+
+
 def _scale_frames(T, taus_vals):
     """[(τ∈[0,1], scale_mult)] → Spine scale timeline(x==y 等比)。"""
     return [{"time": round(tau * T, 4), "x": round(v, 4), "y": round(v, 4)} for (tau, v) in taus_vals]
 
 
-def gen_hit(role, side_sign=1.0, radial=(0.0, 0.0)):
+def gen_hit(role, side_sign=1.0, radial=(0.0, 0.0), intensity=1.0):
     """Anticipation → Impact → Settle。首尾 identity。回傳 (bone_timelines, slot_timelines)。
 
     scale 包絡(τ):1.0 →(蓄力)0.93 →(命中)peak →(回彈下衝)0.965 →(回彈上衝)1.015 → 0.995 → 1.0。
-    (scale-1) 依序 0,−,+,−,+,−,0 → 反向預備 + 阻尼回擺,與對稱脈衝(僅單 + 峰)結構相異。"""
+    (scale-1) 依序 0,−,+,−,+,−,0 → 反向預備 + 阻尼回擺,與對稱脈衝(僅單 + 峰)結構相異。
+    intensity(檔位 gain,預設 1.0)只放大命中峰值 → 高檔位主秀更大,端點仍 identity(見 _tier_peak)。"""
     T = DUR["hit"]
-    peak = _PEAK.get(role, 1.18)
+    peak = _tier_peak(_PEAK.get(role, 1.18), intensity)
     b, s = {}, {}
     env = [(0.00, 1.000), (0.14, 0.930), (0.32, peak),
            (0.52, 0.965), (0.72, 1.015), (0.88, 0.995), (1.00, 1.000)]
@@ -67,13 +78,14 @@ def gen_hit(role, side_sign=1.0, radial=(0.0, 0.0)):
     return b, s
 
 
-def gen_reveal(role, side_sign=1.0, radial=(0.0, 0.0)):
+def gen_reveal(role, side_sign=1.0, radial=(0.0, 0.0), intensity=1.0):
     """Collapsed → 蓄勢 hold → Burst overshoot → Settle。首 collapsed、尾 identity。
 
     scale:0.02(藏)→ 0.02(hold 蓄勢)→ peak(炸開越過 1)→ 0.95(下衝)→ 1.02(上衝)→ 1.0。
-    alpha:0(藏)→ 0(hold)→ 1(burst)→ 1(保持)。首尾介面:start collapsed / end identity。"""
+    alpha:0(藏)→ 0(hold)→ 1(burst)→ 1(保持)。首尾介面:start collapsed / end identity。
+    intensity(檔位 gain)只放大 burst 峰值;collapsed(0.02)與端點 1.0 不動(見 _tier_peak)。"""
     T = DUR["reveal"]
-    peak = _PEAK.get(role, 1.18)
+    peak = _tier_peak(_PEAK.get(role, 1.18), intensity)
     b, s = {}, {}
     env = [(0.00, 0.020), (0.20, 0.020), (0.45, peak),
            (0.65, 0.950), (0.82, 1.020), (1.00, 1.000)]
@@ -106,13 +118,14 @@ DUR.setdefault("anticipate_hold", 0.8)
 IMPACT_PROM = 1.10
 
 
-def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0)):
+def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0), intensity=1.0):
     """Multi-hit combo(連擊):三段**遞增** impact,各含蓄力 dip + 部分回擺,尾段阻尼回穩。首尾 identity。
 
     scale 峰嚴格遞增 p1<p2<p3(=role peak);峰間回落 <1(下一擊的蓄力)→ 簽章 = 遞增 impact 峰數 ≥3
-    (單發 hit 僅 1 峰 → 負對照分離)。仍具通用 anticipation(峰前 <1)+ settle(尾段回擺變號 ≥3)。"""
+    (單發 hit 僅 1 峰 → 負對照分離)。仍具通用 anticipation(峰前 <1)+ settle(尾段回擺變號 ≥3)。
+    intensity(檔位 gain)放大 peak → p1/p2/p3 全隨檔位遞增,遞增簽章與端點 identity 不變。"""
     T = DUR["combo"]
-    peak = _PEAK.get(role, 1.18)
+    peak = _tier_peak(_PEAK.get(role, 1.18), intensity)
     q = peak - 1.0
     # 遞增三峰;p1 夾 ≥1.10 確保計入 impact(role peak 最小 1.18 → q=0.18 → p1=1.108)。
     p1 = max(1.10, 1.0 + 0.60 * q)
@@ -147,13 +160,14 @@ def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0)):
     return b, s
 
 
-def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0)):
+def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0), intensity=1.0):
     """Anticipate-hold(蓄力充能):長時間 squash 蓄力 hold → 單發大釋放 overshoot → 阻尼回擺。首尾 identity。
 
     scale:1.0 →(快速下蹲)0.85 →(**長 hold** 充能,佔比 ≥0.35)0.85 → peak(釋放)→ 回擺 → 1.0。
-    簽章 = **峰前持續低於 0.97 的時間佔比 ≥0.35**(長蓄力)—— hit 的蓄力僅短暫 dip(佔比小)→ 負對照分離。"""
+    簽章 = **峰前持續低於 0.97 的時間佔比 ≥0.35**(長蓄力)—— hit 的蓄力僅短暫 dip(佔比小)→ 負對照分離。
+    intensity(檔位 gain)只放大釋放峰值;長蓄力 hold(0.85)與端點不動 → hold 佔比簽章不受擾。"""
     T = DUR["anticipate_hold"]
-    peak = _PEAK.get(role, 1.18)
+    peak = _tier_peak(_PEAK.get(role, 1.18), intensity)
     b, s = {}, {}
     env = [(0.00, 1.000), (0.08, 0.900), (0.15, 0.850), (0.45, 0.850),  # 長蓄力 hold(τ0.15–0.45)
            (0.58, peak),                                                  # 釋放 overshoot
@@ -191,14 +205,15 @@ CASCADE_LEAD = 0.16
 CASCADE_SPAN = 0.54
 
 
-def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0):
+def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, intensity=1.0):
     """跨件錯開波中的**單件** pop(依 phase 錯開)。回傳 (bone_timelines, slot_timelines)。
 
     每件 scale 包絡(絕對 τ,中心 c=LEAD+phase*SPAN):
       1.0(identity)→ hold 1.0 到輪到它 → 0.94(蓄力)→ peak(pop)→ 0.97→1.005(阻尼回擺)→ 1.0。
-    首尾皆 identity;全域峰落在 c → 各件峰時刻隨 phase 錯開 = cascade 跨件簽章。"""
+    首尾皆 identity;全域峰落在 c → 各件峰時刻隨 phase 錯開 = cascade 跨件簽章。
+    intensity(檔位 gain)只放大各件 pop 峰值;峰**時刻** c 不受 intensity 影響 → 跨件相位簽章不受擾。"""
     T = DUR["cascade"]
-    peak = _PEAK.get(role, 1.18)
+    peak = _tier_peak(_PEAK.get(role, 1.18), intensity)
     p = max(0.0, min(1.0, phase))
     c = CASCADE_LEAD + p * CASCADE_SPAN
     b, s = {}, {}

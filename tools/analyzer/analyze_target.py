@@ -141,6 +141,7 @@ def build_storyboard(parts_out, genre):
               else "PROPOSAL(⚠️ 未驗證先驗,無對應真值 spine)")
     return {"genre": genre, "genre_desc": prior.get("desc"),
             "tier_variants": prior.get("tiers"),
+            "tier_gains": GP.tier_gains(genre),   # candidate (J):檔位主秀幅度 gain(單調),None=無分檔
             "validated_against": validated, "beats": beats, "status": status}
 
 
