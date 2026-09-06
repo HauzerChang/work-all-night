@@ -10,6 +10,26 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 combo/charge 接進 genre 先驗庫(里程碑,2026-09-06,candidate H)** — 續 (E) 對 hit/reveal 所做,
+  把 0g 的 **combo(連擊)/ charge(蓄力充能)** 主秀節拍併入 `genre_priors.py` 的 `slot_bigwin`(additive),
+  讓 `build_spine --animate --genre slot_bigwin` **直出** combo/charge(接 H 前先驗僅 In/burst/hit/Loop/Out,
+  0g 的 combo/charge 模板從未被產線觸發 —— 「模板就緒 ≠ 生成器接上」再現)。beat key 經 `beat_category` 路由到
+  `gen_combo`/`gen_anticipate_hold`(key∈COMBO/CHARGE_KEYWORDS)。coverage 單調:Award 真值僅 In/Loop/Out →
+  combo/charge 列 `prior_beats_unused`(誠實 PROPOSAL),覆蓋率仍 1.0。整合閘 `validate_priors_combo_charge.py`
+  (從**先驗庫**經 `analyze_target.build_storyboard`→`build_animations`,補 0g 只驗合成模板的缺口)對真實 robot 5 拆件
+  **5 AC 全 PASS**:H1 present+routing(路由到 combo/charge 類別、真峰 combo 1.347/charge 1.347≥1.12)、
+  H2 介面契約(首尾 setup identity,可插 Loop 間)、H3 結構簽章(combo=遞增 impact 峰 [1.207,1.28,1.347]≥3、
+  charge=峰前長蓄力佔比 0.456≥0.35,**兩簽章互斥**)、H4 覆蓋率仍 1.0 未擾動已驗先驗、H5 負對照(character_idle
+  產 0 combo/charge clip、非 combo/charge beat 全無其簽章)。**關鍵發現:閘找出真實漏洞** —— H5 初跑抓到
+  `burst`(reveal)被 `has_charge_signature` 誤判:charge 的 squash-hold 與 reveal 的 collapse-hold 峰前皆長時間
+  <0.97,原簽章分不開。修法=加 **squash-floor**(峰前最低 scale 須 >0.5:charge 壓縮蓄力 ~0.85 是 squash、
+  reveal 塌陷 ~0.02 是 collapse)—— **windup 是壓縮不是消失**,強化 `has_charge_signature`(0g 閘回歸仍 6AC PASS)。
+  連帶:(E) 閘 P5(b) 負對照須把 combo/charge/cascade 也視為主秀類別排除(新增 `ALL_MAIN_SHOW_CATS`,因它們依設計
+  共享 anticipation+settle 簽章)。回歸:validate_priors(cov 1.0、unused=['burst','hit','combo','charge'])、
+  validate_priors_beats(E,5AC)、validate_more_beats(0g,6AC)、validate_beat_templates(0f)、validate_cascade(0h)、
+  validate_anim(+selftest)、round-trip validate_build、--pivot-rotate/--scale-pivot build + 0i/G-3 閘 全 PASS。
+  新增 cap `combo_charge_priors_integration` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
+  見 `knowledge/s1-combo-charge-priors-integration.md`、圖 `knowledge/figures/s1_combo_charge_priors.png`。
 - **S1 件繞關節 pivot 轉 keyframe(里程碑,2026-09-05,candidate 0i)** — 補 STATE 建議 **(G)**:把 S5 的
   接觸縫 pivot 餵進 S1 keyframe 生成器,讓件**繞關節 pivot 轉**而非件中心。**第一個把 S5(rig 幾何)→
   S1(keyframe)接起來的能力**。非 rig 下 bone 落件中心 O,原 `rotate` 讓件繞 O 轉(對肢體不物理:手臂
@@ -311,8 +331,16 @@
 >    --scale-pivot`,`validate_scale_pivot.py` 7AC(AC5 相似性=scale 版等距、AC6 rotate+scale 併證組合)。**續**(擇一,皆自主):
 >    (G-1) 上述 `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重;(G-2) 主秀 beat 下 limb 繞關節的 AC;
 >    (G-4) **shear-about-pivot / 非均勻 scale 的 AC**(Δ 公式已通用,只差非均勻 scale 的相似性→仿射保形驗證)。
-> **(H) combo/charge 接進 genre 先驗庫**:如 (E) 對 hit/reveal 所做,把 combo/charge 併入 `genre_priors` 讓
->   `build_spine --animate` 直出(需同步 `validate_priors` 真值覆蓋、勿動已驗先驗)。
+> **(H) ~~combo/charge 接進 genre 先驗庫~~ ✅ 完成(2026-09-06,candidate H,`combo_charge_priors_integration` L2,見上里程碑)** ——
+>   如 (E) 對 hit/reveal 所做,把 0g 的 combo/charge 併入 `genre_priors.slot_bigwin`,`build_spine --animate` 直出;
+>   `validate_priors_combo_charge.py` 5 AC(覆蓋率仍 1.0、兩簽章互斥),副產 charge-vs-reveal squash-floor 鑑別子。
+> **建議下一個 bounded chunk(擇一,皆純自主):**
+> **(I) cascade 接進 genre 先驗庫**:如 (E)/(H),把 0h 的 cascade 跨件波併入 `genre_priors`(slot_bigwin 加 sweep/wave beat),
+>   讓 `build_spine --animate` 直出跨件波(需驗 phase threading 端到端仍成立、覆蓋率 1.0 不擾動);
+> **(J) tier 變體幅度差異化**:`slot_bigwin` 有 tiers=[Super,Mega,Omg,Legend] 但目前所有 tier 共用同一組 beat 幅度;
+>   可讓愈高檔位主秀幅度/連擊數遞增(需結構簽章 AC 驗「Legend 幅度 > Super」且皆保持介面契約);
+> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
+> **(G-4) shear / 非均勻 scale 仿射保形 AC**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
 
@@ -329,6 +357,17 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-06:**S1 combo/charge 接進 genre 先驗庫(里程碑,candidate H)** — 續 (E),把 0g 的 combo(連擊)/
+  charge(蓄力充能)節拍併入 `genre_priors.slot_bigwin`(additive),`build_spine --animate --genre slot_bigwin`
+  直出 combo/charge(接 H 前產線從未觸發 0g 模板 —— 「模板就緒 ≠ 生成器接上」再現)。beat key 經 `beat_category`
+  路由到 `gen_combo`/`gen_anticipate_hold`;Award 真值僅 In/Loop/Out → combo/charge 列 prior_beats_unused、覆蓋率仍 1.0。
+  整合閘 `validate_priors_combo_charge.py`(從先驗庫經 build_storyboard→build_animations)**5 AC 全 PASS**(H1 路由+真峰
+  1.347≥1.12 / H2 首尾 identity / H3 combo 遞增峰 [1.207,1.28,1.347]・charge holdfrac 0.456,兩簽章互斥 / H4 覆蓋率 1.0 /
+  H5 負對照)。**關鍵:閘找出真實漏洞** —— H5 抓到 reveal 被誤判為 charge(峰前皆長 <0.97),加 squash-floor(峰前最低
+  >0.5:charge squash ~0.85 vs reveal collapse ~0.02,windup 是壓縮不是消失)強化 `has_charge_signature`;(E) 閘負對照
+  加 `ALL_MAIN_SHOW_CATS`(combo/charge/cascade 共享 anticipation+settle 簽章)。回歸:validate_priors/priors_beats/
+  more_beats/beat_templates/cascade/anim(+selftest)/round-trip/pivot-rotate/scale-pivot 全綠。cap
+  `combo_charge_priors_integration` L2;anim-forge 仍 HOLD。見 `knowledge/s1-combo-charge-priors-integration.md`。
 - 2026-09-05(session 002):**S1 件繞關節 pivot 縮放(里程碑,candidate 0i 延伸 G-3)** — 把 0i「繞 pivot 轉」
   推廣到「繞 pivot 縮放」。In/Out/pulse 的 `scale` 非 rig 下繞件中心脹縮(手臂該從肩伸長)。**一條公式統一**:
   `Δ=(M−I)(O−P)`,M=R·S(0i 是 S=I 特例)。純均勻 scale 約 pivot 為相似變換 `|w−P|=s|x−P|`(取代 0i 剛性判準)。

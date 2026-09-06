@@ -31,6 +31,15 @@ _BIGWIN_ROLES["burst"] = {
 _BIGWIN_ROLES["hit"] = {
     "body": "反向蓄力→命中放大→阻尼回擺", "head": "微抬預備→下砸→回彈",
     "limb": "反向蓄力→whip 甩出→阻尼回擺", "effect": "先暗→亮度峰值→阻尼+旋轉甩"}
+# candidate 0g→(H) 續 (E):再把 0g 的 combo/charge 主秀節拍接進先驗庫(additive)。
+# combo = 連擊(遞增 impact 峰 ≥3);charge = 蓄力充能(峰前長 hold)。經 gen_animations 路由到
+# beat_templates 的 gen_combo / gen_anticipate_hold(beat key 由 beat_category 認出類別)。
+_BIGWIN_ROLES["combo"] = {
+    "body": "三段遞增衝擊(蓄力→命中,一擊比一擊重)→阻尼回穩", "head": "隨連擊點頭遞增",
+    "limb": "三連甩(幅度隨連擊遞增)→阻尼回正", "effect": "每擊亮度閃(遞增)→回穩"}
+_BIGWIN_ROLES["charge"] = {
+    "body": "快速下蹲→長蓄力 hold→單發大釋放 overshoot→阻尼回擺", "head": "低頭充能→抬起釋放",
+    "limb": "反向拉滿並 hold→爆甩→回正", "effect": "壓暗充能 hold→釋放瞬亮→回穩"}
 
 
 PRIORS = {
@@ -46,6 +55,12 @@ PRIORS = {
              "desc": "主秀現身:collapsed→蓄勢 hold→炸開 overshoot→阻尼回穩(首 collapsed 尾 identity)"},
             {"key": "hit", "kw": ["hit", "impact", "punch", "打擊", "命中", "重擊"],
              "desc": "慶祝衝擊重音:anticipation→impact→settle(首尾 identity,可插 Loop 間)"},
+            # candidate 0g→(H):combo/charge 主秀節拍(PROPOSAL,結構簽章非美感)。
+            # Award 真值僅 In/Loop/Out → 此二 beat 亦列 prior_beats_unused(誠實,覆蓋率單調不受擾)。
+            {"key": "combo", "kw": ["combo", "multihit", "multi_hit", "chain", "連擊", "連段", "連打"],
+             "desc": "連擊主秀:遞增 impact 峰 ≥3(一擊比一擊重),尾段阻尼回穩(首尾 identity,可插 Loop 間)"},
+            {"key": "charge", "kw": ["charge", "windup", "wind_up", "chargeup", "蓄力", "充能", "蓄勢"],
+             "desc": "蓄力充能主秀:長蓄力 hold→單發大釋放 overshoot→阻尼回擺(首尾 identity,可插 Loop 間)"},
             {"key": "Loop", "kw": ["loop", "idle"],
              "desc": "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉"},
             {"key": "Out", "kw": ["out", "exit", "end", "close"],

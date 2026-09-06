@@ -38,7 +38,12 @@ from analyze_target import analyze
 from validate_beat_templates import series, sign_changes, _hit_signature
 
 PSD = "assets/robot_parts.psd"
-MAIN_SHOW_CATS = {"hit", "reveal"}
+MAIN_SHOW_CATS = {"hit", "reveal"}       # 本閘 P1–P3 的 scope(hit/reveal 整合)
+# 負對照 P5(b) 用:所有主秀類別。combo/charge/cascade(0g/0h)也是主秀 beat,
+# 依設計共享 anticipation+settle 的 _hit_signature(見 validate_more_beats M5),
+# 故它們具主秀簽章屬正常,不可列為「非主秀卻誤帶簽章」的 offender —— 只有真正的
+# 泛用/待機 beat(In/Loop/Out/idle/static)才須 lack signature。
+ALL_MAIN_SHOW_CATS = {"hit", "reveal", "combo", "charge", "cascade"}
 PEAK_THR = 1.12
 COLLAPSE = 0.10
 IDENT = {"rotate": 0.0, "x": 0.0, "y": 0.0, "scaleX": 1.0, "scaleY": 1.0}
@@ -182,7 +187,7 @@ def check_p5(skel, genres):
     for g in genres:
         anims, _ = _build_genre_anims(skel, g)
         for nm, an in anims.items():
-            if G.beat_category(nm) not in MAIN_SHOW_CATS:
+            if G.beat_category(nm) not in ALL_MAIN_SHOW_CATS:
                 sig = _hit_signature(an)
                 if sig:
                     non_show_clean = False

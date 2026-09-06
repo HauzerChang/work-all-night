@@ -33,6 +33,8 @@ DEAD = 1e-3
 N = 240
 HOLD_LEVEL = 0.97       # 蓄力判定:scale 低於此視為「充能中」
 HOLD_FRAC_THR = 0.35    # charge 簽章:峰前蓄力時間佔比門檻
+SQUASH_FLOOR = 0.50     # charge 是「壓縮蓄力」(squash,~0.85)非「塌陷」(collapse,~0.02);
+                        # 峰前最低值須 > 此,否則屬 reveal 的 collapse-hold(見 validate_priors_combo_charge H5)
 
 
 # ---------------- fixture(用真實拆件 role 端到端) ----------------
@@ -115,7 +117,11 @@ def has_combo_signature(anim):
 
 
 def has_charge_signature(anim):
-    """每 bone:峰前長蓄力佔比 ≥門檻,且有真峰。"""
+    """每 bone:峰前長蓄力佔比 ≥門檻、有真峰,且蓄力是 squash(非 collapse)。
+
+    squash 判準 = 峰前最低 scale 須 > SQUASH_FLOOR:charge 壓縮到 ~0.85(squash),
+    reveal 塌陷到 ~0.02(collapse)兩者峰前皆長時間 <0.97,單看 hold 佔比會誤把 reveal
+    判成 charge(見 validate_priors_combo_charge H5)。squash-floor 是兩者的鑑別子。"""
     bones = anim.get("bones", {})
     if not bones:
         return False
@@ -124,6 +130,9 @@ def has_charge_signature(anim):
         if max(v) < 1.12:
             return False
         if pre_peak_hold_frac(v) < HOLD_FRAC_THR:
+            return False
+        pk = max(range(len(v)), key=lambda i: v[i])
+        if pk > 0 and min(v[:pk]) <= SQUASH_FLOOR:   # 峰前塌陷 → 屬 reveal 非 charge
             return False
     return True
 

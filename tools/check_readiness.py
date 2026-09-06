@@ -216,6 +216,18 @@ BLOCKS = [
                      "(證 M=R·S 組合)、AC7 端到端經 build_animations pulse(limb scale+rotate 無 translate)pivot 不動 0.014px vs 負對照 22.14px。"
                      "回歸:0i validate_pivot_rotation(逐 AC PASS,路徑不變)、validate_anim(+selftest)、round-trip 對 --scale-pivot build 全綠。"
                      "honest boundary:pivot 真值仍 S5 接觸縫草案、單一 rig、只非 rig 下套用;縮放幅度手感留使用者(A類)。與 anim-forge 同 HOLD"),
+            CAP("combo_charge_priors_integration", "combo/charge 接進 genre 先驗庫(H,build --animate 直出連擊/蓄力)", "L2",
+                "python3 tools/analyzer/validate_priors_combo_charge.py", "pipeline",
+                note="續 (E) 對 hit/reveal 所做,把 0g 的 combo(連擊)/charge(蓄力充能)節拍併入 genre_priors:slot_bigwin 加 "
+                     "combo+charge beat(beat key 經 beat_category 路由到 gen_combo/gen_anticipate_hold)。與 validate_more_beats(0g)"
+                     "差別=本閘從**先驗庫**經 analyze_target.build_storyboard → build_animations,證 combo/charge 真的從先驗流到最終 "
+                     "animations(--animate 直出),非只驗合成模板(「模板就緒 ≠ 生成器接上」在 combo/charge 上補上)。5AC PASS"
+                     "(H1 present+routing 路由到 combo/charge 類別且真峰≥1.12/H2 介面契約首尾 identity 可插 Loop 間/H3 結構簽章 "
+                     "combo=遞增 impact 峰≥3・charge=峰前長蓄力≥0.35 且兩簽章互斥/H4 已驗先驗覆蓋率仍 1.0 未擾動(combo/charge 為 "
+                     "prior_beats_unused)/H5 負對照 character_idle 產 0 combo/charge clip・非 combo/charge beat 不具其簽章)。"
+                     "副產:H5 逼出 charge vs reveal 鑑別子——兩者峰前皆長時間 <0.97,加 squash-floor(峰前最低 >0.5,charge 是壓縮"
+                     "蓄力 ~0.85 非 reveal 塌陷 ~0.02)才分得開(強化 has_charge_signature,0g 閘回歸仍 PASS)。honest:主秀運動仍先驗手感、"
+                     "combo/charge 於 Award 真值無命名故 validate_priors 列 prior_beats_unused(誠實 PROPOSAL);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
