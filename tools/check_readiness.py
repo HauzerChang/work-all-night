@@ -228,6 +228,18 @@ BLOCKS = [
                      "副產:H5 逼出 charge vs reveal 鑑別子——兩者峰前皆長時間 <0.97,加 squash-floor(峰前最低 >0.5,charge 是壓縮"
                      "蓄力 ~0.85 非 reveal 塌陷 ~0.02)才分得開(強化 has_charge_signature,0g 閘回歸仍 PASS)。honest:主秀運動仍先驗手感、"
                      "combo/charge 於 Award 真值無命名故 validate_priors 列 prior_beats_unused(誠實 PROPOSAL);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("cascade_priors_integration", "cascade 接進 genre 先驗庫(I,build --animate 直出跨件錯開波)", "L2",
+                "python3 tools/analyzer/validate_priors_cascade.py", "pipeline",
+                note="續 (E)/(H),把 0h 的 cascade(跨件錯開波)併入 genre_priors:slot_bigwin 加 cascade beat(beat key 經 "
+                     "beat_category 路由到 gen_cascade)。cascade 比 (E)/(H) 多驗一層——它是**跨件**時序簽章(同 beat 套每件但依件序相位錯開"
+                     "成波),故本閘證的不只 beat 有流到 animations,還證 _PHASE_AWARE 的件序相位 threading 端到端存活(單件曲線看不出)。"
+                     "從**先驗庫**經 analyze_target.build_storyboard → **真實 build_spine 骨架** → build_animations，對真實 robot 5 拆件 "
+                     "5AC PASS(I1 present+routing 路由到 cascade 類別且每件真峰≥1.12/I2 每件首尾 identity+特效 slot alpha=1 可插 Loop 間/"
+                     "I3 crux 跨件簽章 各件峰時刻依真實件序 [0.158,0.296,0.429,0.567,0.70] 嚴格遞增・散佈 0.542≥0.30・非 combo 簽章/"
+                     "I4 已驗先驗覆蓋率仍 1.0(cascade 為 prior_beats_unused)/I5 負對照 character_idle 產 0 cascade clip・非 cascade beat 不成波)。"
+                     "副產:I5 逼出「跨件簽章需散佈+遞增兩條件並立」——Loop 散佈 0.5 甚至 > 門檻但無序→正確判非波(此鑑別力 0h 只在手搭 "
+                     "fixture 驗過,本次在真實產線再現)。honest:主秀運動仍先驗手感、cascade 於 Award 真值無命名列 prior_beats_unused(誠實 "
+                     "PROPOSAL);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

@@ -10,6 +10,27 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 接進 genre 先驗庫(里程碑,2026-09-06 session 002,candidate I)** — 續 (E)/(H) 對 hit/reveal、
+  combo/charge 所做,把 0h 的 **cascade(跨件錯開波)** 主秀節拍併入 `genre_priors.slot_bigwin`(additive),
+  讓 `build_spine --animate --genre slot_bigwin` **直出** cascade(接 I 前先驗僅 In/burst/hit/combo/charge/Loop/Out,
+  0h 的 cascade 模板從未被產線觸發、也從未在真實 build_spine 骨架+真實件序上驗過 —— 「模板就緒 ≠ 生成器接上」再現)。
+  beat key 經 `beat_category` 路由到 `gen_cascade`(key∈CASCADE_KEYWORDS)。**cascade 比 (E)/(H) 多驗一層**:
+  它是**跨件時序**簽章(同 beat 套每件,但每件依件序相位 `phase=pi/(nvalid-1)` 錯開成波),故本閘證的不只是
+  「beat 有流到 animations」,還證 **`_PHASE_AWARE` 的件序相位 threading 端到端存活**(單件曲線看不出,只有各件
+  峰時刻的排序/散佈看得出)。整合閘 `validate_priors_cascade.py`(從**先驗庫**經 `analyze_target.build_storyboard`
+  → **真實 build_spine 骨架** → `build_animations`)對真實 robot 5 拆件 **5 AC 全 PASS**:I1 present+routing
+  (路由到 cascade 類別、每件真峰 光暈1.336/身體1.271/右手1.177/頭1.176/左手1.18≥1.12)、I2 介面契約(每件首尾
+  setup identity+特效 slot alpha=1,可插 Loop 間)、I3 **crux 跨件簽章**(各件峰時刻依真實件序
+  [0.158,0.296,0.429,0.567,0.70] 嚴格遞增、散佈 0.542≥0.30、且非 combo 簽章=與 0g 正交)、I4 覆蓋率仍 1.0
+  (cascade 列 prior_beats_unused)、I5 負對照(character_idle 產 0 cascade clip、非 cascade beat 不成波)。
+  **關鍵發現:跨件簽章需兩條件並立,散佈單獨不足** —— I5(b) 負對照顯示 **Loop 散佈 0.50 甚至 > cascade 門檻 0.30**
+  (甚至逼近 cascade 的 0.542),若簽章只看散佈就會**假陽性**;因 Loop 各件微呼吸峰時刻**散而無序**(非依件序遞增),
+  cascade 簽章同時要求「散佈≥門檻 **且** 嚴格遞增」才正確排除。此鑑別力在**真實產線**再現(0h 只在手搭 fixture 驗過)。
+  回歸:validate_priors(cov 1.0、unused 增列 cascade)、validate_cascade(0h)、validate_priors_combo_charge(H)、
+  validate_priors_beats(E)、validate_more_beats(0g)、validate_beat_templates(0f)、validate_anim(+selftest)、
+  validate_pivot_rotation(0i)、validate_scale_pivot(G-3)、round-trip validate_build 全 PASS。
+  新增 cap `cascade_priors_integration` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
+  見 `knowledge/s1-cascade-priors-integration.md`、圖 `knowledge/figures/s1_cascade_priors.png`。
 - **S1 combo/charge 接進 genre 先驗庫(里程碑,2026-09-06,candidate H)** — 續 (E) 對 hit/reveal 所做,
   把 0g 的 **combo(連擊)/ charge(蓄力充能)** 主秀節拍併入 `genre_priors.py` 的 `slot_bigwin`(additive),
   讓 `build_spine --animate --genre slot_bigwin` **直出** combo/charge(接 H 前先驗僅 In/burst/hit/Loop/Out,
@@ -334,9 +355,10 @@
 > **(H) ~~combo/charge 接進 genre 先驗庫~~ ✅ 完成(2026-09-06,candidate H,`combo_charge_priors_integration` L2,見上里程碑)** ——
 >   如 (E) 對 hit/reveal 所做,把 0g 的 combo/charge 併入 `genre_priors.slot_bigwin`,`build_spine --animate` 直出;
 >   `validate_priors_combo_charge.py` 5 AC(覆蓋率仍 1.0、兩簽章互斥),副產 charge-vs-reveal squash-floor 鑑別子。
+> **(I) ~~cascade 接進 genre 先驗庫~~ ✅ 完成(2026-09-06 session 002,candidate I,`cascade_priors_integration` L2,見上里程碑)** ——
+>   如 (E)/(H),把 0h 的 cascade 跨件波併入 `genre_priors.slot_bigwin`,`build_spine --animate` 直出跨件波;
+>   `validate_priors_cascade.py` 5 AC(I3 crux 件序相位 threading 端到端存活、覆蓋率仍 1.0),副產「跨件簽章需散佈+遞增兩條件並立」鑑別點(Loop 散佈 0.5 但無序→非波)。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(I) cascade 接進 genre 先驗庫**:如 (E)/(H),把 0h 的 cascade 跨件波併入 `genre_priors`(slot_bigwin 加 sweep/wave beat),
->   讓 `build_spine --animate` 直出跨件波(需驗 phase threading 端到端仍成立、覆蓋率 1.0 不擾動);
 > **(J) tier 變體幅度差異化**:`slot_bigwin` 有 tiers=[Super,Mega,Omg,Legend] 但目前所有 tier 共用同一組 beat 幅度;
 >   可讓愈高檔位主秀幅度/連擊數遞增(需結構簽章 AC 驗「Legend 幅度 > Super」且皆保持介面契約);
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
@@ -357,6 +379,12 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-06 session 002:**S1 cascade 接進 genre 先驗庫(里程碑,candidate I)** — 續 (E)/(H),把 0h 的 cascade
+  (跨件錯開波)併入 `genre_priors.slot_bigwin`(additive),`build_spine --animate` 直出跨件波。cascade 比 (E)/(H)
+  多驗一層(跨件時序簽章→件序相位 threading 須端到端存活)。`validate_priors_cascade.py`(先驗→真實 build_spine
+  骨架→build_animations)5 AC 全 PASS。關鍵發現:跨件簽章需「散佈≥門檻 **且** 依件序嚴格遞增」兩條件並立 ——
+  Loop 散佈 0.5 但無序→正確判非波(0h 只在手搭 fixture 驗過,此在真實產線再現)。cap `cascade_priors_integration`
+  L2;anim-forge 仍 HOLD。見 `knowledge/s1-cascade-priors-integration.md`。
 - 2026-09-06:**S1 combo/charge 接進 genre 先驗庫(里程碑,candidate H)** — 續 (E),把 0g 的 combo(連擊)/
   charge(蓄力充能)節拍併入 `genre_priors.slot_bigwin`(additive),`build_spine --animate --genre slot_bigwin`
   直出 combo/charge(接 H 前產線從未觸發 0g 模板 —— 「模板就緒 ≠ 生成器接上」再現)。beat key 經 `beat_category`

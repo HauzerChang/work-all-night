@@ -40,6 +40,13 @@ _BIGWIN_ROLES["combo"] = {
 _BIGWIN_ROLES["charge"] = {
     "body": "快速下蹲→長蓄力 hold→單發大釋放 overshoot→阻尼回擺", "head": "低頭充能→抬起釋放",
     "limb": "反向拉滿並 hold→爆甩→回正", "effect": "壓暗充能 hold→釋放瞬亮→回穩"}
+# candidate 0h→(I) 續 (E)/(H):再把 0h 的 cascade(跨件錯開波)主秀節拍接進先驗庫(additive)。
+# cascade 與 combo/charge 本質不同 —— 它是**跨件時序**簽章:同一 beat 套到每件,但每件依**件序相位**
+# 錯開觸發成一道波(peak 時刻隨件序遞增)。經 gen_animations 的 _PHASE_AWARE 把件序相位帶進各件,
+# 路由到 beat_templates 的 gen_cascade(beat key 由 CASCADE_KEYWORDS 認出類別)。
+_BIGWIN_ROLES["cascade"] = {
+    "body": "輪到時 dip 蓄力→pop overshoot→阻尼回穩(依件序錯開)", "head": "隨波 pop",
+    "limb": "輪到時反向蓄力→甩出→回正(波掃過)", "effect": "輪到時壓暗→閃亮→回穩(一件接一件亮起)"}
 
 
 PRIORS = {
@@ -61,6 +68,10 @@ PRIORS = {
              "desc": "連擊主秀:遞增 impact 峰 ≥3(一擊比一擊重),尾段阻尼回穩(首尾 identity,可插 Loop 間)"},
             {"key": "charge", "kw": ["charge", "windup", "wind_up", "chargeup", "蓄力", "充能", "蓄勢"],
              "desc": "蓄力充能主秀:長蓄力 hold→單發大釋放 overshoot→阻尼回擺(首尾 identity,可插 Loop 間)"},
+            # candidate 0h→(I):cascade 跨件錯開波(PROPOSAL,跨件時序簽章非美感)。
+            # Award 真值僅 In/Loop/Out → 亦列 prior_beats_unused(誠實,覆蓋率單調不受擾)。
+            {"key": "cascade", "kw": ["cascade", "wave", "ripple", "sequence", "sweep", "wipe", "錯開", "波", "依序", "接連"],
+             "desc": "跨件錯開波主秀:每件依件序相位錯開 pop(峰時刻隨件序遞增,散佈成波;首尾 identity,可插 Loop 間)"},
             {"key": "Loop", "kw": ["loop", "idle"],
              "desc": "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉"},
             {"key": "Out", "kw": ["out", "exit", "end", "close"],
