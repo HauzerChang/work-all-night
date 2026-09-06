@@ -8,7 +8,11 @@ GPT 局部修補收尾,這裡不做任何羽化/去 bleed 的嘗試)。
 
 決策檔格式(見 tools/mesh_gen/s4_decompose_assist.html):
   {"source_image","image_size":[W,H],"generated_by",
-   "parts":[{"id","label","confidence","notes","bbox_px":[x0,y0,x1,y1]}]}
+   "parts":[{"id","label","confidence","notes","bbox_px":[x0,y0,x1,y1],
+             "points":[{"x","y","label"},...]}]}
+  `points` 為選填欄位(僅 `--contour sam` 時使用):輔助 SAM 選中正確候選物件的點提示,
+  `label` 1=正向點(在目標物件內)、0=負向點(在要排除的鄰近物件內)。見
+  knowledge/s4-sam-point-prompt-skirt.md 的驗證結果與 s4_sam_segment.py 的 segment() 文件字串。
 
 自驗閘沿用 psd_slice.py 的 reassemble()/_premult_diff()(同一套「重組還原、0孤兒」邏輯,
 道理見下方說明,不是抄一份新的):因為每個部件都是同一張扁平來源圖的矩形窗口(不是真的
@@ -75,7 +79,10 @@ def cut(image_path, decision_path, out_dir, contour="rect", sam_checkpoint=None,
         crop = src.crop((x0, y0, x1, y1))
         sam_info = None
         if segmenter is not None:
-            mask, sam_info = segmenter.segment((x0, y0, x1, y1))
+            points_raw = p.get("points") or []
+            points = [(pt["x"], pt["y"], pt["label"]) for pt in points_raw
+                      if pt.get("x") is not None and pt.get("y") is not None]
+            mask, sam_info = segmenter.segment((x0, y0, x1, y1), points=points or None)
             sub_mask = mask[y0:y1, x0:x1]
             r, g, b, a = crop.split()
             new_a = Image.fromarray((np.array(a) * sub_mask.astype(np.uint8)))

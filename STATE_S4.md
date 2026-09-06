@@ -7,6 +7,25 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 56(2026-09-06)**:執行 chunk 55 留下的唯一候選——把驗證過對 `skirt` 有效的
+> SAM 點提示從 ad-hoc 驗證腳本**接線進 production**。改了三處:(1) `s4_sam_segment.py`
+> 的 `segment()` 加選填 `points` 參數,有點時走 `predictor.predict(box=...,
+> point_coords=..., point_labels=...)`,沒點時維持原本純 box-prompted 路徑;(2)
+> `s4_decompose_cut.py` 讀決策檔新增的選填 `points` 欄位並傳給分割器;(3)
+> `s4_decompose_assist.html` 編輯面板加「+ 正向點/負向點」切換按鈕,畫布點擊加點(綠/紅
+> 圓點疊圖,可逐點刪除),匯出時 `points` 非空才寫入(向後相容)。**自我驗證非只跑
+> ad-hoc 腳本**:重裝 torch/timm/MobileSAM,用 chunk53 決策檔分別跑「無點」與「`skirt`
+> 加一個正向點」兩份真正的 `s4_decompose_cut.py --contour sam --eval`(20 部件完整
+> pipeline)——無點版精確重現 chunk54 失敗數字(`fg_ratio=0.1964`),加點版
+> (`fg_ratio=0.4478, n_components=1, largest_component_frac=1.0`)跟 chunk55 ad-hoc
+> 驗證的 `single_pt_B` 結果完全一致,視覺複核裁圖確認乾淨裙擺紅布;逐欄位比對其餘 19
+> 個部件的 `sam_info`,兩次執行完全相同,證明是純加法改動、無回歸。**誠實限制**:未跑
+> Playwright 瀏覽器測試新 UI(環境無現成安裝,用語法檢查+手動審查滑鼠事件邏輯代替);
+> `bodice`/`sleeve_right`/`hair_front` 三個已知未解案例未處理;未產出新版 PSD;驗證用
+> 的 `decision_with_points.json` 只是臨時檔,不是新的正式決策檔快照——要讓 `skirt` 真正
+> 在下一份 PSD 裡被修正,需下次排程用新 UI 把點加進正式決策檔再重跑組裝。見下方
+> 「chunk 56」段落與 `knowledge/s4-decompose-assist-viewer.md`「SAM 輔助點 UI」節。
+>
 > **chunk 55(2026-09-06)**:承接 chunk 54 留下的候選 1——`skirt` 是 chunk54 才新發現
 > 的靜默錯誤(SAM 選到皮膚而非裙擺紅布),跟 chunk48 已測 4 次無效的 `bodice`/
 > `sleeve_right` 材質/重疊模式不同,chunk54 明確標註值得獨立測試而非直接假設無效。
@@ -698,13 +717,16 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
   非框問題。見上方 chunk 54 段落。~~懸而未決:`skirt` 需要跟 `bodice`/`sleeve_right`
   一樣的處理方式決策~~ → **已解(chunk 55,2026-09-06)**:對 `skirt` 測點提示,5 種
   組合全部成功(單一正向點即可),跟 `bodice`/`sleeve_right` 是不同病因、不需要走同一
-  套「接受/人工/放棄」裁決。**新增候選**:把點提示接線進 production(decision JSON
-  schema + assist viewer UI + `s4_decompose_cut.py`),讓 `skirt` 真正在正式流程被
-  修正而非停在 ad-hoc 驗證腳本——這是目前唯一「已知有效但未落地」的改進動作。
+  套「接受/人工/放棄」裁決。~~新增候選:把點提示接線進 production~~ → **已解(chunk 56,
+  2026-09-06)**:schema/`s4_sam_segment.py`/`s4_decompose_cut.py`/
+  `s4_decompose_assist.html` UI 全部接好,用真實 production pipeline(非 ad-hoc 腳本)
+  驗證跟 chunk55 結果一致(`fg_ratio=0.4478,n_components=1,largest_component_frac=1.0`,
+  其餘 19 部件逐欄位比對無回歸)。**新懸而未決**:驗證用的決策檔只是臨時檔,`skirt` 的
+  點還沒進到真正要拿去組裝 PSD 的那份決策檔,下次排程可用新 UI 補上再重組。
   `bodice`/`sleeve_right` 仍是 A 類岔路(點提示已測 4 次無效,需使用者裁決處理方式);
   `hair_front`/`head`/`fox_ears` 語意邊界仍待使用者用 assist viewer 確認(chunk51
-  已提出,chunk54 用 SAM 具體示範了重疊會導致選錯子物件)。見上方 chunk 55 段落與
-  `knowledge/s4-sam-point-prompt-skirt.md`。
+  已提出,chunk54 用 SAM 具體示範了重疊會導致選錯子物件)。見上方 chunk 55/56 段落與
+  `knowledge/s4-sam-point-prompt-skirt.md`、`knowledge/s4-decompose-assist-viewer.md`。
 - ✅ **里程碑審查完成(chunk 26,2026-09-02)**:S4 核心研究問題已全部有交叉驗證的答案
   (見上方「里程碑審查」段落與 `knowledge/s4-convergence-review.md`)。候選15/17 是唯二
   剩餘的執行層決策(非研究缺口),連同「本排程接下來走向」共三項一併彙整交還使用者裁決,
@@ -712,6 +734,18 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-06:**把 SAM 點提示接線進 production(chunk 56)** — 承接 chunk55 唯一候選。
+  改三處:`s4_sam_segment.py` 的 `segment()` 加選填 `points` 參數(有點時走
+  `point_coords`/`point_labels`,沒點時維持原路徑);`s4_decompose_cut.py` 讀決策檔
+  新增的選填 `points` 欄位並傳給分割器;`s4_decompose_assist.html` 編輯面板加點選 UI
+  (+ 正向/負向點按鈕、畫布點擊加點、逐點刪除、匯出時非空才寫入)。自我驗證重裝
+  torch/timm/MobileSAM 後跑真正的 `s4_decompose_cut.py --contour sam --eval`(非
+  ad-hoc 腳本)兩次:無點版精確重現 chunk54 失敗數字(`fg_ratio=0.1964`),加點版
+  (`fg_ratio=0.4478,n_components=1,largest_component_frac=1.0`)跟 chunk55 ad-hoc
+  結果一致,視覺複核裁圖乾淨;逐欄位比對其餘19部件的`sam_info`完全相同,無回歸。未跑
+  Playwright 測新 UI(環境無安裝,語法檢查+手動審查代替);`bodice`/`sleeve_right`/
+  `hair_front` 未處理;未產出新版PSD;驗證決策檔是臨時檔非正式快照。見
+  `knowledge/s4-decompose-assist-viewer.md`、`log/s4-2026-09-06-056.md`。
 - 2026-09-06:**對 `skirt` 測點提示,正面結果(chunk 55)** — 承接 chunk54 候選1。
   `skirt` 是 chunk54 才新發現的靜默錯誤(SAM選到皮膚非裙擺紅布),跟已測4次無效的
   `bodice`/`sleeve_right` 材質不同,獨立測試。重裝 torch/timm/MobileSAM(容器不

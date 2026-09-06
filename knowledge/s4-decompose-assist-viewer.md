@@ -37,6 +37,56 @@ part list JSON)只能給**建議**,不能替使用者做最終決定——尤其
   百分比——跟輸入的 `bbox_pct` 建議檔格式刻意不同,方便下游第3點直接用整數像素裁切,不用
   再換算)。
 
+## SAM 輔助點 UI(chunk 56,2026-09-06 新增)
+
+承接 `s4-sam-point-prompt-skirt.md`(chunk55)驗證過「點提示對 `skirt` 有效」的正面結果,
+把這個能力從 ad-hoc 驗證腳本接線進 production:
+
+- 部件資料多一個 `points` 陣列(`[{x,y,label}]`,`label` 1=正向點/0=負向點),預設空陣列,
+  向後相容(舊決策檔沒有這個欄位、`--contour rect` 模式完全不受影響)。
+- 選取部件後,右側編輯面板新增「+ 正向點」「+ 負向點」兩個按鈕(切換式:再按一次或 Esc
+  結束點選模式)。開啟後在畫布上點擊 = 對目前選取的部件加一個點(不影響既有的畫框/選取/
+  拖曳邏輯,兩者互斥由 `pointMode` 變數判斷,`pointMode!==null` 時 mousedown 直接短路
+  回傳,不落到原本的 `hitTest`)。點以綠(正向)/紅(負向)實心圓疊在畫布上,編輯面板下方
+  同步列出點座標,可逐點刪除。
+- 匯出決策檔時,`points` 陣列非空才寫入該部件的 JSON(維持 schema 精簡,沒加點的部件輸出
+  跟 chunk43 原始格式完全一樣)。
+
+匯出格式更新為:
+```
+parts:[{id,label,confidence,notes,bbox_px:[x0,y0,x1,y1],
+        points?:[{x,y,label}]}]  // points 選填,只在非空時輸出
+```
+
+`s4_decompose_cut.py`(`--contour sam` 時)讀取 `points` 轉成 `[(x,y,label),...]` 傳給
+`SamSegmenter.segment(bbox, points=...)`,`s4_sam_segment.py` 有點時改呼叫
+`predictor.predict(box=..., point_coords=..., point_labels=..., multimask_output=True)`,
+沒點時維持原本純 box-prompted 呼叫路徑不變。
+
+**production 端到端驗證**(非只跑 ad-hoc 腳本):用 chunk53 `decision_final.json` 分別
+跑「無點」與「skirt 加一個正向點 (290,420)」兩份決策檔,兩次都走真正的
+`s4_decompose_cut.py --contour sam --eval`(20 部件完整流程):
+- 無點版 `skirt` 的 `sam_info`:`fg_ratio_in_box=0.1964,n_components=2,
+  largest_component_frac=0.8192`——精確重現 chunk54 記錄的失敗(`fg_ratio≈0.20`)。
+- 加點版:`fg_ratio_in_box=0.4478,n_components=1,largest_component_frac=1.0`——跟
+  chunk55 ad-hoc 驗證的 `single_pt_B` 結果(`0.448/1/1.0`)一致,證明 production 接線
+  跟當初驗證腳本的行為等價,不是換了一條路徑後結果對不上。
+- 視覺複核裁圖:加點版 `12_skirt.png` 是乾淨裙擺紅布(含金色刺繡),無點版是皮膚(大腿)——
+  跟 chunk55 的視覺結論一致。
+- **其餘 19 個部件的 `sam_info` 逐欄位比對,兩次執行完全相同**(排除新增的
+  `n_points_used` 欄位本身)——確認這次改動是純加法,沒有意外影響任何既有部件的分割
+  結果,向後相容成立。
+
+**誠實限制**:`bodice`/`sleeve_right` 兩個已測 4 次點提示無效的案例,這次沒有重新嘗試
+(chunk48 已定論,重複測試不會有新資訊,見上方候選清單);`hair_front`/`head`/`fox_ears`
+語意邊界重疊問題不是點提示能解的類別,UI 做出來但沒有拿去解決那三個案例;沒有跑
+Playwright headless 瀏覽器測試這次新增的點選 UI(環境裡沒有現成的 playwright 安裝,
+新增瀏覽器自動化測試的成本超出這次改動範圍)——用 `node --check` 驗證過整段 script 語法
+正確,並手動逐行檢查了滑鼠事件分派邏輯(`pointMode` 短路判斷不影響原本 hitTest/拖曳/
+畫框路徑),但這是程式碼審查而非執行時驗證,留給下次排程視需要補測;沒有產出新版 PSD
+(組裝一份把 `skirt` 換成 SAM 分割結果、其餘部件維持矩形裁切的混合版 PSD,價值有限,
+`bodice`/`sleeve_right` 仍未解,留到那兩個案例底定後一次組裝更有意義)。
+
 ## 驗證(Playwright,headless Chromium,零 API 呼叫)
 
 用 chunk 43 產出的真實素材測試:`assets/jiuwei_yanlian_char_crop.png`(460×898)+

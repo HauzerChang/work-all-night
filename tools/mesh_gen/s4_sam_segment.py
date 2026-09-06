@@ -58,15 +58,29 @@ class SamSegmenter:
         self.predictor.set_image(rgb_array)
         self._image_set = True
 
-    def segment(self, bbox_xyxy):
+    def segment(self, bbox_xyxy, points=None):
         """回傳 (mask_bool_fullsize, info)。info 含三個候選的 score/選中的是哪個/
         框內前景比例/是否 low_confidence(框內幾乎全被判定前景,代表框本身可能太鬆,
-        SAM 找不到可信的內部邊界,不代表這個工具本身壞掉——見檔頭說明)。"""
+        SAM 找不到可信的內部邊界,不代表這個工具本身壞掉——見檔頭說明)。
+
+        points(選填):`[(x, y, label), ...]` 列表,label 1=正向點(在目標物件內)、
+        0=負向點(在要排除的鄰近物件內)。單純 box prompt 在「框正確但SAM選錯鄰居內容」
+        的部分案例上會選錯候選(見 knowledge/s4-sam-point-prompt-investigation.md 的
+        `bodice`/`sleeve_right` 負面結果),但不是所有這類案例都救不了——
+        `knowledge/s4-sam-point-prompt-skirt.md` 驗證過對 `skirt` 這個案例有效,
+        單一正向點就能讓 SAM 選中正確候選,結論是「逐案實測,不能一概而論」。"""
         if not self._image_set:
             raise RuntimeError("尚未呼叫 set_image()")
         x0, y0, x1, y1 = bbox_xyxy
         box = np.array([x0, y0, x1, y1])
-        masks, scores, _ = self.predictor.predict(box=box, multimask_output=True)
+        if points:
+            point_coords = np.array([[p[0], p[1]] for p in points])
+            point_labels = np.array([p[2] for p in points])
+            masks, scores, _ = self.predictor.predict(
+                box=box, point_coords=point_coords, point_labels=point_labels,
+                multimask_output=True)
+        else:
+            masks, scores, _ = self.predictor.predict(box=box, multimask_output=True)
         chosen = int(np.argmax(scores))
         mask = masks[chosen]
         sub_mask = mask[y0:y1, x0:x1]
@@ -92,5 +106,6 @@ class SamSegmenter:
             "low_confidence_reason": ("too_much_fg" if too_much_fg else "") +
                                       ("+" if too_much_fg and fragmented else "") +
                                       ("fragmented" if fragmented else ""),
+            "n_points_used": len(points) if points else 0,
         }
         return mask, info

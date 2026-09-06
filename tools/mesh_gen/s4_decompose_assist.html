@@ -62,6 +62,11 @@
   .partRow .del { color: var(--muted); font-size: 12px; padding: 0 3px; }
   .partRow .del:hover { color: var(--bad); }
   .empty-hint { padding: 40px 20px; text-align: center; color: var(--muted); }
+  .ptRow { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 2px 0; }
+  .ptRow .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .ptRow .del { color: var(--muted); cursor: pointer; padding: 0 3px; }
+  .ptRow .del:hover { color: var(--bad); }
+  .btn.active { border-color: var(--accent); background: #1c3253; }
 </style>
 </head>
 <body>
@@ -93,7 +98,9 @@
         • 拖曳框內部 = 移動<br>
         • 拖曳框邊角(小方塊)= 調整大小<br>
         • 選取後按 Delete/Backspace = 刪除<br>
-        • Esc = 取消選取
+        • Esc = 取消選取<br>
+        • 選取部件後,右側「+ 正向點/負向點」= 開啟點選模式,點畫布加 SAM 輔助點,
+        再按一次按鈕或 Esc 結束
       </p>
     </div>
   </div>
@@ -132,6 +139,16 @@
       </select>
       <label class="field">notes</label>
       <textarea id="fNotes"></textarea>
+      <label class="field">SAM 輔助點(選填,給 <code>--contour sam</code> 用)</label>
+      <p class="hint">框正確但 SAM 選錯鄰居內容時,加點提示可能扭轉結果(不保證,見
+        <code>knowledge/s4-sam-point-prompt-skirt.md</code> vs
+        <code>s4-sam-point-prompt-investigation.md</code> 的正反案例)。開啟後在畫布上點擊
+        新增點,再按一次按鈕或 Esc 結束。</p>
+      <div class="row">
+        <button class="btn" id="addPosPtBtn">+ 正向點(目標物件)</button>
+        <button class="btn" id="addNegPtBtn">+ 負向點(要排除的鄰居)</button>
+      </div>
+      <div id="pointList" style="margin-top:6px;"></div>
       <div class="row" style="margin-top:8px;">
         <button class="btn danger" id="deleteBoxBtn">刪除此部件</button>
       </div>
@@ -153,13 +170,14 @@ const CONF_COLOR = { high: "#3ecf6a", medium: "#f5b53c", low: "#ff5d6c", user_co
 let img = null;
 let imgName = "";
 let baseCtx, overlayCtx;
-let boxes = [];         // [{id,label,confidence,notes,x0,y0,x1,y1}]
+let boxes = [];         // [{id,label,confidence,notes,x0,y0,x1,y1,points:[{x,y,label}]}]
 let nextPartNum = 1;
 let selectedId = null;
 let dragMode = null;    // null | 'draw' | 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se'
 let dragStart = null;   // {x,y} image px
 let dragSnapshot = null;
 let drawingBox = null;  // temp box while drawing
+let pointMode = null;   // null | 1 (正向點) | 0 (負向點) — 開啟時點擊畫布為選取的部件加點
 
 /* ---------- 載入圖片 ---------- */
 function loadImageFile(f) {
@@ -213,6 +231,7 @@ $("suggestInput").addEventListener("change", (e) => {
         notes: p.notes || "",
         x0: px0 / 100 * img.width, y0: py0 / 100 * img.height,
         x1: px1 / 100 * img.width, y1: py1 / 100 * img.height,
+        points: [],
       });
       added++;
     });
@@ -257,6 +276,15 @@ function hitTest(x, y) {
 $("overlayCanvas").addEventListener("mousedown", (e) => {
   if (!img) return;
   const { x, y } = canvasPos(e);
+  if (pointMode !== null) {
+    if (!selectedId) return;
+    const b = boxes.find(bb => bb.id === selectedId);
+    if (!b) return;
+    b.points.push({ x, y, label: pointMode });
+    renderPointList();
+    render();
+    return;
+  }
   const hit = hitTest(x, y);
   if (hit) {
     selectedId = hit.id;
@@ -295,7 +323,7 @@ window.addEventListener("mouseup", () => {
     const b = norm(drawingBox);
     if (b.x1 - b.x0 > 4 && b.y1 - b.y0 > 4) {
       const id = "part_" + (nextPartNum++);
-      boxes.push({ id, label: "新部件", confidence: "medium", notes: "", x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 });
+      boxes.push({ id, label: "新部件", confidence: "medium", notes: "", x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1, points: [] });
       selectedId = id;
       selectPart(id);
     }
@@ -306,6 +334,11 @@ window.addEventListener("mouseup", () => {
   render();
 });
 window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && pointMode !== null) {
+    pointMode = null;
+    setPointModeButtons();
+    return;
+  }
   if (!selectedId) return;
   if (e.key === "Delete" || e.key === "Backspace") {
     if (document.activeElement && ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
@@ -335,6 +368,15 @@ function render() {
         overlayCtx.fillRect(cx - HANDLE_R / 2, cy - HANDLE_R / 2, HANDLE_R, HANDLE_R);
       });
     }
+    (bb.points || []).forEach(pt => {
+      overlayCtx.beginPath();
+      overlayCtx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+      overlayCtx.fillStyle = pt.label === 1 ? "#3ecf6a" : "#ff5d6c";
+      overlayCtx.fill();
+      overlayCtx.strokeStyle = "#fff";
+      overlayCtx.lineWidth = 1;
+      overlayCtx.stroke();
+    });
   });
   if (drawingBox) {
     const b = norm(drawingBox);
@@ -368,13 +410,50 @@ function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;"
 
 function selectPart(id) {
   const b = boxes.find(bb => bb.id === id);
+  pointMode = null;
+  setPointModeButtons();
   if (!b) { $("editPanel").style.display = "none"; return; }
+  if (!b.points) b.points = [];
   $("editPanel").style.display = "block";
   $("fId").value = b.id;
   $("fLabel").value = b.label;
   $("fConfidence").value = b.confidence;
   $("fNotes").value = b.notes;
+  renderPointList();
 }
+function renderPointList() {
+  const el = $("pointList");
+  const b = boxes.find(bb => bb.id === selectedId);
+  const pts = (b && b.points) || [];
+  if (!pts.length) { el.innerHTML = '<div class="hint">尚無點</div>'; return; }
+  el.innerHTML = "";
+  pts.forEach((pt, i) => {
+    const row = document.createElement("div");
+    row.className = "ptRow";
+    row.innerHTML = `<span class="dot" style="background:${pt.label === 1 ? '#3ecf6a' : '#ff5d6c'}"></span>
+      <span>(${Math.round(pt.x)}, ${Math.round(pt.y)}) ${pt.label === 1 ? '正向' : '負向'}</span>
+      <span class="del" title="刪除">×</span>`;
+    row.querySelector(".del").addEventListener("click", () => {
+      b.points.splice(i, 1);
+      renderPointList(); render();
+    });
+    el.appendChild(row);
+  });
+}
+function setPointModeButtons() {
+  $("addPosPtBtn").classList.toggle("active", pointMode === 1);
+  $("addNegPtBtn").classList.toggle("active", pointMode === 0);
+}
+$("addPosPtBtn").addEventListener("click", () => {
+  if (!selectedId) return;
+  pointMode = pointMode === 1 ? null : 1;
+  setPointModeButtons();
+});
+$("addNegPtBtn").addEventListener("click", () => {
+  if (!selectedId) return;
+  pointMode = pointMode === 0 ? null : 0;
+  setPointModeButtons();
+});
 ["fLabel", "fConfidence", "fNotes"].forEach(fid => {
   $(fid).addEventListener("input", () => {
     if (!selectedId) return;
@@ -418,10 +497,14 @@ $("exportBtn").addEventListener("click", () => {
     generated_by: "s4_decompose_assist.html (使用者手動確認)",
     parts: boxes.map(bb => {
       const b = norm(bb);
-      return {
+      const out = {
         id: bb.id, label: bb.label, confidence: bb.confidence, notes: bb.notes,
         bbox_px: [Math.round(b.x0), Math.round(b.y0), Math.round(b.x1), Math.round(b.y1)],
       };
+      if (bb.points && bb.points.length) {
+        out.points = bb.points.map(pt => ({ x: Math.round(pt.x), y: Math.round(pt.y), label: pt.label }));
+      }
+      return out;
     }),
   };
   const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
