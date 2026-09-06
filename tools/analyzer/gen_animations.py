@@ -198,7 +198,8 @@ try:
         gen_combo as _gen_combo, gen_anticipate_hold as _gen_charge, gen_cascade as _gen_cascade, \
         HIT_KEYWORDS as _HIT_KW, REVEAL_KEYWORDS as _REVEAL_KW, \
         COMBO_KEYWORDS as _COMBO_KW, CHARGE_KEYWORDS as _CHARGE_KW, \
-        CASCADE_KEYWORDS as _CASCADE_KW, DUR as _DUR_EXT
+        CASCADE_KEYWORDS as _CASCADE_KW, DUR as _DUR_EXT, \
+        tier_gain_for as _tier_gain_for, apply_tier_gain as _apply_tier_gain
     _DISPATCH["hit"] = _gen_hit
     _DISPATCH["reveal"] = _gen_reveal
     _DISPATCH["combo"] = _gen_combo
@@ -209,15 +210,72 @@ try:
     _CAT_KEYWORDS = {"cascade": _CASCADE_KW, "combo": _COMBO_KW, "charge": _CHARGE_KW,
                      "hit": _HIT_KW, "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
 except ImportError:
-    pass
+    _tier_gain_for = None
+    _apply_tier_gain = None
+
+# candidate (J) — 可分檔位(tier)幅度變體的類別:大獎**主秀**節拍(beat_templates 驅動)。
+# In/Loop/Out(結構入場/待機/退場)不隨檔位放大,故不在此集合。
+_TIERABLE = {"hit", "reveal", "combo", "charge", "cascade"}
 
 # cascade 是**跨件時序**類別:單件產生器需知道自己在件序中的相位(phase∈[0,1])。
 # 只有這類別要吃 phase,故集中列名,build_animations 依此決定是否帶入(其餘類別簽章不變)。
 _PHASE_AWARE = {"cascade"}
 
 
-def build_animations(skeleton, storyboard):
-    """回傳 animations dict(beat 名為 key)。"""
+def _build_beat_clip(beat, cat, bone_of, cx, cy, gain=1.0):
+    """依 beat + 類別產出一支 clip 的 (bones_tl, slots_tl)。
+    gain != 1.0 時(candidate J)對每件的幾何 excursion 依 apply_tier_gain 一致放大(檔位變體)。"""
+    bones_tl, slots_tl = {}, {}
+    limb_seen = 0
+    # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
+    valid = [pe for pe in beat["parts"] if bone_of.get(safe(pe["part"])) is not None]
+    nvalid = len(valid)
+    for pi, pe in enumerate(valid):
+        part = pe["part"]; role = pe["role"]
+        sname = safe(part)
+        bname = "b_" + sname
+        bd = bone_of.get(sname)
+        # 左右反相:依遇到 limb 的順序交替 ±1(確定性)
+        side_sign = 1.0
+        if role == "limb":
+            side_sign = 1.0 if limb_seen % 2 == 0 else -1.0
+            limb_seen += 1
+        # 徑向外側單位向量(件中心相對畫布中心)
+        dx, dy = bd.get("x", cx) - cx, bd.get("y", cy) - cy
+        n = math.hypot(dx, dy) or 1.0
+        radial = (dx / n, dy / n)
+
+        if cat in _PHASE_AWARE:
+            # 件序相位:第一件 0、最後一件 1(單件時 0)→ 各件峰時刻依序錯開
+            phase = 0.0 if nvalid <= 1 else pi / (nvalid - 1)
+            b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
+        else:
+            b, sdict = _DISPATCH[cat](role, side_sign, radial)
+        if gain != 1.0 and _apply_tier_gain is not None:
+            b, sdict = _apply_tier_gain(b, sdict, gain)
+        if b:
+            bones_tl[bname] = b
+        if sdict:
+            slots_tl[sname] = sdict
+    return bones_tl, slots_tl
+
+
+def _pack(bones_tl, slots_tl):
+    anim = {}
+    if bones_tl:
+        anim["bones"] = bones_tl
+    if slots_tl:
+        anim["slots"] = slots_tl
+    return anim
+
+
+def build_animations(skeleton, storyboard, tiers=False):
+    """回傳 animations dict(beat 名為 key)。
+
+    tiers=False(預設):每 beat 一支 clip,名 = beat 名 —— 與分檔前**逐位元相同**。
+    tiers=True 且 storyboard 宣告 tier_variants:主秀(_TIERABLE)beat 依各檔位幅度增益 g 產出
+    **每檔位一支** clip,名 = `<beat>_<Tier>`(如 hit_Super … hit_Legend);非主秀 beat(In/Loop/Out)
+    仍單支、名不變。Super(序位 0 → g=1.0)clip 逐位元等同未分檔的該 beat(見 apply_tier_gain)。"""
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
@@ -225,46 +283,20 @@ def build_animations(skeleton, storyboard):
     H = skeleton["skeleton"]["height"]
     cx, cy = W / 2.0, H / 2.0
 
+    tvars = storyboard.get("tier_variants") if tiers else None
+
     anims = {}
     for beat in storyboard["beats"]:
         name = beat["beat"]
         cat = beat_category(name)
-        bones_tl, slots_tl = {}, {}
-        limb_seen = 0
-        # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
-        valid = [pe for pe in beat["parts"] if bone_of.get(safe(pe["part"])) is not None]
-        nvalid = len(valid)
-        for pi, pe in enumerate(valid):
-            part = pe["part"]; role = pe["role"]
-            sname = safe(part)
-            bname = "b_" + sname
-            bd = bone_of.get(sname)
-            # 左右反相:依遇到 limb 的順序交替 ±1(確定性)
-            side_sign = 1.0
-            if role == "limb":
-                side_sign = 1.0 if limb_seen % 2 == 0 else -1.0
-                limb_seen += 1
-            # 徑向外側單位向量(件中心相對畫布中心)
-            dx, dy = bd.get("x", cx) - cx, bd.get("y", cy) - cy
-            n = math.hypot(dx, dy) or 1.0
-            radial = (dx / n, dy / n)
-
-            if cat in _PHASE_AWARE:
-                # 件序相位:第一件 0、最後一件 1(單件時 0)→ 各件峰時刻依序錯開
-                phase = 0.0 if nvalid <= 1 else pi / (nvalid - 1)
-                b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
-            else:
-                b, sdict = _DISPATCH[cat](role, side_sign, radial)
-            if b:
-                bones_tl[bname] = b
-            if sdict:
-                slots_tl[sname] = sdict
-        anim = {}
-        if bones_tl:
-            anim["bones"] = bones_tl
-        if slots_tl:
-            anim["slots"] = slots_tl
-        anims[name] = anim
+        if tvars and cat in _TIERABLE:
+            for tier in tvars:
+                g = _tier_gain_for(tier, tvars) if _tier_gain_for else 1.0
+                bt, st = _build_beat_clip(beat, cat, bone_of, cx, cy, gain=g)
+                anims[f"{name}_{tier}"] = _pack(bt, st)
+        else:
+            bt, st = _build_beat_clip(beat, cat, bone_of, cx, cy, gain=1.0)
+            anims[name] = _pack(bt, st)
     return anims
 
 
@@ -274,11 +306,12 @@ def main():
     ap.add_argument("--psd", default="assets/robot_parts.psd", help="用於取 storyboard 的來源 PSD")
     ap.add_argument("--genre", default="slot_bigwin")
     ap.add_argument("--inplace", action="store_true", help="寫回 skeleton.json")
+    ap.add_argument("--tiers", action="store_true", help="candidate J:主秀 beat 依檔位(tier)產差異化幅度變體")
     a = ap.parse_args()
     from analyze_target import analyze
     sk = json.load(open(a.skeleton_json, encoding="utf-8"))
     spec = analyze(a.psd, a.genre)
-    anims = build_animations(sk, spec["3_motion_storyboard"])
+    anims = build_animations(sk, spec["3_motion_storyboard"], tiers=a.tiers)
     sk["animations"] = anims
     if a.inplace:
         json.dump(sk, open(a.skeleton_json, "w", encoding="utf-8"), ensure_ascii=False, indent=1)

@@ -10,6 +10,30 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 tier(檔位)變體幅度差異化(里程碑,2026-09-06,candidate J)** — 補「**先驗宣告 ≠ 生成器使用**」的缺口:
+  `genre_priors.slot_bigwin` 從一開始就宣告 `tiers=[Super,Mega,Omg,Legend]`(對齊真實 Award 的 `Award_<Tier>_In/…`),
+  但這欄位至今**只是 metadata**(build_storyboard 塞進 tier_variants、validate_priors 拿去對真值檔名做召回),
+  **生成器 `build_animations` 完全不看它** → 所有檔位共用同一組主秀幅度。本能力讓
+  `build_spine --animate --tiers` 對**主秀** beat(hit/reveal/combo/charge/cascade)依檔位序位產差異化幅度變體
+  `<beat>_<Tier>`,愈高檔位主秀愈誇張。**機制=單參數幅度增益** `g=1+0.35·序位`(Super1.0/Mega1.35/Omg1.70/
+  Legend2.05),對一個 beat 的**幾何 excursion**(scale 繞 identity=1、rotate 繞 0)一致縮放
+  (`beat_templates.apply_tier_gain`;color/alpha 不動=與幅度正交)。**兩不變量自動成立**(故不改任何 gen_* 模板):
+  ①介面契約(identity 幀是縮放不動點,`g` 不影響 → 首尾/hold 仍 identity、可與 In/Loop/Out 串接)②結構簽章
+  (一致縮放不改峰的相對次序/數目/時刻)。**`g==1.0` 逐位元 no-op → Super== 未分檔基準、`tiers` 預設 False 使既有閘
+  零風險(逐位元不變)**。`validate_tier_variants.py`(從**先驗庫**經 build_storyboard→**真實 build_spine 骨架**→
+  build_animations)**5 AC 全 PASS**:J1 每主秀 beat 恰產 len(tiers) 支且類別正確(In/Loop/Out 仍單支)、
+  J2 pop overshoot 幅度依檔位**嚴格遞增**且 Legend/Super 比 **2.05** 吻合 g、J3 每檔位仍保 setup identity 介面
+  (reveal 首 collapsed 尾 identity)、J4 每檔位結構簽章**不跨越**(combo 遞增峰/charge squash 蓄力/cascade 跨件波/
+  hit・burst 非 combo,charge)、J5 regression(Super==base、In/Loop/Out 分檔前後逐位元相同)+ 負對照
+  (tiers=None 的 slot_reveal 產 **0** 支 _Tier clip、各檔位峰值全相異且依宣告序遞增)。**關鍵發現:度量陷阱** ——
+  reveal 的 collapsed 起點是**結構性向下 excursion**(放大後 clamp 飽和),用 `|scaleX−1|` 會被它主宰;改用
+  **正向 pop overshoot**(`max scaleX−1`)才量到真正隨檔位放大的主秀幅度(J2/J5 初版即因此抓到並修正)。
+  回歸:validate_priors / priors_beats / priors_combo_charge / priors_cascade / beat_templates / more_beats /
+  cascade / pivot_rotation / scale_pivot 全綠、round-trip `validate_build` 與 `validate_anim`(+selftest)對
+  `--animate --tiers` build 全 PASS。新增 cap `tier_amplitude_variants` L2 併入 `spine-anim-forge`(**仍 HOLD**:
+  運動基元為手感先驗、單一真值資產,防固化)。誠實界定:檔位→幅度增益曲線(STEP=0.35 線性)為**提案**——
+  Award 各檔位僅名字帶檔位,**無「Legend 比 Super 大多少」的量化真值**,故驗客觀性質(單調/量化增益吻合/介面/簽章保結構)非美感。
+  見 `knowledge/s1-tier-amplitude-variants.md`、圖 `knowledge/figures/s1_tier_variants.png`。
 - **S1 cascade 接進 genre 先驗庫(里程碑,2026-09-06 session 002,candidate I)** — 續 (E)/(H) 對 hit/reveal、
   combo/charge 所做,把 0h 的 **cascade(跨件錯開波)** 主秀節拍併入 `genre_priors.slot_bigwin`(additive),
   讓 `build_spine --animate --genre slot_bigwin` **直出** cascade(接 I 前先驗僅 In/burst/hit/combo/charge/Loop/Out,
@@ -358,9 +382,18 @@
 > **(I) ~~cascade 接進 genre 先驗庫~~ ✅ 完成(2026-09-06 session 002,candidate I,`cascade_priors_integration` L2,見上里程碑)** ——
 >   如 (E)/(H),把 0h 的 cascade 跨件波併入 `genre_priors.slot_bigwin`,`build_spine --animate` 直出跨件波;
 >   `validate_priors_cascade.py` 5 AC(I3 crux 件序相位 threading 端到端存活、覆蓋率仍 1.0),副產「跨件簽章需散佈+遞增兩條件並立」鑑別點(Loop 散佈 0.5 但無序→非波)。
+> **(J) ~~tier 變體幅度差異化~~ ✅ 完成(2026-09-06,candidate J,`tier_amplitude_variants` L2,見上里程碑)** ——
+>   `slot_bigwin` 宣告 tiers 但生成器一直不看它;`build_spine --animate --tiers` 對主秀 beat 依檔位序位產差異化幅度
+>   `<beat>_<Tier>`。機制=單參數增益 g=1+0.35·序位 對幾何 excursion 一致縮放(`apply_tier_gain`),identity 為縮放
+>   不動點故介面/結構簽章自動保留、g=1.0 逐位元 no-op。`validate_tier_variants.py` 5 AC(J2 pop 幅度依檔位嚴格遞增
+>   且 Legend/Super=2.05 吻合 g、J5 Super==base 逐位元),副產度量陷阱=reveal collapsed 是結構向下 excursion,量幅度
+>   要用正向 pop overshoot 非 |scaleX−1|。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(J) tier 變體幅度差異化**:`slot_bigwin` 有 tiers=[Super,Mega,Omg,Legend] 但目前所有 tier 共用同一組 beat 幅度;
->   可讓愈高檔位主秀幅度/連擊數遞增(需結構簽章 AC 驗「Legend 幅度 > Super」且皆保持介面契約);
+> **(J-2) tier 連擊數/節拍數遞增**:承 (J) 只做「幅度」;可讓 combo 的**連擊數**隨檔位遞增(Super 3 擊→Legend 5+ 擊)、
+>   或高檔位 beat **時長**加長,需結構簽章 AC 驗「impact 峰數隨檔位遞增且仍嚴格遞增、仍保介面契約」(注意這會改
+>   `gen_combo` 的峰結構,與 (J) 的「一致縮放不改次序」不同,是新的 per-tier 生成參數 threading);
+> **(J-3) In/Out 檔位化**:真實 Award 的 In/Out **本身**就每檔位一支(`Award_<Tier>_In`);目前 (J) 只檔位化主秀 beat、
+>   In/Loop/Out 仍共用。可把入場爆發幅度也隨檔位放大(gen_in/gen_out 走 gen_animations 基元,需另接增益,非 beat_templates);
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
 > **(G-4) shear / 非均勻 scale 仿射保形 AC**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
@@ -379,6 +412,16 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-06 session 003:**S1 tier(檔位)變體幅度差異化(里程碑,candidate J)** — 補「先驗宣告 ≠ 生成器使用」缺口:
+  `slot_bigwin` 早宣告 `tiers=[Super,Mega,Omg,Legend]` 卻只是 metadata,生成器對所有檔位共用同一組主秀幅度。
+  `build_spine --animate --tiers` 對主秀 beat(hit/reveal/combo/charge/cascade)依檔位序位產差異化幅度 `<beat>_<Tier>`。
+  機制=單參數增益 g=1+0.35·序位 對幾何 excursion(scale 繞 identity、rotate 繞 0)一致縮放(`beat_templates.apply_tier_gain`);
+  identity 是縮放不動點 → 介面契約與結構簽章**自動保留**、g=1.0 逐位元 no-op(Super==base、tiers 預設 False 使既有閘零風險)。
+  `validate_tier_variants.py` 5 AC 全 PASS(J1 恰產 len(tiers) 支且類別正確 / J2 pop overshoot 依檔位嚴格遞增且
+  Legend/Super=2.05 吻合 g / J3 每檔位保 identity 介面 / J4 每檔位結構簽章不跨越 / J5 Super==base+In/Loop/Out 逐位元不變、
+  負對照 tiers=None 產 0 支 _Tier clip)。關鍵發現:度量陷阱——reveal collapsed 是結構向下 excursion(clamp 飽和),
+  量主秀幅度要用**正向 pop overshoot**(max scaleX−1)非 |scaleX−1|(初版即因此抓到並修正)。回歸全綠 + round-trip/
+  validate_anim 對 --tiers build PASS。cap `tier_amplitude_variants` L2;anim-forge 仍 HOLD。見 `knowledge/s1-tier-amplitude-variants.md`。
 - 2026-09-06 session 002:**S1 cascade 接進 genre 先驗庫(里程碑,candidate I)** — 續 (E)/(H),把 0h 的 cascade
   (跨件錯開波)併入 `genre_priors.slot_bigwin`(additive),`build_spine --animate` 直出跨件波。cascade 比 (E)/(H)
   多驗一層(跨件時序簽章→件序相位 threading 須端到端存活)。`validate_priors_cascade.py`(先驗→真實 build_spine

@@ -37,6 +37,55 @@ def _scale_frames(T, taus_vals):
     return [{"time": round(tau * T, 4), "x": round(v, 4), "y": round(v, 4)} for (tau, v) in taus_vals]
 
 
+# candidate (J) — tier(檔位)變體幅度差異化。`slot_bigwin` 宣告 tiers=[Super,Mega,Omg,Legend],
+# 但主秀 beat 至今各檔位共用同一組幅度。此處提供**單參數幅度增益** g,對一個 beat 的**幾何 excursion**
+# (scale 相對 identity=1、rotate/translate 相對 0)一致縮放:愈高檔位 g 愈大 → 主秀愈誇張。
+# 兩個關鍵不變量**自動成立**(故無須改動任何 gen_* 模板):
+#   ① 介面契約保留 —— identity 幀(scale==1 → 1+(1-1)g=1;rotate/translate==0 → 0·g=0)不受 g 影響,
+#      首尾/hold 的 identity 仍精確 identity(reveal 的 collapsed 起點亦保持隱藏,見下 clamp)。
+#   ② 結構簽章保留 —— 一致縮放 excursion 不改變峰的**相對次序/數目/時刻**(combo 遞增峰、charge hold
+#      佔比、cascade 各件峰時刻、hit 單峰皆是次序/時刻/佔比量,對正向縮放不變)。
+# g==1.0 為**逐位元 no-op**,故 Super(序位 0 → g=1.0)== 未分檔基準,既有閘全數不受擾。
+TIER_STEP = 0.35  # 每升一檔,excursion 增益 +0.35(Super1.0 / Mega1.35 / Omg1.70 / Legend2.05)
+
+
+def tier_amp_gain(index):
+    """檔位序位(0-based)→ 幅度增益 g(單調遞增,idx 0 → 1.0 = 未分檔基準)。"""
+    return 1.0 + TIER_STEP * max(0, int(index))
+
+
+def tier_gain_for(tier, tiers):
+    """檔位名 + 宣告順序 → g;找不到(或無 tiers)則回 1.0(no-op)。"""
+    try:
+        return tier_amp_gain(list(tiers).index(tier))
+    except (ValueError, TypeError):
+        return 1.0
+
+
+def apply_tier_gain(b, s, g):
+    """就地把**單件**的 (bone_timelines b, slot_timelines s) 幾何 excursion 依增益 g 一致縮放。
+      - scale : 對 identity=1 縮放 v→max(0, 1+(v-1)g)(clamp≥0:collapsed 如 reveal 0.02 放大後可能
+                <0,夾 0 仍= 隱藏,合法;identity=1 不受影響)。
+      - rotate/translate : 對 0 縮放(×g);0 幀仍 0(介面契約)。
+      - color/alpha **不動** —— 呈現/閃光通道,與幅度正交,且保 reveal 的 collapsed→identity alpha 介面。
+    g==1.0 為逐位元 no-op(直接回傳)。"""
+    if g == 1.0:
+        return b, s
+    if b:
+        if "scale" in b:
+            for f in b["scale"]:
+                f["x"] = round(max(0.0, 1.0 + (f["x"] - 1.0) * g), 4)
+                f["y"] = round(max(0.0, 1.0 + (f["y"] - 1.0) * g), 4)
+        if "rotate" in b:
+            for f in b["rotate"]:
+                f["angle"] = round(f["angle"] * g, 3)
+        if "translate" in b:
+            for f in b["translate"]:
+                f["x"] = round(f["x"] * g, 3)
+                f["y"] = round(f["y"] * g, 3)
+    return b, s
+
+
 def gen_hit(role, side_sign=1.0, radial=(0.0, 0.0)):
     """Anticipation → Impact → Settle。首尾 identity。回傳 (bone_timelines, slot_timelines)。
 

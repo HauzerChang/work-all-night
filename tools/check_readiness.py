@@ -240,6 +240,22 @@ BLOCKS = [
                      "副產:I5 逼出「跨件簽章需散佈+遞增兩條件並立」——Loop 散佈 0.5 甚至 > 門檻但無序→正確判非波(此鑑別力 0h 只在手搭 "
                      "fixture 驗過,本次在真實產線再現)。honest:主秀運動仍先驗手感、cascade 於 Award 真值無命名列 prior_beats_unused(誠實 "
                      "PROPOSAL);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("tier_amplitude_variants", "tier(檔位)變體幅度差異化(J,build --animate --tiers 直出各檔位遞增幅度)", "L2",
+                "python3 tools/analyzer/validate_tier_variants.py", "gen",
+                note="slot_bigwin 宣告 tiers=[Super,Mega,Omg,Legend] 但主秀 beat 至今各檔位共用同一組幅度。本能力讓 "
+                     "build_spine --animate --tiers 對主秀節拍(hit/reveal/combo/charge/cascade)依檔位序位產差異化幅度變體 "
+                     "<beat>_<Tier>:愈高檔位主秀愈誇張。機制=單參數幅度增益 g=1+0.35·序位,對一個 beat 的**幾何 excursion**"
+                     "(scale 相對 identity=1、rotate 相對 0)一致縮放(beat_templates.apply_tier_gain);兩不變量自動成立——"
+                     "①介面契約(identity 幀 scale==1→1、rotate==0→0 不受 g 影響)②結構簽章(一致縮放不改峰的次序/數目/時刻)。"
+                     "g==1.0 逐位元 no-op → Super== 未分檔基準,tiers 預設 False 使既有閘全數不受擾(逐位元不變)。5AC PASS:"
+                     "J1 每主秀 beat 恰產 len(tiers) 支且類別正確(In/Loop/Out 仍單支)、J2 pop overshoot 幅度依檔位嚴格遞增且 "
+                     "Legend/Super 比=2.05 吻合 g、J3 每檔位仍保 setup identity 介面(reveal 首 collapsed 尾 identity)、"
+                     "J4 每檔位結構簽章不跨越(combo 遞增峰/charge squash 蓄力/cascade 跨件波/hit,burst 非 combo,charge)、"
+                     "J5 regression(Super==base、In/Loop/Out 分檔前後逐位元相同)+ 負對照(tiers=None 的 slot_reveal 產 0 支 "
+                     "_Tier clip、各檔位峰值全相異且依宣告序遞增)。回歸:validate_priors/priors_beats/priors_combo_charge/"
+                     "priors_cascade/beat_templates/more_beats/cascade/pivot_rotation/scale_pivot 全綠、round-trip build 與 "
+                     "validate_anim 對 --animate --tiers build 全 PASS。honest:主秀運動仍先驗手感、檔位→幅度增益曲線(STEP=0.35)"
+                     "為線性提案(非學自真值,Award 各檔位幅度差無量化真值);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
