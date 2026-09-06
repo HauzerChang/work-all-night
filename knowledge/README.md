@@ -556,3 +556,26 @@
   需逐案實測。**未改動任何production代碼**(`s4_sam_segment.py`尚不支援點提示參數),
   新增候選:把點提示接線進production(decision JSON schema+assist viewer UI+
   `s4_decompose_cut.py`),讓skirt真正在正式流程被修正。
+
+- [SAM點提示接線進production(chunk 56)](s4-decompose-assist-viewer.md#sam-輔助點-ui-chunk-562026-09-06新增) —
+  承接chunk55,把「點提示對skirt有效」從ad-hoc驗證腳本接線進production:`s4_sam_segment.py`
+  的`segment()`加選填`points`參數,`s4_decompose_cut.py`讀決策檔新增的選填`points`欄位,
+  `s4_decompose_assist.html`編輯面板加正向/負向點UI(畫布點擊加點,可逐點刪除,匯出時
+  非空才寫入,向後相容)。**production端到端驗證**(非ad-hoc腳本):用chunk53決策檔分別
+  跑無點/加點兩版真正的`s4_decompose_cut.py --contour sam --eval`,加點版`skirt`
+  `fg_ratio=0.4478,n_components=1,largest_component_frac=1.0`跟chunk55一致,其餘19
+  部件`sam_info`逐欄位比對兩次執行完全相同(純加法無回歸)。誠實限制:未跑Playwright
+  測新UI(語法檢查+手動審查代替);驗證用決策檔是臨時檔,不是拿去組裝的正式快照。
+
+- [九尾焰蓮拆解:第二份完整組裝PSD,skirt點提示正式落地(chunk 57)](s4-decompose-sam-production-psd.md) —
+  承接chunk56留下的唯一候選:把skirt的點正式寫進官方決策檔快照(chunk53基準+
+  `skirt.points`,逐欄位比對確認其餘19部件與基準完全一致),重跑完整`--contour sam`
+  pipeline組出第二份production PSD(`jiuwei_yanlian_decompose_sam.psd`,20圖層)。
+  自驗:skirt分割結果與其餘19部件`sam_info`皆與chunk56的驗證結果完全重現;AC1裁切
+  20/20;AC2圖層name/offset/size 20/20相符;AC3改用premultiplied-alpha比對後
+  20/20`max_diff=0`(**踩到一個新坑**:straight RGBA直接比對在SAM遮罩產生真實透明
+  像素時會被alpha=0處未定義的RGB雜訊誤判成回歸,改用premultiplied比對才是SAM/非
+  矩形裁切場景下正確的round-trip驗證法)。`bodice`/`sleeve_right`/`hair_front`/
+  `head`/`sash_train`五個已知問題部件視覺複核維持chunk54已知狀態,無新回歸。這份
+  SAM版PSD跟chunk53矩形版是平行產出非取代關係,各有取捨(SAM版輪廓更乾淨但5個部件
+  不可信;矩形版全部部件可靠但有bleed)。

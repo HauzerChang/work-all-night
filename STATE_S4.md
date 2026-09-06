@@ -7,6 +7,30 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 57(2026-09-06)**:執行 chunk 56 留下的唯一候選——把 `skirt` 的 SAM 點提示正式
+> 寫進官方決策檔快照(以 chunk53 `decision_final.json` 為基準疊加 `skirt.points`,逐欄位
+> 比對確認其餘 19 個部件與基準完全一致),重跑完整 `s4_decompose_cut.py --contour sam
+> --eval` → `manifest_to_psd.js` pipeline,產出 `tools/mesh_gen/s4_data/chunk57/
+> jiuwei_yanlian_decompose_sam.psd`(20 圖層)——**第二份 production PSD**,跟 chunk53
+> 矩形版並行(取捨不同,非取代)。**自驗**:`skirt` 分割結果(`fg_ratio=0.4478,
+> n_components=1,largest_component_frac=1.0`)與其餘 19 部件 `sam_info` 皆與 chunk56
+> 驗證結果逐欄位完全重現;AC1 裁切 20/20;AC2 用 psd-tools 重開 PSD 逐圖層比對
+> name/offset/size **20/20 相符**;AC3 **踩到一個新坑並修正**——straight RGBA 逐像素
+> 比對(chunk53 沿用的方法)在這份 PSD 上 20 層全部回報 `max_diff` 高達 247~255,一開始
+> 看似嚴重回歸,追查後發現是 SAM 遮罩讓每個部件第一次真的出現 alpha=0 的透明像素,這些
+> 像素底下的 RGB 值本無意義、也未保證跨 PNG/PSD 一致,straight RGBA 比對被這類「看不見
+> 的顏色雜訊」誤判;改用 premultiplied-alpha 比對(`CLAUDE.md`/`RULES.md` 一貫要求的
+> 正確作法)後 **20/20 `max_diff=0`**,確認其實完全無損。**教訓**:凡裁切結果非「全不
+> 透明矩形」,像素級 round-trip 驗證一律要用 premultiplied-alpha,不能沿用只在全不透明
+> 矩形場景安全的 straight RGBA 捷徑。視覺複核 `bodice`/`sleeve_right`/`hair_front`/
+> `head`/`sash_train` 五個已知問題部件維持 chunk54 記錄的失敗模式,無新回歸。**誠實
+> 限制**:`bodice`/`sleeve_right`(A 類岔路,已測4次點提示無效,需使用者裁決)、
+> `hair_front`(需使用者用 assist viewer 確認語意邊界)三者原樣未解;`head`/
+> `sash_train` 仍被 heuristic 標記 low_confidence,內容不可信;整份 PSD 攤平 composite
+> 後 46.2% 透明(SAM 緊貼輪廓、無 bleed 填補空隙的預期特性,非遺漏,已在 knowledge 檔
+> 說明跟矩形版 100% 不透明的對比原因);未做第4點 GPT 局部修補(需 API key 授權)。見
+> 下方「chunk 57」段落與 `knowledge/s4-decompose-sam-production-psd.md`。
+>
 > **chunk 56(2026-09-06)**:執行 chunk 55 留下的唯一候選——把驗證過對 `skirt` 有效的
 > SAM 點提示從 ad-hoc 驗證腳本**接線進 production**。改了三處:(1) `s4_sam_segment.py`
 > 的 `segment()` 加選填 `points` 參數,有點時走 `predictor.predict(box=...,
@@ -727,6 +751,11 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
   `hair_front`/`head`/`fox_ears` 語意邊界仍待使用者用 assist viewer 確認(chunk51
   已提出,chunk54 用 SAM 具體示範了重疊會導致選錯子物件)。見上方 chunk 55/56 段落與
   `knowledge/s4-sam-point-prompt-skirt.md`、`knowledge/s4-decompose-assist-viewer.md`。
+  ~~新懸而未決:skirt 的點還沒進到真正要拿去組裝 PSD 的那份決策檔~~ → **已解(chunk 57,
+  2026-09-06)**:正式決策檔快照 + 第二份 SAM-contour production PSD 已產出並驗證,
+  見下方 chunk 57 段落與 `knowledge/s4-decompose-sam-production-psd.md`。`bodice`/
+  `sleeve_right`/`hair_front`/`head`/`sash_train` 五個已知問題部件在這份 PSD 裡原樣
+  未解,仍是同樣的 A 類岔路與待使用者確認項,未產生新的懸而未決。
 - ✅ **里程碑審查完成(chunk 26,2026-09-02)**:S4 核心研究問題已全部有交叉驗證的答案
   (見上方「里程碑審查」段落與 `knowledge/s4-convergence-review.md`)。候選15/17 是唯二
   剩餘的執行層決策(非研究缺口),連同「本排程接下來走向」共三項一併彙整交還使用者裁決,
@@ -734,6 +763,23 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-06:**第二份 production PSD,`skirt` 點提示正式落地(chunk 57)** — 承接
+  chunk56 唯一候選(驗證用決策檔是臨時檔,未真正拿去組裝)。以 chunk53
+  `decision_final.json` 為基準疊加驗證過的 `skirt.points`,存成
+  `tools/mesh_gen/s4_data/chunk57/decision_final.json`(逐欄位比對確認其餘19部件與
+  基準完全一致,純加法),重裝 torch/timm/MobileSAM 後跑真正的
+  `s4_decompose_cut.py --contour sam --eval` → `manifest_to_psd.js`,產出
+  `jiuwei_yanlian_decompose_sam.psd`(20圖層,第二份 production PSD,跟 chunk53 矩形版
+  並行非取代)。**自驗**:`skirt`/其餘19部件 `sam_info` 皆與 chunk56 結果逐欄位完全
+  重現;AC1裁切20/20;AC2圖層 name/offset/size 20/20相符;AC3 **踩到新坑**——straight
+  RGBA 比對(chunk53用法)在SAM遮罩產生真實透明像素後20層全部誤報`max_diff`247~255,
+  改用 premultiplied-alpha 比對(CLAUDE.md/RULES.md 一貫要求)後 **20/20 `max_diff=0`**,
+  證實其實完全無損,教訓是「非全不透明矩形的裁切結果,round-trip驗證一律要用
+  premultiplied-alpha」。視覺複核 `bodice`/`sleeve_right`/`hair_front`/`head`/
+  `sash_train` 五個已知問題部件維持 chunk54 記錄的失敗模式,無新回歸;整份PSD攤平
+  composite後46.2%透明,是SAM緊貼輪廓(無矩形bleed填補空隙)的預期特性非遺漏。誠實
+  限制:三個A類/待確認案例原樣未解;未做第4點GPT局部修補(需API key授權)。見
+  `knowledge/s4-decompose-sam-production-psd.md`、`log/s4-2026-09-06-057.md`。
 - 2026-09-06:**把 SAM 點提示接線進 production(chunk 56)** — 承接 chunk55 唯一候選。
   改三處:`s4_sam_segment.py` 的 `segment()` 加選填 `points` 參數(有點時走
   `point_coords`/`point_labels`,沒點時維持原路徑);`s4_decompose_cut.py` 讀決策檔
