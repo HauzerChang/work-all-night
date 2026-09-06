@@ -579,3 +579,17 @@
   `head`/`sash_train`五個已知問題部件視覺複核維持chunk54已知狀態,無新回歸。這份
   SAM版PSD跟chunk53矩形版是平行產出非取代關係,各有取捨(SAM版輪廓更乾淨但5個部件
   不可信;矩形版全部部件可靠但有bleed)。
+
+- [head/sash_train點提示測試,發現第三種失敗病因(chunk 58)](s4-sam-point-prompt-head-sashtrain.md) —
+  對chunk47/54起被heuristic正確標記`low_confidence`(fragmented)、從未測過點提示的
+  `head`/`sash_train`補測。**兩者點提示皆有效**:`head`最佳版本
+  `fg_ratio=0.2447,n=3,largest_frac=0.8169`;`sash_train`
+  `fg_ratio=0.3013,n=8,largest_frac=0.998`,皆從`low_confidence=true`轉為`false`。
+  **發現第三種病因**(不同於bodice/sleeve_right的「候選全選錯」、skirt的「純box缺
+  方向性」):box-only的3個候選遮罩裡,乾淨/單一連通的候選其實已經存在,只是不是
+  `argmax(scores)`選中的那個——點提示的作用是把該候選的分數推高到第一名,而非重新
+  指向正確物件。新增候選:「fragmented時自動改選largest_component_frac最高的候選」,
+  可能比點提示更便宜(不需人工),但樣本僅2案未實作。**已落地**:疊加進chunk57基準
+  產出第三份production PSD(`jiuwei_yanlian_decompose_sam_v2.psd`),AC1
+  20/20、AC2圖層geometry 20/20相符、AC3 premultiplied-alpha 20/20`max_diff=0`,其餘
+  18部件`sam_info`逐欄位比對零回歸。`bodice`/`sleeve_right`/`hair_front`三者原樣未解。

@@ -7,6 +7,27 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 58(2026-09-06)**:對 `head`/`sash_train`——自 chunk47/54 起就被 heuristic
+> 正確標記 `low_confidence`(fragmented)、但從未測過點提示的兩個部件——補測點提示。
+> **兩者皆有效**(`head`:`fg_ratio=0.2447,n=3,largest_frac=0.8169`;`sash_train`:
+> `fg_ratio=0.3013,n=8,largest_frac=0.998`,皆從 `low_confidence:true` 轉為
+> `false`),且**發現第三種失敗病因**——不同於 `bodice`/`sleeve_right`(候選全選錯
+> 內容)、`skirt`(純box缺方向性),`head`/`sash_train` 是「box-only 的 3 個候選遮罩
+> 裡,乾淨/單一連通的候選其實已經存在,只是不是 `argmax(scores)` 選中的那個」——點
+> 提示的作用是把該候選的分數推高到第一名,不是重新指向正確物件。**已落地**:把驗證過
+> 的點疊加進 chunk57 `decision_final.json` 基準(逐 part 比對確認其餘 18 部件位元級
+> 相同),重跑完整 `s4_decompose_cut.py --contour sam --eval` → `manifest_to_psd.js`,
+> 產出 `jiuwei_yanlian_decompose_sam_v2.psd`(20圖層)——**第三份 production PSD**。
+> **自驗**:AC1 裁切 20/20;`head`/`sash_train` sam_info 與 ad-hoc 驗證腳本完全一致;
+> 其餘 18 部件 `sam_info` 逐欄位比對零回歸;AC2 圖層 name/offset/size 20/20 相符;AC3
+> 沿用 chunk57 教訓改用 premultiplied-alpha 比對,20/20 `max_diff=0`;視覺複核
+> `head`/`sash_train` 為單一乾淨形狀,`bodice` 複查維持已知失敗模式無新回歸。**誠實
+> 限制**:新增候選「fragmented 時自動改選 3 候選裡 largest_component_frac 最高者」
+> (可能比點提示更便宜,不需人工,但樣本僅2案未實作,需 production 代碼異動);
+> `bodice`/`sleeve_right`(A類岔路)、`hair_front`(語意邊界需使用者確認)三者原樣
+> 未解;未做第4點 GPT 局部修補(需 API key 授權)。見下方「chunk 58」段落與
+> `knowledge/s4-sam-point-prompt-head-sashtrain.md`。
+>
 > **chunk 57(2026-09-06)**:執行 chunk 56 留下的唯一候選——把 `skirt` 的 SAM 點提示正式
 > 寫進官方決策檔快照(以 chunk53 `decision_final.json` 為基準疊加 `skirt.points`,逐欄位
 > 比對確認其餘 19 個部件與基準完全一致),重跑完整 `s4_decompose_cut.py --contour sam
@@ -756,6 +777,16 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
   見下方 chunk 57 段落與 `knowledge/s4-decompose-sam-production-psd.md`。`bodice`/
   `sleeve_right`/`hair_front`/`head`/`sash_train` 五個已知問題部件在這份 PSD 裡原樣
   未解,仍是同樣的 A 類岔路與待使用者確認項,未產生新的懸而未決。
+  ~~`head`/`sash_train` 的 fragmented 問題需要跟 skirt 一樣測點提示~~ → **已解(chunk
+  58,2026-09-06)**:兩者點提示皆有效並已落地進第三份 production PSD
+  (`jiuwei_yanlian_decompose_sam_v2.psd`),見下方 chunk 58 段落與
+  `knowledge/s4-sam-point-prompt-head-sashtrain.md`。**釐清**:`head` 這次解決的是
+  「框正確但 SAM 分割自身碎裂」的問題(第三種病因:乾淨候選存在但未被
+  `argmax(scores)` 選中),跟 chunk51 提出的「`hair_front` 跟 `head`/`fox_ears` 框
+  大幅重疊、需使用者用 assist viewer 裁決語意分界」是不同層次的問題——`hair_front`
+  的語意邊界懸而未決項**未被本次解決**,仍待使用者確認。新增候選(未實作,樣本僅2案):
+  「fragmented 時自動改選 3 候選裡 largest_component_frac 最高者」,可能比點提示更
+  便宜。`bodice`/`sleeve_right`(A類岔路)、`hair_front`(語意邊界)維持懸而未決。
 - ✅ **里程碑審查完成(chunk 26,2026-09-02)**:S4 核心研究問題已全部有交叉驗證的答案
   (見上方「里程碑審查」段落與 `knowledge/s4-convergence-review.md`)。候選15/17 是唯二
   剩餘的執行層決策(非研究缺口),連同「本排程接下來走向」共三項一併彙整交還使用者裁決,
@@ -763,6 +794,25 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-06:**`head`/`sash_train` 點提示測試 + 第三份 production PSD,發現第三種
+  失敗病因(chunk 58)** — 對 chunk47/54 起被 heuristic 正確標記 `low_confidence`
+  (fragmented)、從未測過點提示的 `head`/`sash_train` 補測。重裝 torch/timm/MobileSAM
+  後先重現 baseline fragmented(數字與 chunk47/54 一致);額外檢視 box-only SAM 的
+  全部3個候選遮罩(不只 argmax 選中的那個),發現**乾淨/單一連通的候選其實已經存在,
+  只是分數不是最高**——不同於 `bodice`/`sleeve_right`(候選全選錯內容)、`skirt`
+  (純box缺方向性)的第三種病因。格線疊圖定位座標測點提示,`head`(4正向臉部特徵+2
+  負向兩側髮絲)、`sash_train`(3正向布料+2負向靴/腿)皆成功轉為
+  `low_confidence:false`,已視覺疊圖確認。疊加進 chunk57 `decision_final.json` 基準
+  (逐part比對確認其餘18部件位元級相同),跑真正的 `s4_decompose_cut.py --contour sam
+  --eval` → `manifest_to_psd.js`,產出 `jiuwei_yanlian_decompose_sam_v2.psd`(20圖層,
+  第三份production PSD)。**自驗**:AC1 20/20;`head`/`sash_train` sam_info 與 ad-hoc
+  驗證完全一致;其餘18部件 sam_info 逐欄位比對零回歸;AC2 圖層geometry 20/20相符;
+  AC3(沿用chunk57教訓,premultiplied-alpha比對)20/20 `max_diff=0`;視覺複核單一
+  乾淨形狀,`bodice` 複查無新回歸。**新增候選**(未實作,樣本僅2案):「fragmented時
+  自動改選largest_component_frac最高的候選」,可能比點提示更便宜不需人工。誠實限制:
+  `bodice`/`sleeve_right`(A類岔路)、`hair_front`(語意邊界,跟本次解決的head自身
+  fragmented問題是不同層次)三者原樣未解;未做第4點GPT局部修補(需API key授權)。見
+  `knowledge/s4-sam-point-prompt-head-sashtrain.md`、`log/s4-2026-09-06-058.md`。
 - 2026-09-06:**第二份 production PSD,`skirt` 點提示正式落地(chunk 57)** — 承接
   chunk56 唯一候選(驗證用決策檔是臨時檔,未真正拿去組裝)。以 chunk53
   `decision_final.json` 為基準疊加驗證過的 `skirt.points`,存成
