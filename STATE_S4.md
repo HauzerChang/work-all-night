@@ -7,6 +7,15 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 61(2026-09-07)**:排程再次觸發(距 chunk 60 約 6 小時)。依 chunk 60「下一步候選」
+> (a)/(b)/(c) 三個等待條件重跑同一輪檢查:(1) `git log --oneline --all -- assets/` 確認
+> 自 chunk 41 起仍無任何新素材加入;(2) GitHub `list_issues`/`list_pull_requests`(state
+> filter)確認 open issues 0 筆、open PRs 0 筆,三項懸而未決(`bodice`/`sleeve_right` 裁決、
+> `hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者輸入;(3) chunk 60 產出(純狀態
+> 更新,無代碼異動)已 commit(`88048d5`),無遺留。**結論與 chunk 60 相同:無新工作塊**。
+> 本次同樣純檢查性質,未新增實驗、未改代碼。按既有慣例(chunk 27 起已主動通知過一次,
+> 此後同一 BLOCKED/維護狀態不重複通知)不再對使用者發送新通知。見 `log/s4-2026-09-07-061.md`。
+>
 > **chunk 60(2026-09-07)**:依 chunk 59「下一步候選」指示的檢查清單執行——排程再次觸發,
 > 先確認是否有新素材/新使用者裁決,再決定是否有新工作塊。**檢查結果**:(1) `git log --
 > assets/` 確認自 chunk 41(九尾焰蓮角色設定圖)起無任何新素材加入;(2) GitHub 該 repo
@@ -839,6 +848,11 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-07:**排程第三次觸發(距 chunk60 約6小時),重跑同一輪檢查,仍無新素材/新裁決,
+  維持 `ACTIVE` 維護模式(chunk 61)** — 依 chunk 60「下一步候選」(a)/(b)/(c) 三個等待
+  條件逐一複查:新素材(無)、GitHub open issues/PRs(皆0)、chunk60 收尾完整性(已commit,
+  無遺留)。結論與 chunk 60 完全相同,三項懸而未決原樣未解。本次純檢查,未新增實驗、未改
+  production 代碼;按既有慣例不重複通知使用者。見 `log/s4-2026-09-07-061.md`。
 - 2026-09-07:**排程再次觸發,執行 chunk59 檢查清單,確認無新素材/新裁決,維持 `ACTIVE`
   維護模式(chunk 60)** — 依 chunk 59「下一步候選」指示,先查是否有新素材(`git log --
   assets/` 確認自 chunk 41 起無新增)、是否有新使用者裁決(GitHub repo open issues/PRs
