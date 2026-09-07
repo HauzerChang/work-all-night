@@ -7,6 +7,30 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 59(2026-09-07)**:執行 chunk 58 留下的候選(樣本僅2案,未實作)——「fragmented
+> 時自動改選 SAM 3 個候選裡 `largest_component_frac` 最高者」。擴大測試到 5 個已知案例
+> (`head`/`sash_train`——fragmented 型;`skirt`/`bodice`/`sleeve_right`——內容選錯型)。
+> **結論:策略有明確適用邊界**——只解決「乾淨候選存在但未被 `argmax(scores)` 選中」
+> 這種失效模式(`head`/`sash_train`,兩案皆自動修正成功,不需點提示),對「所有候選
+> 內容都選錯」的失效模式(`skirt`/`bodice`/`sleeve_right`)完全無效;`bodice` 案例
+> **證實了 chunk58 的疑慮**——largest_frac 最高的候選(0.998)視覺複核是手臂皮膚,比
+> 原選中的髮絲候選(0.629)內容更離題,只是形狀更乾淨。**已落地 `s4_sam_segment.py`**
+> (`segment()` 新增自動重選邏輯 + `auto_reselected` 欄位,向後相容)。**零回歸設計**:
+> gate 只在原選擇已判定 `fragmented` 時才嘗試重選,`skirt`/`bodice`/`sleeve_right` 的
+> argmax(scores) 候選從未觸發此判定(largest_frac 分別 1.0/0.629/0.999),故改動前後
+> 對它們逐位元相同,不可能變差。**真實驗證(非 ad-hoc)**:拿掉 chunk58
+> `decision_final.json` 裡 `head`/`sash_train` 的 `points` 欄位(回復純 box-only),
+> 重跑完整 `s4_decompose_cut.py --contour sam --eval`(20 部件真實 pipeline)——兩者
+> 這次**不需任何點提示就自動修正**(`auto_reselected:true, low_confidence:false`,
+> largest_frac 0.9237/0.9987,跟 chunk58 人工點提示版同等乾淨甚至更高),其餘 18 部件
+> `sam_info` 除多一個 `auto_reselected:false` 欄位外,逐欄位比對與 chunk58 基準完全
+> 相同(0 處數值差異)。**誠實限制**:未產生新的官方決策檔/PSD(chunk58 的
+> `decision_final.json` 帶手動點已是等價乾淨結果,不重複產出僅內容相同的第四份 PSD;
+> 此次改動的價值是未來新素材遇到同類 fragmented 案例時不再需要人工點提示);
+> `bodice`/`sleeve_right`(A類岔路)、`hair_front`(語意邊界)三者原樣未解;只測了
+> 「總是嘗試重選、挑 largest_frac 最高的乾淨候選」這一種重選規則。見下方「chunk 59」
+> 段落與 `knowledge/s4-sam-candidate-reselect.md`。
+>
 > **chunk 58(2026-09-06)**:對 `head`/`sash_train`——自 chunk47/54 起就被 heuristic
 > 正確標記 `low_confidence`(fragmented)、但從未測過點提示的兩個部件——補測點提示。
 > **兩者皆有效**(`head`:`fg_ratio=0.2447,n=3,largest_frac=0.8169`;`sash_train`:
@@ -784,15 +808,36 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
   「框正確但 SAM 分割自身碎裂」的問題(第三種病因:乾淨候選存在但未被
   `argmax(scores)` 選中),跟 chunk51 提出的「`hair_front` 跟 `head`/`fox_ears` 框
   大幅重疊、需使用者用 assist viewer 裁決語意分界」是不同層次的問題——`hair_front`
-  的語意邊界懸而未決項**未被本次解決**,仍待使用者確認。新增候選(未實作,樣本僅2案):
+  的語意邊界懸而未決項**未被本次解決**,仍待使用者確認。~~新增候選(未實作,樣本僅2案):
   「fragmented 時自動改選 3 候選裡 largest_component_frac 最高者」,可能比點提示更
-  便宜。`bodice`/`sleeve_right`(A類岔路)、`hair_front`(語意邊界)維持懸而未決。
+  便宜。~~ → **已解(chunk 59,2026-09-07)**:擴大測試到 5 案例,策略只在「乾淨候選
+  存在但未被 argmax(scores) 選中」型(`head`/`sash_train`)有效,對「所有候選內容都
+  選錯」型(`skirt`/`bodice`/`sleeve_right`)無效——`bodice` 案例證實 largest_frac
+  最高的候選有時內容反而更離題(手臂皮膚 largest_frac=0.998 vs 原髮絲候選 0.629)。
+  已用零回歸設計(只在原選擇已判定 fragmented 時才嘗試)落地 `s4_sam_segment.py`,
+  真實 20 部件 pipeline 驗證 `head`/`sash_train` 不需點提示自動修正、其餘 18 部件
+  逐欄位無回歸。見上方 chunk 59 段落與 `knowledge/s4-sam-candidate-reselect.md`。
+  `bodice`/`sleeve_right`(A類岔路)、`hair_front`(語意邊界)維持懸而未決,未產生
+  新的懸而未決項。
 - ✅ **里程碑審查完成(chunk 26,2026-09-02)**:S4 核心研究問題已全部有交叉驗證的答案
   (見上方「里程碑審查」段落與 `knowledge/s4-convergence-review.md`)。候選15/17 是唯二
   剩餘的執行層決策(非研究缺口),連同「本排程接下來走向」共三項一併彙整交還使用者裁決,
   屬非阻塞性——本排程建議轉維護模式而非標 `BLOCKED`/`DONE`。
 
 ## 進度摘要 (progress log)
+
+- 2026-09-07:**候選重選策略(fragmented 時自動改選 largest_component_frac 最高候選)
+  落地(chunk 59)** — 執行 chunk58 留下、樣本僅2案的候選,擴大測試到5個已知案例
+  (`head`/`sash_train`——fragmented型;`skirt`/`bodice`/`sleeve_right`——內容選錯型)。
+  結論:策略只解決「乾淨候選存在但未被argmax(scores)選中」型(兩案皆修正成功,不需
+  點提示),對「所有候選內容都選錯」型完全無效,`bodice`案例證實largest_frac最高的
+  候選有時內容反而更離題(視覺複核為手臂皮膚,largest_frac=0.998,比原選中的髮絲候選
+  0.629更「乾淨」但更錯)。零回歸設計:gate只在原選擇已判定fragmented時才嘗試重選,
+  三個「內容選錯」案例的argmax(scores)候選從未觸發此判定,故不受影響。真實驗證:拿掉
+  chunk58決策檔裡head/sash_train的points、重跑完整20部件`--contour sam --eval`,兩者
+  不需點提示自動修正(`auto_reselected:true`),其餘18部件`sam_info`逐欄位比對零回歸。
+  已改動`s4_sam_segment.py`生產代碼。見 `knowledge/s4-sam-candidate-reselect.md`、
+  `log/s4-2026-09-07-059.md`。
 
 - 2026-09-06:**`head`/`sash_train` 點提示測試 + 第三份 production PSD,發現第三種
   失敗病因(chunk 58)** — 對 chunk47/54 起被 heuristic 正確標記 `low_confidence`

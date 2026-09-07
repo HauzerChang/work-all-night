@@ -81,20 +81,48 @@ class SamSegmenter:
                 multimask_output=True)
         else:
             masks, scores, _ = self.predictor.predict(box=box, multimask_output=True)
+
+        stats = []
+        for i in range(3):
+            sub = masks[i][y0:y1, x0:x1]
+            fg_ratio = float(sub.mean())
+            labeled, n = ndimage.label(sub)
+            if n > 0:
+                sizes = ndimage.sum(sub, labeled, range(1, n + 1))
+                largest_frac = float(sizes.max() / sizes.sum())
+            else:
+                largest_frac = 1.0  # 空 mask,不算破碎(是另一個問題,fg_ratio=0 會很明顯)
+            stats.append({"fg_ratio": fg_ratio, "n": int(n), "largest_frac": largest_frac})
+
         chosen = int(np.argmax(scores))
-        mask = masks[chosen]
-        sub_mask = mask[y0:y1, x0:x1]
-        fg_ratio = float(sub_mask.mean())
-
-        labeled, n = ndimage.label(sub_mask)
-        if n > 0:
-            sizes = ndimage.sum(sub_mask, labeled, range(1, n + 1))
-            largest_frac = float(sizes.max() / sizes.sum())
-        else:
-            largest_frac = 1.0  # 空 mask,不算破碎(是另一個問題,fg_ratio=0 會很明顯)
-
+        fg_ratio = stats[chosen]["fg_ratio"]
+        n = stats[chosen]["n"]
+        largest_frac = stats[chosen]["largest_frac"]
         too_much_fg = fg_ratio >= LOW_CONFIDENCE_FG_RATIO
         fragmented = n > 1 and largest_frac < LOW_CONFIDENCE_LARGEST_COMPONENT_FRAC
+
+        # 候選重選(chunk 59,見 knowledge/s4-sam-candidate-reselect.md):argmax(scores)
+        # 選中的候選破碎時,SAM 其餘 2 個候選裡有時已經有一個乾淨(未破碎、未過量前景)的
+        # ——量化驗證過(head/sash_train 正面、bodice/sleeve_right/skirt 這三個「內容選錯」
+        # 案例因為從未被判定 fragmented 而不受影響,零回歸風險)。只在原選擇破碎時才嘗試,
+        # 不破碎就不改,維持既有行為。
+        auto_reselected = False
+        if fragmented and not too_much_fg:
+            clean_alts = [
+                i for i in range(3)
+                if i != chosen and stats[i]["fg_ratio"] < LOW_CONFIDENCE_FG_RATIO
+                and not (stats[i]["n"] > 1 and stats[i]["largest_frac"] < LOW_CONFIDENCE_LARGEST_COMPONENT_FRAC)
+            ]
+            if clean_alts:
+                chosen = max(clean_alts, key=lambda i: stats[i]["largest_frac"])
+                fg_ratio = stats[chosen]["fg_ratio"]
+                n = stats[chosen]["n"]
+                largest_frac = stats[chosen]["largest_frac"]
+                too_much_fg = False
+                fragmented = False
+                auto_reselected = True
+
+        mask = masks[chosen]
         info = {
             "method": "mobile_sam",
             "scores": [round(float(s), 4) for s in scores],
@@ -107,5 +135,6 @@ class SamSegmenter:
                                       ("+" if too_much_fg and fragmented else "") +
                                       ("fragmented" if fragmented else ""),
             "n_points_used": len(points) if points else 0,
+            "auto_reselected": auto_reselected,
         }
         return mask, info

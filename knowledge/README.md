@@ -593,3 +593,15 @@
   產出第三份production PSD(`jiuwei_yanlian_decompose_sam_v2.psd`),AC1
   20/20、AC2圖層geometry 20/20相符、AC3 premultiplied-alpha 20/20`max_diff=0`,其餘
   18部件`sam_info`逐欄位比對零回歸。`bodice`/`sleeve_right`/`hair_front`三者原樣未解。
+
+- [候選重選策略:fragmented時自動改選largest_component_frac最高候選,已落地(chunk 59)](s4-sam-candidate-reselect.md) —
+  承接chunk58未實作候選(樣本僅2案),擴大測試到5個已知案例。**結論:策略有明確
+  適用邊界**——只解決「乾淨候選存在但未被argmax(scores)選中」這種失效模式
+  (`head`/`sash_train`型,兩案皆修正成功),對「所有候選內容都選錯」的失效模式
+  (`bodice`/`sleeve_right`/`skirt`型)完全無效,`bodice`案例還證實了chunk58的疑慮
+  ——largest_frac最高的候選有時內容反而更離題(視覺複核是手臂皮膚而非胸衣)。**零
+  回歸落地**:gate條件本身保證只在原選擇已判定`fragmented`時才嘗試重選,`skirt`/
+  `bodice`/`sleeve_right`從未觸發此判定故不受影響;真實驗證(拿掉chunk58決策檔裡
+  head/sash_train的points、重跑完整20部件`--contour sam --eval`)顯示兩者不需點
+  提示就自動修正(`auto_reselected:true`),其餘18部件`sam_info`除多一個
+  `auto_reselected:false`欄位外逐位元相同。已改動`s4_sam_segment.py`生產代碼。
