@@ -215,9 +215,16 @@ except ImportError:
 # 只有這類別要吃 phase,故集中列名,build_animations 依此決定是否帶入(其餘類別簽章不變)。
 _PHASE_AWARE = {"cascade"}
 
+# candidate J — 檔位(tier)幅度差異化(主秀 beat 依檔位增益放大;純函式,無 import 迴圈)。
+from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, amplify_anim as _amplify_anim
 
-def build_animations(skeleton, storyboard):
-    """回傳 animations dict(beat 名為 key)。"""
+
+def build_animations(skeleton, storyboard, tier_gains=None):
+    """回傳 animations dict(beat 名為 key)。
+
+    tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
+    額外產出 `{beat}__{tier}` 幅度差異化變體(檔位愈高愈爆);base beat 不變。
+    None(預設)→ 逐位元同舊行為(向後相容)。"""
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
@@ -265,6 +272,10 @@ def build_animations(skeleton, storyboard):
         if slots_tl:
             anim["slots"] = slots_tl
         anims[name] = anim
+        # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
+        if tier_gains and cat in _MAIN_SHOW_CATS:
+            for tier, g in tier_gains.items():
+                anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g)
     return anims
 
 

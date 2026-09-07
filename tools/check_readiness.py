@@ -240,6 +240,22 @@ BLOCKS = [
                      "副產:I5 逼出「跨件簽章需散佈+遞增兩條件並立」——Loop 散佈 0.5 甚至 > 門檻但無序→正確判非波(此鑑別力 0h 只在手搭 "
                      "fixture 驗過,本次在真實產線再現)。honest:主秀運動仍先驗手感、cascade 於 Award 真值無命名列 prior_beats_unused(誠實 "
                      "PROPOSAL);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("tier_variant_amplitude", "檔位幅度差異化(J,build --animate --tier-variants 直出各檔位主秀變體)", "L2",
+                "python3 tools/analyzer/validate_tier_variants.py", "pipeline",
+                note="genre_priors.slot_bigwin 宣告 tiers=[Super,Mega,Omg,Legend] 已久但生成器從未用它(所有檔位共用同組主秀幅度)"
+                     "——又一「宣告就緒 ≠ 生成器接上」缺口。把檔位轉成**主秀幅度增益** g(檔位愈高愈爆),端到端接進 build_animations,"
+                     "每主秀 beat 依檔位產出 {beat}__{tier} 變體。tier_variants.py 幅度增益規則(對介面契約與結構簽章皆保形):"
+                     "scale 只放大 identity **上方** overshoot(v'=1+g(v−1) 僅當 v≥1;下方 squash/collapse 樓地板不動)、rotate/translate 對 0 "
+                     "對稱放大(v'=g·v)、color/alpha 不動;base=Super g=1.0 → 逐位元同無檔位輸出(向後相容)。build_spine --tier-variants。"
+                     "從**先驗庫**經 build_storyboard → **真實 build_spine robot 骨架** → build_animations 對真實 robot 5 拆件 5AC PASS"
+                     "(J1 present+routing 每主秀 beat×每檔位皆產變體且名經 beat_category 仍路由回原類別/J2 每檔位介面契約 hit/combo/charge/cascade "
+                     "首尾 identity・burst 尾 identity 首 collapsed 樓地板/J3 crux scale overshoot 幅度 Super<Mega<Omg<Legend 嚴格遞增(端到端量)/"
+                     "J4 每檔位結構簽章保持 combo≥3 遞增峰・charge 長蓄力・hit anticipation+settle・cascade 跨件峰時刻遞增散佈/J5 負對照 "
+                     "In/Loop/Out 不產變體・無 tier 的 slot_reveal gains_for 回 None 不產變體且 base 相同・平增益守衛全 1.0→J3 單調性 FALSE 證閘可信)。"
+                     "關鍵:幅度增益只放大 identity 上方 overshoot、不動下方樓地板與時間軸 → 端點/簽章對所有檔位保形(檔位簽章=更爆的 overshoot;"
+                     "蓄力深度/藏匿是結構語意非大獎強度,誠實地檔位無關)。回歸:validate_priors/priors_beats/more_beats/beat_templates/cascade/"
+                     "priors_combo_charge/priors_cascade/anim(+selftest)/pivot_rotation/scale_pivot/deform_gen/round-trip(含 --tier-variants build)全綠。"
+                     "honest:主秀運動仍先驗手感、增益階梯數值為 PROPOSAL(結構簽章非美感);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

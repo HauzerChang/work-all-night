@@ -10,6 +10,31 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 檔位(tier)幅度差異化(里程碑,2026-09-07,candidate J)** — 把 `genre_priors.slot_bigwin`
+  宣告已久卻**從未被生成器使用**的 `tiers=[Super,Mega,Omg,Legend]` 接上產線:主秀 beat 依檔位產出
+  **幅度差異化**變體 `{beat}__{tier}`(檔位愈高、主秀愈爆)—— **又一「宣告就緒 ≠ 生成器接上」實例**
+  (同 (E)/(H)/(I) 的模式:資料/宣告就緒不代表生成器會用它)。`tools/analyzer/tier_variants.py` 把檔位轉成
+  **主秀幅度增益** g,增益規則**對介面契約與結構簽章皆保形**:scale **只放大 identity 上方 overshoot**
+  (`v'=1+g(v−1)` 僅當 v≥1;下方 squash 蓄力 ~0.85 / collapse 藏匿 ~0.02 **樓地板不動**)、
+  rotate/translate 對 0 對稱放大(`v'=g·v`)、color/alpha 不動;`MAIN_SHOW_CATS`(hit/reveal/burst/combo/
+  charge/cascade)才放大,In/Loop/Out 檔位無關。階梯 `{Super:1.0,Mega:1.35,Omg:1.70,Legend:2.10}`;
+  **base=Super g=1.0 → 逐位元 == 無檔位輸出(向後相容)**。`build_animations(...,tier_gains=)`(附加,None 預設不變)
+  + `build_spine --animate --tier-variants`;變體名經 `beat_category` 仍路由回原類別(`hit__legend` 先命中 `hit`)。
+  整合閘 `validate_tier_variants.py`(從**先驗庫**經 `build_storyboard` → **真實 build_spine robot 骨架** →
+  `build_animations`)對真實 robot 5 拆件 **5 AC 全 PASS**:J1 present+routing(每主秀 beat×每檔位皆產變體且
+  finite/有 bone、名仍路由回原類別、base 含 In/Loop/Out 逐位元不變)、J2 介面契約(**每檔位** hit/combo/charge/
+  cascade 首尾 identity、burst 尾 identity 首 collapsed 樓地板 → 皆可插 Loop 間)、J3 **crux 幅度單調**(scaleX
+  overshoot 與 rotate 幅度 Super<Mega<Omg<Legend **嚴格遞增**,端到端量:burst overshoot 0.35→0.47→0.60→0.74)、
+  J4 結構簽章保持(**每檔位** combo≥3 遞增峰、charge 長蓄力 squash 非 collapse、hit anticipation+settle
+  (scale−1)變號≥3、cascade 跨件峰時刻遞增散佈 —— 復用 0g/0h 判定器)、J5 負對照(In/Loop/Out 不產變體、
+  無 tier 的 slot_reveal `gains_for` 回 None 不產變體且 base 相同、**平增益守衛**全 1.0→J3 單調性 FALSE 證閘可信、
+  reveal collapsed 首幀 Super==Legend 證下方樓地板檔位無關)。**關鍵發現:增益只放大 identity 上方 overshoot、
+  不動下方樓地板與時間軸 → 端點/簽章對所有檔位保形**(檔位簽章=更爆的 overshoot;蓄力深度/藏匿是結構語意非
+  大獎強度,誠實地檔位無關;天真「對 identity 均勻縮放」會把 reveal collapsed 0.02 在 g>1 推成負值=翻面)。
+  回歸:validate_priors/priors_beats(E)/more_beats(0g)/beat_templates(0f)/cascade(0h)/priors_combo_charge(H)/
+  priors_cascade(I)/anim(+selftest)/pivot_rotation(0i)/scale_pivot(G-3)/deform_gen(0e)/round-trip validate_build
+  (含 `--tier-variants` build)全 PASS。新增 cap `tier_variant_amplitude` L2 併入 `spine-anim-forge`(**仍 HOLD**:
+  運動基元先驗、單一真值資產,防固化)。見 `knowledge/s1-tier-variant-amplitude.md`、圖 `knowledge/figures/s1_tier_variants.png`。
 - **S1 cascade 接進 genre 先驗庫(里程碑,2026-09-06 session 002,candidate I)** — 續 (E)/(H) 對 hit/reveal、
   combo/charge 所做,把 0h 的 **cascade(跨件錯開波)** 主秀節拍併入 `genre_priors.slot_bigwin`(additive),
   讓 `build_spine --animate --genre slot_bigwin` **直出** cascade(接 I 前先驗僅 In/burst/hit/combo/charge/Loop/Out,
@@ -358,11 +383,15 @@
 > **(I) ~~cascade 接進 genre 先驗庫~~ ✅ 完成(2026-09-06 session 002,candidate I,`cascade_priors_integration` L2,見上里程碑)** ——
 >   如 (E)/(H),把 0h 的 cascade 跨件波併入 `genre_priors.slot_bigwin`,`build_spine --animate` 直出跨件波;
 >   `validate_priors_cascade.py` 5 AC(I3 crux 件序相位 threading 端到端存活、覆蓋率仍 1.0),副產「跨件簽章需散佈+遞增兩條件並立」鑑別點(Loop 散佈 0.5 但無序→非波)。
+> **(J) ~~tier 變體幅度差異化~~ ✅ 完成(2026-09-07,candidate J,`tier_variant_amplitude` L2,見上里程碑)** ——
+>   `tier_variants.py`(增益只放大 identity 上方 overshoot、下方樓地板不動 → 介面/簽章對所有檔位保形)+
+>   `build_spine --tier-variants` + `validate_tier_variants.py` 5AC(J3 幅度 Super<Mega<Omg<Legend 嚴格遞增、
+>   J5 平增益守衛證閘可信)。**續**(擇一,皆自主):
+>   (J-2) **連擊數隨檔位遞增**(現只放大幅度;讓高檔位 combo 的 impact 峰**數**增加,需 `gen_combo` 吃可變峰數 +
+>    AC 驗「Legend 峰數 > Super 且仍嚴格遞增」);(J-3) cascade 波速/散佈/件數隨檔位。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(J) tier 變體幅度差異化**:`slot_bigwin` 有 tiers=[Super,Mega,Omg,Legend] 但目前所有 tier 共用同一組 beat 幅度;
->   可讓愈高檔位主秀幅度/連擊數遞增(需結構簽章 AC 驗「Legend 幅度 > Super」且皆保持介面契約);
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
-> **(G-4) shear / 非均勻 scale 仿射保形 AC**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
+> **(G-4) shear / 非均勻 scale 仿射保形 AC**;**(J-2) 連擊數隨檔位遞增**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
 
@@ -379,6 +408,17 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-07:**S1 檔位(tier)幅度差異化(里程碑,candidate J)** — 把 `genre_priors.slot_bigwin` 宣告已久卻
+  **從未被生成器使用**的 `tiers=[Super,Mega,Omg,Legend]` 接上產線:主秀 beat 依檔位產出幅度差異化變體
+  `{beat}__{tier}`(檔位愈高愈爆)—— **又一「宣告就緒 ≠ 生成器接上」**。`tier_variants.py` 增益規則對介面契約與
+  結構簽章皆保形(scale 只放大 identity **上方** overshoot、下方 squash/collapse 樓地板不動、rotate/translate
+  對 0 對稱放大、alpha 不動;base=Super g=1.0 逐位元同無檔位輸出)。`build_animations(...,tier_gains=)`(附加)+
+  `build_spine --tier-variants`。整合閘 `validate_tier_variants.py`(先驗庫→真實 build_spine robot 骨架→
+  build_animations)**5 AC 全 PASS**(J1 present+routing・J2 每檔位介面契約・J3 crux 幅度 Super<Mega<Omg<Legend
+  嚴格遞增・J4 每檔位結構簽章保持・J5 負對照+平增益守衛)。**關鍵:增益只放大 identity 上方 overshoot、不動下方
+  樓地板與時間軸 → 端點/簽章對所有檔位保形**(蓄力深度/藏匿是結構語意非大獎強度,誠實檔位無關;天真均勻縮放會把
+  reveal collapsed 0.02 在 g>1 推成負值翻面)。回歸全綠(含 --tier-variants round-trip)。cap `tier_variant_amplitude`
+  L2;anim-forge 仍 HOLD。見 `knowledge/s1-tier-variant-amplitude.md`。
 - 2026-09-06 session 002:**S1 cascade 接進 genre 先驗庫(里程碑,candidate I)** — 續 (E)/(H),把 0h 的 cascade
   (跨件錯開波)併入 `genre_priors.slot_bigwin`(additive),`build_spine --animate` 直出跨件波。cascade 比 (E)/(H)
   多驗一層(跨件時序簽章→件序相位 threading 須端到端存活)。`validate_priors_cascade.py`(先驗→真實 build_spine
