@@ -302,11 +302,14 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         # candidate 0d:把 #3 分鏡具體化為 Spine timeline,讓素材「會動」
         from gen_animations import build_animations
         # candidate J:`--tier-variants` 時,主秀 beat 依 genre 宣告的檔位額外產幅度差異化變體。
-        tg = None
+        # candidate J-2:combo 另依檔位遞增**連擊數**(幅度×連擊數兩效正交疊加)。
+        tg = tch = None
         if tier_variants:
-            from tier_variants import gains_for
+            from tier_variants import gains_for, combo_hits_for
             tg = gains_for(genre)
-        skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"], tier_gains=tg)
+            tch = combo_hits_for(genre)
+        skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"],
+                                                  tier_gains=tg, tier_combo_hits=tch)
         if (pivot_rotate or scale_pivot) and not rig:
             # candidate 0i:件繞**關節 pivot** 轉而非件中心(keyframe 級,不動骨架)。
             # 延伸 G-3:`--scale-pivot` 再把 `scale` 也補償(M=R·S)→ 件繞關節 pivot **旋轉+縮放**。

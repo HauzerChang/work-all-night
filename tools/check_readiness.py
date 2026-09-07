@@ -256,6 +256,21 @@ BLOCKS = [
                      "蓄力深度/藏匿是結構語意非大獎強度,誠實地檔位無關)。回歸:validate_priors/priors_beats/more_beats/beat_templates/cascade/"
                      "priors_combo_charge/priors_cascade/anim(+selftest)/pivot_rotation/scale_pivot/deform_gen/round-trip(含 --tier-variants build)全綠。"
                      "honest:主秀運動仍先驗手感、增益階梯數值為 PROPOSAL(結構簽章非美感);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("tier_variant_combo_count", "檔位連擊數遞增(J-2,combo 峰數 Super3→Legend6 隨檔位遞增)", "L2",
+                "python3 tools/analyzer/validate_tier_combo_count.py", "pipeline",
+                note="candidate (J) 讓檔位變體只差**幅度**(愈爆),combo 各檔位仍同樣三連擊 —— 有『多爆』沒『連幾下』。"
+                     "本 cap 補上:combo 的 impact 峰**數**=nhits 隨檔位嚴格遞增(Super3/Mega4/Omg5/Legend6)。連擊數是**結構**"
+                     "(gen 時決定峰數,事後 amplify 加不出)→ 走 tier_combo_hits 對 combo 檔位變體以該檔位 nhits **重生成**再套幅度增益;"
+                     "gen_combo(nhits=) 通用生成遞增 nhits 峰(nhits=3 逐位元同 0g 手調三連擊,向後相容)。與 (J) 幅度軸**正交可疊**"
+                     "(nhits 決定連幾下、gain 決定多爆)。build_spine --tier-variants 直出(combo_hits_for slot_bigwin)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations,validate_tier_combo_count.py 5AC PASS"
+                     "(K1 present+backward-compat 每檔位產變體 finite/有 bone・base combo 恆 3 峰不變・tier_combo_hits=None 逐位元同 (J) 幅度-only 輸出/"
+                     "K2 crux combo 峰數 [3,4,5,6]==宣告且 Super<Mega<Omg<Legend 嚴格遞增・每檔位內部峰值仍遞增/K3 每檔位首尾 identity・"
+                     "仍 has_combo_signature・仍 settle・**仍非 charge**(連擊增多不誤入長蓄力)・幅度仍單調(與 J 疊加不衝突)/"
+                     "K4 正交 counts+平增益→峰數仍遞增(結構獨立於幅度)・gains+無 counts→峰數恆 3 幅度遞增/K5 負對照 平連擊數全 3→峰數單調 FALSE"
+                     "證閘可信・無宣告 count 的 slot_reveal→combo_hits_for None 不亂加・count 只作用 combo 不外洩 hit/charge/cascade/burst)。"
+                     "回歸:validate_tier_variants(J,幅度-only 不變)/more_beats/priors_combo_charge/cascade/round-trip(含 --tier-variants build)全綠。"
+                     "honest:連擊數階梯(3–6)為 PROPOSAL(結構簽章非美感);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

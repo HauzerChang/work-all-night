@@ -30,6 +30,10 @@ import copy
 # 主秀類別(與 beat_templates 的節拍對應;In/Loop/Out 不在此 → 檔位無關)。
 MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade"}
 
+# candidate J-2 — 依檔位可變「連擊數」的類別(結構性差異化,非只幅度)。
+# combo 的 impact 峰**數**隨檔位遞增;需在 gen 時把 nhits 帶進 gen_combo(不能事後 amplify)。
+COUNT_AWARE_CATS = {"combo"}
+
 # 檔位 → 主秀幅度增益(**嚴格遞增**;base=Super=1.0 → 向後相容逐位元不變)。
 # 增益上界經檢核:最大 role peak(特效 1.35 → q=0.35)在 Legend g=2.1 下 → 1.735(無翻面);
 # combo settle 回彈 1.030 → Legend 1.063 < IMPACT_PROM(1.10)→ 不會被誤計為 impact 峰。
@@ -41,6 +45,18 @@ TIER_GAIN = {
 def gains_for(genre):
     """回傳該 genre 的 {tier: gain};無宣告 tier 的 genre 回 None(→ 不產檔位變體)。"""
     return TIER_GAIN.get(genre)
+
+
+# candidate J-2 — 檔位 → combo 連擊數(**嚴格遞增**;base=Super=3 → 逐位元同 0g 手調三連擊)。
+# 上界 6:combo T=0.9s 內容納 6 峰仍時間嚴格遞增且峰間不塌陷(見 _combo_env 週期檢核)。
+TIER_COMBO_HITS = {
+    "slot_bigwin": {"Super": 3, "Mega": 4, "Omg": 5, "Legend": 6},
+}
+
+
+def combo_hits_for(genre):
+    """回傳該 genre 的 {tier: nhits};無宣告的 genre 回 None(→ combo 檔位變體不變連擊數)。"""
+    return TIER_COMBO_HITS.get(genre)
 
 
 def _amp_scale(v, g):

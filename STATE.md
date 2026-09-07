@@ -10,6 +10,29 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 combo 連擊「數」隨檔位遞增(里程碑,2026-09-07 session 002,candidate J-2)** — 續 (J):(J) 讓
+  `{beat}__{tier}` 檔位變體只差**幅度**(愈爆),combo 各檔位仍**同一組三連擊** —— 有「多爆」沒「連幾下」。
+  本次補上 combo 的 impact 峰**數** = `nhits` **隨檔位嚴格遞增**(Super 3→Mega 4→Omg 5→Legend 6)。
+  **關鍵:幅度增益加不出連擊數** —— 峰「數」是關鍵幀**拓樸**,必須在 `gen_combo` 生成當下決定,事後 amplify
+  只能放大既有峰、無法多長一個;故不走 amplify,而是對 combo 檔位變體以該檔位 `nhits` **重生成**整個 beat,
+  **再**疊 (J) 幅度增益 → 與 (J) 幅度軸**正交可疊**(端到端:峰數 [3,4,5,6] × overshoot [0.347,0.469,0.591,0.730]
+  皆遞增)。`gen_combo(role,side,radial,nhits=3)`:**nhits=3 逐位元同 0g 手調三連擊**(golden,向後相容;base combo
+  恆走此路),`nhits≠3` → 通用 `_combo_env(peak,nhits)`(遞增 nhits 峰、擊間微回 0.985、固定 settle 尾)。
+  `tier_variants.COUNT_AWARE_CATS={"combo"}`+`TIER_COMBO_HITS`+`combo_hits_for`;`build_animations(...,tier_combo_hits=None)`
+  抽 `_build_beat(...,combo_hits=)` helper(**None 預設逐位元同 (J) 幅度-only,加性 opt-in 零回歸**);
+  `build_spine --tier-variants` 自動帶 count。整合閘 `validate_tier_combo_count.py`(先驗庫→**真實 build_spine
+  robot 骨架**→build_animations)對真實 combo **5 AC 全 PASS**:K1 present+backward-compat(每檔位產變體 finite/有
+  bone、**base combo 恆 3 峰不變**、`tier_combo_hits=None` 逐位元同 (J) 幅度-only)、K2 **crux** 峰數 [3,4,5,6]==宣告
+  且 Super<Mega<Omg<Legend 嚴格遞增·每檔位內部峰仍遞增、K3 每檔位首尾 identity·仍 combo 簽章·仍 settle·
+  **仍非 charge**·幅度仍單調(與 J 疊加不衝突)、K4 **正交**(counts+平增益→峰數仍遞增=結構獨立於幅度;
+  gains+無 counts→峰數恆 3、幅度遞增=兩軸可獨立開關)、K5 負對照(平連擊數全 3→峰數單調 FALSE 證閘可信、
+  slot_reveal 無宣告 count→`combo_hits_for` None 不亂加、count **只作用 combo** 不外洩 hit/charge/cascade/burst)。
+  **關鍵發現/踩雷:連擊變多恐誤入 charge 長蓄力簽章**(charge 鑑別子=峰前 <0.97 佔比 ≥0.35,峰數多→蓄力段多)——
+  解法=**擊間微回設 0.985(>hold-level 0.97)**,峰間回到 hold 之上不計入蓄力;實測 hold-frac 反**隨 nhits 下降**
+  (n=3→0.30、n=6→0.12,皆 <0.35)→ combo↔charge 互斥全檔位保持。回歸:validate_tier_variants(J,幅度-only 不變)/
+  more_beats/beat_templates/priors_combo_charge/priors_beats/priors_cascade/cascade/priors/pivot_rotation/scale_pivot/
+  deform_gen/round-trip(含 --tier-variants build)全 PASS。新增 cap `tier_variant_combo_count` L2 併入 `spine-anim-forge`
+  (**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。見 `knowledge/s1-tier-variant-combo-count.md`、圖 `knowledge/figures/s1_tier_combo_count.png`。
 - **S1 檔位(tier)幅度差異化(里程碑,2026-09-07,candidate J)** — 把 `genre_priors.slot_bigwin`
   宣告已久卻**從未被生成器使用**的 `tiers=[Super,Mega,Omg,Legend]` 接上產線:主秀 beat 依檔位產出
   **幅度差異化**變體 `{beat}__{tier}`(檔位愈高、主秀愈爆)—— **又一「宣告就緒 ≠ 生成器接上」實例**
@@ -387,11 +410,13 @@
 >   `tier_variants.py`(增益只放大 identity 上方 overshoot、下方樓地板不動 → 介面/簽章對所有檔位保形)+
 >   `build_spine --tier-variants` + `validate_tier_variants.py` 5AC(J3 幅度 Super<Mega<Omg<Legend 嚴格遞增、
 >   J5 平增益守衛證閘可信)。**續**(擇一,皆自主):
->   (J-2) **連擊數隨檔位遞增**(現只放大幅度;讓高檔位 combo 的 impact 峰**數**增加,需 `gen_combo` 吃可變峰數 +
->    AC 驗「Legend 峰數 > Super 且仍嚴格遞增」);(J-3) cascade 波速/散佈/件數隨檔位。
+>   **(J-2) ~~連擊數隨檔位遞增~~ ✅ 完成(2026-09-07 session 002,candidate J-2,`tier_variant_combo_count` L2,見上里程碑)** ——
+>    `gen_combo(nhits=)` 通用生成遞增 nhits 峰(nhits=3 逐位元同 0g)、`tier_combo_hits` 重生成再套幅度增益(與 J 幅度軸正交)、
+>    `validate_tier_combo_count.py` 5AC(K2 峰數 [3,4,5,6] 嚴格遞增、K4 正交、K5 平連擊數守衛);**續**:
+>    (J-3) cascade 波速/散佈/件數隨檔位;(J-2') 其他 count-aware 節拍(如 charge 的蓄力段數/cascade 件數隨檔位)。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
-> **(G-4) shear / 非均勻 scale 仿射保形 AC**;**(J-2) 連擊數隨檔位遞增**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
+> **(G-4) shear / 非均勻 scale 仿射保形 AC**;**(J-3) cascade 波速/散佈/件數隨檔位**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
 
@@ -408,6 +433,17 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-07 session 002:**S1 combo 連擊「數」隨檔位遞增(里程碑,candidate J-2)** — 續 (J):(J) 檔位變體只差
+  **幅度**,combo 各檔位仍同樣三連擊。本次補上 combo 的 impact 峰**數**=`nhits` 隨檔位嚴格遞增(Super 3→Legend 6)。
+  **幅度增益加不出連擊數**(峰「數」是關鍵幀拓樸,必須 gen 時決定,事後 amplify 只放大既有峰)→ 走 `tier_combo_hits`
+  對 combo 檔位變體以該檔位 nhits **重生成**再套幅度增益,與 (J) 幅度軸**正交可疊**(峰數 [3,4,5,6] × overshoot
+  [0.347,0.469,0.591,0.730] 皆遞增)。`gen_combo(nhits=3)` 逐位元同 0g(向後相容)、`nhits≠3` 通用生成;
+  `build_animations(tier_combo_hits=None)` 預設逐位元同 (J)(加性 opt-in)。`validate_tier_combo_count.py`(先驗庫→
+  真實 build_spine robot 骨架→build_animations)**5 AC 全 PASS**(K1 backward-compat・K2 crux 峰數 [3,4,5,6] 遞增・
+  K3 每檔位仍 combo 簽章/settle/**非 charge**/幅度單調・K4 正交・K5 平連擊數守衛+count 不外洩)。**踩雷:連擊變多恐誤入
+  charge 長蓄力簽章** → 擊間微回設 0.985(>0.97)使 hold-frac 反隨 nhits 下降(0.30→0.12)→ combo↔charge 互斥保持。
+  回歸全綠(含 J 幅度-only 閘不變、round-trip --tier-variants build)。cap `tier_variant_combo_count` L2;anim-forge 仍 HOLD。
+  見 `knowledge/s1-tier-variant-combo-count.md`。
 - 2026-09-07:**S1 檔位(tier)幅度差異化(里程碑,candidate J)** — 把 `genre_priors.slot_bigwin` 宣告已久卻
   **從未被生成器使用**的 `tiers=[Super,Mega,Omg,Legend]` 接上產線:主秀 beat 依檔位產出幅度差異化變體
   `{beat}__{tier}`(檔位愈高愈爆)—— **又一「宣告就緒 ≠ 生成器接上」**。`tier_variants.py` 增益規則對介面契約與

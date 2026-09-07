@@ -106,44 +106,114 @@ DUR.setdefault("anticipate_hold", 0.8)
 IMPACT_PROM = 1.10
 
 
-def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0)):
-    """Multi-hit combo(連擊):三段**遞增** impact,各含蓄力 dip + 部分回擺,尾段阻尼回穩。首尾 identity。
+# candidate J-2 — 連擊「數」隨檔位遞增:combo 的 impact 峰**數** = nhits(可變)。
+# base(Super)nhits=3 → 逐位元同 0g 手調三連擊(向後相容);高檔位 nhits>3 由通用生成器
+# 產**遞增 nhits 峰**,仍保 setup identity 介面 + 遞增峰簽章 + settle 阻尼回擺(與 charge 互斥
+# ——擊間微回 >0.97、峰前 hold 佔比隨 nhits 增大反而降低)。與 tier 幅度增益(candidate J)正交:
+# nhits 決定「連幾下」(結構,gen 時決定)、gain 決定「多爆」(幅度,事後 amplify)—— 兩者可疊。
+COMBO_FIRST_TAU = 0.12   # 第一擊峰 τ
+COMBO_FINALE_TAU = 0.62  # 末擊(finale)峰 τ(其後接 settle 尾)
 
-    scale 峰嚴格遞增 p1<p2<p3(=role peak);峰間回落 <1(下一擊的蓄力)→ 簽章 = 遞增 impact 峰數 ≥3
-    (單發 hit 僅 1 峰 → 負對照分離)。仍具通用 anticipation(峰前 <1)+ settle(尾段回擺變號 ≥3)。"""
+
+def _combo_env(peak, nhits):
+    """通用 nhits 連擊 scale 包絡 → [(τ∈[0,1], scale)]。峰嚴格遞增、首尾 identity、settle。
+
+    第 i 擊(0-based,f=i/(nhits−1)):峰前 dip(遞深 0.95→0.90)、峰 p=1+q(0.60+0.40f)(遞增,
+    末擊=role peak)、擊間微回 0.985(>HOLD_LEVEL 0.97 → 不算蓄力,保 combo≠charge)。
+    末擊後接固定 settle 尾(0.955→1.030→0.995→1.0,峰 <IMPACT_PROM)。"""
+    q = peak - 1.0
+    first, finale = COMBO_FIRST_TAU, COMBO_FINALE_TAU
+    dip_off, rec_off = 0.05, 0.035
+    env = [(0.00, 1.000)]
+    peak_taus = []
+    for i in range(nhits):
+        f = i / (nhits - 1) if nhits > 1 else 0.0
+        tau = first + (finale - first) * f
+        p = 1.0 + q * (0.60 + 0.40 * f)
+        if i == 0:
+            p = max(1.10, p)            # 首峰夾 ≥IMPACT_PROM 確保計入 impact
+        env.append((round(tau - dip_off, 4), round(0.95 - 0.05 * f, 4)))  # 蓄力 dip(遞深)
+        env.append((round(tau, 4), round(p, 4)))                          # impact 峰(遞增)
+        if i < nhits - 1:
+            env.append((round(tau + rec_off, 4), 0.985))                  # 擊間微回(>0.97)
+        peak_taus.append(tau)
+    env += [(0.74, 0.955), (0.85, 1.030), (0.93, 0.995), (1.00, 1.000)]   # 阻尼回擺(<IMPACT_PROM)
+    return env, peak_taus
+
+
+def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0), nhits=3):
+    """Multi-hit combo(連擊):**nhits** 段**遞增** impact,各含蓄力 dip + 部分回擺,尾段阻尼回穩。首尾 identity。
+
+    scale 峰嚴格遞增(末擊=role peak);峰間回落 <1(下一擊的蓄力)→ 簽章 = 遞增 impact 峰數 = nhits
+    (單發 hit 僅 1 峰 → 負對照分離)。仍具通用 anticipation(峰前 <1)+ settle(尾段回擺變號 ≥3)。
+    `nhits`(candidate J-2)隨檔位遞增(Super 3 → Legend 6);**nhits=3 逐位元同 0g 手調**(向後相容)。"""
     T = DUR["combo"]
     peak = _PEAK.get(role, 1.18)
-    q = peak - 1.0
-    # 遞增三峰;p1 夾 ≥1.10 確保計入 impact(role peak 最小 1.18 → q=0.18 → p1=1.108)。
-    p1 = max(1.10, 1.0 + 0.60 * q)
-    p2 = 1.0 + 0.80 * q
-    p3 = peak
     b, s = {}, {}
-    env = [(0.00, 1.000),
-           (0.05, 0.950), (0.13, p1), (0.20, 0.980),   # hit 1
-           (0.26, 0.940), (0.35, p2), (0.43, 0.970),   # hit 2(蓄力更深)
-           (0.50, 0.920), (0.62, p3),                  # hit 3 finale(蓄力最深、峰最大)
-           (0.74, 0.955), (0.85, 1.030), (0.93, 0.995), (1.00, 1.000)]  # 阻尼回擺(<IMPACT_PROM)
+    if nhits == 3:
+        # 0g 手調 golden 三連擊(保留原關鍵幀 → byte-identical 向後相容)
+        q = peak - 1.0
+        p1 = max(1.10, 1.0 + 0.60 * q)
+        p2 = 1.0 + 0.80 * q
+        p3 = peak
+        env = [(0.00, 1.000),
+               (0.05, 0.950), (0.13, p1), (0.20, 0.980),   # hit 1
+               (0.26, 0.940), (0.35, p2), (0.43, 0.970),   # hit 2(蓄力更深)
+               (0.50, 0.920), (0.62, p3),                  # hit 3 finale(蓄力最深、峰最大)
+               (0.74, 0.955), (0.85, 1.030), (0.93, 0.995), (1.00, 1.000)]  # 阻尼回擺(<IMPACT_PROM)
+        b["scale"] = _scale_frames(T, env)
+        if role == "limb":
+            # 三連甩,末梢反向蓄力 → 甩出,幅度隨連擊遞增;首尾 0
+            b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, side_sign * 8.0), (0.20 * T, 0.0),
+                                (0.35 * T, side_sign * 12.0), (0.43 * T, 0.0),
+                                (0.62 * T, side_sign * 18.0), (0.74 * T, -side_sign * 5.0),
+                                (1.00 * T, 0.0)])
+        elif role == "head":
+            b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, -6.0), (0.20 * T, 0.0),
+                                (0.35 * T, -9.0), (0.43 * T, 0.0), (0.62 * T, -13.0),
+                                (0.74 * T, 4.0), (1.00 * T, 0.0)])
+        elif role == "特效":
+            # 每擊亮度閃(蓄暗→亮),遞增;首尾回 1
+            s["color"] = _color([(0.00 * T, 1.0), (0.05 * T, 0.80), (0.13 * T, 1.0),
+                                 (0.26 * T, 0.78), (0.35 * T, 1.0), (0.50 * T, 0.72),
+                                 (0.62 * T, 1.0), (1.00 * T, 1.0)])
+            b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, side_sign * 8.0),
+                                (0.35 * T, -side_sign * 8.0), (0.62 * T, side_sign * 14.0),
+                                (1.00 * T, 0.0)])
+        return b, s
+
+    # 通用 nhits(candidate J-2):遞增 nhits 峰;rotate/color 對齊各峰、幅度隨擊遞增,首尾歸零/歸一。
+    env, peak_taus = _combo_env(peak, nhits)
     b["scale"] = _scale_frames(T, env)
+    n = nhits
+
+    def _mag(i, base, span):
+        return base + span * (i / (n - 1) if n > 1 else 0.0)
 
     if role == "limb":
-        # 三連甩,末梢反向蓄力 → 甩出,幅度隨連擊遞增;首尾 0
-        b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, side_sign * 8.0), (0.20 * T, 0.0),
-                            (0.35 * T, side_sign * 12.0), (0.43 * T, 0.0),
-                            (0.62 * T, side_sign * 18.0), (0.74 * T, -side_sign * 5.0),
-                            (1.00 * T, 0.0)])
+        fr = [(0.00 * T, 0.0)]
+        for i, tau in enumerate(peak_taus):
+            fr.append((tau * T, side_sign * _mag(i, 8.0, 10.0)))          # 甩出(遞增)
+        fr.append((1.00 * T, 0.0))
+        b["rotate"] = _rot(fr)
     elif role == "head":
-        b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, -6.0), (0.20 * T, 0.0),
-                            (0.35 * T, -9.0), (0.43 * T, 0.0), (0.62 * T, -13.0),
-                            (0.74 * T, 4.0), (1.00 * T, 0.0)])
+        fr = [(0.00 * T, 0.0)]
+        for i, tau in enumerate(peak_taus):
+            fr.append((tau * T, -_mag(i, 6.0, 7.0)))                      # 點頭砸(遞增)
+        fr.append((0.74 * T, 4.0))
+        fr.append((1.00 * T, 0.0))
+        b["rotate"] = _rot(fr)
     elif role == "特效":
-        # 每擊亮度閃(蓄暗→亮),遞增;首尾回 1
-        s["color"] = _color([(0.00 * T, 1.0), (0.05 * T, 0.80), (0.13 * T, 1.0),
-                             (0.26 * T, 0.78), (0.35 * T, 1.0), (0.50 * T, 0.72),
-                             (0.62 * T, 1.0), (1.00 * T, 1.0)])
-        b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, side_sign * 8.0),
-                            (0.35 * T, -side_sign * 8.0), (0.62 * T, side_sign * 14.0),
-                            (1.00 * T, 0.0)])
+        cf = [(0.00 * T, 1.0)]
+        rf = [(0.00 * T, 0.0)]
+        for i, tau in enumerate(peak_taus):
+            cf.append(((tau - 0.05) * T, round(0.80 - 0.08 * (i / (n - 1) if n > 1 else 0.0), 4)))  # 蓄暗(遞深)
+            cf.append((tau * T, 1.0))                                     # 閃亮
+            rf.append((tau * T, (side_sign if i % 2 == 0 else -side_sign) * _mag(i, 8.0, 6.0)))
+        cf.append((1.00 * T, 1.0))
+        rf.append((1.00 * T, 0.0))
+        s["color"] = _color(cf)
+        b["rotate"] = _rot(rf)
     return b, s
 
 
