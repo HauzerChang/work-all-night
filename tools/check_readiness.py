@@ -240,6 +240,19 @@ BLOCKS = [
                      "副產:I5 逼出「跨件簽章需散佈+遞增兩條件並立」——Loop 散佈 0.5 甚至 > 門檻但無序→正確判非波(此鑑別力 0h 只在手搭 "
                      "fixture 驗過,本次在真實產線再現)。honest:主秀運動仍先驗手感、cascade 於 Award 真值無命名列 prior_beats_unused(誠實 "
                      "PROPOSAL);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("tier_amplitude_differentiation", "檔位幅度差異化(J,build --animate --tier-variants 直出愈高檔位主秀愈大)", "L2",
+                "python3 tools/analyzer/validate_tier_variants.py", "pipeline",
+                note="slot_bigwin 宣告 tiers=[Super,Mega,Omg,Legend] 先前只是 metadata、所有檔位共用同一組主秀幅度。本能力給每檔位一個"
+                     "嚴格遞增的 overshoot **gain**(Super=1.0<Mega1.4<Omg1.9<Legend2.5),`build_animations(tier_gains)` 對主秀類別"
+                     "(hit/reveal/combo/charge/cascade)**額外**輸出每檔位變體 <Tier>_<beat>(愈高檔位幅度愈大)。關鍵設計 _apply_gain "
+                     "只放大『越過 identity 的量』(scale overshoot>1 → 1+gain*(v-1)、rotate/translate 偏移 ×gain),**不動 alpha**;"
+                     "故 gain=1.0 逐值不變(首檔 Super==無檔位=回歸安全)、squash/collapse/settle 下衝(≤1)保持 → 不出負 scale、首尾 "
+                     "identity/collapsed 介面守恆,且峰時刻/符號變化/蓄力佔比等時間性簽章與幅度解耦 → 逐檔位不變。整合閘 "
+                     "validate_tier_variants(先驗→真實 build_spine 骨架→build_animations(tier_gains))對真實 robot 5 拆件 5AC PASS"
+                     "(J1 每主秀 beat×每件真峰依檔位嚴格遞增且皆≥1.12,如 hit 光暈 1.35→1.49→1.66→1.87/J2 每檔位變體尾 identity、非 "
+                     "collapse 起手 beat 首亦 identity/J3 逐檔位結構簽章守恆 hit/combo/charge/cascade/reveal 判準不變/J4 負對照 In/Loop/Out "
+                     "不產檔位變體・平坦 gain 各檔位真峰相等・首檔逐值同 base/J5 無 tier_gains 的 genre slot_reveal 不產變體+覆蓋率仍 1.0)。"
+                     "honest:gain 排程為先驗手感提案(主秀幅度無唯一正解);連擊數隨檔位遞增為後續(現只放大幅度不改次數)。與 anim-forge 同 HOLD"),
         ],
     },
 ]

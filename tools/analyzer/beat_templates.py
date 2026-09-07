@@ -37,7 +37,35 @@ def _scale_frames(T, taus_vals):
     return [{"time": round(tau * T, 4), "x": round(v, 4), "y": round(v, 4)} for (tau, v) in taus_vals]
 
 
-def gen_hit(role, side_sign=1.0, radial=(0.0, 0.0)):
+def _apply_gain(b, s, gain):
+    """candidate (J):把檔位 gain 作用在『越過 identity 的量』,回傳 (b, s)(就地修改 b)。
+
+    - scale:只放大 **overshoot**(>1 的部分)`v→1+gain*(v-1) if v>1 else v`。squash/collapse/settle
+      下衝(v≤1)**保持不變** → 不會產生負 scale、collapsed(0.02)/hold floor 等**介面守恆**。
+    - rotate/translate:是相對 identity(0)的偏移 → 整體 ×gain(0 仍為 0,首尾 identity 守恆)。
+    - color/alpha:**不動**(alpha 編碼 reveal/hide 介面與亮度,非幅度;放大會破壞首尾契約)。
+
+    gain==1.0 為 identity(逐值不變)→ 首檔(Super)== 無檔位輸出,既有 validator 逐值回歸安全。"""
+    if gain == 1.0:
+        return b, s
+    for key, tl in b.items():
+        if key == "scale":
+            for f in tl:
+                if f["x"] > 1.0:
+                    f["x"] = round(1.0 + gain * (f["x"] - 1.0), 4)
+                if f["y"] > 1.0:
+                    f["y"] = round(1.0 + gain * (f["y"] - 1.0), 4)
+        elif key == "rotate":
+            for f in tl:
+                f["angle"] = round(gain * f["angle"], 3)
+        elif key == "translate":
+            for f in tl:
+                f["x"] = round(gain * f["x"], 3)
+                f["y"] = round(gain * f["y"], 3)
+    return b, s
+
+
+def gen_hit(role, side_sign=1.0, radial=(0.0, 0.0), gain=1.0):
     """Anticipation → Impact → Settle。首尾 identity。回傳 (bone_timelines, slot_timelines)。
 
     scale 包絡(τ):1.0 →(蓄力)0.93 →(命中)peak →(回彈下衝)0.965 →(回彈上衝)1.015 → 0.995 → 1.0。
@@ -64,10 +92,10 @@ def gen_hit(role, side_sign=1.0, radial=(0.0, 0.0)):
                              (0.55 * T, 0.85), (0.78 * T, 0.97), (1.00 * T, 1.0)])
         b["rotate"] = _rot([(0.00 * T, 0.0), (0.14 * T, -8.0), (0.32 * T, 12.0),
                             (0.60 * T, -4.0), (1.00 * T, 0.0)])
-    return b, s
+    return _apply_gain(b, s, gain)
 
 
-def gen_reveal(role, side_sign=1.0, radial=(0.0, 0.0)):
+def gen_reveal(role, side_sign=1.0, radial=(0.0, 0.0), gain=1.0):
     """Collapsed → 蓄勢 hold → Burst overshoot → Settle。首 collapsed、尾 identity。
 
     scale:0.02(藏)→ 0.02(hold 蓄勢)→ peak(炸開越過 1)→ 0.95(下衝)→ 1.02(上衝)→ 1.0。
@@ -89,7 +117,7 @@ def gen_reveal(role, side_sign=1.0, radial=(0.0, 0.0)):
     elif role == "特效":
         b["rotate"] = _rot([(0.00 * T, -30.0), (0.20 * T, -30.0), (0.45 * T, 10.0),
                             (0.75 * T, -4.0), (1.00 * T, 0.0)])
-    return b, s
+    return _apply_gain(b, s, gain)
 
 
 # candidate 0g — 擴充主秀節拍庫:multi-hit combo(連擊)+ anticipate-hold(蓄力充能)。
@@ -106,7 +134,7 @@ DUR.setdefault("anticipate_hold", 0.8)
 IMPACT_PROM = 1.10
 
 
-def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0)):
+def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0), gain=1.0):
     """Multi-hit combo(連擊):三段**遞增** impact,各含蓄力 dip + 部分回擺,尾段阻尼回穩。首尾 identity。
 
     scale 峰嚴格遞增 p1<p2<p3(=role peak);峰間回落 <1(下一擊的蓄力)→ 簽章 = 遞增 impact 峰數 ≥3
@@ -144,10 +172,10 @@ def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0)):
         b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, side_sign * 8.0),
                             (0.35 * T, -side_sign * 8.0), (0.62 * T, side_sign * 14.0),
                             (1.00 * T, 0.0)])
-    return b, s
+    return _apply_gain(b, s, gain)
 
 
-def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0)):
+def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0), gain=1.0):
     """Anticipate-hold(蓄力充能):長時間 squash 蓄力 hold → 單發大釋放 overshoot → 阻尼回擺。首尾 identity。
 
     scale:1.0 →(快速下蹲)0.85 →(**長 hold** 充能,佔比 ≥0.35)0.85 → peak(釋放)→ 回擺 → 1.0。
@@ -170,7 +198,7 @@ def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0)):
                              (0.58 * T, 1.0), (1.00 * T, 1.0)])
         b["rotate"] = _rot([(0.00 * T, 0.0), (0.15 * T, -18.0), (0.45 * T, -18.0),
                             (0.58 * T, 8.0), (0.78 * T, -3.0), (1.00 * T, 0.0)])
-    return b, s
+    return _apply_gain(b, s, gain)
 
 
 # candidate 0h — cascade(跨件錯開「波」):大獎主秀常見的「一件接一件依序亮起」節拍。
@@ -191,7 +219,7 @@ CASCADE_LEAD = 0.16
 CASCADE_SPAN = 0.54
 
 
-def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0):
+def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, gain=1.0):
     """跨件錯開波中的**單件** pop(依 phase 錯開)。回傳 (bone_timelines, slot_timelines)。
 
     每件 scale 包絡(絕對 τ,中心 c=LEAD+phase*SPAN):
@@ -221,7 +249,7 @@ def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0):
                             ((c + 0.08) * T, 0.9), (T, 1.0)])
         b["rotate"] = _rot([(0.0, 0.0), ((c - 0.05) * T, -8.0), (c * T, 10.0),
                             ((c + 0.1) * T, -3.0), (T, 0.0)])
-    return b, s
+    return _apply_gain(b, s, gain)
 
 
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用

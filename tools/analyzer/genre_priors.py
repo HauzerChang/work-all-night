@@ -137,9 +137,28 @@ PRIORS = {
 
 DEFAULT_GENRE = "slot_bigwin"
 
+# candidate (J):檔位(tier)幅度差異化。slot_bigwin 宣告 tiers=[Super,Mega,Omg,Legend],但先前
+# 所有檔位共用同一組主秀 beat 幅度 —— 檔位只是 metadata,從未影響生成。此處給每檔位一個嚴格遞增的
+# **overshoot 增益**(gain):愈高檔位主秀愈大。gain 只作用在「越過 identity 的量」(scale 的 >1
+# overshoot、rotate/translate 偏移),**不動 alpha/介面** → 每檔位仍保 setup identity 首尾、各 beat
+# 結構簽章不變(只放大幅度,不改種類)。**首檔 gain=1.0** → 與無檔位輸出逐值一致(回歸安全)。
+TIER_GAINS = {
+    "slot_bigwin": {"Super": 1.0, "Mega": 1.4, "Omg": 1.9, "Legend": 2.5},
+}
+
 
 def get(genre):
     return PRIORS.get(genre, PRIORS[DEFAULT_GENRE])
+
+
+def tier_gains(genre):
+    """回傳該 genre 的 {tier: gain}(依宣告 tiers 排序,嚴格遞增,首檔=1.0);
+    無檔位(tiers=None)或未定義 gain 表回 None → 呼叫端據此判斷是否產檔位變體。"""
+    g = TIER_GAINS.get(genre)
+    tiers = (PRIORS.get(genre, {}) or {}).get("tiers")
+    if not g or not tiers:
+        return None
+    return {t: g[t] for t in tiers if t in g}
 
 
 def _tokens(name):
