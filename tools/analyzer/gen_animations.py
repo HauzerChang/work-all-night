@@ -219,12 +219,61 @@ _PHASE_AWARE = {"cascade"}
 from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, amplify_anim as _amplify_anim
 
 
-def build_animations(skeleton, storyboard, tier_gains=None):
+def _build_beat_anim(beat, bone_of, cx, cy, cat, combo_npeaks=None):
+    """把單一 beat 具體化為一支 anim dict。
+
+    combo_npeaks(candidate J-2):cat=='combo' 時可覆寫連擊**數**(None → gen_combo 預設 3,
+    逐位元同舊行為)。其餘類別忽略此參數。"""
+    bones_tl, slots_tl = {}, {}
+    limb_seen = 0
+    # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
+    valid = [pe for pe in beat["parts"] if bone_of.get(safe(pe["part"])) is not None]
+    nvalid = len(valid)
+    for pi, pe in enumerate(valid):
+        part = pe["part"]; role = pe["role"]
+        sname = safe(part)
+        bname = "b_" + sname
+        bd = bone_of.get(sname)
+        # 左右反相:依遇到 limb 的順序交替 ±1(確定性)
+        side_sign = 1.0
+        if role == "limb":
+            side_sign = 1.0 if limb_seen % 2 == 0 else -1.0
+            limb_seen += 1
+        # 徑向外側單位向量(件中心相對畫布中心)
+        dx, dy = bd.get("x", cx) - cx, bd.get("y", cy) - cy
+        n = math.hypot(dx, dy) or 1.0
+        radial = (dx / n, dy / n)
+
+        if cat in _PHASE_AWARE:
+            # 件序相位:第一件 0、最後一件 1(單件時 0)→ 各件峰時刻依序錯開
+            phase = 0.0 if nvalid <= 1 else pi / (nvalid - 1)
+            b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
+        elif cat == "combo" and combo_npeaks is not None:
+            b, sdict = _DISPATCH[cat](role, side_sign, radial, npeaks=combo_npeaks)
+        else:
+            b, sdict = _DISPATCH[cat](role, side_sign, radial)
+        if b:
+            bones_tl[bname] = b
+        if sdict:
+            slots_tl[sname] = sdict
+    anim = {}
+    if bones_tl:
+        anim["bones"] = bones_tl
+    if slots_tl:
+        anim["slots"] = slots_tl
+    return anim
+
+
+def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_peaks=None):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
     額外產出 `{beat}__{tier}` 幅度差異化變體(檔位愈高愈爆);base beat 不變。
-    None(預設)→ 逐位元同舊行為(向後相容)。"""
+    None(預設)→ 逐位元同舊行為(向後相容)。
+
+    tier_combo_peaks(candidate J-2):`{tier: npeaks}` 時,combo 主秀的檔位變體改用該檔位的
+    連擊**數**重生成(再套幅度增益)→ 高檔位連擊更多。None(預設)→ combo 變體僅幅度差異化
+    (同 J,連擊數皆 3)。Super=3 + g=1.0 → 逐位元同 base combo。"""
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
@@ -236,46 +285,19 @@ def build_animations(skeleton, storyboard, tier_gains=None):
     for beat in storyboard["beats"]:
         name = beat["beat"]
         cat = beat_category(name)
-        bones_tl, slots_tl = {}, {}
-        limb_seen = 0
-        # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
-        valid = [pe for pe in beat["parts"] if bone_of.get(safe(pe["part"])) is not None]
-        nvalid = len(valid)
-        for pi, pe in enumerate(valid):
-            part = pe["part"]; role = pe["role"]
-            sname = safe(part)
-            bname = "b_" + sname
-            bd = bone_of.get(sname)
-            # 左右反相:依遇到 limb 的順序交替 ±1(確定性)
-            side_sign = 1.0
-            if role == "limb":
-                side_sign = 1.0 if limb_seen % 2 == 0 else -1.0
-                limb_seen += 1
-            # 徑向外側單位向量(件中心相對畫布中心)
-            dx, dy = bd.get("x", cx) - cx, bd.get("y", cy) - cy
-            n = math.hypot(dx, dy) or 1.0
-            radial = (dx / n, dy / n)
-
-            if cat in _PHASE_AWARE:
-                # 件序相位:第一件 0、最後一件 1(單件時 0)→ 各件峰時刻依序錯開
-                phase = 0.0 if nvalid <= 1 else pi / (nvalid - 1)
-                b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
-            else:
-                b, sdict = _DISPATCH[cat](role, side_sign, radial)
-            if b:
-                bones_tl[bname] = b
-            if sdict:
-                slots_tl[sname] = sdict
-        anim = {}
-        if bones_tl:
-            anim["bones"] = bones_tl
-        if slots_tl:
-            anim["slots"] = slots_tl
+        anim = _build_beat_anim(beat, bone_of, cx, cy, cat)
         anims[name] = anim
         # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
         if tier_gains and cat in _MAIN_SHOW_CATS:
             for tier, g in tier_gains.items():
-                anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g)
+                # candidate J-2:combo 且宣告了檔位連擊數 → 依該檔位連擊數重生成(結構性),再套幅度增益。
+                if cat == "combo" and tier_combo_peaks and tier in tier_combo_peaks:
+                    variant = _build_beat_anim(beat, bone_of, cx, cy, cat,
+                                               combo_npeaks=tier_combo_peaks[tier])
+                    variant = _amplify_anim(variant, g)
+                else:
+                    variant = _amplify_anim(anim, g)
+                anims["{}__{}".format(name, tier)] = variant
     return anims
 
 

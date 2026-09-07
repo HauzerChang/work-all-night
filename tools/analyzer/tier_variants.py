@@ -43,6 +43,21 @@ def gains_for(genre):
     return TIER_GAIN.get(genre)
 
 
+# candidate (J-2) — 檔位 → combo 連擊**數**(嚴格遞增;base=Super=3 → gen_combo 走原三連逐位元不變)。
+# J(幅度)只放大既有峰的**高度**;J-2 進一步讓高檔位 combo 的 impact 峰**數**增加
+# (Super 3 連 → Legend 6 連)。兩者正交且可疊加:combo__{tier} = N(tier) 連 × 幅度增益 g(tier)。
+# 峰數本身是 cascade 之外的**第二個跨參數結構簽章**(單一 tier 曲線看不出「隨檔位遞增」,
+# 只有跨檔位比峰數才看得出),故需獨立整合閘 `validate_tier_combo.py`。
+TIER_COMBO_PEAKS = {
+    "slot_bigwin": {"Super": 3, "Mega": 4, "Omg": 5, "Legend": 6},
+}
+
+
+def combo_peaks_for(genre):
+    """回傳該 genre 的 {tier: npeaks}(combo 連擊數);無宣告的 genre 回 None(→ 連擊數檔位無關)。"""
+    return TIER_COMBO_PEAKS.get(genre)
+
+
 def _amp_scale(v, g):
     """scale 值幅度增益:僅放大 identity 上方 overshoot;下方(squash/collapse)樓地板不動。"""
     return 1.0 + g * (v - 1.0) if v >= 1.0 else v

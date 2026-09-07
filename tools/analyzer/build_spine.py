@@ -190,6 +190,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
 
 def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False,
           deform=False, pivot_rotate=False, scale_pivot=False, tier_variants=False,
+          tier_combo_escalate=False,
           deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
@@ -303,10 +304,16 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         from gen_animations import build_animations
         # candidate J:`--tier-variants` 時,主秀 beat 依 genre 宣告的檔位額外產幅度差異化變體。
         tg = None
+        tcp = None
         if tier_variants:
             from tier_variants import gains_for
             tg = gains_for(genre)
-        skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"], tier_gains=tg)
+            if tier_combo_escalate:
+                # candidate J-2:combo 檔位變體改用「連擊數隨檔位遞增」(Super=3 → Legend=6)。
+                from tier_variants import combo_peaks_for
+                tcp = combo_peaks_for(genre)
+        skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"],
+                                                  tier_gains=tg, tier_combo_peaks=tcp)
         if (pivot_rotate or scale_pivot) and not rig:
             # candidate 0i:件繞**關節 pivot** 轉而非件中心(keyframe 級,不動骨架)。
             # 延伸 G-3:`--scale-pivot` 再把 `scale` 也補償(M=R·S)→ 件繞關節 pivot **旋轉+縮放**。
@@ -354,10 +361,13 @@ def main():
                     help="G-3:件繞關節 pivot 旋轉+縮放(M=R·S 補償;含 --pivot-rotate 語意;非 rig 用,需 --animate)")
     ap.add_argument("--tier-variants", dest="tier_variants", action="store_true",
                     help="candidate J:主秀 beat 依 genre 宣告檔位產幅度差異化變體 {beat}__{tier}(需 --animate)")
+    ap.add_argument("--tier-combo-escalate", dest="tier_combo_escalate", action="store_true",
+                    help="candidate J-2:combo 檔位變體連擊數隨檔位遞增(Super3→Legend6;需 --tier-variants)")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
     s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,
-              pivot_rotate=a.pivot_rotate, scale_pivot=a.scale_pivot, tier_variants=a.tier_variants)
+              pivot_rotate=a.pivot_rotate, scale_pivot=a.scale_pivot, tier_variants=a.tier_variants,
+              tier_combo_escalate=a.tier_combo_escalate)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

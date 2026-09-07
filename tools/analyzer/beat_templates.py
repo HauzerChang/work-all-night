@@ -106,44 +106,92 @@ DUR.setdefault("anticipate_hold", 0.8)
 IMPACT_PROM = 1.10
 
 
-def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0)):
-    """Multi-hit combo(連擊):三段**遞增** impact,各含蓄力 dip + 部分回擺,尾段阻尼回穩。首尾 identity。
+def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0), npeaks=3):
+    """Multi-hit combo(連擊):**N 段遞增** impact,各含蓄力 dip + 部分回擺,尾段阻尼回穩。首尾 identity。
 
-    scale 峰嚴格遞增 p1<p2<p3(=role peak);峰間回落 <1(下一擊的蓄力)→ 簽章 = 遞增 impact 峰數 ≥3
-    (單發 hit 僅 1 峰 → 負對照分離)。仍具通用 anticipation(峰前 <1)+ settle(尾段回擺變號 ≥3)。"""
+    scale 峰嚴格遞增 p1<…<pN(=role peak);峰間回落 <1(下一擊的蓄力)→ 簽章 = 遞增 impact 峰數 ≥3
+    (單發 hit 僅 1 峰 → 負對照分離)。仍具通用 anticipation(峰前 <1)+ settle(尾段回擺變號 ≥3)。
+
+    `npeaks`(candidate J-2:連擊數隨檔位遞增):impact 峰**數**。**`npeaks==3` 走原三連路徑
+    (逐位元不變,向後相容)**;`npeaks>=4` 走通用 N 連佈局(檔位愈高、連擊數愈多)。峰數本身即
+    cascade 之外的**第二個跨參數簽章**:`validate_tier_combo.py` 驗「峰數 == npeaks 且隨檔位嚴格遞增」。"""
     T = DUR["combo"]
     peak = _PEAK.get(role, 1.18)
     q = peak - 1.0
-    # 遞增三峰;p1 夾 ≥1.10 確保計入 impact(role peak 最小 1.18 → q=0.18 → p1=1.108)。
-    p1 = max(1.10, 1.0 + 0.60 * q)
-    p2 = 1.0 + 0.80 * q
-    p3 = peak
     b, s = {}, {}
-    env = [(0.00, 1.000),
-           (0.05, 0.950), (0.13, p1), (0.20, 0.980),   # hit 1
-           (0.26, 0.940), (0.35, p2), (0.43, 0.970),   # hit 2(蓄力更深)
-           (0.50, 0.920), (0.62, p3),                  # hit 3 finale(蓄力最深、峰最大)
-           (0.74, 0.955), (0.85, 1.030), (0.93, 0.995), (1.00, 1.000)]  # 阻尼回擺(<IMPACT_PROM)
+    if npeaks == 3:
+        # 遞增三峰;p1 夾 ≥1.10 確保計入 impact(role peak 最小 1.18 → q=0.18 → p1=1.108)。
+        p1 = max(1.10, 1.0 + 0.60 * q)
+        p2 = 1.0 + 0.80 * q
+        p3 = peak
+        env = [(0.00, 1.000),
+               (0.05, 0.950), (0.13, p1), (0.20, 0.980),   # hit 1
+               (0.26, 0.940), (0.35, p2), (0.43, 0.970),   # hit 2(蓄力更深)
+               (0.50, 0.920), (0.62, p3),                  # hit 3 finale(蓄力最深、峰最大)
+               (0.74, 0.955), (0.85, 1.030), (0.93, 0.995), (1.00, 1.000)]  # 阻尼回擺(<IMPACT_PROM)
+        b["scale"] = _scale_frames(T, env)
+
+        if role == "limb":
+            # 三連甩,末梢反向蓄力 → 甩出,幅度隨連擊遞增;首尾 0
+            b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, side_sign * 8.0), (0.20 * T, 0.0),
+                                (0.35 * T, side_sign * 12.0), (0.43 * T, 0.0),
+                                (0.62 * T, side_sign * 18.0), (0.74 * T, -side_sign * 5.0),
+                                (1.00 * T, 0.0)])
+        elif role == "head":
+            b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, -6.0), (0.20 * T, 0.0),
+                                (0.35 * T, -9.0), (0.43 * T, 0.0), (0.62 * T, -13.0),
+                                (0.74 * T, 4.0), (1.00 * T, 0.0)])
+        elif role == "特效":
+            # 每擊亮度閃(蓄暗→亮),遞增;首尾回 1
+            s["color"] = _color([(0.00 * T, 1.0), (0.05 * T, 0.80), (0.13 * T, 1.0),
+                                 (0.26 * T, 0.78), (0.35 * T, 1.0), (0.50 * T, 0.72),
+                                 (0.62 * T, 1.0), (1.00 * T, 1.0)])
+            b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, side_sign * 8.0),
+                                (0.35 * T, -side_sign * 8.0), (0.62 * T, side_sign * 14.0),
+                                (1.00 * T, 0.0)])
+        return b, s
+
+    # ---- 通用 N 連(npeaks>=4):等分 hit 佈局,峰值遞增到 role peak ----
+    n = max(3, int(npeaks))
+    HIT_END = 0.66                       # 連擊區佔 τ∈[0,HIT_END];其後為 settle
+    w = HIT_END / n                      # 每擊 slot 寬(τ)
+    # 峰值:f_i=0.66→1.0 線性 → p_0≈1+0.66q(≥1.119,穩過 impact 門檻)、p_{n-1}=peak。
+    peaks = [round(1.0 + q * (0.66 + 0.34 * i / (n - 1)), 4) for i in range(n)]
+    env = [(0.0, 1.0)]
+    for i in range(n):
+        t0 = i * w
+        dip = round(0.950 - 0.012 * i, 4)          # 逐擊蓄力更深(仍 >SQUASH_FLOOR=0.5)
+        env.append((round(t0 + 0.30 * w, 4), dip))
+        env.append((round(t0 + 0.62 * w, 4), peaks[i]))
+        if i < n - 1:
+            rec = round(0.980 - 0.008 * i, 4)      # 峰間回落 <1(下一擊蓄力起點)
+            env.append((round(t0 + 0.92 * w, 4), rec))
+    env += [(0.74, 0.955), (0.85, 1.030), (0.93, 0.995), (1.00, 1.000)]  # 阻尼回擺(<IMPACT_PROM)
     b["scale"] = _scale_frames(T, env)
 
-    if role == "limb":
-        # 三連甩,末梢反向蓄力 → 甩出,幅度隨連擊遞增;首尾 0
-        b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, side_sign * 8.0), (0.20 * T, 0.0),
-                            (0.35 * T, side_sign * 12.0), (0.43 * T, 0.0),
-                            (0.62 * T, side_sign * 18.0), (0.74 * T, -side_sign * 5.0),
-                            (1.00 * T, 0.0)])
-    elif role == "head":
-        b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, -6.0), (0.20 * T, 0.0),
-                            (0.35 * T, -9.0), (0.43 * T, 0.0), (0.62 * T, -13.0),
-                            (0.74 * T, 4.0), (1.00 * T, 0.0)])
+    pt = [i * w + 0.62 * w for i in range(n)]       # 各擊峰時刻(τ)
+    if role in ("limb", "head"):
+        base = 8.0 if role == "limb" else -6.0
+        sgn = side_sign if role == "limb" else 1.0
+        rot = [(0.0, 0.0)]
+        for i in range(n):
+            rot.append((pt[i] * T, sgn * (base + (2.0 if role == "limb" else -1.5) * i)))
+            if i < n - 1:
+                rot.append(((i + 1) * w * T, 0.0))  # 擊間過零
+        rot.append((T, 0.0))
+        b["rotate"] = _rot(rot)
     elif role == "特效":
-        # 每擊亮度閃(蓄暗→亮),遞增;首尾回 1
-        s["color"] = _color([(0.00 * T, 1.0), (0.05 * T, 0.80), (0.13 * T, 1.0),
-                             (0.26 * T, 0.78), (0.35 * T, 1.0), (0.50 * T, 0.72),
-                             (0.62 * T, 1.0), (1.00 * T, 1.0)])
-        b["rotate"] = _rot([(0.00 * T, 0.0), (0.13 * T, side_sign * 8.0),
-                            (0.35 * T, -side_sign * 8.0), (0.62 * T, side_sign * 14.0),
-                            (1.00 * T, 0.0)])
+        col = [(0.0, 1.0)]
+        rot = [(0.0, 0.0)]
+        for i in range(n):
+            dt = (i * w + 0.30 * w)
+            col.append((dt * T, round(0.80 - 0.01 * i, 4)))   # 逐擊蓄暗更深
+            col.append((pt[i] * T, 1.0))
+            rot.append((pt[i] * T, side_sign * (8.0 + 2.0 * i) * (1 if i % 2 == 0 else -1)))
+        col.append((T, 1.0))
+        rot.append((T, 0.0))
+        s["color"] = _color(col)
+        b["rotate"] = _rot(rot)
     return b, s
 
 
