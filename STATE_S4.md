@@ -7,6 +7,19 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 60(2026-09-07)**:依 chunk 59「下一步候選」指示的檢查清單執行——排程再次觸發,
+> 先確認是否有新素材/新使用者裁決,再決定是否有新工作塊。**檢查結果**:(1) `git log --
+> assets/` 確認自 chunk 41(九尾焰蓮角色設定圖)起無任何新素材加入;(2) GitHub 該 repo
+> 目前 open issues/PRs 皆為 0,無使用者對 `bodice`/`sleeve_right` 處理方式、`hair_front`
+> 語意邊界、GPT-fill API key 授權三項裁決留下任何新輸入;(3) 複查 chunk 59 產出——
+> `knowledge/s4-sam-candidate-reselect.md`、`s4_sam_segment.py` 改動、20 部件回歸驗證數字
+> 皆已如實記錄且已 commit,無遺留未收尾事項。**結論**:無新的零成本候選可執行,三項懸而
+> 未決(見下方「未解問題」)全部需要使用者輸入,非本排程可自決之研究缺口——呼應 chunk 26
+> 里程碑審查「S4 核心目標已達成」的判定依然成立。**本次未新增量化實驗、未改動任何
+> production 代碼**,純檢查性質(比照 chunk 27-31 對 BLOCKED 狀態的極簡檢查慣例,差別是
+> 本狀態為 `ACTIVE`/維護模式而非 `BLOCKED`,故不改動狀態欄位)。維持排程監看,待使用者
+> 對三項裁決其一或新素材出現時再推進。見 `log/s4-2026-09-07-060.md`。
+>
 > **chunk 59(2026-09-07)**:執行 chunk 58 留下的候選(樣本僅2案,未實作)——「fragmented
 > 時自動改選 SAM 3 個候選裡 `largest_component_frac` 最高者」。擴大測試到 5 個已知案例
 > (`head`/`sash_train`——fragmented 型;`skirt`/`bodice`/`sleeve_right`——內容選錯型)。
@@ -826,6 +839,12 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-07:**排程再次觸發,執行 chunk59 檢查清單,確認無新素材/新裁決,維持 `ACTIVE`
+  維護模式(chunk 60)** — 依 chunk 59「下一步候選」指示,先查是否有新素材(`git log --
+  assets/` 確認自 chunk 41 起無新增)、是否有新使用者裁決(GitHub repo open issues/PRs
+  皆 0)。確認皆無。三項懸而未決(`bodice`/`sleeve_right` 處理方式、`hair_front` 語意
+  邊界、GPT-fill API key 授權)維持原狀,呼應 chunk 26 里程碑審查結論。本次純檢查,未
+  新增量化實驗、未改動 production 代碼。見 `log/s4-2026-09-07-060.md`。
 - 2026-09-07:**候選重選策略(fragmented 時自動改選 largest_component_frac 最高候選)
   落地(chunk 59)** — 執行 chunk58 留下、樣本僅2案的候選,擴大測試到5個已知案例
   (`head`/`sash_train`——fragmented型;`skirt`/`bodice`/`sleeve_right`——內容選錯型)。
