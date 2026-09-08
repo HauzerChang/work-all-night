@@ -28,7 +28,9 @@
 import copy
 
 # 主秀類別(與 beat_templates 的節拍對應;In/Loop/Out 不在此 → 檔位無關)。
-MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade"}
+# candidate G-4'':wobble(斜拉果凍晃,shear 通道)併入主秀 → 其 shear 峰隨檔位遞增(比照本模組
+# 對 scale/rotate 所做)。wobble 只有 shear 通道(無 scale/rotate),故 `amplify_bone_tl` 需能放大 shear。
+MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble"}
 
 # candidate J-2 — 依檔位可變「連擊數」的類別(結構性差異化,非只幅度)。
 # combo 的 impact 峰**數**隨檔位遞增;需在 gen 時把 nhits 帶進 gen_combo(不能事後 amplify)。
@@ -75,6 +77,12 @@ def amplify_bone_tl(b, g):
     for f in b.get("translate", []):
         f["x"] = round(g * f["x"], 3)
         f["y"] = round(g * f["y"], 3)
+    # candidate G-4'':shear 通道(wobble)——繞 0(=identity)對稱擺動,故如 rotate/translate `v'=g*v`。
+    # g*0=0 → 首尾/過零關鍵幀恆守 identity(介面契約);相繼極值同乘 g → 阻尼比 r 不變(簽章保形)、
+    # 峰值隨 g 單調變大(檔位簽章)。shearY 目前恆 0,一併乘 g 保持 0(通用)。
+    for f in b.get("shear", []):
+        f["x"] = round(g * f["x"], 4)
+        f["y"] = round(g * f["y"], 4)
     return b
 
 

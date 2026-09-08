@@ -41,6 +41,9 @@ import tier_variants as TV
 from validate_cascade import (series, sign_changes, impact_peaks, peak_time,
                               has_cascade_signature, is_strictly_increasing, SPREAD_THR)
 from validate_more_beats import has_combo_signature, has_charge_signature
+# candidate G-4'':wobble 併入主秀後,其結構簽章 = 阻尼 shear 振盪(非 scale overshoot)。
+# 復用 validate_shear_gen 的判準,確保 J 閘與 G-4' 閘對 shear 的判定完全一致。
+from validate_shear_gen import _shear_x, _sign_changes_zero, _extrema_mags_decreasing
 
 PSD = "assets/robot_parts.psd"
 GENRE = "slot_bigwin"
@@ -93,6 +96,17 @@ def _rotate_amp(anim):
     for b in bones:
         vals = series(anim, b, key="rotate")
         amps.append(max(abs(v) for v in vals))
+    return max(amps, default=0.0)
+
+
+def _shear_amp(anim):
+    """max over bones of max|shearX| —— shear 幅度(0 對稱;candidate G-4'')。
+    shear 不經 SA.sample(其只回 rotate/x/y/scaleX/scaleY),故直接讀原始 shear 關鍵幀。"""
+    amps = []
+    for ch in anim.get("bones", {}).values():
+        sx = _shear_x(ch)
+        if sx:
+            amps.append(max(abs(v) for v in sx))
     return max(amps, default=0.0)
 
 
@@ -160,17 +174,26 @@ def run():
     R["J2_interface"] = {**j2, "pass": not j2["bad_end"] and not j2["bad_start"]}
 
     # ---- J3 crux: monotone amplitude per main-show beat ----
+    # 通道感知(candidate G-4''):每 beat 只對其**實際存在**的幅度通道(scale overshoot / rotate /
+    # shear)要求嚴格遞增,且至少一個通道存在(不可空過)。既有 scale-based beat 皆有 scale → 與舊
+    # 判準等價;wobble 只有 shear → 改以 shear 峰遞增為 crux。
     j3 = {"beats": {}, "fail": []}
     for beat in main_beats:
         sc = [_scale_overshoot(anims["{}__{}".format(beat, t)]) for t in TIERS]
         ro = [_rotate_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
-        sc_mono = is_strictly_increasing(sc)
-        # rotate:僅在該 beat 有 rotate(amp>0)時要求嚴格遞增
-        ro_mono = True if max(ro) <= TOL else is_strictly_increasing(ro)
+        sh = [_shear_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
+        # 通道「存在」= 任一檔位幅度 > TOL;存在才要求嚴格遞增。
+        sc_present, ro_present, sh_present = max(sc) > TOL, max(ro) > TOL, max(sh) > TOL
+        sc_mono = is_strictly_increasing(sc) if sc_present else None
+        ro_mono = is_strictly_increasing(ro) if ro_present else None
+        sh_mono = is_strictly_increasing(sh) if sh_present else None
+        present = [m for m in (sc_mono, ro_mono, sh_mono) if m is not None]
         j3["beats"][beat] = {"scale_overshoot": [round(x, 4) for x in sc],
                              "rotate_amp": [round(x, 3) for x in ro],
-                             "scale_mono": sc_mono, "rotate_mono": ro_mono}
-        if not (sc_mono and ro_mono):
+                             "shear_amp": [round(x, 3) for x in sh],
+                             "scale_mono": sc_mono, "rotate_mono": ro_mono, "shear_mono": sh_mono}
+        # 至少一通道存在,且所有存在通道皆嚴格遞增。
+        if not present or not all(present):
             j3["fail"].append(beat)
     R["J3_monotone"] = {**j3, "pass": not j3["fail"]}
 
@@ -193,6 +216,14 @@ def run():
                 # burst:峰≥門檻 且 首幀 collapsed(reveal 簽章)
                 ok = all(max(series(an, b)) >= PEAK_THR for b in an.get("bones", {})) and \
                      all(SA.sample(an, 0.0)["bones"][b]["scaleX"] <= COLLAPSE_FLOOR for b in an.get("bones", {}))
+            elif cat == "wobble":
+                # candidate G-4'':阻尼 shear 振盪簽章仍在(每 bone shearX 首尾 0、繞 0 變號 ≥3、極值遞減)
+                shear_bones = [ch for ch in an.get("bones", {}).values() if _shear_x(ch)]
+                ok = bool(shear_bones) and all(
+                    abs(_shear_x(ch)[0]) < 1e-6 and abs(_shear_x(ch)[-1]) < 1e-6
+                    and _sign_changes_zero(_shear_x(ch)) >= 3
+                    and _extrema_mags_decreasing(_shear_x(ch))
+                    for ch in shear_bones)
             else:
                 ok = True
             per[t] = ok

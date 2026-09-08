@@ -10,6 +10,34 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 wobble shear 峰隨檔位遞增:shear 通道接 tier 幅度差異化(里程碑,2026-09-08 session 003,candidate G-4'')** —
+  補 G-4'(`gen_wobble` 為**第一個產 shear 通道的生成器**)的 **honest boundary**:wobble ∉ `MAIN_SHOW_CATS`
+  且 `tier_variants.amplify_bone_tl` **不動 shear** → wobble 的 shear 峰**不隨檔位遞增**(各檔位共用同一斜拉幅度)。
+  本次動**兩處**(全 additive):`MAIN_SHOW_CATS` 加 `"wobble"`(→ `build_animations(tier_gains=)` 對 wobble 產
+  `wobble__{tier}` 變體)、`amplify_bone_tl` 加 **shear 分支**(shear 繞 0=identity 對稱擺動,比照 rotate `v'=g·v`,x/y 皆乘)。
+  **shear 的對稱增益天生保形**:`g·0=0`(round 後仍 0)→ **首尾/過零關鍵幀恆守 identity**(介面契約,對所有檔位);
+  相繼極值 `[A,rA,r²A,r³A]` 同乘 g → **阻尼比 r 不變**(波形軸⟂幅度軸)、**繞 0 變號數不變**(阻尼振盪簽章保形)、
+  **峰值隨 g 單調變大**(檔位簽章);base=Super g=1.0 → `g·v=v` **逐位元向後相容**。與 (J) 幅度軸**同源**(復用既有
+  `amplify_bone_tl`,無新增益路徑)。**又一「公式/模板就緒 ≠ 生成器接上」實例**(同 (E)/(H)/(I)/(J)/(J-2)/(G-4'))。
+  整合閘 `validate_wobble_tier.py`(先驗庫→**真實 build_spine robot 骨架**→build_animations)**5 AC 全 PASS**:
+  X1 present+routing+backward-compat(每 wobble beat×每檔位產帶 shear 變體 finite/有 bone、路由回 "wobble"、
+  base 與 `tier_gains=None` 逐位元不變、In/Loop/Out 不產 wobble 變體);**X2 crux** shearX 峰
+  **[16.0,21.6,27.2,33.6]** 嚴格遞增且 == base×宣告增益階梯(16×[1.0,1.35,1.70,2.10]);X3 每檔位阻尼簽章保持
+  (每 wobble bone shearX 首尾 0、繞 0 變號 ≥3、相繼極值嚴格遞減);X4 每檔位 identity 介面(sample 首尾各 bone
+  rotate/translate/scale identity + shear 端點 0,可插 Loop);X5 負對照/正交(a)平增益全 1.0→X2 單調 FALSE
+  (證閘測遞增非恆真)(b)shear 隔離=tier 放大不讓非 wobble 變體憑空長 shear 通道(c)**阻尼比 r 跨檔位完全相同**
+  (幅度改變、波形/阻尼不變 → 正交性可量化,同 (J) 樓地板不動 / (J-2) 連擊數正交)。**關鍵發現:shear 繞 0 擺動使
+  對稱增益 `v'=g·v` 比 scale(繞 1)更單純**(不需「只放大上方」的樓地板保護,過零點自動守 identity —— shear 的
+  幾何結構讓保形免費);**踩雷:併入 `MAIN_SHOW_CATS` 會波及所有掃該集合的既有 milestone 閘**(J 的 main_beats
+  自動納入 wobble;原 J3 只量 scale/rotate 幅度→wobble 兩者皆無→假陰性)→ 把 `validate_tier_variants.py` 的 J3/J4
+  改**通道感知**(present-then-require:對存在的通道要求性質、缺席略過;對舊 scale-based beat 等價不減弱、對 wobble 以
+  shear 峰遞增+阻尼簽章為 crux)。**honest boundary(仍在)**:斜拉幅度階梯(沿用 (J) `TIER_GAIN`)為 PROPOSAL
+  (結構簽章客觀、手感留使用者 A 類);仍只 shearX(shearY≡0);單一真值資產。回歸全綠:tier_variants(J,通道感知)/
+  tier_combo_count(J-2)/shear_gen(G-4')/shear_pivot(G-4)/pivot_rotation(0i)/scale_pivot(G-3)/priors 系列/
+  cascade/more_beats/beat_templates/deform_gen/anim(+selftest)/round-trip validate_build 對 `--tier-variants
+  --shear-pivot` build(overall_pass、premult MAE 0.031、setup 不變)。新增 cap `tier_variant_shear` L2 併入
+  `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。見 `knowledge/s1-tier-variant-shear.md`、
+  圖 `knowledge/figures/s1_wobble_tier.png`。
 - **S1 生成器產出 shear 通道端到端:斜拉 wobble beat(里程碑,2026-09-08 session 002,candidate G-4')** —
   補 G-4 的 **honest boundary**:G-4 補齊了「件繞關節 pivot 一般仿射(含 shear)」的**公式+閘**,但當時
   **沒有任何 beat 生成器產出 shear 通道**(產線主秀只用 rotate/scale,G-4 的 AC7 只用**合成** shear 驗管路)。
@@ -475,9 +503,13 @@
 >   加 wobble beat 直出 + `build_spine --shear-pivot`(include_shear=True)+ `validate_shear_gen.py` 5AC
 >   (W1 crux shear 產出峰 16°、W2 阻尼振盪簽章、W4 端到端 pivot 殘差 <0.02px vs 負對照 8–24px、W5 天真單調 shear 簽章 FALSE)。
 >   **續**(擇一,皆自主):(G-4'') wobble 接 tier 幅度差異化(shear 峰隨檔位遞增,比照 (J));或產 shearY / 斜拉 squash(shear+coupled scale)。
+> **(G-4'') ~~wobble 接 tier 幅度差異化(shear 峰隨檔位遞增)~~ ✅ 完成(2026-09-08 session 003,candidate G-4'',`tier_variant_shear` L2,見上里程碑)** ——
+>   `MAIN_SHOW_CATS` 加 wobble + `amplify_bone_tl` 加 shear 分支(繞 0 對稱 `v'=g·v`)→ shearX 峰 [16,21.6,27.2,33.6] 隨檔位遞增且==增益階梯,
+>   阻尼簽章/identity 介面對所有檔位保形;`validate_wobble_tier.py` 5AC(X2 crux shear 峰遞增、X3 阻尼保持、X5 阻尼比正交);J 閘 J3/J4 改通道感知納入 shear。
+>   **續**(擇一,皆自主):(G-4''') 產 shearY / 斜拉 squash(shear + coupled scale,兩通道耦合);或 wobble 波數/相位隨檔位的結構性差異。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
-> **(G-4'') wobble 接 tier 幅度差異化(shear 峰隨檔位遞增)**;**(J-3) cascade 波速/散佈/件數隨檔位**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
+> **(J-3) cascade 波速/散佈/件數隨檔位**;**(G-4''') shearY / 斜拉 squash(shear+coupled scale)**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
 
@@ -494,6 +526,18 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-08 session 003:**S1 wobble shear 峰隨檔位遞增:shear 通道接 tier 幅度差異化(里程碑,candidate G-4'')** —
+  補 G-4' 的 honest boundary(wobble ∉ `MAIN_SHOW_CATS` 且 `amplify_bone_tl` 不動 shear → shear 峰不隨檔位遞增)。
+  動兩處(全 additive):`MAIN_SHOW_CATS` 加 wobble、`amplify_bone_tl` 加 shear 分支(繞 0 對稱 `v'=g·v`)。
+  shear 對稱增益天生保形:`g·0=0` 守零過零點→identity 介面;相繼極值同乘 g→阻尼比不變、變號數不變;base g=1.0 逐位元向後相容。
+  `validate_wobble_tier.py`(先驗庫→真實 robot 骨架→build_animations)**5 AC 全 PASS**:X1 present+backward-compat、
+  **X2 crux shearX 峰 [16,21.6,27.2,33.6] 嚴格遞增且==增益階梯**、X3 每檔位阻尼簽章保持、X4 identity 介面、
+  X5 負對照(平增益守衛→X2 FALSE、shear 隔離、阻尼比 r 跨檔位相同=正交)。**踩雷:併入 `MAIN_SHOW_CATS` 波及 J 閘**
+  (main_beats 自動納入 wobble、原 J3 只量 scale/rotate→假陰性)→ J3/J4 改**通道感知**(present-then-require),
+  對舊 beat 等價、對 wobble 正確。build_spine --tier-variants 直出 wobble__{Super,Mega,Omg,Legend}(5 bone 全帶 shear)。
+  回歸 tier/shear/pivot/priors 系列 + round-trip(--tier-variants --shear-pivot,premult MAE 0.031、setup 不變)全綠;
+  check_readiness 全 caps GREEN、anim-forge 仍 HOLD。honest:斜拉幅度階梯 PROPOSAL、仍只 shearX;單一真值資產。
+  cap `tier_variant_shear` L2。見 `knowledge/s1-tier-variant-shear.md`。
 - 2026-09-08 session 002:**S1 生成器產出 shear 通道端到端:斜拉 wobble beat(里程碑,candidate G-4')** —
   補 G-4 的 honest boundary(公式/閘就緒但**沒有 beat 產 shear 通道**,AC7 只用合成 shear)。讓 `gen_wobble`
   (斜拉 jelly wobble,純 shearX **阻尼擺動** 0→A→−rA→+r²A→−r³A→0,首尾 identity)**實際產 shear**(第一個),
