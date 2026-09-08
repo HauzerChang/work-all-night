@@ -7,6 +7,18 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 65(2026-09-08)**:排程再次觸發。依 chunk 64「下一步候選」三個等待條件重跑同一輪
+> 檢查:(1) `git log --oneline --all -- assets/` 確認自 chunk 41 起仍無任何新素材加入(最後
+> 一筆 assets/ 改動仍是 chunk 52 的決策檔框位置修正,commit 時間 2026-09-05,非新素材);
+> (2) GitHub `list_issues`/`list_pull_requests`(state filter)確認 open issues 0 筆、
+> open PRs 0 筆,三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill
+> API key 授權)仍無使用者輸入;(3) chunk 64 產出(純狀態更新,無代碼異動)已 commit
+> (`60320fc`),工作樹乾淨無遺留。**結論與 chunk 60/61/62/63/64 相同:無新工作塊**。這是
+> 連續第六次同樣結果的純檢查性質 chunk,重申 chunk 61/62/63/64 已提出的建議——排程觸發
+> 間隔遠短於「等待使用者裁決」這種阻塞條件實際變化的頻率,建議拉長觸發間隔,此為排程設定
+> 調整,非本 session 可自決。按既有慣例(chunk 27 起已主動通知過一次,此後同一維護狀態
+> 不重複通知)不再對使用者發送新通知。見 `log/s4-2026-09-08-065.md`。
+>
 > **chunk 64(2026-09-08)**:排程再次觸發(距 chunk 63 約 6 小時)。依 chunk 63「下一步候選」
 > 三個等待條件重跑同一輪檢查:(1) `git log --oneline --all -- assets/` 確認自 chunk 41 起
 > 仍無任何新素材加入(最後一筆 assets/ 改動仍是 chunk 52 的決策檔框位置修正,commit 時間
@@ -886,6 +898,13 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-08:**排程第七次觸發,重跑同一輪檢查,仍無新素材/新裁決,維持 `ACTIVE` 維護模式
+  (chunk 65)** — 依 chunk 64「下一步候選」(a)/(b)/(c) 三個等待條件逐一複查:新素材(無,
+  assets/ 最後改動仍是 chunk52 決策檔框修正)、GitHub open issues/PRs(皆0)、chunk64
+  收尾完整性(已commit `60320fc`,無遺留)。結論與 chunk 60/61/62/63/64 完全相同,三項
+  懸而未決原樣未解。本次純檢查,未新增實驗、未改 production 代碼;按既有慣例不重複通知
+  使用者。連續第六次同樣結果,重申拉長觸發間隔的建議(非本 session 可自決)。見
+  `log/s4-2026-09-08-065.md`。
 - 2026-09-08:**排程第六次觸發(距 chunk63 約6小時),重跑同一輪檢查,仍無新素材/新裁決,
   維持 `ACTIVE` 維護模式(chunk 64)** — 依 chunk 63「下一步候選」(a)/(b)/(c) 三個等待
   條件逐一複查:新素材(無,assets/ 最後改動仍是 chunk52 決策檔框修正)、GitHub open
