@@ -189,7 +189,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
 
 
 def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False,
-          deform=False, pivot_rotate=False, scale_pivot=False, tier_variants=False,
+          deform=False, pivot_rotate=False, scale_pivot=False, shear_pivot=False, tier_variants=False,
           deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
@@ -310,9 +310,11 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
             tch = combo_hits_for(genre)
         skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"],
                                                   tier_gains=tg, tier_combo_hits=tch)
-        if (pivot_rotate or scale_pivot) and not rig:
+        if (pivot_rotate or scale_pivot or shear_pivot) and not rig:
             # candidate 0i:件繞**關節 pivot** 轉而非件中心(keyframe 級,不動骨架)。
             # 延伸 G-3:`--scale-pivot` 再把 `scale` 也補償(M=R·S)→ 件繞關節 pivot **旋轉+縮放**。
+            # 延伸 G-4':`--shear-pivot` 再把 `shear` 也補償(M=真實 Spine local 含 shear)→
+            #   件繞關節 pivot 做**一般仿射**(斜拉 wobble 節拍的 shear 亦繞關節);含 --scale-pivot 語意。
             # 復用 rig_layout 的樹+接觸縫推斷取 pivot;非 rig 下 bone 皆 root 子(世界=parent 座標)。
             from pivot_rotation import apply_pivots
             rlay, _body, _ = rig_layout(metas, names, sizes, offsets, H, note, parts_dir)
@@ -321,7 +323,11 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
             pivot_of = {f"b_{nm}": (float(rlay[nm]["world"][0]), float(rlay[nm]["world"][1]))
                         for nm in rlay if rlay[nm]["joint"]}
             for beat in skeleton["animations"].values():
-                apply_pivots(beat, bone_origin, pivot_of, include_scale=scale_pivot)
+                apply_pivots(beat, bone_origin, pivot_of,
+                             include_scale=(scale_pivot or shear_pivot), include_shear=shear_pivot)
+            # 記錄本次補償用的件中心(O)與關節 pivot(P),供閘端到端驗殘差(同 rig 的可觀測性)。
+            pivot_center = bone_origin
+            pivot_world = pivot_of
         if deform:
             # candidate 0e:再讓軟件/特效 mesh 本身 deform(真實布料律動場轉移),非只被控制骨搬動
             from gen_deform import build_deform, load_source_field
@@ -339,6 +345,10 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         summary["rig_joints"] = {f"b_{nm}": [round(float(rlay[nm]['world'][0]), 1),
                                             round(float(rlay[nm]['world'][1]), 1)]
                                  for nm in rlay if rlay[nm]["joint"]}
+    if animate and (pivot_rotate or scale_pivot or shear_pivot) and not rig:
+        # 非 rig 的 pivot 補償模式:回報件中心 O 與關節 pivot P(閘據此驗端到端不動點殘差)。
+        summary["pivot_centers"] = {b: [round(c[0], 3), round(c[1], 3)] for b, c in pivot_center.items()}
+        summary["pivot_joints"] = {b: [round(p[0], 3), round(p[1], 3)] for b, p in pivot_world.items()}
     return summary
 
 
@@ -355,12 +365,15 @@ def main():
                     help="candidate 0i:件繞關節 pivot 轉(keyframe 級,不動骨架;非 rig 用,需 --animate)")
     ap.add_argument("--scale-pivot", dest="scale_pivot", action="store_true",
                     help="G-3:件繞關節 pivot 旋轉+縮放(M=R·S 補償;含 --pivot-rotate 語意;非 rig 用,需 --animate)")
+    ap.add_argument("--shear-pivot", dest="shear_pivot", action="store_true",
+                    help="G-4':件繞關節 pivot 一般仿射(含 shear;wobble 節拍的 shear 亦繞關節;含 --scale-pivot 語意;非 rig 用,需 --animate)")
     ap.add_argument("--tier-variants", dest="tier_variants", action="store_true",
                     help="candidate J:主秀 beat 依 genre 宣告檔位產幅度差異化變體 {beat}__{tier}(需 --animate)")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
     s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,
-              pivot_rotate=a.pivot_rotate, scale_pivot=a.scale_pivot, tier_variants=a.tier_variants)
+              pivot_rotate=a.pivot_rotate, scale_pivot=a.scale_pivot, shear_pivot=a.shear_pivot,
+              tier_variants=a.tier_variants)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

@@ -271,6 +271,18 @@ BLOCKS = [
                      "證閘可信・無宣告 count 的 slot_reveal→combo_hits_for None 不亂加・count 只作用 combo 不外洩 hit/charge/cascade/burst)。"
                      "回歸:validate_tier_variants(J,幅度-only 不變)/more_beats/priors_combo_charge/cascade/round-trip(含 --tier-variants build)全綠。"
                      "honest:連擊數階梯(3–6)為 PROPOSAL(結構簽章非美感);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("shear_channel_generation", "生成器產出 shear 通道端到端(G-4',斜拉 wobble beat + --shear-pivot)", "L2",
+                "python3 tools/analyzer/validate_shear_gen.py", "pipeline",
+                note="G-4 補齊了『件繞關節 pivot 一般仿射(含 shear)』的**公式+閘**,但 honest boundary:當時**沒有任何 beat 產出 shear**"
+                     "(產線只用 rotate/scale,G-4 的 AC7 用合成 shear 驗管路)。本 cap 補上那最後一段:gen_wobble(斜拉 jelly wobble)"
+                     "**實際產出 shear 通道**(阻尼 shearX 擺動,首尾 identity),經 genre_priors.slot_bigwin 新增 wobble beat 直出;"
+                     "build_spine --shear-pivot 帶 include_shear=True 端到端補償 → 件繞關節 pivot 做一般仿射而 pivot 精確不動。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations,validate_shear_gen.py 5AC PASS"
+                     "(W1 present+shear 產出 crux=峰值 16°/W2 阻尼振盪簽章 繞0變號≥3+相繼極值嚴格遞減/W3 identity 介面可插 Loop/"
+                     "W4 端到端 --shear-pivot pivot 殘差 <0.02px vs 負對照 8–24px(arm 50–164px)/W5 負對照 天真單調 shear 簽章 FALSE・"
+                     "shear 隔離 僅 wobble 帶 shear・移除 wobble 其餘 beat 逐位元不變)。回歸:全 priors/tier/beat/pivot 系列 + round-trip"
+                     "(--shear-pivot build overall_pass premult MAE 0.031 setup 不變)全綠。"
+                     "honest:斜拉 wobble 為 PROPOSAL(阻尼振盪結構簽章非美感);shearY≡0、tier 變體未接;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

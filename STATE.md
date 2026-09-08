@@ -10,6 +10,32 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 生成器產出 shear 通道端到端:斜拉 wobble beat(里程碑,2026-09-08 session 002,candidate G-4')** —
+  補 G-4 的 **honest boundary**:G-4 補齊了「件繞關節 pivot 一般仿射(含 shear)」的**公式+閘**,但當時
+  **沒有任何 beat 生成器產出 shear 通道**(產線主秀只用 rotate/scale,G-4 的 AC7 只用**合成** shear 驗管路)。
+  本次讓 `beat_templates.gen_wobble`(斜拉 jelly wobble)**實際產出 shear 通道** —— **第一個產 shear 的生成器**:
+  純 shearX **阻尼擺動**(0→+A→−rA→+r²A→−r³A→0,r=0.5,role 峰 10–16°,首尾 identity),經
+  `genre_priors.slot_bigwin` 新增 wobble beat **直出**;`build_spine --shear-pivot`(`shear_pivot=True` →
+  `apply_pivots(include_scale=True, include_shear=True)`,含 --scale-pivot 語意)帶 `include_shear=True`
+  **端到端補償** → 件繞關節 pivot 做**一般仿射**而 pivot 精確不動。**又一「公式/模板就緒 ≠ 生成器接上」實例**
+  (同 (E)/(H)/(I)/(J)/(J-2))。全 additive:`gen_animations` 註冊 `_DISPATCH["wobble"]`;build summary 回報
+  `pivot_centers`(O)/`pivot_joints`(P)供閘端到端驗殘差(同 rig 可觀測性)。整合閘 `validate_shear_gen.py`
+  (先驗庫→**真實 build_spine robot 骨架**→build_animations)**5 AC 全 PASS**:W1 present+shear 產出(crux)
+  =峰 16°、5 bone 全帶 shear;W2 **阻尼振盪簽章**=繞 0 變號 ≥3(4 次)+ 相繼極值 [16,8,4,2] **嚴格遞減**;
+  W3 identity 介面(sample 首尾各 bone identity + shear 端點 0,可插 Loop);**W4 端到端 pivot 不動**=
+  `--shear-pivot` 有關節的 bone(右手/頭/左手)pivot 殘差 0.009/0.004/0.013px vs 負對照(繞件中心)8–24px、
+  arm(|O−P|)50–164px、比值 >1000×,pivot≈中心的 bone(光暈/身體)正確略過;W5 負對照(a)天真單調 shear
+  (0→A→hold)阻尼簽章 FALSE(證閘測阻尼振盪非「有 shear 即可」)(b)shear **隔離**=僅 wobble 帶 shear
+  (c)加性=移除 wobble 其餘 beat 逐位元不變。**關鍵發現:阻尼簽章需「振盪+遞減」兩條件並立**(天真單調 shear
+  有 shear 值但 0 變號、無遞減 → 若簽章只看「有 shear」就形同虛設);**shear 隔離讓補償對象明確**、對既有節拍
+  零回歸。**honest boundary(仍在)**:斜拉 wobble 形狀為 PROPOSAL(結構簽章客觀、手感留使用者 A 類);
+  目前只產 shearX(shearY≡0);wobble ∉ `MAIN_SHOW_CATS` → tier 變體未接(可比照 (J) 讓 shear 峰隨檔位遞增)。
+  回歸:validate_priors(cov 1.0)/priors_beats(E)/more_beats(0g)/beat_templates(0f)/cascade(0h)/
+  priors_combo_charge(H)/priors_cascade(I)/tier_variants(J)/tier_combo_count(J-2)/pivot_rotation(0i)/
+  scale_pivot(G-3)/shear_pivot(G-4)/deform_gen(0e)/anim(+selftest)/round-trip validate_build 對 `--shear-pivot`
+  build(overall_pass、premult MAE 0.031、setup 不變)全 PASS。新增 cap `shear_channel_generation` L2 併入
+  `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。見 `knowledge/s1-shear-channel-generation.md`、
+  圖 `knowledge/figures/s1_shear_gen.png`。
 - **S1 件繞關節 pivot 一般仿射:非均勻 scale + shear(里程碑,2026-09-08,candidate G-4)** — 把 0i(繞 pivot
   **轉**,M=R)/ G-3(繞 pivot **均勻縮放**,M=R·sI=相似)推廣到**非均勻 scale(sx≠sy)與 shear** —— 此時
   bone local M 是**一般仿射、不再是相似變換**,但**同一條** `Δ=(M−I)(O−P)` 仍讓關節 pivot P 為**精確不動點**
@@ -444,9 +470,14 @@
 >   `apply_pivots(include_shear=)` + `validate_shear_pivot.py` 7AC(AC4 crux=anisotropy 證相似性壞掉、AC6 det==cosφ 證真 Spine shear)。
 >   **續**(擇一,皆自主):(G-4') 讓某主秀節拍(如斜拉 squash)實際產出 `shear` 通道 + build 帶 `include_shear=True`
 >   端到端(現管路已通但 gen_animations 尚未產 shear,honest boundary);或 (G-1)/(G-2) 見下。
+> **(G-4') ~~生成器產 shear 通道端到端~~ ✅ 完成(2026-09-08 session 002,candidate G-4',`shear_channel_generation` L2,見上里程碑)** ——
+>   `beat_templates.gen_wobble`(斜拉 jelly wobble,阻尼 shearX 擺動,**第一個產 shear 的生成器**)+ `genre_priors.slot_bigwin`
+>   加 wobble beat 直出 + `build_spine --shear-pivot`(include_shear=True)+ `validate_shear_gen.py` 5AC
+>   (W1 crux shear 產出峰 16°、W2 阻尼振盪簽章、W4 端到端 pivot 殘差 <0.02px vs 負對照 8–24px、W5 天真單調 shear 簽章 FALSE)。
+>   **續**(擇一,皆自主):(G-4'') wobble 接 tier 幅度差異化(shear 峰隨檔位遞增,比照 (J));或產 shearY / 斜拉 squash(shear+coupled scale)。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
-> **(G-4') 生成器產 shear 通道端到端**(接上 G-4 的管路);**(J-3) cascade 波速/散佈/件數隨檔位**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
+> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
+> **(G-4'') wobble 接 tier 幅度差異化(shear 峰隨檔位遞增)**;**(J-3) cascade 波速/散佈/件數隨檔位**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
 
@@ -463,6 +494,19 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-08 session 002:**S1 生成器產出 shear 通道端到端:斜拉 wobble beat(里程碑,candidate G-4')** —
+  補 G-4 的 honest boundary(公式/閘就緒但**沒有 beat 產 shear 通道**,AC7 只用合成 shear)。讓 `gen_wobble`
+  (斜拉 jelly wobble,純 shearX **阻尼擺動** 0→A→−rA→+r²A→−r³A→0,首尾 identity)**實際產 shear**(第一個),
+  經 `genre_priors.slot_bigwin` 加 wobble beat **直出**;`build_spine --shear-pivot`(include_shear=True)端到端補償。
+  **又一「公式/模板就緒 ≠ 生成器接上」實例**。全 additive(gen_animations 註冊 wobble、build summary 回報
+  pivot_centers/joints)。`validate_shear_gen.py`(先驗庫→真實 robot 骨架→build_animations)**5 AC 全 PASS**:
+  W1 present+shear 產出(crux 峰 16°、5 bone 全帶)、W2 阻尼振盪(繞 0 變號 4 + 極值 [16,8,4,2] 遞減)、
+  W3 identity 介面、**W4 端到端 pivot 殘差 0.004–0.013px vs 負對照 8–24px(arm 50–164px)**、W5 負對照
+  (天真單調 shear 簽章 FALSE・僅 wobble 帶 shear・移除 wobble 其餘 beat 逐位元不變)。**關鍵:阻尼簽章需
+  「振盪+遞減」兩條件並立**(天真單調 shear 有值但無變號→W5a 證閘可信);shear 隔離讓補償對象明確、零回歸。
+  honest:斜拉 wobble 為 PROPOSAL、shearY≡0、tier 變體未接。回歸 priors/tier/beat/pivot 系列 + round-trip
+  (--shear-pivot,premult MAE 0.031、setup 不變)全綠。cap `shear_channel_generation` L2;anim-forge 仍 HOLD。
+  見 `knowledge/s1-shear-channel-generation.md`。
 - 2026-09-08:**S1 件繞關節 pivot 一般仿射:非均勻 scale + shear(里程碑,candidate G-4)** — 補建議 (G-4)。把
   0i(繞 pivot 轉,M=R)/ G-3(均勻縮放,M=R·sI=相似)推廣到**非均勻 scale + shear**(M 是一般仿射、非相似),
   **同一條 Δ=(M−I)(O−P)** 仍讓 pivot 精確不動、`world(x)−P=M(x−P)` 精確(仿射保形)。矩陣改真實 Spine local

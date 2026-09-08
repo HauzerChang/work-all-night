@@ -47,6 +47,13 @@ _BIGWIN_ROLES["charge"] = {
 _BIGWIN_ROLES["cascade"] = {
     "body": "輪到時 dip 蓄力→pop overshoot→阻尼回穩(依件序錯開)", "head": "隨波 pop",
     "limb": "輪到時反向蓄力→甩出→回正(波掃過)", "effect": "輪到時壓暗→閃亮→回穩(一件接一件亮起)"}
+# candidate G-4' 續:把斜拉 jelly wobble(**shear 通道**)節拍接進先驗庫(additive)。
+# wobble 是**第一個產出 shear 通道**的節拍(其餘 beat 只用 rotate/scale/translate/color),
+# 補齊 G-4 的 honest boundary —— 公式/閘早就緒,生成器這次才實際產 shear。經 gen_animations 路由到
+# beat_templates 的 gen_wobble(阻尼 shearX 擺動,首尾 identity);`--shear-pivot` 帶 include_shear=True 端到端。
+_BIGWIN_ROLES["wobble"] = {
+    "body": "斜拉果凍晃:阻尼 shearX 來回擺動→收回 identity", "head": "隨身體斜晃",
+    "limb": "末梢斜拉甩(反相)→阻尼回正", "effect": "斜拉果凍晃(shear 振盪)→回穩"}
 
 
 PRIORS = {
@@ -72,6 +79,10 @@ PRIORS = {
             # Award 真值僅 In/Loop/Out → 亦列 prior_beats_unused(誠實,覆蓋率單調不受擾)。
             {"key": "cascade", "kw": ["cascade", "wave", "ripple", "sequence", "sweep", "wipe", "錯開", "波", "依序", "接連"],
              "desc": "跨件錯開波主秀:每件依件序相位錯開 pop(峰時刻隨件序遞增,散佈成波;首尾 identity,可插 Loop 間)"},
+            # candidate G-4':斜拉 jelly wobble(**shear 通道**,PROPOSAL,阻尼振盪簽章非美感)。
+            # Award 真值僅 In/Loop/Out → 亦列 prior_beats_unused(誠實,覆蓋率單調不受擾)。
+            {"key": "wobble", "kw": ["wobble", "jelly", "sway", "skew", "shear", "lean", "斜拉", "果凍", "晃", "搖擺"],
+             "desc": "斜拉果凍晃主秀:阻尼 shearX 擺動(繞 0 變號≥3、相繼極值遞減),首尾 identity(可插 Loop 間)"},
             {"key": "Loop", "kw": ["loop", "idle"],
              "desc": "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉"},
             {"key": "Out", "kw": ["out", "exit", "end", "close"],

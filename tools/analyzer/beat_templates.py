@@ -294,9 +294,50 @@ def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0):
     return b, s
 
 
+# candidate G-4' — wobble(斜拉 jelly wobble):**第一個產出 `shear` 通道的生成器**。
+# 補上 G-4 的 honest boundary —— G-4 補齊了「件繞關節 pivot 的一般仿射(含 shear)」的**公式 + 閘**
+# (`transform_matrix_full`/`pivot_channels_affine`/`apply_pivots(include_shear=True)`),但當時
+# **沒有任何 beat 生成器產出 shear 通道**(產線主秀只用 rotate/scale),AC7 只用**合成** shear 驗過管路。
+# 本 beat 讓某節拍(斜拉 squash / 果凍晃)實際產出 shear 通道,`build_spine --shear-pivot` 帶
+# `include_shear=True` 端到端補償 → 把「公式/閘就緒 ≠ 生成器接上」這最後一段接上(見 STATE (G-4')）。
+#
+# 運動基元 = **阻尼 shearX 擺動**(純 shearX 斜拉,shearY≡0):skew 來回,幅度**遞減**收回 identity。
+# 結構簽章(可量化、與天真單調 shear 在負對照乾淨分離):
+#   1. 首尾 shearX == 0(setup identity 介面 → 可插在 Loop 循環間,同其他主秀 beat)。
+#   2. **阻尼振盪**:shearX 序列**繞 0 變號 ≥3**(振盪+回穩)且**相繼極值幅度嚴格遞減**(阻尼)。
+# 天真「0→A→hold」單調 shear:0 次變號、無遞減 → 負對照分離,證閘測的是阻尼振盪非「有 shear 即可」。
+#
+# 純 shear(不帶 scale/rotate)→ shear 通道**孤立可辨**:產線中僅 wobble 有 shear,其餘 beat 皆無
+# (負對照 W5b),使 `apply_pivots(include_shear=True)` 的補償對象明確。
+
+DUR.setdefault("wobble", 0.8)
+
+# role → shearX 峰值(度)。特效/身體較大、末梢/頭中等(同 _PEAK 的相對關係)。
+_WOBBLE_SHEAR = {"body": 14.0, "特效": 16.0, "head": 10.0, "limb": 12.0}
+WOBBLE_DAMP = 0.5   # 相繼極值幅度衰減比(A → −0.5A → +0.25A → −0.125A)
+
+
+def gen_wobble(role, side_sign=1.0, radial=(0.0, 0.0)):
+    """斜拉 jelly wobble:**阻尼 shearX 擺動**(純 shear 通道)。回傳 (bone_timelines, slot_timelines)。
+
+    shearX 包絡(τ):0 →(+A skew)→(−rA 反向)→(+r²A)→(−r³A)→ 0(r=WOBBLE_DAMP)。
+    首尾 identity(shearX=0);shearY≡0(純斜拉)。相繼極值 A>rA>r²A>r³A → **遞減=阻尼**,
+    繞 0 變號 4 次 ≥3 → 振盪簽章。`side_sign` 決定首推方向(左右件反相,同 loop/limb 慣例)。"""
+    T = DUR["wobble"]
+    A = _WOBBLE_SHEAR.get(role, 12.0) * side_sign
+    r = WOBBLE_DAMP
+    b, s = {}, {}
+    # (τ, shearX):阻尼振盪,首尾 0
+    env = [(0.00, 0.0), (0.16, A), (0.38, -r * A),
+           (0.60, r * r * A), (0.80, -r * r * r * A), (1.00, 0.0)]
+    b["shear"] = [{"time": round(tau * T, 4), "x": round(sx, 4), "y": 0.0} for (tau, sx) in env]
+    return b, s
+
+
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
 HIT_KEYWORDS = ["hit", "impact", "punch", "throb", "slam", "打擊", "命中", "重擊", "衝擊"]
 REVEAL_KEYWORDS = ["reveal", "open", "burst", "showup", "appear_big", "揭曉", "現身", "炸開", "開獎"]
 COMBO_KEYWORDS = ["combo", "multihit", "multi_hit", "chain", "連擊", "連段", "連打"]
 CHARGE_KEYWORDS = ["charge", "windup", "wind_up", "chargeup", "anticipate_hold", "蓄力", "充能", "蓄勢"]
 CASCADE_KEYWORDS = ["cascade", "wave", "ripple", "sequence", "sweep", "wipe", "錯開", "波", "依序", "接連"]
+WOBBLE_KEYWORDS = ["wobble", "jelly", "sway", "skew", "shear", "lean", "斜拉", "果凍", "晃", "搖擺"]

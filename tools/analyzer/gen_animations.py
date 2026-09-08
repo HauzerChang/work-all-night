@@ -196,18 +196,20 @@ _DISPATCH = {"intro": gen_in, "loop": gen_loop, "outro": gen_out, "hold": gen_ho
 try:
     from beat_templates import gen_hit as _gen_hit, gen_reveal as _gen_reveal, \
         gen_combo as _gen_combo, gen_anticipate_hold as _gen_charge, gen_cascade as _gen_cascade, \
+        gen_wobble as _gen_wobble, \
         HIT_KEYWORDS as _HIT_KW, REVEAL_KEYWORDS as _REVEAL_KW, \
         COMBO_KEYWORDS as _COMBO_KW, CHARGE_KEYWORDS as _CHARGE_KW, \
-        CASCADE_KEYWORDS as _CASCADE_KW, DUR as _DUR_EXT
+        CASCADE_KEYWORDS as _CASCADE_KW, WOBBLE_KEYWORDS as _WOBBLE_KW, DUR as _DUR_EXT
     _DISPATCH["hit"] = _gen_hit
     _DISPATCH["reveal"] = _gen_reveal
     _DISPATCH["combo"] = _gen_combo
     _DISPATCH["charge"] = _gen_charge
     _DISPATCH["cascade"] = _gen_cascade
-    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo/charge/cascade 時長對 spine_anim.duration 一致
-    # 主秀類別置前:exact/substring 命中優先於泛用 pulse(combo/charge/cascade 亦置前)
+    _DISPATCH["wobble"] = _gen_wobble  # candidate G-4':產出 shear 通道的斜拉節拍
+    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo/charge/cascade/wobble 時長對 spine_anim.duration 一致
+    # 主秀類別置前:exact/substring 命中優先於泛用 pulse(combo/charge/cascade/wobble 亦置前)
     _CAT_KEYWORDS = {"cascade": _CASCADE_KW, "combo": _COMBO_KW, "charge": _CHARGE_KW,
-                     "hit": _HIT_KW, "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
+                     "wobble": _WOBBLE_KW, "hit": _HIT_KW, "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
 except ImportError:
     pass
 
