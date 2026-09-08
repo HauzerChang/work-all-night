@@ -10,6 +10,31 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 件繞關節 pivot 一般仿射:非均勻 scale + shear(里程碑,2026-09-08,candidate G-4)** — 把 0i(繞 pivot
+  **轉**,M=R)/ G-3(繞 pivot **均勻縮放**,M=R·sI=相似)推廣到**非均勻 scale(sx≠sy)與 shear** —— 此時
+  bone local M 是**一般仿射、不再是相似變換**,但**同一條** `Δ=(M−I)(O−P)` 仍讓關節 pivot P 為**精確不動點**
+  (純代數,不依賴 M 是旋轉/相似),且對任意附著點 `world(x)−P = M·(x−P)` 精確(**仿射保形**)。矩陣改用
+  **真實 Spine 3.8 bone local**(含 shear):`transform_matrix_full(θ,sx,sy,shx,shy)`=(cos(θ+shx)sx,
+  cos(θ+90+shy)sy, sin(θ+shx)sx, sin(θ+90+shy)sy);**shx=shy=0 逐位元退化回 G-3 的 `transform_matrix`**
+  (零回歸)。**這是真 Spine shear 非天真 unit-shear**:pure shearX φ 的 `det=cos φ`(shear 同時改面積),
+  天真 `[[1,tanφ],[0,1]]` det≡1 → 閘以 `det==cosφ` 鎖定實作正確(負對照天真差 0.5)。全部 additive:
+  `pivot_rotation.py` 加 `transform_matrix_full`/`pivot_delta_affine`/`pivot_channels_affine`/
+  `apply_pivots(include_shear=False 預設)`,0i/G-3 路徑 byte-for-byte 不變。整合閘 `validate_shear_pivot.py`
+  對真實 Award 左手+推得肩 pivot(|O−P|=117px)**7 AC 全 PASS**:AC1 非均勻 scale(1.6,1.2)不動點 0.0001px
+  (負對照繞件中心 69.3px)、AC2 shear 25° 不動點 0.012px(負對照 49.9px)、AC3 **仿射保形** 關鍵幀
+  `world(x)−P==M(x−P)` 4.3e-4px(純關鍵幀量化非公式限制)、**AC4 crux 相似性壞掉**=anisotropy
+  (max|Md|−min|Md|=M 奇異值差)均勻 4e-16 / 非均勻 0.40 / shear 0.43(≥0.10)→ 證閘測**一般仿射非 G-3
+  相似特例**、AC5 identity 首尾 Δ=0、AC6 矩陣正確(shear=0 退化 2e-16、det==cosφ、shear=None 路徑==srt)、
+  AC7 端到端 `apply_pivots(include_shear=True)` rotate+scale+shear 有限/無縫/pivot 0.05px vs 負對照 93px。
+  **關鍵發現:相似→仿射,判準必須換** —— G-3 靠等距-類比 `|w−P|=s|x−P|` 證等比繞 pivot,shear/非均勻
+  scale 下該概念不存在,硬套會**假陰性**;改驗更本質的仿射保形 `world−P=M(x−P)` + **anisotropy** 鑑別子。
+  **honest boundary(生成器側)**:補齊的是幾何/公式+閘;`gen_animations` 尚未產 `shear` 通道(產線主秀節拍
+  只用 rotate/scale)——「公式/閘就緒 ≠ 生成器接上」再現,惟管路已通(AC7),某節拍需 shear 時讓 beat 產
+  shear 通道 + build 帶 `include_shear=True` 即接上。回歸:validate_pivot_rotation(0i,7AC)、
+  validate_scale_pivot(G-3,7AC)、round-trip validate_build 對 --scale-pivot build(overall_pass、premult
+  MAE 0.031、setup 不變)、tier/priors/beat 系列(tier_variants/tier_combo_count/priors_*/more_beats/
+  beat_templates/cascade/deform_gen)全 PASS。新增 cap `shear_pivot_affine` L2 併入 `spine-anim-forge`
+  (**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。見 `knowledge/s1-shear-pivot-affine.md`、圖 `knowledge/figures/s1_shear_pivot.png`。
 - **S1 combo 連擊「數」隨檔位遞增(里程碑,2026-09-07 session 002,candidate J-2)** — 續 (J):(J) 讓
   `{beat}__{tier}` 檔位變體只差**幅度**(愈爆),combo 各檔位仍**同一組三連擊** —— 有「多爆」沒「連幾下」。
   本次補上 combo 的 impact 峰**數** = `nhits` **隨檔位嚴格遞增**(Super 3→Mega 4→Omg 5→Legend 6)。
@@ -414,9 +439,14 @@
 >    `gen_combo(nhits=)` 通用生成遞增 nhits 峰(nhits=3 逐位元同 0g)、`tier_combo_hits` 重生成再套幅度增益(與 J 幅度軸正交)、
 >    `validate_tier_combo_count.py` 5AC(K2 峰數 [3,4,5,6] 嚴格遞增、K4 正交、K5 平連擊數守衛);**續**:
 >    (J-3) cascade 波速/散佈/件數隨檔位;(J-2') 其他 count-aware 節拍(如 charge 的蓄力段數/cascade 件數隨檔位)。
+> **(G-4) ~~shear / 非均勻 scale 仿射保形 AC~~ ✅ 完成(2026-09-08,candidate G-4,`shear_pivot_affine` L2,見上里程碑)** ——
+>   `transform_matrix_full`(真實 Spine local 含 shear)+ `pivot_delta_affine`/`pivot_channels_affine`/
+>   `apply_pivots(include_shear=)` + `validate_shear_pivot.py` 7AC(AC4 crux=anisotropy 證相似性壞掉、AC6 det==cosφ 證真 Spine shear)。
+>   **續**(擇一,皆自主):(G-4') 讓某主秀節拍(如斜拉 squash)實際產出 `shear` 通道 + build 帶 `include_shear=True`
+>   端到端(現管路已通但 gen_animations 尚未產 shear,honest boundary);或 (G-1)/(G-2) 見下。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
-> **(G-4) shear / 非均勻 scale 仿射保形 AC**;**(J-3) cascade 波速/散佈/件數隨檔位**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
+> **(G-4') 生成器產 shear 通道端到端**(接上 G-4 的管路);**(J-3) cascade 波速/散佈/件數隨檔位**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
 
@@ -433,6 +463,18 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-08:**S1 件繞關節 pivot 一般仿射:非均勻 scale + shear(里程碑,candidate G-4)** — 補建議 (G-4)。把
+  0i(繞 pivot 轉,M=R)/ G-3(均勻縮放,M=R·sI=相似)推廣到**非均勻 scale + shear**(M 是一般仿射、非相似),
+  **同一條 Δ=(M−I)(O−P)** 仍讓 pivot 精確不動、`world(x)−P=M(x−P)` 精確(仿射保形)。矩陣改真實 Spine local
+  `transform_matrix_full`(含 shear,shx=shy=0 逐位元退化回 G-3);真 Spine shear 以 `det(pure shearX φ)=cosφ`
+  鎖定(天真 unit-shear det≡1)。全 additive(`pivot_delta_affine`/`pivot_channels_affine`/
+  `apply_pivots(include_shear=)`,0i/G-3 byte-for-byte)。`validate_shear_pivot.py`(真實 Award 左手+肩 pivot)
+  **7 AC 全 PASS**:AC1 非均勻 scale 不動點 0.0001px、AC2 shear 25° 0.012px、AC3 仿射保形 4e-4px、**AC4 crux
+  相似性壞掉**=anisotropy 均勻 0 / 非均勻 0.40 / shear 0.43、AC6 det==cosφ、AC7 端到端 include_shear=True
+  0.05px vs 負對照 93px。**關鍵:相似→仿射,判準必換**(等距-類比 `|w−P|=s|x−P|` 失效→改仿射保形 + anisotropy
+  鑑別)。honest boundary:公式/閘就緒但 gen_animations 尚未產 shear 通道(管路已通,AC7)。回歸 0i/G-3/
+  round-trip(--scale-pivot)/tier/priors/beat 系列全綠。cap `shear_pivot_affine` L2;anim-forge 仍 HOLD。
+  見 `knowledge/s1-shear-pivot-affine.md`。
 - 2026-09-07 session 002:**S1 combo 連擊「數」隨檔位遞增(里程碑,candidate J-2)** — 續 (J):(J) 檔位變體只差
   **幅度**,combo 各檔位仍同樣三連擊。本次補上 combo 的 impact 峰**數**=`nhits` 隨檔位嚴格遞增(Super 3→Legend 6)。
   **幅度增益加不出連擊數**(峰「數」是關鍵幀拓樸,必須 gen 時決定,事後 amplify 只放大既有峰)→ 走 `tier_combo_hits`
