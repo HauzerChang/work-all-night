@@ -10,6 +10,30 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 件繞關節 pivot 任意仿射保形(里程碑,2026-09-08,candidate G-4)** — 補 STATE 建議 **(G-4)**:把
+  0i(繞 pivot **轉**,等距)/G-3(繞 pivot **均勻縮放**,相似)的補償推廣到**任意仿射線性部 M**(非均勻
+  scale sx≠sy、shear)。**同一條 `Δ=(M−I)(O−P)` 對任何 2×2 M 都給 `world(x)−P==M·(x−P)`**(P 為不動點、
+  件相對 P 依 M 仿射變形)。均勻 scale 退化回相似(G-3 AC5);**非均勻/shear 時相似性失效但仿射保形仍成立**
+  —— 這正是本塊相對 G-3 補上的判別點(G-3 誠實界定已明記此缺口:「sx≠sy 非均勻縮放仍正確補償,但 AC5 相似性
+  只對均勻 scale 成立」)。**判別子 = 各件點「到 P 距離比」`r_k=|world(x_k)−P|/|x_k−P|` 的離散度(std)**:
+  均勻→0、非均勻/shear→>0(沒有單一 s → 相似 AC 會 FALSE),而仿射恆等式 `world(x)==M(x−P)+P` 逐點殘差仍 ≈0。
+  `pivot_rotation.py` 加通用原語 `pivot_delta_matrix(M,O,P)`(任意 M)/`transform_matrix_full(θ,sx,sy,kx,ky)`
+  (含 shear=R·K·S)/`matmul`/`shear_matrix`;**既有 `pivot_delta_full` 改為委派 `pivot_delta_matrix`,G-3 路徑
+  逐位元不變**(已回歸驗證)。`validate_shear_pivot.py` 對真實 Award 左手+推得肩 pivot(|O−P|=117px)**7 AC
+  全 PASS**:AC1 非均勻 scale `diag(1.6,0.7)` 不動點 **0.0000px**、AC2 負對照繞件中心 **69.5px**、AC3 crux 仿射
+  殘差 **0.0000px**、AC4 crux 相似性失效(非均勻離散度 **0.28**≥0.05 → G-3 相似 AC 對此 M 會 FAIL;**內建正對照**
+  均勻 M 離散度 **0.0000**<1e-3 證判別子確能分辨)、AC5 純 shear `[[1,0.35],[0.2,1]]` 不動點 0+仿射 0+負對照
+  **24.3px**+離散度 0.20、AC6 identity M=I → Δ=0 且∀件點零位移(**1.4e-14px**)、AC7 **端到端**經
+  `apply_pivots(include_scale=True)` 非均勻 scale(sx≠sy)+rotate(**`pivot_channels_srt` 在 sx≠sy 下首次端到端
+  驗**;G-3 端到端只走 sx==sy)逐幀 pivot 殘差 **0.025px**+仿射保形 **0.0001px** vs 負對照未套用 **71.9px**。
+  **關鍵發現:一條公式吃整個仿射群**(0i=M=R 等距、G-3=M=sI 相似皆特例)、**相似 ⊊ 仿射,「到 P 距離比離散度」
+  是分水嶺**(既證相似性失效又反證仿射保形)、**程式路徑早通判準才補上**(`pivot_channels_srt` 一直能吃 sx≠sy,
+  缺的是對非均勻仍為真的 AC)。回歸:0i `validate_pivot_rotation`、G-3 `validate_scale_pivot`(委派後逐 AC 不變)、
+  `validate_anim`(+selftest)、round-trip 對 `--scale-pivot` build、more_beats/beat_templates/cascade/priors*/
+  tier_variants/tier_combo_count 全綠。**誠實界定:`gen_animations` 目前不產非均勻 scale/shear**(等未來「拉伸/剪切」
+  節拍如 squash-stretch 誇張、風吹傾斜);補償**已證對完整仿射群正確** → 未來節拍即覆蓋,無需再改補償。新增 cap
+  `affine_pivot_keyframe` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
+  見 `knowledge/s1-affine-pivot-keyframe.md`。
 - **S1 combo 連擊「數」隨檔位遞增(里程碑,2026-09-07 session 002,candidate J-2)** — 續 (J):(J) 讓
   `{beat}__{tier}` 檔位變體只差**幅度**(愈爆),combo 各檔位仍**同一組三連擊** —— 有「多爆」沒「連幾下」。
   本次補上 combo 的 impact 峰**數** = `nhits` **隨檔位嚴格遞增**(Super 3→Mega 4→Omg 5→Legend 6)。
@@ -399,7 +423,9 @@
 >    `scale_pivot_keyframe` L2,見上里程碑)** —— 一條公式 `Δ=(M−I)(O−P)`、M=R·S 統一旋轉+縮放,`build_spine
 >    --scale-pivot`,`validate_scale_pivot.py` 7AC(AC5 相似性=scale 版等距、AC6 rotate+scale 併證組合)。**續**(擇一,皆自主):
 >    (G-1) 上述 `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重;(G-2) 主秀 beat 下 limb 繞關節的 AC;
->    (G-4) **shear-about-pivot / 非均勻 scale 的 AC**(Δ 公式已通用,只差非均勻 scale 的相似性→仿射保形驗證)。
+>    **(G-4) ~~shear-about-pivot / 非均勻 scale 的 AC~~ ✅ 完成(2026-09-08,candidate G-4,`affine_pivot_keyframe` L2,見上里程碑)** ——
+>    `pivot_delta_matrix`(任意 M)/`transform_matrix_full`(含 shear)+ `validate_shear_pivot.py` 7AC(AC3 仿射保形、
+>    AC4 crux 相似性失效判別=到P距離比離散度、AC7 sx≠sy 端到端首驗)。相似 ⊊ 仿射,一條 Δ 公式吃整個仿射群。
 > **(H) ~~combo/charge 接進 genre 先驗庫~~ ✅ 完成(2026-09-06,candidate H,`combo_charge_priors_integration` L2,見上里程碑)** ——
 >   如 (E) 對 hit/reveal 所做,把 0g 的 combo/charge 併入 `genre_priors.slot_bigwin`,`build_spine --animate` 直出;
 >   `validate_priors_combo_charge.py` 5 AC(覆蓋率仍 1.0、兩簽章互斥),副產 charge-vs-reveal squash-floor 鑑別子。
@@ -416,7 +442,9 @@
 >    (J-3) cascade 波速/散佈/件數隨檔位;(J-2') 其他 count-aware 節拍(如 charge 的蓄力段數/cascade 件數隨檔位)。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
-> **(G-4) shear / 非均勻 scale 仿射保形 AC**;**(J-3) cascade 波速/散佈/件數隨檔位**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
+> **(J-3) cascade 波速/散佈隨檔位**(件數由資產固定,可差異化的是波的**散佈/相位窗**,如 J-2 的 count-aware 那樣做 spread-aware);
+> **(G-5) 產一個「拉伸/剪切」節拍**接上 G-4 已證正確的非均勻仿射補償(squash-stretch 誇張或風吹傾斜,讓 G-4 端到端跑真實生成器而非合成節拍)。
+> S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
 
@@ -433,6 +461,20 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-08:**S1 件繞關節 pivot 任意仿射保形(里程碑,candidate G-4)** — 補 (G-4)。把 0i(繞 pivot 轉,
+  等距)/G-3(繞 pivot 均勻縮放,相似)的補償推廣到**任意仿射線性部 M**(非均勻 scale sx≠sy、shear)。同一條
+  `Δ=(M−I)(O−P)` 對任何 2×2 M 都給 `world(x)−P==M(x−P)`(P 不動、件依 M 仿射變形)。均勻 scale 退化回相似(G-3);
+  **非均勻/shear 相似性失效但仿射保形仍成立** —— 本塊補上此判別點(G-3 誠實界定已明記缺口)。判別子=各件點
+  「到 P 距離比」離散度:均勻→0、非均勻/shear→>0。`pivot_rotation.py` 加通用原語 `pivot_delta_matrix`(任意 M)/
+  `transform_matrix_full`(含 shear)/`matmul`/`shear_matrix`;`pivot_delta_full` 改委派(G-3 路徑逐位元不變)。
+  `validate_shear_pivot.py`(真實 Award 左手+推得肩 pivot |O−P|=117px)**7 AC 全 PASS**(AC1 非均勻 scale 不動點
+  0px/AC2 負對照 69.5px/AC3 仿射殘差 0px/AC4 crux 相似性失效 離散度 0.28 vs 均勻正對照 0/AC5 純 shear 不動+仿射+
+  負對照 24px/AC6 identity Δ=0/AC7 端到端 apply_pivots(include_scale) sx≠sy+rotate 逐幀 0.025px 仿射 0.0001px vs
+  負對照 71.9px——`pivot_channels_srt` 在 sx≠sy 下首次端到端驗)。關鍵:一條公式吃整個仿射群、相似⊊仿射(離散度
+  是分水嶺)、程式路徑早通判準才補上。回歸:0i/G-3(委派後不變)/validate_anim(+selftest)/round-trip --scale-pivot/
+  more_beats/beat_templates/cascade/priors*/tier_variants/tier_combo_count 全綠;check_readiness anim-forge 仍 L2 HOLD
+  (未跨門檻)。honest:gen_animations 目前不產非均勻 scale/shear,補償已證對完整仿射群正確 → 未來拉伸/剪切節拍即覆蓋。
+  cap `affine_pivot_keyframe` L2;anim-forge 仍 HOLD。見 `knowledge/s1-affine-pivot-keyframe.md`。
 - 2026-09-07 session 002:**S1 combo 連擊「數」隨檔位遞增(里程碑,candidate J-2)** — 續 (J):(J) 檔位變體只差
   **幅度**,combo 各檔位仍同樣三連擊。本次補上 combo 的 impact 峰**數**=`nhits` 隨檔位嚴格遞增(Super 3→Legend 6)。
   **幅度增益加不出連擊數**(峰「數」是關鍵幀拓樸,必須 gen 時決定,事後 amplify 只放大既有峰)→ 走 `tier_combo_hits`

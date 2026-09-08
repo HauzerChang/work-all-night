@@ -64,7 +64,50 @@ def pivot_delta(deg, O, P):
 def pivot_delta_full(deg, sx, sy, O, P):
     """Δ = (M − I)(O − P),M = R(θ)·diag(sx,sy)。含 scale 的「繞 pivot 旋轉+縮放」補償。
     sx=sy=1 時退化回 `pivot_delta`(純旋轉);θ=0,sx=sy=1 時 Δ=0(identity)。"""
-    m00, m01, m10, m11 = transform_matrix(deg, sx, sy)
+    return pivot_delta_matrix(transform_matrix(deg, sx, sy), O, P)
+
+
+# ── candidate (G-4):繞 pivot 的**任意仿射**(含非均勻 scale / shear)補償 ──
+# 0i/G-3 的補償只覆蓋 M=R·diag(sx,sy)(等距=旋轉、相似=均勻 scale)。但同一條推導
+#     Δ = (M − I)(O − P)
+# 對 M 為**任何 2×2 線性部**都成立:貼在 bone(原點 O)的局部點 x−O 世界座標 =
+#     (O + Δ) + M·(x−O) = O + (M−I)(O−P) + M(x−O)
+#                        = M(x−P) + P            ∀x   ⟹  world(x) − P == M·(x − P)。
+# 故 P 為不動點(x=P → world=P),且件相對 P 依 M 仿射變形。均勻 scale s 時退化回相似
+# (|world−P|=s|x−P|,G-3 AC5);**非均勻 scale / shear 時相似性失效但仿射保形仍成立**
+# —— 這正是本組 AC 相對 G-3 補上的判別點。`transform_matrix_full` 讓 M 可帶 shear。
+def apply_matrix(M, v):
+    """(m00,m01,m10,m11) 作用於向量 v=(x,y) → (m00 x + m01 y, m10 x + m11 y)。"""
+    m00, m01, m10, m11 = M
+    return (m00 * v[0] + m01 * v[1], m10 * v[0] + m11 * v[1])
+
+
+def matmul(A, B):
+    """2×2 矩陣相乘 A·B(皆 (m00,m01,m10,m11) 列主序)。"""
+    a00, a01, a10, a11 = A
+    b00, b01, b10, b11 = B
+    return (a00 * b00 + a01 * b10, a00 * b01 + a01 * b11,
+            a10 * b00 + a11 * b10, a10 * b01 + a11 * b11)
+
+
+def shear_matrix(kx, ky):
+    """單位對角剪切 K = [[1, kx],[ky, 1]](kx=ky=0 → 單位矩陣)。"""
+    return (1.0, kx, ky, 1.0)
+
+
+def transform_matrix_full(deg, sx, sy, kx=0.0, ky=0.0):
+    """M = R(θ)·K(kx,ky)·diag(sx,sy) —— 含 shear 的通用線性部。
+    kx=ky=0 → R·diag(sx,sy) == `transform_matrix`(向後相容)。"""
+    R = rot_matrix(deg)
+    K = shear_matrix(kx, ky)
+    S = (sx, 0.0, 0.0, sy)
+    return matmul(R, matmul(K, S))
+
+
+def pivot_delta_matrix(M, O, P):
+    """Δ = (M − I)(O − P),M=(m00,m01,m10,m11) 為**任意** 2×2 線性部。
+    `pivot_delta`/`pivot_delta_full` 皆為其特例(M=R、M=R·S)。M=I 時 Δ=0(identity)。"""
+    m00, m01, m10, m11 = M
     ox, oy = O[0] - P[0], O[1] - P[1]      # O − P
     dx = (m00 - 1.0) * ox + m01 * oy
     dy = m10 * ox + (m11 - 1.0) * oy

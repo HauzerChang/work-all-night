@@ -271,6 +271,22 @@ BLOCKS = [
                      "證閘可信・無宣告 count 的 slot_reveal→combo_hits_for None 不亂加・count 只作用 combo 不外洩 hit/charge/cascade/burst)。"
                      "回歸:validate_tier_variants(J,幅度-only 不變)/more_beats/priors_combo_charge/cascade/round-trip(含 --tier-variants build)全綠。"
                      "honest:連擊數階梯(3–6)為 PROPOSAL(結構簽章非美感);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("affine_pivot_keyframe", "件繞關節 pivot 任意仿射保形(G-4,非均勻 scale / shear)", "L2",
+                "python3 tools/analyzer/validate_shear_pivot.py", "pipeline",
+                note="把 0i(繞 pivot 轉,等距)/G-3(繞 pivot 均勻縮放,相似)的補償推廣到**任意仿射線性部 M**"
+                     "(非均勻 scale sx≠sy、shear)。同一條 Δ=(M−I)(O−P) 對任何 2×2 M 都給 world(x)−P==M·(x−P)"
+                     "(P 不動點、件相對 P 依 M 仿射變形)。均勻 scale 時退化回相似(G-3);**非均勻/shear 時相似性失效但仿射保形仍成立**"
+                     "——這正是本 cap 相對 G-3 補上的判別點。pivot_rotation.py 加通用原語 pivot_delta_matrix(任意 M)/"
+                     "transform_matrix_full(含 shear)/matmul/shear_matrix(既有 pivot_delta_full 改為委派,逐位元不變)。"
+                     "validate_shear_pivot.py 對真實 Award 左手+推得肩 pivot(|O−P|=117px)7AC PASS:"
+                     "AC1 非均勻 scale diag(1.6,0.7)不動點 0.0000px、AC2 負對照繞件中心 69.5px、AC3 仿射殘差 0.0000px、"
+                     "AC4 crux 相似性失效(非均勻『到P距離比』離散度 0.28≥0.05 → G-3 相似 AC 對此 M 會 FAIL;正對照均勻 M 離散度 0.0000)、"
+                     "AC5 純 shear [[1,0.35],[0.2,1]] 不動點 0+仿射 0+負對照 24px、AC6 identity M=I → Δ=0 且件點零位移、"
+                     "AC7 端到端經 apply_pivots(include_scale) 非均勻 scale(sx≠sy)+rotate(pivot_channels_srt 在 sx≠sy 下首次端到端驗)"
+                     "逐幀 pivot 殘差 0.025px+仿射保形 0.0001px vs 負對照 71.9px。回歸:0i validate_pivot_rotation・G-3 validate_scale_pivot"
+                     "(路徑委派後逐 AC 不變)・validate_anim(+selftest)・round-trip 對 --scale-pivot build 全綠。"
+                     "honest boundary:gen_animations 目前不產非均勻 scale/shear(等待『拉伸/剪切』節拍),但補償已證對完整仿射群正確 → 未來節拍即覆蓋;"
+                     "pivot 真值仍 S5 接觸縫草案、單一 rig。與 anim-forge 同 HOLD"),
         ],
     },
 ]
