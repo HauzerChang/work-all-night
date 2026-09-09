@@ -10,6 +10,42 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S6 軌跡分析／曲線編輯工具鏈(里程碑,2026-09-09,使用者指定新項目)** — 使用者要求:做一個
+  **軌跡調整工具(HTML)**,減少 spine-motion-skill 調次級動態時「產圖 → 提修正 → 再產圖」的來回。
+  五項需求全部落地:①分析特定目標的運動軌跡 ②網頁圖表 ③圖表上可編輯曲線(位移量/時間/加刪點)
+  ④輸出 `motion spec` 供 skill 辨識 ⑤(進階,實驗)從 viewer 直接編輯。
+  產出:`spine_trajectory_editor.html`(**單檔零外部相依** —— CDN 被本環境政策擋 403,所以取樣、
+  bezier、繪圖、互動全自己實作)+ `tools/motion/`(`spine_world.py` 世界座標取樣器 /
+  `analyze_trajectory.py` 分析 CLI / `motion_spec.py` spec 數學 / `apply_motion_spec.py` 套回 CLI /
+  `verify_motion.py` V1–V7+Q1–Q3 閘 / `validate_motion_tools.py` A1–A8 自我驗收 / `js_core_probe.js`
+  parity 探針 / `bridge_harness.html` 橋接夾具 / `shot_editor.py` 無頭截圖);`spine_inspector.html`
+  加 `getBoneTrajectory()` / `openTrajectoryEditor()` / `spine-motion/preview` 即時預覽橋接。
+  **三個必記技術結論**:(1) `own = actual − rigid` 不夠 —— 要拆 `actual = rigid + rotOwn + transOwn`
+  (Spine bone local 是 T·R·S,translate 造成的世界位移與 rotate 無關,故三者精確可加,殘差 <1e-13),
+  **只有 `transOwn` 能無損寫回 translate 關鍵值**;第一版拿總量回寫,round-trip 後 X 幅度 0.071→0.142px
+  (剛好兩倍,rotate 貢獻被重複計入)—— 只有 round-trip AC 抓得到。(2) 追蹤點**預設不能用骨骼原點**:
+  rotate-only 配件(bell)原點在自轉下完全不動,自身位移會被誤讀成 0;改取該骨骼 slot 的 attachment 中心。
+  (3) 迴圈邊界 de Casteljau 切分,且**延後前要先移除 loop 尾端的重複 key**(慣例上 frame=總長 的 key 是
+  frame=0 的複製,取模後撞幀、去重會留下錯曲線);修好後「延後 L 幀 == 原曲線循環平移 L 幀」誤差 7e-13。
+  **`validate_motion_tools.py` A1–A8 對兩個真實資產全 PASS**(`main_draw`/`face`/`main`、
+  `Award`/`4_LEG5`/`4_LEG3`):A1 三分解 1.1e-13px、A2 無損 round-trip(local 關鍵值誤差 **0**)、
+  A3 延後 5 幀 0.118px / 0.0001px、A4 幅度 ×1.15 比值 1.1500、A5 負對照 4/4(V2 多動骨骼、V4 原動畫被改、
+  V5 skins 被動、V7 key 超長)、A6 JS↔Python parity(世界座標 0、spec 數學 8.9e-16)、
+  **A7 無頭瀏覽器端到端:頁面預測 vs 實測世界軌跡 0.113px / 0.00014px**(這條成立,來回試錯才真省下)、
+  A8 viewer 橋接契約 0.114px。**負對照逼出兩個真 bug**:V7「key 時間 ≤ 總長」原以**新**動畫總長為準 →
+  新加的長 key 自己撐大總長、檢查恆真(這正是 skill 列為退件原因的「動畫被撐長、主體末尾凍結」),
+  改以**原**總長為準;JS 曲線求值原本重用對齊 runtime 的 `bezierY`(1e-7 提早跳出)與 Python 純二分差 1e-6,
+  parity 閘抓到後統一演算法 → 8.9e-16。順手修 `tools/analyzer/spine_anim._interp` 兩個真實檔相容性
+  (第一個 key 省略 `time`、curve 省略 `c2/c3/c4` → 缺省 0/1/1),readiness 全區塊回歸不變。
+  **honest boundary**:(a) 進階功能⑤「從 viewer 直接編輯」只驗到 **postMessage 契約**(A8) ——
+  `spine_inspector.html` 依賴 spine-webgl CDN,本環境 403,畫面真的動起來要在**使用者端**確認;
+  (b) 世界↔local **內插固有殘差** 0.12px(關鍵值換算精確,幀間 Spine 在 local 內插、編輯器在世界內插;
+  父體有 scale 動畫時才顯著,Award 無縮放為 1e-4)—— 要更緊就加密關鍵幀;(c) 只動 translate(可選 rotate),
+  mesh/權重/deform/attachment 不碰;(d) 目標 translate 只有 1 個 key = 靜態擺位,無曲線可調(分析器警告、
+  旋鈕 AC 自動 skip);(e) transform 繼承只精確支援 normal/onlyTranslation。
+  見 `knowledge/s6-trajectory-editing-tool.md`、`tools/motion/README.md`、
+  `tools/motion/skill_snippet.md`(可貼進 spine-motion-skill 的章節)、圖 `knowledge/figures/s6-trajectory-editor.png`。
+  ⚠ 本次工作在分支 `claude/spine-motion-trajectory-tool-5xq97r`(排程指定),非 `claude/spine-main`。
 - **S1 生成器產出 shear 通道端到端:斜拉 wobble beat(里程碑,2026-09-08 session 002,candidate G-4')** —
   補 G-4 的 **honest boundary**:G-4 補齊了「件繞關節 pivot 一般仿射(含 shear)」的**公式+閘**,但當時
   **沒有任何 beat 生成器產出 shear 通道**(產線主秀只用 rotate/scale,G-4 的 AC7 只用**合成** shear 驗管路)。
@@ -390,6 +426,15 @@
 
 > ⚠️ **範圍變更(2026-08-28)**:S4(切圖+補圖)已交獨立排程(見上「⇢ S4 已交接」),
 > 下列候選 **3(SkelToJson)、4(補圖閘)不再由本主排程做**;本排程專注 S1/S2骨架閘/S3/S5。
+
+**S6 續作候選(使用者若要繼續軌跡工具)**:
+- (S6-a) **viewer 即時預覽在使用者端實測**(唯一未驗的一段:CDN 在本環境 403)。使用者端跑
+  `python3 -m http.server` 開 `spine_inspector.html` → `spineTool.openTrajectoryEditor({bone:..., body:...})`
+  → 編輯器按「送預覽到 viewer」→ 確認畫面即時更新;順便用 `spineTool.getBoneTrajectory()`(官方 runtime)
+  與編輯器的純 JS 取樣器**交叉驗證**世界座標(目前只有 JS↔Python 兩邊互驗,都不是官方 runtime)。
+- (S6-b) **rotate 通道進編輯器**(spec 已預留 `rotate.keys`,套用器已支援,但 UI 只編 translate)。
+- (S6-c) **多目標同時編輯**(胸部 + 陰影 + 衣物的相位互補一起看)。
+- (S6-d) 把 `tools/motion/skill_snippet.md` 併進使用者的 spine-motion-skill(C 類:需使用者拍板)。
 
 下一個 bounded chunk 候選:
 0. **S1 分析器接續**:(a) ~~規格 → 實際素材~~ ✅;(b) ~~平圖流程~~ ✅ baseline(CPU 到頂);

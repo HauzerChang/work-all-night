@@ -463,8 +463,98 @@ window.spineTool = {
   fit:()=>fitView(),
   screenshot:()=>canvas.toDataURL('image/png'),
   loadReference:(dataURL)=>{ const im=document.getElementById('overlayImg'); im.src=dataURL; im.style.display='block'; },
-  setReferenceOpacity:(a)=>{ document.getElementById('overlayImg').style.opacity=a; }
+  setReferenceOpacity:(a)=>{ document.getElementById('overlayImg').style.opacity=a; },
+
+  /* ---------- Phase-3:軌跡（次級動態）------------------------------------------
+     搭配 spine_trajectory_editor.html。openTrajectoryEditor() 會把目前載入的骨架
+     丟進 iframe 編輯器，編輯器每次按「送預覽到 viewer」就回傳 translate keys，
+     這裡寫進 rawJson 後 rebuild()，達成「在 viewer 裡直接改某部位的軌跡」。
+     ⚠ 實驗中：需與編輯器同目錄且以 http 服務開啟（file:// 下 iframe 取不到相對路徑時
+     改用 window.open + postMessage，見 openTrajectoryEditor(opts.popup)）。 */
+  getBoneTrajectory:(opts)=>{
+    // 用**官方 runtime** 取世界座標（與編輯器的純 JS 取樣器互為交叉驗證）
+    opts=opts||{};
+    if(!skeleton||!rawJson) return null;
+    const name=opts.bone, an=opts.animation||(curAnim?curAnim._name:null);
+    if(!name||!an||!rawJson.animations[an]) return null;
+    const animObj=skeleton.data.findAnimation(an);
+    const fps=opts.fps||30, spf=opts.spf||4, px=(opts.point&&opts.point[0])||0, py=(opts.point&&opts.point[1])||0;
+    const dur=animObj.duration, n=Math.max(1,Math.round(dur*fps*spf));
+    const bone=skeleton.findBone(name); if(!bone) return null;
+    const out={animation:an, bone:name, fps:fps, duration:dur, frames:dur*fps, point:[px,py],
+               frame:[], actualX:[], actualY:[], rigidX:[], rigidY:[]};
+    const pose=(t,zeroTarget)=>{
+      skeleton.setToSetupPose();
+      animObj.apply(skeleton,0,t,true,[],1,spine.MixBlend.setup,spine.MixDirection.mixIn);
+      if(zeroTarget){ const d=bone.data;
+        bone.x=d.x; bone.y=d.y; bone.rotation=d.rotation; bone.scaleX=d.scaleX; bone.scaleY=d.scaleY;
+        bone.shearX=d.shearX; bone.shearY=d.shearY; }
+      skeleton.updateWorldTransform();
+      return [bone.a*px+bone.b*py+bone.worldX, bone.c*px+bone.d*py+bone.worldY];
+    };
+    for(let i=0;i<=n;i++){
+      const t=dur*i/n;
+      const A=pose(t,false), R=pose(t,true);
+      out.frame.push(t*fps); out.actualX.push(A[0]); out.actualY.push(A[1]);
+      out.rigidX.push(R[0]); out.rigidY.push(R[1]);
+    }
+    setAnim(an);
+    return out;
+  },
+  openTrajectoryEditor:(opts)=>{
+    opts=opts||{};
+    const msg={type:'spine-motion/load', skeleton:rawJson, name:'(viewer)',
+               animation:opts.animation||(curAnim?curAnim._name:null), bone:opts.bone, body:opts.body};
+    const url=opts.url||'spine_trajectory_editor.html';
+    if(opts.popup){
+      const w=window.open(url,'trajectory_editor');
+      const send=()=>w.postMessage(msg,'*');
+      setTimeout(send,1200); window._trajWin=w;
+      log('已開啟軌跡編輯器（新視窗）','o');
+      return w;
+    }
+    let wrap=document.getElementById('trajWrap');
+    if(!wrap){
+      wrap=document.createElement('div'); wrap.id='trajWrap';
+      wrap.style.cssText='position:fixed;inset:4% 4% 4% 4%;z-index:50;border:1px solid #2b3040;border-radius:8px;overflow:hidden;box-shadow:0 12px 48px #000a;background:#12141a';
+      const bar=document.createElement('div');
+      bar.style.cssText='display:flex;gap:8px;align-items:center;padding:4px 8px;background:#1a1d26;color:#9aa3b8;font:12px system-ui';
+      bar.innerHTML='<b style="color:#e6e9f0">軌跡編輯器</b><span>編輯後按「送預覽到 viewer」即時套用</span>';
+      const close=document.createElement('button'); close.textContent='關閉';
+      close.style.cssText='margin-left:auto'; close.onclick=()=>wrap.remove();
+      bar.appendChild(close);
+      const fr=document.createElement('iframe'); fr.id='trajFrame'; fr.src=url;
+      fr.style.cssText='width:100%;height:calc(100% - 28px);border:0';
+      wrap.appendChild(bar); wrap.appendChild(fr); document.body.appendChild(wrap);
+      fr.onload=()=>fr.contentWindow.postMessage(msg,'*');
+    } else {
+      document.getElementById('trajFrame').contentWindow.postMessage(msg,'*');
+    }
+    log('已開啟軌跡編輯器（iframe）','o');
+    return true;
+  },
+  applyTrajectoryPreview:(m)=>applyTrajectoryPreview(m)
 };
+
+/* 收編輯器回傳的 translate keys → 寫進 rawJson → rebuild 即時預覽 */
+function applyTrajectoryPreview(m){
+  if(!rawJson||!m||!m.bone||!m.keys) return false;
+  const src=m.animation, out=m.outAnimation||src;
+  if(!rawJson.animations[src]) return false;
+  if(out!==src && !rawJson.animations[out])
+    rawJson.animations[out]=JSON.parse(JSON.stringify(rawJson.animations[src]));
+  const anim=rawJson.animations[out];
+  anim.bones=anim.bones||{}; anim.bones[m.bone]=anim.bones[m.bone]||{};
+  anim.bones[m.bone].translate=m.keys;
+  rebuild();
+  if(rawJson.animations[out]) setAnim(out);
+  log('已套用軌跡預覽:'+m.bone+' @ '+out+'（'+m.keys.length+' keys）','o');
+  return true;
+}
+window.addEventListener('message',ev=>{
+  const m=ev.data||{};
+  if(m && m.type==='spine-motion/preview') applyTrajectoryPreview(m);
+});
 function meshSummary(){ if(!rawJson)return[]; const out=[]; const atts=rawJson.skins[0].attachments;
   for(const sl in atts) for(const k in atts[sl]){ const a=atts[sl][k]; if((a.type||'')==='mesh'){ const nv=a.uvs.length/2; out.push({slot:sl,name:k,verts:nv,tris:a.triangles.length/3,hull:a.hull,weighted:a.vertices.length!==2*nv}); } } return out; }
 </script>

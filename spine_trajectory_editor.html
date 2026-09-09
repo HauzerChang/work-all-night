@@ -1,0 +1,1054 @@
+<!-- spine_trajectory_editor.html — Spine 軌跡分析 / 曲線編輯 / motion spec 匯出
+     單檔、零外部相依(CDN 被政策擋過,所有計算與繪圖都自己來)。
+     搭配 tools/motion/*.py:analyze_trajectory.py 產 traj.json,本頁編輯,
+     apply_motion_spec.py 套回 Spine JSON 並驗證。頁內也可直接讀 skeleton JSON。 -->
+<meta charset="utf-8">
+<title>Spine 軌跡編輯器</title>
+<style>
+:root{
+  --bg:#12141a; --panel:#1a1d26; --panel2:#222634; --line:#333949; --fg:#e6e9f0; --dim:#9aa3b8;
+  --rigid:#8a93a8; --actual:#c46cd0; --own:#e0a13c; --edit:#3fb6ff; --pred:#4ad991; --warn:#ff6b6b;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.5 system-ui,"Noto Sans CJK TC","PingFang TC",sans-serif}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font-size:14px;margin:0 12px 0 0;font-weight:600;letter-spacing:.02em}
+button,select,input[type=text],input[type=number]{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:5px;padding:4px 8px;font:inherit}
+button{cursor:pointer}
+button:hover{border-color:#566}
+button.primary{background:#1d4e6b;border-color:#2b6f96}
+button.danger{background:#5b2330;border-color:#8b3444}
+label{color:var(--dim)}
+main{display:grid;grid-template-columns:1fr 340px;gap:10px;padding:10px;align-items:start}
+#charts{display:flex;flex-direction:column;gap:10px;min-width:0}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 8px 2px}
+.chart h2{margin:0;font-size:12px;color:var(--dim);font-weight:500;display:flex;gap:10px;align-items:center}
+.chart canvas{width:100%;display:block;touch-action:none;cursor:crosshair}
+aside{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.card h3{margin:0 0 6px;font-size:12px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.row{display:flex;align-items:center;gap:6px;margin:4px 0}
+.row label{flex:0 0 84px;font-size:12px}
+.row input[type=range]{flex:1;min-width:0}
+.row .val{flex:0 0 58px;text-align:right;font-family:var(--mono);font-size:12px}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px}
+th,td{text-align:right;padding:2px 4px;border-bottom:1px solid #2a2f3d}
+th{color:var(--dim);font-weight:500}
+td input{width:100%;background:transparent;border:0;color:var(--fg);font:inherit;text-align:right;padding:1px 2px;border-radius:3px}
+td input:focus{background:var(--panel2);outline:1px solid var(--edit)}
+tr.sel td{background:#20364a}
+td.k{text-align:left}
+.metrics{font-family:var(--mono);font-size:11.5px;line-height:1.7}
+.metrics b{color:var(--fg);font-weight:600}
+.metrics .g{color:var(--dim)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--dim);margin-left:auto}
+.legend span{display:inline-flex;align-items:center;gap:4px;cursor:pointer;user-select:none;opacity:.55}
+.legend span.on{opacity:1;color:var(--fg)}
+.legend i{width:14px;height:0;border-top:2px solid;display:inline-block}
+footer{padding:6px 12px;color:var(--dim);font-family:var(--mono);font-size:11.5px;border-top:1px solid var(--line);background:var(--panel);white-space:pre-wrap;max-height:130px;overflow:auto}
+.hint{color:var(--dim);font-size:11.5px;line-height:1.6}
+textarea{width:100%;height:120px;background:#0d0f14;color:var(--fg);border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:11px;padding:6px}
+.warnbox{color:var(--warn);font-size:11.5px}
+.drop{position:fixed;inset:0;background:rgba(18,20,26,.9);display:none;place-items:center;font-size:18px;color:var(--edit);z-index:9;border:3px dashed var(--edit)}
+.drop.on{display:grid}
+</style>
+
+<header>
+  <h1>Spine 軌跡編輯器</h1>
+  <button id="btnLoadTraj">載入 traj.json</button>
+  <button id="btnLoadSkel">載入 skeleton JSON</button>
+  <span style="width:12px"></span>
+  <label>動畫</label><select id="selAnim"></select>
+  <label>目標骨骼</label><select id="selBone"></select>
+  <label>主體骨骼</label><select id="selBody"></select>
+  <label>fps</label><input id="inFps" type="number" value="30" min="1" max="120" style="width:56px">
+  <button id="btnReanalyze">重新分析</button>
+  <span class="legend" id="legend"></span>
+</header>
+
+<main>
+  <section id="charts">
+    <div class="chart"><h2>世界 Y（上 + / 下 −）<span class="hint">拖動藍點改幅度與時間 · 雙擊空白處加點 · 選取後 Del 刪除</span></h2><canvas id="cy"></canvas></div>
+    <div class="chart"><h2>世界 X（右 + / 左 −）</h2><canvas id="cx"></canvas></div>
+  </section>
+
+  <aside>
+    <div class="card">
+      <h3>旋鈕</h3>
+      <div class="row"><label>延後 L（幀）</label><input id="rLag" type="range" min="0" max="20" step="0.5" value="0"><span class="val" id="vLag">0</span></div>
+      <div class="row"><label>幅度 ×</label><input id="rScale" type="range" min="0" max="2" step="0.05" value="1"><span class="val" id="vScale">1.00</span></div>
+      <div class="row"><label>X 軸幅度 ×</label><input id="rSx" type="range" min="0" max="3" step="0.05" value="1"><span class="val" id="vSx">1.00</span></div>
+      <div class="row"><label>Y 軸幅度 ×</label><input id="rSy" type="range" min="0" max="3" step="0.05" value="1"><span class="val" id="vSy">1.00</span></div>
+      <div class="row"><label>迴圈接縫</label><input id="ckLoop" type="checkbox" checked><span class="hint">跨邊界段以 de Casteljau 切分（總長不變）</span></div>
+      <div class="row"><label>緩動</label><select id="selCurve">
+        <option value="keep">維持各鍵原曲線</option>
+        <option value="body">沿用主體曲線</option>
+        <option value="linear">全線性</option>
+        <option value="ease">ease 0.374/0.02/0.636/0.99</option>
+        <option value="stepped">stepped</option>
+      </select></div>
+    </div>
+
+    <div class="card">
+      <h3>關鍵幀（自身位移・世界座標）</h3>
+      <table id="keyTable"><thead><tr><th class="k">#</th><th>幀</th><th>ΔX</th><th>ΔY</th><th>曲線</th></tr></thead><tbody></tbody></table>
+      <div class="row" style="margin-top:6px">
+        <button id="btnAddKey">＋加點</button><button id="btnDelKey" class="danger">刪除選取</button>
+        <button id="btnResetKeys">回原始</button><button id="btnZeroKeys">歸零</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>量化（現況 → 編輯後）</h3>
+      <div class="metrics" id="metrics">尚未載入資料。</div>
+    </div>
+
+    <div class="card">
+      <h3>輸出</h3>
+      <div class="row" style="flex-wrap:wrap">
+        <label style="flex:0 0 84px">新動畫名</label><input id="inOutName" type="text" style="flex:1">
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:6px">
+        <button class="primary" id="btnSpec">下載 motion spec</button>
+        <button id="btnCopySpec">複製 spec</button>
+        <button id="btnCsv">下載對照表 CSV</button>
+        <button id="btnCmd">複製 skill 指令</button>
+        <button id="btnPreview">送預覽到 viewer</button>
+      </div>
+      <div class="hint" style="margin-top:6px">spec 交給 <code>apply_motion_spec.py</code> 套回 Spine JSON 並跑 V1–V7 / Q1–Q3 驗證；spine-motion-skill 讀同一份 spec 就知道要調什麼。</div>
+      <textarea id="taOut" spellcheck="false" placeholder="匯出內容會出現在這裡"></textarea>
+    </div>
+
+    <div class="card" id="cardWarn" style="display:none"><h3>警告</h3><div class="warnbox" id="warns"></div></div>
+  </aside>
+</main>
+
+<footer id="log">就緒。載入 traj.json（analyze_trajectory.py 產出）或直接載入 Spine skeleton JSON。</footer>
+<div class="drop" id="drop">放開以載入 JSON</div>
+<input type="file" id="fileTraj" accept=".json" hidden>
+<input type="file" id="fileSkel" accept=".json" hidden>
+
+<script>
+/* ==== spine-motion-core BEGIN ====================================================
+   與 tools/motion/{spine_world,motion_spec}.py **同一套演算法** 的 JS 版。
+   tools/motion/test_js_parity.js 會把這段抽出來在 node 跑,逐點比對兩邊數值,
+   確保「頁面上畫的」與「Python 寫進 JSON 的」不會各說各話。
+   ================================================================================= */
+const SMC = (function(){
+  "use strict";
+  const ALL_CH = ["translate","rotate","scale","shear"];
+
+  // ---- 緊湊 bezier:給時間佔比 p 解 x(t)=p,回傳 y ----
+  function bezierY(cx1,cy1,cx2,cy2,p){
+    if(p<=0) return 0; if(p>=1) return 1;
+    const bez=(t,c1,c2)=>{const mt=1-t; return 3*mt*mt*t*c1+3*mt*t*t*c2+t*t*t;};
+    let lo=0,hi=1,t=p;
+    for(let i=0;i<30;i++){
+      const x=bez(t,cx1,cx2);
+      if(Math.abs(x-p)<1e-7) break;
+      if(x<p) lo=t; else hi=t;
+      t=0.5*(lo+hi);
+    }
+    return bez(t,cy1,cy2);
+  }
+  // ---- timeline 內插(對齊 spine_anim._interp:第一鍵可省 time、c2/c3/c4 缺省 0/1/1) ----
+  function interp(frames,t,keys){
+    const out={}; const n=frames?frames.length:0;
+    if(!n){ keys.forEach(k=>out[k]=0); return out; }
+    const T=f=>(f.time===undefined?0:f.time);
+    if(t<=T(frames[0])){ keys.forEach(k=>out[k]=+(frames[0][k]||0)); return out; }
+    if(t>=T(frames[n-1])){ keys.forEach(k=>out[k]=+(frames[n-1][k]||0)); return out; }
+    let i=0; while(i+1<n && T(frames[i+1])<=t) i++;
+    const f0=frames[i], f1=frames[i+1], t0=T(f0), t1=T(f1), span=t1-t0;
+    const p = span<=0?0:(t-t0)/span;
+    let a;
+    if(f0.curve==="stepped") a=0;
+    else if(typeof f0.curve==="number") a=bezierY(f0.curve, f0.c2===undefined?0:f0.c2, f0.c3===undefined?1:f0.c3, f0.c4===undefined?1:f0.c4, p);
+    else a=p;
+    for(const k of keys){ const v0=+(f0[k]||0), v1=+(f1[k]||0); out[k]=v0+(v1-v0)*a; }
+    return out;
+  }
+  function dfltOne(v,frames,key){
+    if(!frames||!frames.length) return 1;
+    return frames.some(f=>f[key]!==undefined) ? v : 1;
+  }
+
+  // ---- 骨架 ----
+  class Skel{
+    constructor(data){
+      this.data=data; this.list=data.bones||[]; this.bones={};
+      this.list.forEach(b=>this.bones[b.name]=b);
+      this.warnings=[];
+      for(const b of this.list){
+        const tm=b.transform||"normal";
+        if(tm!=="normal"&&tm!=="onlyTranslation") this.warnings.push(`bone '${b.name}' transform='${tm}' 未精確支援,以 normal 近似`);
+      }
+    }
+    parentChain(n){ const out=[]; let b=this.bones[n]; while(b&&b.parent){ out.push(b.parent); b=this.bones[b.parent]; } return out; }
+    zeroedChannels(name,zero){
+      if(!zero) return [];
+      if(Array.isArray(zero)) return zero.indexOf(name)>=0?ALL_CH:[];
+      const v=zero[name];
+      if(v===undefined) return [];
+      if(v===true||v==="all") return ALL_CH;
+      return v;
+    }
+    local(name,anim,t,zero){
+      const b=this.bones[name];
+      let x=b.x||0,y=b.y||0,rot=b.rotation||0,sx=b.scaleX===undefined?1:b.scaleX,sy=b.scaleY===undefined?1:b.scaleY;
+      let shx=b.shearX||0, shy=b.shearY||0;
+      const tl = anim && anim.bones ? anim.bones[name] : null;
+      if(!tl) return [x,y,rot,sx,sy,shx,shy];
+      const z=this.zeroedChannels(name,zero);
+      if(tl.translate && z.indexOf("translate")<0){ const v=interp(tl.translate,t,["x","y"]); x+=v.x; y+=v.y; }
+      if(tl.rotate && z.indexOf("rotate")<0){ rot+=interp(tl.rotate,t,["angle"]).angle; }
+      if(tl.scale && z.indexOf("scale")<0){ const v=interp(tl.scale,t,["x","y"]); sx*=dfltOne(v.x,tl.scale,"x"); sy*=dfltOne(v.y,tl.scale,"y"); }
+      if(tl.shear && z.indexOf("shear")<0){ const v=interp(tl.shear,t,["x","y"]); shx+=v.x; shy+=v.y; }
+      return [x,y,rot,sx,sy,shx,shy];
+    }
+    world(name,anim,t,zero){
+      const bone=this.bones[name];
+      const [x,y,rot,sx,sy,shx,shy]=this.local(name,anim,t,zero);
+      const rx=(rot+shx)*Math.PI/180, ry=(rot+90+shy)*Math.PI/180;
+      const la=Math.cos(rx)*sx, lc=Math.sin(rx)*sx, lb=Math.cos(ry)*sy, ld=Math.sin(ry)*sy;
+      if(!bone.parent) return [la,lb,lc,ld,x,y];
+      const [pa,pb,pc,pd,px,py]=this.world(bone.parent,anim,t,zero);
+      const wx=pa*x+pb*y+px, wy=pc*x+pd*y+py;
+      if((bone.transform||"normal")==="onlyTranslation") return [la,lb,lc,ld,wx,wy];
+      return [pa*la+pb*lc, pa*lb+pb*ld, pc*la+pd*lc, pc*lb+pd*ld, wx, wy];
+    }
+    worldPos(name,anim,t,zero,lx,ly){
+      lx=lx||0; ly=ly||0;
+      const [a,b,c,d,wx,wy]=this.world(name,anim,t,zero);
+      return [a*lx+b*ly+wx, c*lx+d*ly+wy];
+    }
+    worldToLocalDelta(name,anim,t,dX,dY,zero){
+      const bone=this.bones[name];
+      if(!bone.parent) return [dX,dY];
+      const [a,b,c,d]=this.world(bone.parent,anim,t,zero);
+      const det=a*d-b*c;
+      if(Math.abs(det)<1e-12) throw new Error("父體世界矩陣不可逆");
+      return [(d*dX-b*dY)/det, (-c*dX+a*dY)/det];
+    }
+    // actual = rigid + rotOwn + transOwn(精確可加)
+    ownSplit(name,anim,t,px,py){
+      const rigid=this.worldPos(name,anim,t,[name],px,py);
+      const norot=this.worldPos(name,anim,t,{[name]:["rotate","scale","shear"]},px,py);
+      const notrans=this.worldPos(name,anim,t,{[name]:["translate"]},px,py);
+      const actual=this.worldPos(name,anim,t,null,px,py);
+      return {rigid, rotOwn:[notrans[0]-rigid[0],notrans[1]-rigid[1]],
+              transOwn:[norot[0]-rigid[0],norot[1]-rigid[1]], actual};
+    }
+  }
+
+  function duration(anim){
+    let m=0;
+    (function walk(o){
+      if(Array.isArray(o)){ o.forEach(walk); }
+      else if(o && typeof o==="object"){
+        if(typeof o.time==="number") m=Math.max(m,o.time);
+        for(const k in o) walk(o[k]);
+      }
+    })(anim);
+    return m;
+  }
+  function keyTimes(anim,bone){
+    const tl=(anim.bones||{})[bone]||{}; const s=new Set();
+    for(const ch in tl) tl[ch].forEach(k=>s.add(+((k.time===undefined?0:k.time)).toFixed(6)));
+    return [...s].sort((a,b)=>a-b);
+  }
+  function extrema(frames,values,eps){
+    eps=eps===undefined?1e-9:eps;
+    const n=values.length-1, out=[];
+    if(n<3) return out;
+    for(let i=0;i<n;i++){
+      const p=values[(i-1+n)%n], q=values[(i+1)%n], v=values[i];
+      if(v>p+eps && v>=q-eps) out.push([frames[i],v,"max"]);
+      else if(v<p-eps && v<=q+eps) out.push([frames[i],v,"min"]);
+    }
+    return out;
+  }
+  function pearson(a,b){
+    const n=a.length; if(!n) return 0;
+    const ma=a.reduce((x,y)=>x+y,0)/n, mb=b.reduce((x,y)=>x+y,0)/n;
+    let sa=0,sb=0,s=0;
+    for(let i=0;i<n;i++){ const da=a[i]-ma, db=b[i]-mb; sa+=da*da; sb+=db*db; s+=da*db; }
+    if(Math.sqrt(sa)<1e-12||Math.sqrt(sb)<1e-12) return 0;
+    return s/Math.sqrt(sa*sb);
+  }
+  function bestLag(body,own,spf){
+    const n=own.length-1;
+    if(n<4) return {comp:0,r:0,sync:0,rSync:0};
+    let bc=[0,2], bs=[0,-2];
+    for(let s=0;s<n;s++){
+      const sh=[]; for(let i=0;i<n;i++) sh.push(own[((i-s)%n+n)%n]);
+      const r=pearson(body.slice(0,n),sh);
+      if(r<bc[1]) bc=[s,r];
+      if(r>bs[1]) bs=[s,r];
+    }
+    return {comp:bc[0]/spf, r:bc[1], sync:bs[0]/spf, rSync:bs[1]};
+  }
+
+  /* ---------------- motion_spec.py 的 JS 版 ---------------- */
+  function bezPt(t,p0,p1,p2,p3){
+    return [0,1].map(i=>Math.pow(1-t,3)*p0[i]+3*Math.pow(1-t,2)*t*p1[i]+3*(1-t)*t*t*p2[i]+t*t*t*p3[i]);
+  }
+  function splitCurve(cx1,cy1,cx2,cy2,u0){
+    const p0=[0,0],p1=[cx1,cy1],p2=[cx2,cy2],p3=[1,1];
+    let lo=0,hi=1,t=0.5;
+    for(let i=0;i<60;i++){ t=(lo+hi)/2; if(bezPt(t,p0,p1,p2,p3)[0]<u0) lo=t; else hi=t; }
+    t=(lo+hi)/2;
+    const mix=(a,b)=>[a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t];
+    const q1=mix(p0,p1), q2=mix(p1,p2), q3=mix(p2,p3);
+    const r1=mix(q1,q2), r2=mix(q2,q3);
+    const m=mix(r1,r2), mx=m[0], my=m[1];
+    if(mx<=1e-9||my<=1e-9||(1-mx)<=1e-9||(1-my)<=1e-9) return {L:null,R:null,w0:my};
+    return {L:{curve:q1[0]/mx,c2:q1[1]/my,c3:r1[0]/mx,c4:r1[1]/my},
+            R:{curve:(r2[0]-mx)/(1-mx),c2:(r2[1]-my)/(1-my),c3:(q3[0]-mx)/(1-mx),c4:(q3[1]-my)/(1-my)},
+            w0:my};
+  }
+  function curveValueAt(curve,u){
+    // 注意:這裡刻意**不用** bezierY。bezierY 對齊的是 Spine runtime 的取樣器(有 1e-7 提早跳出),
+    // 而 spec 的曲線求值要對齊 motion_spec.curve_value_at(純二分 40 次),兩邊才不會差 ~1e-6。
+    if(curve===null||curve===undefined) return u;
+    if(curve==="stepped") return 0;
+    const cx1=curve.curve||0, cy1=curve.c2||0;
+    const cx2=curve.c3===undefined?1:curve.c3, cy2=curve.c4===undefined?1:curve.c4;
+    let lo=0,hi=1,t=0.5;
+    for(let i=0;i<40;i++){
+      t=(lo+hi)/2;
+      const x=3*Math.pow(1-t,2)*t*cx1+3*(1-t)*t*t*cx2+t*t*t;
+      if(x<u) lo=t; else hi=t;
+    }
+    t=(lo+hi)/2;
+    return 3*Math.pow(1-t,2)*t*cy1+3*(1-t)*t*t*cy2+t*t*t;
+  }
+  function stripLoopDuplicate(keys,nf,fields){
+    if(keys.length<2) return keys.slice();
+    const f=keys[0], l=keys[keys.length-1];
+    if(Math.abs(+f.frame)<1e-6 && Math.abs(+l.frame-nf)<1e-6 &&
+       fields.every(k=>Math.abs((+f[k]||0)-(+l[k]||0))<1e-4)) return keys.slice(0,-1);
+    return keys.slice();
+  }
+  function applyKnobs(keys,fields,opt){
+    opt=opt||{};
+    const lag=opt.lag||0, scale=opt.scale===undefined?1:opt.scale, per=opt.perAxis||{}, nf=opt.nf;
+    let ks=keys;
+    if(nf&&lag) ks=stripLoopDuplicate(ks,nf,fields);
+    const means={};
+    fields.forEach(f=>{
+      const v=ks.map(k=>+(k[f]||0));
+      means[f]= v.length? (Math.max(...v)+Math.min(...v))/2 : 0;
+    });
+    return ks.map(k=>{
+      const nk={frame:+k.frame+lag, curve:k.curve===undefined?null:k.curve};
+      fields.forEach(f=>{ const s=scale*(per[f]===undefined?1:per[f]); nk[f]=means[f]+((+k[f]||0)-means[f])*s; });
+      return nk;
+    });
+  }
+  function wrapCycle(keys,nf,fields,loop){
+    let ks=keys.map(k=>Object.assign({},k,{frame:+k.frame})).sort((a,b)=>a.frame-b.frame);
+    if(!ks.length) return [];
+    if(loop===false) return ks.filter(k=>k.frame>=-1e-9&&k.frame<=nf+1e-9);
+    ks=stripLoopDuplicate(ks,nf,fields);
+    ks=ks.map(k=>Object.assign({},k,{frame:((k.frame%nf)+nf)%nf})).sort((a,b)=>a.frame-b.frame);
+    const seen={}, dd=[];
+    ks.forEach(k=>{ const key=k.frame.toFixed(6); if(!(key in seen)){ seen[key]=1; dd.push(k); } });
+    ks=dd;
+    if(Math.abs(ks[0].frame)<1e-9)
+      return ks.concat([Object.assign({},ks[0],{frame:nf,curve:null})]);
+    const last=ks[ks.length-1], first=ks[0];
+    const seg=(first.frame+nf)-last.frame;
+    if(seg<=1e-9) return ks.concat([Object.assign({},ks[0],{frame:nf,curve:null})]);
+    const u0=(nf-last.frame)/seg;
+    let L,R,w0;
+    if(last.curve && typeof last.curve==="object"){ const r=splitCurve(last.curve.curve||0,last.curve.c2||0,
+        last.curve.c3===undefined?1:last.curve.c3,last.curve.c4===undefined?1:last.curve.c4,u0); L=r.L;R=r.R;w0=r.w0; }
+    else { L=R=(last.curve===undefined?null:last.curve); w0=curveValueAt(last.curve,u0); }
+    const boundary={};
+    fields.forEach(f=>{ const a=+(last[f]||0), b=+(first[f]||0); boundary[f]=a+(b-a)*w0; });
+    const mid=ks.map(k=>Object.assign({},k));
+    mid[mid.length-1]=Object.assign({},mid[mid.length-1],{curve:L});
+    return [Object.assign({},boundary,{frame:0,curve:R})].concat(mid,[Object.assign({},boundary,{frame:nf,curve:null})]);
+  }
+  function sampleKeys(keys,fields,frame,nf,loop){
+    const out={};
+    if(!keys.length){ fields.forEach(f=>out[f]=0); return out; }
+    const ks=keys.slice().sort((a,b)=>a.frame-b.frame);
+    let fr = loop===false ? Math.max(0,Math.min(frame,nf)) : ((frame%nf)+nf)%nf;
+    if(fr<=ks[0].frame){ fields.forEach(f=>out[f]=+(ks[0][f]||0)); return out; }
+    if(fr>=ks[ks.length-1].frame){ fields.forEach(f=>out[f]=+(ks[ks.length-1][f]||0)); return out; }
+    for(let i=0;i<ks.length-1;i++){
+      const a=ks[i], b=ks[i+1];
+      if(a.frame<=fr && fr<=b.frame){
+        const span=b.frame-a.frame, u= span<=0?0:(fr-a.frame)/span, w=curveValueAt(a.curve,u);
+        fields.forEach(f=>{ const va=+(a[f]||0), vb=+(b[f]||0); out[f]=va+(vb-va)*w; });
+        return out;
+      }
+    }
+    fields.forEach(f=>out[f]=+(ks[ks.length-1][f]||0));
+    return out;
+  }
+  function toSpineKeys(keys,fps,fields,nd){
+    nd=nd===undefined?4:nd;
+    const r=(v,n)=>+(+v).toFixed(n);
+    return keys.map((k,i)=>{
+      const e={}; const t=r(+k.frame/fps,5);
+      if(t>0) e.time=t;
+      fields.forEach(f=>e[f]=r(+(k[f]||0),nd));
+      const c=k.curve;
+      if(i<keys.length-1 && c!==null && c!==undefined){
+        if(c==="stepped") e.curve="stepped";
+        else { e.curve=r(c.curve||0,5); e.c2=r(c.c2||0,5); e.c3=r(c.c3===undefined?1:c.c3,5); e.c4=r(c.c4===undefined?1:c.c4,5); }
+      }
+      return e;
+    });
+  }
+  return {Skel,duration,keyTimes,extrema,pearson,bestLag,interp,bezierY,
+          splitCurve,curveValueAt,applyKnobs,wrapCycle,sampleKeys,toSpineKeys,stripLoopDuplicate};
+})();
+if(typeof module!=="undefined"&&module.exports) module.exports=SMC;
+/* ==== spine-motion-core END ==== */
+</script>
+
+<script>
+/* ==== 分析層:skeleton JSON → 軌跡包(與 analyze_trajectory.py 同結構) ==== */
+"use strict";
+const $ = s => document.querySelector(s);
+const S = {
+  data:null, skel:null, animName:null, bone:null, bodyBone:null,
+  fps:30, spf:4, point:[0,0], pointDesc:"", traj:null,
+  keys:[], baseKeys:[], sel:null,
+  knobs:{lag:0, scale:1, sx:1, sy:1, loop:true, curve:"keep"},
+  show:{rigid:1, actual:1, own:1, edit:1, pred:1},
+  srcName:"(未命名)", srcPath:null, warnings:[]
+};
+const FIELDS=["wx","wy"];
+const EASE={curve:0.374,c2:0.02,c3:0.636,c4:0.99};
+
+function log(msg, cls){ const f=$("#log"); f.textContent = msg + "\n" + f.textContent.split("\n").slice(0,60).join("\n"); }
+function fmt(v,n){ return (+v).toFixed(n===undefined?2:n); }
+
+function slotsOfBone(data,bone){ return (data.slots||[]).filter(s=>s.bone===bone).map(s=>s.name); }
+function autoPoint(data,bone){
+  const names=slotsOfBone(data,bone); let best=null;
+  const skins=data.skins||{};
+  const maps = Array.isArray(skins) ? skins.map(sk=>sk.attachments||{}) : Object.values(skins);
+  for(const skin of maps) for(const sn of names){
+    const atts=skin[sn]||{};
+    for(const an in atts){
+      const a=atts[an], area=Math.max((a.width||0)*(a.height||0),1);
+      if(!best||area>best[0]) best=[area, a.x||0, a.y||0, sn];
+    }
+  }
+  return best ? {p:[best[1],best[2]], desc:`slot '${best[3]}' attachment 中心`} : {p:[0,0], desc:"骨骼原點（該骨骼無 attachment）"};
+}
+function curveOf(k){
+  if(k.curve===undefined||k.curve===null) return null;
+  if(k.curve==="stepped") return "stepped";
+  return {curve:+k.curve, c2:k.c2===undefined?0:+k.c2, c3:k.c3===undefined?1:+k.c3, c4:k.c4===undefined?1:+k.c4};
+}
+
+function analyze(){
+  const d=S.data, anim=d.animations[S.animName];
+  const sk=S.skel, fps=S.fps, spf=S.spf;
+  const dur=SMC.duration(anim);
+  if(!(dur>0)) { log(`⚠ 動畫 ${S.animName} 總長 0,無軌跡可分析`); return null; }
+  const nf=dur*fps, n=Math.max(1,Math.round(nf*spf));
+  const ts=[], fr=[];
+  for(let i=0;i<=n;i++){ ts.push(dur*i/n); fr.push(dur*i/n*fps); }
+  const ap=autoPoint(d,S.bone);
+  if(!S.pointLocked){ S.point=ap.p; S.pointDesc=ap.desc; }
+  const [px,py]=S.point;
+  const body=[],rigid=[],rotOwn=[],transOwn=[],own=[],actual=[];
+  for(const t of ts){
+    body.push(sk.worldPos(S.bodyBone,anim,t,null,0,0));
+    const s=sk.ownSplit(S.bone,anim,t,px,py);
+    rigid.push(s.rigid); rotOwn.push(s.rotOwn); transOwn.push(s.transOwn); actual.push(s.actual);
+    own.push([s.rotOwn[0]+s.transOwn[0], s.rotOwn[1]+s.transOwn[1]]);
+  }
+  const beats=SMC.keyTimes(anim,S.bodyBone).map(t=>+(t*fps).toFixed(3));
+  const tl=((anim.bones||{})[S.bone])||{};
+  const srcKeys=tl.translate||null;
+  const baseFrames = srcKeys ? srcKeys.map(k=>+(((k.time||0)*fps).toFixed(4))) : beats.slice();
+  const baseKeys = baseFrames.map((f,i)=>{
+    const t=Math.min(Math.max(f/fps,0),dur);
+    const s=sk.ownSplit(S.bone,anim,t,px,py);
+    const k={frame:+f.toFixed(4), wx:+s.transOwn[0].toFixed(4), wy:+s.transOwn[1].toFixed(4)};
+    const c = srcKeys ? curveOf(srcKeys[i]) : null;
+    if(c) k.curve=c;
+    return k;
+  });
+  S.traj={dur,nf,fr,ts,body,rigid,rotOwn,transOwn,own,actual,beats,
+          channels:Object.keys(tl), parentChain:sk.parentChain(S.bone)};
+  S.warnings=sk.warnings.slice();
+  return baseKeys;
+}
+
+/* ==== 編輯後的曲線 ==== */
+function effectiveKeys(){
+  const nf=S.traj.nf, k=S.knobs;
+  let keys=S.keys.map(x=>Object.assign({},x));
+  if(k.curve!=="keep"){
+    const c = k.curve==="linear" ? null : k.curve==="stepped" ? "stepped" :
+              k.curve==="ease" ? EASE : bodyCurve();
+    keys=keys.map(x=>Object.assign({},x,{curve:c}));
+  }
+  const knobbed=SMC.applyKnobs(keys,FIELDS,{lag:k.lag,scale:k.scale,perAxis:{wx:k.sx,wy:k.sy},nf});
+  return SMC.wrapCycle(knobbed,nf,FIELDS,k.loop);
+}
+function bodyCurve(){
+  const tl=((S.data.animations[S.animName].bones||{})[S.bodyBone])||{};
+  for(const ch of ["translate","rotate","scale"]){
+    const keys=tl[ch]; if(!keys) continue;
+    for(const k of keys){ const c=curveOf(k); if(c&&c!=="stepped") return c; }
+  }
+  return EASE;
+}
+function editedSeries(){
+  const eff=effectiveKeys(), nf=S.traj.nf;
+  return S.traj.fr.map(f=>{ const v=SMC.sampleKeys(eff,FIELDS,f,nf,S.knobs.loop); return [v.wx,v.wy]; });
+}
+function predictedActual(edited){
+  return S.traj.fr.map((f,i)=>[
+    S.traj.rigid[i][0]+S.traj.rotOwn[i][0]+edited[i][0],
+    S.traj.rigid[i][1]+S.traj.rotOwn[i][1]+edited[i][1]]);
+}
+
+/* ==== 繪圖 ==== */
+const CH={x:{cv:null,axis:0,field:"wx"}, y:{cv:null,axis:1,field:"wy"}};
+function mean(a){ return a.reduce((x,y)=>x+y,0)/a.length; }
+function dm(a){ const m=mean(a); return a.map(v=>v-m); }
+
+function drawChart(which){
+  const cfg=CH[which], cv=cfg.cv, ax=cfg.axis;
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth, H=260;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.height=H+"px";
+  const g=cv.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,W,H);
+  const css=getComputedStyle(document.documentElement);
+  const col=n=>css.getPropertyValue("--"+n).trim();
+  const L=44,R=10,T=10,B=22, iw=W-L-R, ih=H-T-B;
+  if(!S.traj){ g.fillStyle=col("dim"); g.fillText("尚未載入資料",L,T+20); return; }
+  const {fr,nf,beats}=S.traj;
+  const edited=S.cacheEdited||editedSeries();
+  const pred=predictedActual(edited);
+
+  // 系列(位移類原值,絕對軌跡去平均對照形狀)
+  const rigidS=dm(S.traj.rigid.map(p=>p[ax]));
+  const actualM=mean(S.traj.actual.map(p=>p[ax]));
+  const actualS=S.traj.actual.map(p=>p[ax]-actualM);
+  const predS=pred.map(p=>p[ax]-actualM);
+  const ownS=S.traj.own.map(p=>p[ax]);
+  const editS=edited.map(p=>p[ax]);
+  const series=[];
+  if(S.show.rigid) series.push({v:rigidS,c:col("rigid"),w:1.4,name:"rigid"});
+  if(S.show.actual) series.push({v:actualS,c:col("actual"),w:1.2,dash:[4,3],name:"actual"});
+  if(S.show.own) series.push({v:ownS,c:col("own"),w:1.2,dash:[2,2],name:"own"});
+  if(S.show.pred) series.push({v:predS,c:col("pred"),w:1.8,name:"pred"});
+  if(S.show.edit) series.push({v:editS,c:col("edit"),w:2,name:"edit"});
+  let lo=0,hi=0;
+  series.forEach(s=>s.v.forEach(v=>{ if(v<lo)lo=v; if(v>hi)hi=v; }));
+  if(hi-lo<1e-6){ lo-=1; hi+=1; }
+  const pad=(hi-lo)*0.12; lo-=pad; hi+=pad;
+  const X=f=>L+iw*f/nf, Y=v=>T+ih*(hi-v)/(hi-lo);
+  cfg.map={X,Y,lo,hi,L,T,iw,ih,nf,
+           invX:x=>Math.max(0,Math.min(nf,(x-L)/iw*nf)),
+           invY:y=>hi-(y-T)/ih*(hi-lo)};
+
+  // 網格
+  g.strokeStyle="#272c39"; g.lineWidth=1; g.fillStyle=col("dim"); g.font="10px "+css.getPropertyValue("--mono");
+  const step = nf>40?5:nf>20?2:1;
+  for(let f=0; f<=nf+1e-6; f+=step){
+    const x=X(f); g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ih); g.stroke();
+    g.fillText(String(Math.round(f)), x-5, H-7);
+  }
+  // 0 線
+  g.strokeStyle="#3c4356"; g.beginPath(); g.moveTo(L,Y(0)); g.lineTo(L+iw,Y(0)); g.stroke();
+  // 值刻度
+  for(let i=0;i<=4;i++){
+    const v=lo+(hi-lo)*i/4, y=Y(v);
+    g.strokeStyle="#232836"; g.beginPath(); g.moveTo(L,y); g.lineTo(L+iw,y); g.stroke();
+    g.fillStyle=col("dim"); g.fillText(fmt(v,1), 4, y+3);
+  }
+  // 主體節拍
+  g.save(); g.setLineDash([3,4]); g.strokeStyle="#5c6070";
+  beats.forEach(b=>{ const x=X(b); g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ih); g.stroke(); });
+  g.restore();
+
+  // 曲線
+  series.forEach(s=>{
+    g.save(); g.strokeStyle=s.c; g.lineWidth=s.w; if(s.dash) g.setLineDash(s.dash);
+    g.beginPath();
+    s.v.forEach((v,i)=>{ const x=X(fr[i]), y=Y(v); i?g.lineTo(x,y):g.moveTo(x,y); });
+    g.stroke(); g.restore();
+  });
+
+  // 極值標註(編輯曲線)
+  if(S.show.edit){
+    g.fillStyle=col("edit"); g.font="10px "+css.getPropertyValue("--mono");
+    SMC.extrema(fr,editS).forEach(([f,v,k])=>{
+      g.fillText(Math.round(f)+"f", X(f)-8, Y(v)+(k==="max"?-6:12));
+    });
+  }
+  // 關鍵幀手把(套 lag 後的位置)
+  if(S.show.edit){
+    const eff=effectiveKeys();
+    S.keys.forEach((k,i)=>{
+      const f=((+k.frame + S.knobs.lag)%nf+nf)%nf;
+      const v=SMC.sampleKeys(eff,FIELDS,f,nf,S.knobs.loop)[cfg.field];
+      const x=X(f), y=Y(v);
+      g.beginPath(); g.arc(x,y,i===S.sel?6:4.5,0,7);
+      g.fillStyle=i===S.sel?"#fff":col("edit"); g.fill();
+      g.lineWidth=1.5; g.strokeStyle="#0c1220"; g.stroke();
+      cfg.handles=cfg.handles||[];
+    });
+  }
+  // 標題角落資訊
+  g.fillStyle=col("dim");
+  g.fillText(`${ax? "Y":"X"} 軸 · 幅度 ${fmt(Math.max(...editS)-Math.min(...editS),2)}px（編輯）`, L+4, T+11);
+}
+function handlePos(which,i){
+  const cfg=CH[which], nf=S.traj.nf, eff=effectiveKeys();
+  const f=((+S.keys[i].frame + S.knobs.lag)%nf+nf)%nf;
+  const v=SMC.sampleKeys(eff,FIELDS,f,nf,S.knobs.loop)[cfg.field];
+  return [cfg.map.X(f), cfg.map.Y(v)];
+}
+function redraw(){
+  S.cacheEdited = S.traj ? editedSeries() : null;
+  drawChart("y"); drawChart("x");
+  renderTable(); renderMetrics();
+}
+</script>
+
+<script>
+/* ==== 關鍵幀表格 ==== */
+function renderTable(){
+  const tb=$("#keyTable tbody"); tb.innerHTML="";
+  if(!S.traj) return;
+  S.keys.forEach((k,i)=>{
+    const tr=document.createElement("tr");
+    if(i===S.sel) tr.className="sel";
+    const cname = k.curve==null?"linear":k.curve==="stepped"?"stepped":"bezier";
+    tr.innerHTML=`<td class="k">${i}</td>
+      <td><input data-i="${i}" data-f="frame" value="${fmt(k.frame,2)}"></td>
+      <td><input data-i="${i}" data-f="wx" value="${fmt(k.wx,2)}"></td>
+      <td><input data-i="${i}" data-f="wy" value="${fmt(k.wy,2)}"></td>
+      <td style="color:var(--dim)">${cname}</td>`;
+    tr.onclick=e=>{ if(e.target.tagName!=="INPUT"){ S.sel=i; redraw(); } };
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll("input").forEach(inp=>{
+    inp.onchange=()=>{
+      const i=+inp.dataset.i, f=inp.dataset.f, v=parseFloat(inp.value);
+      if(!isFinite(v)) return;
+      S.keys[i][f]= f==="frame" ? Math.max(0,Math.min(S.traj.nf,v)) : v;
+      S.keys.sort((a,b)=>a.frame-b.frame);
+      redraw();
+    };
+  });
+}
+
+/* ==== 量化面板 ==== */
+function pp(v){ return Math.max(...v)-Math.min(...v); }
+function renderMetrics(){
+  if(!S.traj){ $("#metrics").textContent="尚未載入資料。"; return; }
+  const ax=1, edited=S.cacheEdited, pred=predictedActual(edited);
+  const rigidY=S.traj.rigid.map(p=>p[1]), rigidX=S.traj.rigid.map(p=>p[0]);
+  const ownY=S.traj.own.map(p=>p[1]), ownX=S.traj.own.map(p=>p[0]);
+  const rotY=S.traj.rotOwn.map(p=>p[1]);
+  const newOwnY=edited.map((p,i)=>p[1]+S.traj.rotOwn[i][1]);
+  const newOwnX=edited.map((p,i)=>p[0]+S.traj.rotOwn[i][0]);
+  const rBefore=SMC.pearson(dm(rigidY),ownY), rAfter=SMC.pearson(dm(rigidY),newOwnY);
+  const lagB=SMC.bestLag(dm(rigidY),ownY,S.spf), lagA=SMC.bestLag(dm(rigidY),newOwnY,S.spf);
+  const actY=S.traj.actual.map(p=>p[1]), predY=pred.map(p=>p[1]);
+  const actX=S.traj.actual.map(p=>p[0]), predX=pred.map(p=>p[0]);
+  const phase = (lag,period)=> period>0 ? (lag/period*360) : 0;
+  const period = periodOf(rigidY, S.traj.fr) || S.traj.nf;
+  const arrow=(a,b)=>`${fmt(a,2)} → <b>${fmt(b,2)}</b>`;
+  $("#metrics").innerHTML=`
+  <div class="g">自身位移 峰對峰(px)</div>
+  X ${arrow(pp(ownX),pp(newOwnX))} &nbsp; Y ${arrow(pp(ownY),pp(newOwnY))}<br>
+  <div class="g">世界實際軌跡 峰對峰(px)</div>
+  X ${arrow(pp(actX),pp(predX))} &nbsp; Y ${arrow(pp(actY),pp(predY))}<br>
+  <div class="g">主體(剛體跟隨) 峰對峰 Y = ${fmt(pp(rigidY),2)} px</div>
+  <div class="g">own↔主體 相關 Y（+1 同步放大 / −1 互補）</div>
+  ${arrow(rBefore,rAfter)}<br>
+  <div class="g">相位（延後 ${fmt(S.knobs.lag,1)} 幀 ÷ 週期 ${fmt(period,1)} 幀）</div>
+  ≈ <b>${fmt(phase(S.knobs.lag,period),0)}°</b><br>
+  <div class="g">互相關最佳滯後 Y</div>
+  互補 ${fmt(lagA.comp,2)}f (r=${fmt(lagA.r,2)}) · 同步 ${fmt(lagA.sync,2)}f (r=${fmt(lagA.rSync,2)})<br>
+  <div class="g" style="margin-top:4px">${costNote(pp(actY),pp(predY),rAfter)}</div>`;
+}
+function periodOf(v,fr){
+  const ex=SMC.extrema(fr,v).filter(e=>e[2]==="max");
+  if(ex.length>=2) return ex[1][0]-ex[0][0];
+  const all=SMC.extrema(fr,v);
+  return all.length>=2 ? (all[1][0]-all[0][0])*2 : 0;
+}
+function costNote(before,after,r){
+  if(after<before*0.9 && r<0)
+    return `⚠ 互補的代價:自身位移與主體反相互相抵消,世界總幅由 ${fmt(before,1)}px 縮到 ${fmt(after,1)}px。視覺上是「身體動、部位留在原地」——回報時要主動說。`;
+  if(r>0.9) return `目前是同相位（r=${fmt(r,2)}）＝同步放大而非跟隨;加延後才會有跟隨感。`;
+  return `目前世界總幅 ${fmt(after,1)}px（原 ${fmt(before,1)}px）。`;
+}
+
+/* ==== 滑鼠互動 ==== */
+function bindChart(which){
+  const cfg=CH[which], cv=cfg.cv;
+  let drag=null;
+  const pos=e=>{ const r=cv.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; };
+  cv.addEventListener("pointerdown",e=>{
+    if(!S.traj) return;
+    const [mx,my]=pos(e);
+    let hit=-1, best=12;
+    S.keys.forEach((k,i)=>{ const [x,y]=handlePos(which,i); const d=Math.hypot(x-mx,y-my); if(d<best){best=d;hit=i;} });
+    if(hit>=0){
+      S.sel=hit; drag={i:hit, f0:S.keys[hit].frame, v0:S.keys[hit][cfg.field], mx, my};
+      cv.setPointerCapture(e.pointerId); redraw();
+    } else { S.sel=null; redraw(); }
+  });
+  cv.addEventListener("pointermove",e=>{
+    if(!drag) return;
+    const [mx,my]=pos(e);
+    const k=S.keys[drag.i];
+    if(!e.shiftKey){
+      let f=drag.f0 + (mx-drag.mx)/cfg.map.iw*cfg.map.nf;
+      if(!e.ctrlKey&&!e.metaKey) f=Math.round(f*2)/2;         // 預設吸附半幀
+      k.frame=Math.max(0,Math.min(S.traj.nf,+f.toFixed(3)));
+    }
+    if(!e.altKey){
+      const v=drag.v0 + (my-drag.my)*(cfg.map.lo-cfg.map.hi)/cfg.map.ih;
+      k[cfg.field]=+v.toFixed(3);
+    }
+    redraw();
+  });
+  const end=e=>{ if(drag){ drag=null; S.keys.sort((a,b)=>a.frame-b.frame); redraw(); } };
+  cv.addEventListener("pointerup",end); cv.addEventListener("pointercancel",end);
+  cv.addEventListener("dblclick",e=>{
+    if(!S.traj) return;
+    const [mx]=pos(e);
+    let f=cfg.map.invX(mx); f=Math.round(f*2)/2;
+    addKeyAt(f);
+  });
+  cv.addEventListener("contextmenu",e=>{
+    if(!S.traj) return;
+    e.preventDefault();
+    const [mx,my]=pos(e);
+    let hit=-1,best=12;
+    S.keys.forEach((k,i)=>{ const [x,y]=handlePos(which,i); const d=Math.hypot(x-mx,y-my); if(d<best){best=d;hit=i;} });
+    if(hit>=0) delKey(hit);
+  });
+}
+function addKeyAt(f){
+  const eff=effectiveKeys(), nf=S.traj.nf;
+  const v=SMC.sampleKeys(eff,FIELDS,((f+S.knobs.lag)%nf+nf)%nf,nf,S.knobs.loop);
+  const inv = S.knobs.scale===0?1:1/S.knobs.scale;   // 反推未套幅度前的值
+  const k={frame:+f.toFixed(3), wx:+(v.wx*inv/(S.knobs.sx||1)).toFixed(3), wy:+(v.wy*inv/(S.knobs.sy||1)).toFixed(3), curve:defaultCurve()};
+  S.keys.push(k); S.keys.sort((a,b)=>a.frame-b.frame);
+  S.sel=S.keys.indexOf(k);
+  log(`＋ 在 ${fmt(f,1)}f 新增關鍵幀`);
+  redraw();
+}
+function defaultCurve(){
+  const c=S.knobs.curve;
+  return c==="linear"?null:c==="stepped"?"stepped":c==="ease"?EASE:c==="body"?bodyCurve():EASE;
+}
+function delKey(i){
+  if(S.keys.length<=2){ log("⚠ 至少保留 2 個關鍵幀"); return; }
+  S.keys.splice(i,1); S.sel=null; log(`− 刪除關鍵幀 #${i}`); redraw();
+}
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA") return;
+  if((e.key==="Delete"||e.key==="Backspace") && S.sel!=null){ e.preventDefault(); delKey(S.sel); }
+});
+
+/* ==== 載入 ==== */
+function loadSkeleton(obj, name){
+  if(!obj.bones || !obj.animations) throw new Error("這不是 Spine skeleton JSON(缺 bones/animations)");
+  S.data=obj; S.skel=new SMC.Skel(obj); S.srcName=name||"skeleton.json";
+  const anims=Object.keys(obj.animations);
+  const withDur=anims.filter(a=>SMC.duration(obj.animations[a])>0);
+  S.animName = withDur[0]||anims[0];
+  fillSelect("#selAnim",anims,S.animName);
+  const bones=obj.bones.map(b=>b.name);
+  // 預設:目標=在該動畫裡有 timeline 且父鏈最深的骨骼;主體=它最近的、也有 timeline 的祖先
+  const anim=obj.animations[S.animName], moving=Object.keys(anim.bones||{});
+  const depth=n=>S.skel.parentChain(n).length;
+  S.bone = moving.slice().sort((a,b)=>depth(b)-depth(a))[0] || bones[1] || bones[0];
+  S.bodyBone = S.skel.parentChain(S.bone).find(p=>moving.indexOf(p)>=0) || S.skel.parentChain(S.bone).pop() || bones[0];
+  fillSelect("#selBone",bones,S.bone); fillSelect("#selBody",bones,S.bodyBone);
+  S.pointLocked=false;
+  reanalyze(true);
+  log(`已載入 ${S.srcName}:${bones.length} bones / ${anims.length} animations → ${S.animName}`);
+}
+function loadTraj(tj){
+  if(!tj.schema || tj.schema.indexOf("spine-motion-trajectory")<0) throw new Error("不是 traj.json(schema 不符)");
+  S.srcPath=tj.source.json; S.fps=tj.source.fps; S.spf=tj.source.samplesPerFrame;
+  S.animName=tj.source.animation; S.bone=tj.target.bone; S.bodyBone=tj.body.bone;
+  S.point=tj.target.point; S.pointDesc=tj.target.pointDesc; S.pointLocked=true;
+  const s=tj.samples, pair=(a,b)=>s[a].map((v,i)=>[v,s[b][i]]);
+  S.traj={dur:tj.source.duration, nf:tj.source.frames, fr:s.frame,
+          ts:s.frame.map(f=>f/tj.source.fps),
+          body:pair("bodyX","bodyY"), rigid:pair("rigidX","rigidY"),
+          rotOwn:pair("rotOwnX","rotOwnY"), transOwn:pair("transOwnX","transOwnY"),
+          own:pair("ownX","ownY"), actual:pair("actualX","actualY"),
+          beats:tj.body.beats, channels:tj.target.channels, parentChain:tj.target.parentChain};
+  S.keys=(tj.edit.keys||[]).map(k=>Object.assign({},k));
+  S.baseKeys=S.keys.map(k=>Object.assign({},k));
+  S.warnings=tj.warnings||[];
+  S.data=null; S.skel=null;   // 只有軌跡包,不能重新分析
+  fillSelect("#selAnim",[S.animName],S.animName);
+  fillSelect("#selBone",[S.bone],S.bone); fillSelect("#selBody",[S.bodyBone],S.bodyBone);
+  $("#inFps").value=S.fps; $("#inOutName").value=S.animName+"_v2";
+  $("#rLag").max=Math.max(4,Math.round(S.traj.nf));
+  showWarn(); redraw();
+  log(`已載入軌跡包:${S.animName} / ${S.bone}（追蹤點 ${S.pointDesc}）`);
+}
+function fillSelect(sel,items,cur){
+  const el=$(sel); el.innerHTML="";
+  items.forEach(v=>{ const o=document.createElement("option"); o.value=o.textContent=v; if(v===cur)o.selected=true; el.appendChild(o); });
+}
+function syncUI(){
+  // 程式化改狀態(viewer 橋接 / 自動化測試)後,讓下拉與滑桿反映真實狀態
+  if(S.data){
+    fillSelect("#selAnim",Object.keys(S.data.animations),S.animName);
+    const bones=S.data.bones.map(b=>b.name);
+    fillSelect("#selBone",bones,S.bone); fillSelect("#selBody",bones,S.bodyBone);
+  }
+  $("#inFps").value=S.fps;
+  const k=S.knobs;
+  $("#rLag").value=k.lag; $("#vLag").textContent=fmt(k.lag,1);
+  $("#rScale").value=k.scale; $("#vScale").textContent=fmt(k.scale,2);
+  $("#rSx").value=k.sx; $("#vSx").textContent=fmt(k.sx,2);
+  $("#rSy").value=k.sy; $("#vSy").textContent=fmt(k.sy,2);
+  $("#ckLoop").checked=k.loop; $("#selCurve").value=k.curve;
+}
+function reanalyze(resetKeys){
+  if(!S.data){ log("⚠ 目前只有軌跡包(traj.json),要換骨骼/動畫請載入 skeleton JSON"); return; }
+  S.fps=+$("#inFps").value||30;
+  const base=analyze();
+  if(!base) return;
+  S.baseKeys=base;
+  if(resetKeys||!S.keys.length) S.keys=base.map(k=>Object.assign({},k));
+  $("#rLag").max=Math.max(4,Math.round(S.traj.nf));
+  $("#inOutName").value=S.animName+"_v2";
+  syncUI(); showWarn(); S.sel=null; redraw();
+  log(`分析完成:${S.animName} / ${S.bone}（追蹤點 ${S.pointDesc}）· ${S.traj.nf.toFixed(1)} 幀 · 通道 ${S.traj.channels.join("+")||"(無)"}`);
+}
+function showWarn(){
+  const box=$("#cardWarn");
+  if(S.warnings&&S.warnings.length){ box.style.display=""; $("#warns").innerHTML=S.warnings.map(w=>"· "+w).join("<br>"); }
+  else box.style.display="none";
+}
+</script>
+
+<script>
+/* ==== 匯出:motion spec(spine-motion-skill / apply_motion_spec.py 讀同一份) ==== */
+function buildSpec(){
+  if(!S.traj) throw new Error("尚未載入資料");
+  const eff=effectiveKeys(), nf=S.traj.nf, fps=S.fps;
+  const edited=editedSeries(), pred=predictedActual(edited);
+  const rigidY=S.traj.rigid.map(p=>p[1]);
+  const ownY=S.traj.own.map(p=>p[1]);
+  const newOwnY=edited.map((p,i)=>p[1]+S.traj.rotOwn[i][1]);
+  const period=periodOf(rigidY,S.traj.fr)||nf;
+  const spec={
+    schema:"spine-motion-spec/1",
+    generatedBy:"spine_trajectory_editor.html",
+    source:{ json:S.srcPath||S.srcName, animation:S.animName, fps:fps,
+             duration:+(S.traj.dur).toFixed(6), frames:+nf.toFixed(4), samplesPerFrame:S.spf },
+    target:{ bone:S.bone, point:S.point, pointDesc:S.pointDesc, parentChain:S.traj.parentChain },
+    body:{ bone:S.bodyBone, beats:S.traj.beats, periodFrames:+period.toFixed(2) },
+    output:{ animation:$("#inOutName").value.trim()||(S.animName+"_v2"), mode:"new" },
+    edit:{ channel:"translate", space:"world", loop:S.knobs.loop,
+           lag:S.knobs.lag, scale:S.knobs.scale, scaleX:S.knobs.sx, scaleY:S.knobs.sy,
+           curveMode:S.knobs.curve,
+           keys:S.keys.map(k=>{ const o={frame:+(+k.frame).toFixed(4), wx:+(+k.wx).toFixed(4), wy:+(+k.wy).toFixed(4)};
+                                if(k.curve) o.curve=k.curve; return o; }),
+           resolvedKeys:eff.map(k=>({frame:+(+k.frame).toFixed(4), wx:+(+k.wx).toFixed(4), wy:+(+k.wy).toFixed(4),
+                                     curve:k.curve||null})) },
+    predicted:{ frame:S.traj.fr.map(f=>+f.toFixed(3)),
+                worldX:pred.map(p=>+p[0].toFixed(4)), worldY:pred.map(p=>+p[1].toFixed(4)) },
+    metrics:{
+      before:{ ownPPX:+pp(S.traj.own.map(p=>p[0])).toFixed(3), ownPPY:+pp(ownY).toFixed(3),
+               actualPPY:+pp(S.traj.actual.map(p=>p[1])).toFixed(3),
+               corrY:+SMC.pearson(dm(rigidY),ownY).toFixed(4) },
+      after:{  ownPPX:+pp(edited.map((p,i)=>p[0]+S.traj.rotOwn[i][0])).toFixed(3),
+               ownPPY:+pp(newOwnY).toFixed(3),
+               actualPPY:+pp(pred.map(p=>p[1])).toFixed(3),
+               corrY:+SMC.pearson(dm(rigidY),newOwnY).toFixed(4) },
+      rigidPPY:+pp(rigidY).toFixed(3),
+      phaseDeg:+(S.knobs.lag/period*360).toFixed(1)
+    },
+    skill:{
+      name:"spine-motion-skill",
+      intent:"次級動態細節調整:只動目標骨骼 timeline,總長不變,原動畫保留供 A/B",
+      knobs:{ "延後 L(幀)":S.knobs.lag, "幅度倍率":S.knobs.scale,
+              "X 軸幅度":S.knobs.sx, "Y 軸幅度":S.knobs.sy, "迴圈接縫切分":S.knobs.loop },
+      apply:`python3 tools/motion/apply_motion_spec.py --spec <此檔> --write`,
+      verify:"V1 總長不變 / V2 只有目標骨骼有差 / V3 slot 未動 / V4 原動畫未動 / V5 skins 未動 / V6 其他動畫未動 / V7 key 時間 ≤ 總長;Q1 世界軌跡 vs 本頁預測 / Q2 own vs 設計值 / Q3 滯後·相關·幅度",
+      notes:[ costNote(pp(S.traj.actual.map(p=>p[1])), pp(pred.map(p=>p[1])),
+                       SMC.pearson(dm(rigidY),newOwnY)).replace(/^⚠ /,"") ]
+    }
+  };
+  return spec;
+}
+function download(name,text,mime){
+  const b=new Blob([text],{type:mime||"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function specText(){ return JSON.stringify(buildSpec(),null,1); }
+function csvText(){
+  const edited=S.cacheEdited, pred=predictedActual(edited);
+  const L=["frame,body_X,own_X,actual_X,body_Y,own_Y,actual_Y,new_own_X,new_own_Y,new_actual_X,new_actual_Y"];
+  for(let i=0;i<S.traj.fr.length;i+=S.spf){
+    const r=S.traj.rigid[i], o=S.traj.own[i], a=S.traj.actual[i], ro=S.traj.rotOwn[i], e=edited[i], p=pred[i];
+    L.push([S.traj.fr[i].toFixed(0), r[0].toFixed(3), o[0].toFixed(3), a[0].toFixed(3),
+            r[1].toFixed(3), o[1].toFixed(3), a[1].toFixed(3),
+            (e[0]+ro[0]).toFixed(3), (e[1]+ro[1]).toFixed(3), p[0].toFixed(3), p[1].toFixed(3)].join(","));
+  }
+  return L.join("\n");
+}
+function cmdText(){
+  const sp=buildSpec(), m=sp.metrics;
+  return `## 軌跡調整交辦（spine-motion-skill）
+
+目標骨骼 **${sp.target.bone}**（父鏈 ${sp.target.parentChain.join(" → ")}），動畫 **${sp.source.animation}** ${sp.source.frames} 幀 @${sp.source.fps}fps，
+主體 **${sp.body.bone}**（節拍 ${sp.body.beats.map(b=>Math.round(b)+"f").join(" / ")}，週期 ${sp.body.periodFrames} 幀），追蹤點 ${sp.target.pointDesc}。
+
+旋鈕：延後 **${sp.edit.lag} 幀**（相位 ${m.phaseDeg}°）· 幅度 ×${sp.edit.scale}（X ×${sp.edit.scaleX} / Y ×${sp.edit.scaleY}）· 迴圈接縫切分 ${sp.edit.loop?"開":"關"}
+關鍵幀（世界座標自身位移）：${sp.edit.keys.map(k=>`${k.frame}f(${k.wx},${k.wy})`).join(" · ")}
+
+預期效果（前 → 後）：自身位移 Y ${m.before.ownPPY} → ${m.after.ownPPY} px · 世界實際 Y ${m.before.actualPPY} → ${m.after.actualPPY} px · own↔主體相關 Y ${m.before.corrY} → ${m.after.corrY}
+副作用：${sp.skill.notes[0]}
+
+執行：
+\`\`\`bash
+python3 tools/motion/apply_motion_spec.py --spec ${sp.output.animation}.spec.json --write
+\`\`\`
+寫檔前會自動跑 V1–V7 結構閘與 Q1–Q3 量化閘，未全過就不寫檔。`;
+}
+
+/* ==== viewer 橋接(進階功能,實驗中) ====
+   spine_inspector.html 以 iframe 內嵌本頁,或本頁被 window.open 時,用 postMessage 溝通:
+     ← {type:"spine-motion/load", skeleton:<json>, animation, bone, body}
+     → {type:"spine-motion/spec", spec:<motion spec>}            使用者按「套用預覽」
+     → {type:"spine-motion/preview", bone, animation, keys:[Spine translate keys]}  即時預覽
+   viewer 端收到 preview 就把 keys 寫進 skeleton JSON 重建,達成「在 viewer 裡直接改軌跡」。 */
+function localTranslateKeys(){
+  if(!S.skel) return null;      // 只有 traj 包時無法換算(需要骨架)
+  const anim=S.data.animations[S.animName], eff=effectiveKeys();
+  const local=eff.map(k=>{
+    const t=Math.min(Math.max(k.frame/S.fps,0),S.traj.dur);
+    const [dx,dy]=S.skel.worldToLocalDelta(S.bone,anim,t,k.wx,k.wy,[S.bone]);
+    return {frame:k.frame, x:dx, y:dy, curve:k.curve};
+  });
+  return SMC.toSpineKeys(local,S.fps,["x","y"]);
+}
+function postPreview(){
+  const keys=localTranslateKeys();
+  if(!keys){ log("⚠ 預覽需要 skeleton JSON(目前只有軌跡包)"); return; }
+  const msg={type:"spine-motion/preview", bone:S.bone, animation:S.animName,
+             outAnimation:$("#inOutName").value.trim(), keys};
+  if(window.parent!==window) window.parent.postMessage(msg,"*");
+  if(window.opener) window.opener.postMessage(msg,"*");
+  log("→ 已送出預覽 translate keys("+keys.length+" 個)給 viewer");
+}
+window.addEventListener("message",ev=>{
+  const m=ev.data||{};
+  if(m.type==="spine-motion/load" && m.skeleton){
+    try{
+      loadSkeleton(m.skeleton, m.name||"(來自 viewer)");
+      if(m.animation){ S.animName=m.animation; fillSelect("#selAnim",Object.keys(S.data.animations),S.animName); }
+      if(m.bone) S.bone=m.bone;
+      if(m.body) S.bodyBone=m.body;
+      fillSelect("#selBone",S.data.bones.map(b=>b.name),S.bone);
+      fillSelect("#selBody",S.data.bones.map(b=>b.name),S.bodyBone);
+      reanalyze(true);
+      log("← 由 viewer 載入骨架");
+    }catch(e){ log("⚠ viewer 載入失敗:"+e.message); }
+  }
+});
+
+/* ==== UI 綁定 ==== */
+function bindKnob(id,valId,key,fmtn){
+  const el=$(id);
+  el.oninput=()=>{ S.knobs[key]=parseFloat(el.value); $(valId).textContent=fmt(el.value,fmtn===undefined?2:fmtn); if(S.traj) redraw(); };
+}
+function init(){
+  CH.x.cv=$("#cx"); CH.y.cv=$("#cy");
+  bindChart("x"); bindChart("y");
+  bindKnob("#rLag","#vLag","lag",1);
+  bindKnob("#rScale","#vScale","scale");
+  bindKnob("#rSx","#vSx","sx"); bindKnob("#rSy","#vSy","sy");
+  $("#ckLoop").onchange=e=>{ S.knobs.loop=e.target.checked; redraw(); };
+  $("#selCurve").onchange=e=>{ S.knobs.curve=e.target.value; redraw(); };
+  $("#btnAddKey").onclick=()=>{ if(S.traj) addKeyAt(Math.round(S.traj.nf/2)); };
+  $("#btnDelKey").onclick=()=>{ if(S.sel!=null) delKey(S.sel); else log("先選一個關鍵幀"); };
+  $("#btnResetKeys").onclick=()=>{ S.keys=S.baseKeys.map(k=>Object.assign({},k)); S.sel=null; log("已回到原始關鍵幀"); redraw(); };
+  $("#btnZeroKeys").onclick=()=>{ S.keys=S.keys.map(k=>Object.assign({},k,{wx:0,wy:0})); log("關鍵值歸零(自身位移 0)"); redraw(); };
+  $("#btnReanalyze").onclick=()=>reanalyze(true);
+  $("#selAnim").onchange=e=>{ S.animName=e.target.value; reanalyze(true); };
+  $("#selBone").onchange=e=>{ S.bone=e.target.value; S.pointLocked=false; reanalyze(true); };
+  $("#selBody").onchange=e=>{ S.bodyBone=e.target.value; reanalyze(false); };
+  $("#btnLoadTraj").onclick=()=>$("#fileTraj").click();
+  $("#btnLoadSkel").onclick=()=>$("#fileSkel").click();
+  $("#fileTraj").onchange=e=>readFile(e.target.files[0],o=>loadTraj(o));
+  $("#fileSkel").onchange=e=>readFile(e.target.files[0],(o,n)=>loadSkeleton(o,n));
+  $("#btnSpec").onclick=()=>{ const t=specText(); $("#taOut").value=t;
+    download((buildSpec().output.animation||"motion")+".spec.json",t); log("已下載 motion spec"); };
+  $("#btnCopySpec").onclick=()=>copy(specText(),"spec");
+  $("#btnCsv").onclick=()=>{ const t=csvText(); $("#taOut").value=t;
+    download((S.animName||"motion")+"_對照表.csv",t,"text/csv"); log("已下載對照表 CSV"); };
+  $("#btnCmd").onclick=()=>copy(cmdText(),"skill 指令");
+  $("#btnPreview").onclick=()=>postPreview();
+  buildLegend();
+  // 拖放
+  const dz=$("#drop");
+  document.addEventListener("dragover",e=>{ e.preventDefault(); dz.classList.add("on"); });
+  document.addEventListener("dragleave",e=>{ if(e.relatedTarget===null) dz.classList.remove("on"); });
+  document.addEventListener("drop",e=>{
+    e.preventDefault(); dz.classList.remove("on");
+    const f=e.dataTransfer.files[0]; if(!f) return;
+    readFile(f,(o,n)=>{ (o.schema&&String(o.schema).indexOf("trajectory")>=0) ? loadTraj(o) : loadSkeleton(o,n); });
+  });
+  window.addEventListener("resize",()=>{ if(S.traj) redraw(); });
+  // ?traj= / ?skel= 直接載入(需 http 服務)
+  const q=new URLSearchParams(location.search);
+  const url=q.get("traj")||q.get("skel");
+  if(url) fetch(url).then(r=>r.json()).then(o=>{
+    (q.get("traj")) ? loadTraj(o) : loadSkeleton(o,url.split("/").pop());
+    if(q.get("bone")){ S.bone=q.get("bone"); if(S.data){ fillSelect("#selBone",S.data.bones.map(b=>b.name),S.bone); S.pointLocked=false; reanalyze(true);} }
+  }).catch(e=>log("⚠ 讀取 "+url+" 失敗:"+e.message));
+  redraw();
+}
+function readFile(f,cb){
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ cb(JSON.parse(r.result), f.name); }catch(e){ log("⚠ 載入失敗:"+e.message); } };
+  r.readAsText(f);
+}
+function copy(text,what){
+  $("#taOut").value=text;
+  (navigator.clipboard? navigator.clipboard.writeText(text):Promise.reject())
+    .then(()=>log("已複製"+what+"到剪貼簿"))
+    .catch(()=>{ $("#taOut").select(); log("剪貼簿不可用 → 內容已放在下方文字框,請手動複製"); });
+}
+function buildLegend(){
+  const items=[["rigid","主體(剛體跟隨)","rigid"],["actual","目前實際","actual"],["own","目前自身位移","own"],
+               ["edit","編輯後自身位移","edit"],["pred","預測新實際","pred"]];
+  const el=$("#legend"); el.innerHTML="";
+  items.forEach(([k,label,cvar])=>{
+    const s=document.createElement("span");
+    s.className=S.show[k]?"on":"";
+    s.innerHTML=`<i style="border-color:var(--${cvar})"></i>${label}`;
+    s.onclick=()=>{ S.show[k]=!S.show[k]; s.className=S.show[k]?"on":""; redraw(); };
+    el.appendChild(s);
+  });
+}
+init();
+</script>

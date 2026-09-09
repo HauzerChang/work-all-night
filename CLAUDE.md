@@ -45,6 +45,17 @@ screenshot()→dataURL · loadReference(dataURL) · setReferenceOpacity(0..1)
 
 驗收迴圈範式：`applySkeletonJSON/setMeshVertices` 編輯 → `setAnimation/setTime` 設姿勢 → `getWorldVertices/getMeshBounds` 量化比對 + `screenshot` 視覺確認。
 
+## 軌跡編輯工具鏈（S6，服務 spine-motion-skill）
+
+- `spine_trajectory_editor.html` — 單檔零相依（CDN 被政策擋，取樣/繪圖/互動全自己實作）。
+  載入 `traj.json` 或 skeleton JSON → 世界 X/Y 雙面板、拖曳關鍵幀、加/刪點、延後 L 與幅度旋鈕、
+  即時量化（幅度前後、相關、相位、互補的代價）、匯出 **motion spec**（`spine-motion-spec/1`）。
+- `tools/motion/` — 分析 CLI、spec 數學、套回 CLI（**驗證未全過不寫檔**）、V1–V7/Q1–Q3 閘、
+  A1–A8 自我驗收。見該目錄 `README.md`；可貼進 skill 的章節見 `skill_snippet.md`。
+- **必記**：`actual = rigid + rotOwn + transOwn`，只有 `transOwn` 能無損寫回 translate；
+  追蹤點預設取 slot attachment 中心（骨骼原點對 rotate-only 配件不動）；
+  延後前先移除 loop 尾端的重複 key，跨邊界段用 de Casteljau 切分（總長不變）。
+
 ## ⚠️ Spine 3.8 技術雷點（已踩過，務必記住）
 
 1. **命名空間**：WebGL 類別在 `spine.webgl.*`（`SceneRenderer`/`GLTexture`/`AssetManager`/`ManagedWebGLRenderingContext`）；核心在 `spine.*`（`Skeleton`/`SkeletonJson`/`TextureAtlas`/`AtlasAttachmentLoader`/`Vector2`/`MixBlend`/`MixDirection`）。寫成 `spine.SceneRenderer` 會 undefined。

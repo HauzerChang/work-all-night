@@ -51,16 +51,17 @@ def _interp(frames, t, keys):
     n = len(frames)
     if n == 0:
         return {k: 0.0 for k in keys}
-    if t <= frames[0]["time"]:
+    # 真實 Spine 匯出檔的第一個 key 會省略 "time"(=0),故一律用 .get
+    if t <= frames[0].get("time", 0.0):
         return {k: float(frames[0].get(k, 0.0)) for k in keys}
-    if t >= frames[-1]["time"]:
+    if t >= frames[-1].get("time", 0.0):
         return {k: float(frames[-1].get(k, 0.0)) for k in keys}
     # 找區間 [i, i+1]
     i = 0
-    while i + 1 < n and frames[i + 1]["time"] <= t:
+    while i + 1 < n and frames[i + 1].get("time", 0.0) <= t:
         i += 1
     f0, f1 = frames[i], frames[i + 1]
-    t0, t1 = f0["time"], f1["time"]
+    t0, t1 = f0.get("time", 0.0), f1.get("time", 0.0)
     span = t1 - t0
     p = 0.0 if span <= 0 else (t - t0) / span
     curve = f0.get("curve", None)
@@ -68,7 +69,8 @@ def _interp(frames, t, keys):
         alpha = 0.0
     elif isinstance(curve, (int, float)):
         # 緊湊 bezier: curve=cx1, c2=cy1, c3=cx2, c4=cy2
-        alpha = _bezier_y(f0["curve"], f0["c2"], f0["c3"], f0["c4"], p)
+        # 真實匯出檔可省略 c2/c3/c4,Spine 缺省 0/1/1
+        alpha = _bezier_y(f0["curve"], f0.get("c2", 0.0), f0.get("c3", 1.0), f0.get("c4", 1.0), p)
     else:
         alpha = p  # linear
     out = {}
