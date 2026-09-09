@@ -219,6 +219,7 @@ _PHASE_AWARE = {"cascade"}
 
 # candidate J — 檔位(tier)幅度差異化(主秀 beat 依檔位增益放大;純函式,無 import 迴圈)。
 from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
+    TIER_VARIANT_CATS as _TIER_VARIANT_CATS, \
     COUNT_AWARE_CATS as _COUNT_AWARE_CATS, amplify_anim as _amplify_anim
 
 
@@ -271,8 +272,9 @@ def _build_beat(beat, cat, bone_of, cx, cy, combo_hits=3):
 def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None):
     """回傳 animations dict(beat 名為 key)。
 
-    tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
-    額外產出 `{beat}__{tier}` 幅度差異化變體(檔位愈高愈爆);base beat 不變。
+    tier_gains(candidate J / G-4''):`{tier: gain}` 時,對**主秀** beat(cat∈TIER_VARIANT_CATS
+    =scale/rotate 幅度的 MAIN_SHOW_CATS ∪ shear 幅度的 SHEAR_SHOW_CATS/wobble)額外產出
+    `{beat}__{tier}` 幅度差異化變體(檔位愈高愈爆;shear 亦隨檔位放大擺幅峰);base beat 不變。
     tier_combo_hits(candidate J-2):`{tier: nhits}` 時,對 COUNT_AWARE(combo)類別的檔位變體
     以該檔位的 nhits **重生成**(連擊數隨檔位遞增),再套幅度增益 —— 幅度與連擊數兩效**正交可疊**。
     兩者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 nhits=3)。"""
@@ -289,8 +291,10 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
         cat = beat_category(name)
         anim = _build_beat(beat, cat, bone_of, cx, cy)
         anims[name] = anim
-        # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
-        if tier_gains and cat in _MAIN_SHOW_CATS:
+        # candidate J / G-4'':主秀 beat(scale/rotate 幅度)與 shear 主秀 beat(wobble,shear 幅度)
+        # 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)。tier_gains 對兩者一致適用:
+        # scale/rotate/translate 由 amplify 放大 overshoot/擺幅,shear 放大阻尼擺幅峰值。
+        if tier_gains and cat in _TIER_VARIANT_CATS:
             for tier, g in tier_gains.items():
                 if tier_combo_hits and cat in _COUNT_AWARE_CATS:
                     # J-2:連擊數隨檔位遞增 → 以該檔位 nhits 重生成 beat,再套幅度增益 g。

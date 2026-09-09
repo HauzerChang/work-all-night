@@ -28,7 +28,17 @@
 import copy
 
 # 主秀類別(與 beat_templates 的節拍對應;In/Loop/Out 不在此 → 檔位無關)。
+# 這些節拍的幅度在 scale/rotate/translate 通道(overshoot / 擺幅),由 `amplify_bone_tl` 放大。
 MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade"}
+
+# candidate G-4'' — **shear 通道**主秀類別(斜拉 wobble):幅度在 `shear` 通道(阻尼擺幅峰值),
+# 與 MAIN_SHOW_CATS 的 scale/rotate 幅度**在不同通道**,故單獨列名(避免 (J) 閘用 scale/rotate
+# overshoot 度量誤判 shear-only beat 為「零幅度」)。tier 增益對 shear 亦適用(0 對稱、峰隨 g 放大)。
+SHEAR_SHOW_CATS = {"wobble"}
+
+# 所有「依檔位產幅度差異化變體」的類別 = 主秀(scale/rotate 幅度)∪ shear 主秀(shear 幅度)。
+# `build_animations` 依此集合決定哪些 beat 產 `{beat}__{tier}` 變體。
+TIER_VARIANT_CATS = MAIN_SHOW_CATS | SHEAR_SHOW_CATS
 
 # candidate J-2 — 依檔位可變「連擊數」的類別(結構性差異化,非只幅度)。
 # combo 的 impact 峰**數**隨檔位遞增;需在 gen 時把 nhits 帶進 gen_combo(不能事後 amplify)。
@@ -75,6 +85,12 @@ def amplify_bone_tl(b, g):
     for f in b.get("translate", []):
         f["x"] = round(g * f["x"], 3)
         f["y"] = round(g * f["y"], 3)
+    # candidate G-4'' — shear 通道(度,0 對稱,同 rotate):`v' = g*v`。
+    # 0 端點(setup identity 介面)仍 0、符號序列不變(阻尼振盪簽章保形)、
+    # 相繼極值同乘 g>0 → 嚴格遞減仍成立、峰值隨 g 單調變大(檔位簽章);shearY≡0 仍 0。
+    for f in b.get("shear", []):
+        f["x"] = round(g * f["x"], 4)
+        f["y"] = round(g * f["y"], 4)
     return b
 
 

@@ -283,6 +283,19 @@ BLOCKS = [
                      "shear 隔離 僅 wobble 帶 shear・移除 wobble 其餘 beat 逐位元不變)。回歸:全 priors/tier/beat/pivot 系列 + round-trip"
                      "(--shear-pivot build overall_pass premult MAE 0.031 setup 不變)全綠。"
                      "honest:斜拉 wobble 為 PROPOSAL(阻尼振盪結構簽章非美感);shearY≡0、tier 變體未接;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("tier_variant_shear", "斜拉 wobble 接 tier 幅度差異化(G-4'',shear 峰隨檔位遞增)", "L2",
+                "python3 tools/analyzer/validate_tier_shear.py", "pipeline",
+                note="補 G-4' 的 honest boundary(wobble 不在檔位變體集合 → shear 擺幅不隨檔位變化)。比照 (J) 讓 wobble 的"
+                     "**shear 擺幅峰值隨檔位嚴格遞增**(Super 16°→Mega 21.6°→Omg 27.2°→Legend 33.6°),阻尼振盪簽章與 identity 介面對每檔位保形。"
+                     "**關鍵設計:不併進 MAIN_SHOW_CATS**(shear-only 節拍會被 (J) 閘的 scale/rotate overshoot 度量當『零幅度』誤判單調 FAIL)——"
+                     "另立 SHEAR_SHOW_CATS={wobble} + TIER_VARIANT_CATS=MAIN_SHOW_CATS∪SHEAR_SHOW_CATS,build_animations 依此圈定產變體;"
+                     "MAIN_SHOW_CATS 不動 → (J)/(J-2) 零回歸。amplify_bone_tl 加 shear 分支 v'=g*v(0 對稱同 rotate:0 端點仍 0、符號序列不變→阻尼簽章保形、相繼極值同乘 g→嚴格遞減仍成立)。"
+                     "validate_tier_shear.py 5AC PASS(S1 present+routing+base 逐位元不變/S2 每檔位 identity 介面+shear 首尾 0/"
+                     "S3 crux shear 峰 Super<Mega<Omg<Legend 嚴格遞增/S4 每檔位阻尼振盪簽章保持/S5 負對照 平增益守衛全 1.0→S3 單調 FALSE・"
+                     "base=Super 逐位元同無檔位・shear 增益不外洩非 wobble beat・MAIN_SHOW_CATS 未被污染)。"
+                     "關鍵發現:通道不同幅度度量不能共用(按通道分集合);保形增益的不變量隨通道而異(scale 守樓地板、shear/rotate 守 0 對稱)。"
+                     "回歸:全 tier/priors/beat/pivot/shear 系列 + round-trip(--tier-variants build overall_pass)全綠。"
+                     "honest:斜拉 wobble 形狀為 PROPOSAL;shearY≡0、無 count-aware;每檔位端到端 pivot 不動點未逐一量。單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
