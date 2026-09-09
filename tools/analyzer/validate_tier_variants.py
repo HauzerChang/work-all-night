@@ -41,6 +41,8 @@ import tier_variants as TV
 from validate_cascade import (series, sign_changes, impact_peaks, peak_time,
                               has_cascade_signature, is_strictly_increasing, SPREAD_THR)
 from validate_more_beats import has_combo_signature, has_charge_signature
+# candidate G-4'':wobble shear 軸的阻尼振盪簽章判準,復用 G-4' 閘的度量(判準一致)。
+from validate_shear_gen import _shear_x, _sign_changes_zero, _extrema_mags_decreasing
 
 PSD = "assets/robot_parts.psd"
 GENRE = "slot_bigwin"
@@ -94,6 +96,31 @@ def _rotate_amp(anim):
         vals = series(anim, b, key="rotate")
         amps.append(max(abs(v) for v in vals))
     return max(amps, default=0.0)
+
+
+def _shear_amp(anim):
+    """max over bones of max|shearX| —— shear 幅度(0 對稱;candidate G-4'')。
+    直接讀 keyframe(SA.sample 不取樣 shear 通道),無 shear 通道回 0。"""
+    amps = []
+    for ch in anim.get("bones", {}).values():
+        sx = _shear_x(ch)
+        if sx:
+            amps.append(max(abs(v) for v in sx))
+    return max(amps, default=0.0)
+
+
+def _wobble_damped_ok(anim):
+    """wobble bones 每條 shearX 序列仍具阻尼振盪簽章(首尾 0、繞 0 變號≥3、相繼極值嚴格遞減)。"""
+    ok_any = False
+    for ch in anim.get("bones", {}).values():
+        sx = _shear_x(ch)
+        if not sx:
+            continue
+        ok_any = True
+        if not (abs(sx[0]) < 1e-6 and abs(sx[-1]) < 1e-6
+                and _sign_changes_zero(sx) >= 3 and _extrema_mags_decreasing(sx)):
+            return False
+    return ok_any
 
 
 # base beat key → 類別 → 該套哪個結構簽章
@@ -160,17 +187,22 @@ def run():
     R["J2_interface"] = {**j2, "pass": not j2["bad_end"] and not j2["bad_start"]}
 
     # ---- J3 crux: monotone amplitude per main-show beat ----
+    # candidate G-4'':軸無關化 —— scale/rotate/**shear** 任一實際使用(峰>TOL)的通道皆須嚴格遞增,
+    # 且至少一條主動軸。既有 beat 恆用 scale(仍強制)→ 純強化;wobble 只用 shear → 該軸受檢。
     j3 = {"beats": {}, "fail": []}
     for beat in main_beats:
         sc = [_scale_overshoot(anims["{}__{}".format(beat, t)]) for t in TIERS]
         ro = [_rotate_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
-        sc_mono = is_strictly_increasing(sc)
-        # rotate:僅在該 beat 有 rotate(amp>0)時要求嚴格遞增
-        ro_mono = True if max(ro) <= TOL else is_strictly_increasing(ro)
+        sh = [_shear_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
+        axes = {"scale": sc, "rotate": ro, "shear": sh}
+        active = {k: v for k, v in axes.items() if max(v) > TOL}
+        mono = {k: is_strictly_increasing(v) for k, v in active.items()}
+        ok = bool(active) and all(mono.values())
         j3["beats"][beat] = {"scale_overshoot": [round(x, 4) for x in sc],
                              "rotate_amp": [round(x, 3) for x in ro],
-                             "scale_mono": sc_mono, "rotate_mono": ro_mono}
-        if not (sc_mono and ro_mono):
+                             "shear_amp": [round(x, 3) for x in sh],
+                             "active_axes": sorted(active), "mono": mono}
+        if not ok:
             j3["fail"].append(beat)
     R["J3_monotone"] = {**j3, "pass": not j3["fail"]}
 
@@ -189,6 +221,8 @@ def run():
                 ok = all(sign_changes(series(an, b)) >= 3 for b in an.get("bones", {}))
             elif cat == "cascade":
                 ok = has_cascade_signature(an, order, thr=SPREAD_THR)
+            elif cat == "wobble":
+                ok = _wobble_damped_ok(an)   # candidate G-4'':阻尼振盪簽章逐檔位保持
             elif cat == "reveal":
                 # burst:峰≥門檻 且 首幀 collapsed(reveal 簽章)
                 ok = all(max(series(an, b)) >= PEAK_THR for b in an.get("bones", {})) and \

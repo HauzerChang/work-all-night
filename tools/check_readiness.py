@@ -283,6 +283,24 @@ BLOCKS = [
                      "shear 隔離 僅 wobble 帶 shear・移除 wobble 其餘 beat 逐位元不變)。回歸:全 priors/tier/beat/pivot 系列 + round-trip"
                      "(--shear-pivot build overall_pass premult MAE 0.031 setup 不變)全綠。"
                      "honest:斜拉 wobble 為 PROPOSAL(阻尼振盪結構簽章非美感);shearY≡0、tier 變體未接;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("wobble_tier_shear", "wobble shear 峰隨檔位遞增(G-4'',tier variant on the shear axis)", "L2",
+                "python3 tools/analyzer/validate_wobble_tier.py", "pipeline",
+                note="補 (G-4') 的 honest boundary(wobble ∉ MAIN_SHOW_CATS、shear 峰各檔位相同)。續 (J):(J) 讓主秀 beat 的 "
+                     "scale/rotate 幅度隨檔位遞增但只覆蓋兩軸,(G-4') 讓 gen_wobble 產出 shear 通道卻未接 tier。本 cap 把 **shear 補成 "
+                     "tier 系統的第三條放大軸**:tier_variants.py 把 'wobble' 併入 MAIN_SHOW_CATS + amplify_bone_tl 補 shear 迴圈"
+                     "(shear 角對 0 對稱=同 rotate,v'=g·v)。關鍵:阻尼振盪簽章對 g>0 保形(整條 shearX 同乘正數:首尾 0、"
+                     "繞 0 變號序列、相繼極值 [16,8,4,2]·g 嚴格遞減皆不變)→ shear 峰隨檔位放大而阻尼語意逐檔不變。端到端 "
+                     "build_spine --tier-variants --shear-pivot 自動串起:wobble__{tier} shear 峰 16→21.6→27.2→33.6°(=base×增益)+ "
+                     "apply_pivots(include_shear=True) 每檔位繞關節 pivot 補償。與 (J) scale/rotate 幅度軸**正交**(wobble 變體 scale/rotate "
+                     "幅度 ≡0;產線僅 wobble 帶 shear)。從先驗庫→真實 build_spine robot 骨架→build_animations/CLI,validate_wobble_tier.py "
+                     "5AC PASS(T1 present+routing+backward-compat 帶檔位時所有 base beat 逐位元不變/T2 crux shear 峰 [16,21.6,27.2,33.6] "
+                     "嚴格遞增且 == base×宣告增益/T3 每檔位阻尼振盪簽章+identity 介面保持/T4 端到端 --shear-pivot 12 個關節-bone×檔位檢查 "
+                     "全 pivot 殘差 <0.06px(Legend 最大 0.058)vs 負對照 8–50px >850×・端到端 shear 峰仍逐檔遞增/T5 正交+shear 隔離+"
+                     "平增益守衛(全 1.0→峰逐檔相等→單調 FALSE、Super==Legend)+向後相容 base==wobble__Super)。(J) 閘 validate_tier_variants "
+                     "因 wobble 併入已軸無關化(J3 scale/rotate/shear 任一主動軸須遞增=純強化、J4 加 wobble 阻尼分支)回歸 PASS。"
+                     "回歸:全 tier/shear/priors/beat/pivot 系列 + round-trip(--tier-variants --shear-pivot,MAE 0.031、setup 不變)全綠。"
+                     "又一「機制/宣告就緒 ≠ 生成器接上」實例(shear × tier 交叉點)。honest:斜拉 wobble shear 形狀為 PROPOSAL、shearY≡0、"
+                     "增益階梯沿用 (J) 共用階梯(Legend 33.6° det≈0.83 無翻面);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
