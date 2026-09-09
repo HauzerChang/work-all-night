@@ -283,6 +283,24 @@ BLOCKS = [
                      "shear 隔離 僅 wobble 帶 shear・移除 wobble 其餘 beat 逐位元不變)。回歸:全 priors/tier/beat/pivot 系列 + round-trip"
                      "(--shear-pivot build overall_pass premult MAE 0.031 setup 不變)全綠。"
                      "honest:斜拉 wobble 為 PROPOSAL(阻尼振盪結構簽章非美感);shearY≡0、tier 變體未接;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("tier_variant_shear", "wobble shear 峰隨檔位遞增(G-4'',--tier-variants --shear-pivot 端到端 pivot 不動)", "L2",
+                "python3 tools/analyzer/validate_tier_variant_shear.py", "pipeline",
+                note="G-4' 讓 gen_wobble 產出 shear 通道,但 honest boundary:『wobble ∉ MAIN_SHOW_CATS → tier 變體未接』"
+                     "(shear 幅度沒接進檔位系統)。本 cap 補上:wobble 的 **shearX 峰隨檔位嚴格遞增**,端到端"
+                     "(build_spine --tier-variants --shear-pivot)放大後 shear 仍繞關節 pivot 精確不動。**關鍵設計:平行 shear 主秀集合**"
+                     "—— 直接把 wobble 塞進 MAIN_SHOW_CATS 會打壞 (J) 閘(spine_anim.sample() 不讀 shear → (J) 對 shear-only wobble "
+                     "幅度量到 0 假陰性);改開 SHEAR_SHOW_CATS={wobble} + TIER_VARIANT_CATS 聯集,(J) 閘逐位元零回歸,wobble 走專屬閘。"
+                     "amplify_bone_tl shear 分支 v'=g*v(對 0 對稱同 rotate)→ 阻尼振盪繞 0 變號數與遞減比 r 皆保形(幅度⟂結構,阻尼比對檔位不變);"
+                     "base=Super g=1.0 → wobble__Super 逐位元==base。apply_pivots 本就掃所有 {beat}__{tier} 且讀該變體當下 shear 算補償 → per tier pivot 不動。"
+                     "validate_tier_variant_shear.py(先驗庫→真實 build_spine robot 骨架→build_animations)6AC PASS"
+                     "(L1 present+backward-compat 每 wobble×每檔位產變體 finite/有 bone/≥1 帶 shear・Super 逐位元==base/"
+                     "L2 crux 峰 Super<Mega<Omg<Legend 嚴格遞增且==增益×base 精確縮放/L3 每檔位阻尼振盪簽章(首尾0/變號≥3/相繼極值遞減)+identity 介面/"
+                     "L4 正交 阻尼比 r 對檔位不變+shear 隔離(非 wobble 0 bone 帶 shear)/L5 端到端 --tier-variants --shear-pivot 每檔位 pivot 殘差 "
+                     "Super 0.013→Legend 0.058px 遠<0.5・負對照 16–50px 比值>800×/L6 負對照 平增益→L2 單調 FALSE・In/Loop/Out 不產變體・加性零回歸)。"
+                     "回歸:tier_variants(J,逐位元不變)/tier_combo_count(J-2)/shear_gen(G-4')/priors/beat/pivot 全系列 + round-trip"
+                     "(--tier-variants --shear-pivot build overall_pass premult MAE 0.031 setup 不變)全綠。"
+                     "教訓:度量不適用的類別用平行集合而非塞進同一閘(回歸風險更低)。"
+                     "honest:斜拉 wobble 形狀+增益階梯為 PROPOSAL;shearX only(shearY≡0);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

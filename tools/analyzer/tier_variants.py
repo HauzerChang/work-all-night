@@ -16,6 +16,8 @@
        ④ (scale−1) 的**符號序列不變** → hit/combo/charge 的 anticipation+settle 簽章逐檔保持
           (上方幀變大、下方幀不動、零幀仍零 → 變號數與遞增性都保留)。
   - rotate/translate 通道:對 0 對稱 → `v' = g*v`(0 仍 0,幅度隨 g 放大)。
+  - shear 通道(candidate G-4'',wobble):對 0 對稱 → `v' = g*v`(同 rotate)。shearX=0 首尾仍 0
+    (介面契約保持);阻尼振盪相繼極值同乘 g → 繞 0 變號數與遞減性皆保留(振盪簽章保形),僅幅度變大。
   - color/alpha:**不動**(可見度非運動幅度;放大 alpha 會破壞 collapse/burst 語意且可能溢出 [0,1])。
 
 只放大**主秀**類別(hit/reveal/burst/combo/charge/cascade);In/Loop/Out(進退場/待機)
@@ -27,8 +29,17 @@
 """
 import copy
 
-# 主秀類別(與 beat_templates 的節拍對應;In/Loop/Out 不在此 → 檔位無關)。
+# 主秀類別(**scale/rotate 幅度**通道;與 beat_templates 的節拍對應;In/Loop/Out 不在此 → 檔位無關)。
 MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade"}
+
+# candidate G-4'' — **shear 幅度**通道的主秀類別(wobble 斜拉果凍晃)。與 MAIN_SHOW_CATS 分開列:
+# wobble 的檔位幅度落在 `shear` 通道(非 scale/rotate),故 (J) 閘的 scale/rotate 度量對它不適用
+# (那閘只認 scale/rotate → 對 shear-only beat 會假陰性);單列一個平行集合,讓 (J) 閘維持原範圍
+# 逐位元不變,而 wobble 走本檔專屬的 shear 幅度閘(`validate_tier_variant_shear.py`)。
+SHEAR_SHOW_CATS = {"wobble"}
+
+# 所有「依檔位產幅度差異化變體」的主秀類別(供 build_animations 判定;= scale/rotate 主秀 ∪ shear 主秀)。
+TIER_VARIANT_CATS = MAIN_SHOW_CATS | SHEAR_SHOW_CATS
 
 # candidate J-2 — 依檔位可變「連擊數」的類別(結構性差異化,非只幅度)。
 # combo 的 impact 峰**數**隨檔位遞增;需在 gen 時把 nhits 帶進 gen_combo(不能事後 amplify)。
@@ -75,6 +86,13 @@ def amplify_bone_tl(b, g):
     for f in b.get("translate", []):
         f["x"] = round(g * f["x"], 3)
         f["y"] = round(g * f["y"], 3)
+    # candidate G-4'' — shear 通道(wobble):對 0(identity)**對稱**放大 → `v' = g*v`(同 rotate/translate)。
+    # shearX=0 的首尾幀 g 後仍 0(介面契約保持);阻尼振盪的相繼極值同乘 g → **變號數與遞減性皆保留**
+    # (振盪簽章對所有檔位保形),只有幅度隨 g 變大。shearY≡0 → g*0=0(純斜拉恆保持)。
+    # 既有 scale/rotate 主秀 beat 無 shear 通道 → 此迴圈為 no-op(對 (J)/(J-2) 零回歸)。
+    for f in b.get("shear", []):
+        f["x"] = round(g * f["x"], 4)
+        f["y"] = round(g * f["y"], 4)
     return b
 
 

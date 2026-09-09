@@ -218,7 +218,9 @@ except ImportError:
 _PHASE_AWARE = {"cascade"}
 
 # candidate J — 檔位(tier)幅度差異化(主秀 beat 依檔位增益放大;純函式,無 import 迴圈)。
+# candidate G-4'' — TIER_VARIANT_CATS = scale/rotate 主秀 ∪ shear 主秀(wobble);wobble 走 shear 幅度增益。
 from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
+    TIER_VARIANT_CATS as _TIER_VARIANT_CATS, \
     COUNT_AWARE_CATS as _COUNT_AWARE_CATS, amplify_anim as _amplify_anim
 
 
@@ -289,8 +291,10 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
         cat = beat_category(name)
         anim = _build_beat(beat, cat, bone_of, cx, cy)
         anims[name] = anim
-        # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
-        if tier_gains and cat in _MAIN_SHOW_CATS:
+        # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)。
+        # candidate G-4'':wobble(shear 主秀)亦在 TIER_VARIANT_CATS → 產 `wobble__{tier}`,
+        # 由 amplify_anim 走 shear 通道增益(shear 峰隨檔位遞增);scale/rotate 主秀行為不變。
+        if tier_gains and cat in _TIER_VARIANT_CATS:
             for tier, g in tier_gains.items():
                 if tier_combo_hits and cat in _COUNT_AWARE_CATS:
                     # J-2:連擊數隨檔位遞增 → 以該檔位 nhits 重生成 beat,再套幅度增益 g。
