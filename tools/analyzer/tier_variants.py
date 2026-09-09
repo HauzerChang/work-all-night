@@ -15,10 +15,12 @@
        ③ squash/collapse 樓地板檔位無關(**誠實**:蓄力深度/藏匿是結構語意,非大獎強度);
        ④ (scale−1) 的**符號序列不變** → hit/combo/charge 的 anticipation+settle 簽章逐檔保持
           (上方幀變大、下方幀不動、零幀仍零 → 變號數與遞增性都保留)。
-  - rotate/translate 通道:對 0 對稱 → `v' = g*v`(0 仍 0,幅度隨 g 放大)。
+  - rotate/translate/**shear** 通道:對 0 對稱 → `v' = g*v`(0 仍 0,幅度隨 g 放大)。
+    shear(candidate G-4'',wobble 斜拉):繞 0 阻尼擺動,同乘 g → 端點 0 保持、**阻尼比 r 不變**
+    (形狀不動)、峰值隨 g 遞增 → 檔位愈高晃愈大而簽章/介面保形。
   - color/alpha:**不動**(可見度非運動幅度;放大 alpha 會破壞 collapse/burst 語意且可能溢出 [0,1])。
 
-只放大**主秀**類別(hit/reveal/burst/combo/charge/cascade);In/Loop/Out(進退場/待機)
+只放大**主秀**類別(hit/reveal/burst/combo/charge/cascade/**wobble**);In/Loop/Out(進退場/待機)
 **檔位無關**(idle 呼吸不該隨大獎檔位脹縮 → 負對照)。base tier(Super)g=1.0 →
 `amplify_*` 為 identity 變換 → **逐位元 == 無檔位輸出**(向後相容)。
 
@@ -28,7 +30,10 @@
 import copy
 
 # 主秀類別(與 beat_templates 的節拍對應;In/Loop/Out 不在此 → 檔位無關)。
-MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade"}
+# candidate G-4'':wobble(斜拉 jelly wobble,幅度在 **shear 通道**)亦為主秀 → 納入,讓
+# `{wobble}__{tier}` 的 shear 峰隨檔位遞增(比照 (J) scale/rotate)。amplify 對 shear 對 0 對稱
+# (同 rotate/translate),端點 0 仍 0、阻尼比 r 不變、峰值隨 g 放大。
+MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble"}
 
 # candidate J-2 — 依檔位可變「連擊數」的類別(結構性差異化,非只幅度)。
 # combo 的 impact 峰**數**隨檔位遞增;需在 gen 時把 nhits 帶進 gen_combo(不能事後 amplify)。
@@ -73,6 +78,12 @@ def amplify_bone_tl(b, g):
     for f in b.get("rotate", []):
         f["angle"] = round(g * f["angle"], 3)
     for f in b.get("translate", []):
+        f["x"] = round(g * f["x"], 3)
+        f["y"] = round(g * f["y"], 3)
+    # candidate G-4'':shear 通道(wobble 斜拉)。shear 繞 0(identity=0)擺動,故對 0 對稱放大
+    # `v'=g*v`(同 rotate/translate):端點 0 仍 0(介面契約)、相繼極值同乘 g → **阻尼比 r 不變**
+    # (形狀不動、只放大幅度)、峰值隨 g 單調變大(檔位簽章)。
+    for f in b.get("shear", []):
         f["x"] = round(g * f["x"], 3)
         f["y"] = round(g * f["y"], 3)
     return b

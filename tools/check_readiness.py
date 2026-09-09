@@ -283,6 +283,22 @@ BLOCKS = [
                      "shear 隔離 僅 wobble 帶 shear・移除 wobble 其餘 beat 逐位元不變)。回歸:全 priors/tier/beat/pivot 系列 + round-trip"
                      "(--shear-pivot build overall_pass premult MAE 0.031 setup 不變)全綠。"
                      "honest:斜拉 wobble 為 PROPOSAL(阻尼振盪結構簽章非美感);shearY≡0、tier 變體未接;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("wobble_tier_variant", "wobble shear 峰隨檔位遞增(G-4'',接 tier 幅度差異化)", "L2",
+                "python3 tools/analyzer/validate_wobble_tier.py", "pipeline",
+                note="G-4' 讓 gen_wobble **第一次**產出 shear 通道,honest boundary:wobble 尚未接 tier 幅度差異化"
+                     "(shear 峰不隨檔位遞增;wobble ∉ MAIN_SHOW_CATS)。本 cap 比照 (J) 對 scale/rotate 所做:把 wobble 納入"
+                     "MAIN_SHOW_CATS,並讓 tier_variants.amplify_bone_tl 對 **shear 通道**對 0 對稱放大 v'=g*v(同 rotate/translate)→"
+                     "`{wobble}__{tier}` 的 shear 峰 Super<Mega<Omg<Legend 嚴格遞增(16/21.6/27.2/33.6°=base×gain),而阻尼振盪簽章"
+                     "與 identity 介面對所有檔位保形(端點 0 仍 0、相繼極值同乘 g → **阻尼比 r 不變**=形狀不動只放大幅度)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations,validate_wobble_tier.py 5AC PASS"
+                     "(T1 present+shear per tier crux 峰≥5°・base wobble 逐位元向後相容/T2 crux 峰單調遞增+==base×gain 階梯+Legend<90° 無翻面/"
+                     "T3 每檔位阻尼簽章保形 首尾0・繞0變號≥3・相繼極值遞減/T4 每檔位 identity 介面 可插 Loop/"
+                     "T5 負對照 平增益→峰單調 FALSE+Super==Legend 證閘可信・base 全逐位元不變・shear 只在 wobble 變體不外洩・"
+                     "**阻尼形狀不變** 極值比 Super==Legend 逐項相等=檔位改『多晃』非『怎麼晃』誠實邊界)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot:wobble 4 檔位變體 shear 峰遞增且皆帶 pivot 補償 translate。"
+                     "回歸:validate_tier_variants(J,J3 改通道感知納 shear 仍全綠)/tier_combo_count/shear_gen/全 priors/beat/pivot 系列 +"
+                     "round-trip validate_build(--tier-variants --shear-pivot build AC4 orphan 0.0)全綠。"
+                     "honest:斜拉 wobble 形狀與增益階梯為 PROPOSAL(結構簽章非美感);shearY≡0;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

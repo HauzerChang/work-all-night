@@ -13,8 +13,9 @@
                        變體名經 `beat_category` 仍路由回原類別(命名不破壞產線路由);base beat 不變。
   J2 interface IF    : **每個檔位**——hit/combo/charge/cascade 首尾 bone 皆 setup identity;
                        burst(reveal)尾 identity、首為 collapsed 樓地板(檔位無關)→ 皆可插 Loop 間。
-  J3 crux monotone   : **每主秀 beat**——scaleX overshoot 幅度(與 rotate 幅度)
-                       Super<Mega<Omg<Legend **嚴格遞增**(端到端經 build_animations 量)。
+  J3 crux monotone   : **每主秀 beat**——其**活躍通道**幅度(scaleX overshoot / rotate / **shear**;
+                       candidate G-4'' wobble 幅度在 shear)Super<Mega<Omg<Legend **嚴格遞增**
+                       (端到端經 build_animations 量;只對 amp>0 的通道要求且至少一個活躍)。
   J4 signature kept  : **每個檔位**——combo 仍 ≥3 遞增 impact 峰、charge 仍長蓄力(squash 非 collapse)、
                        hit 仍 anticipation+settle((scale−1) 變號 ≥3)、cascade 仍跨件峰時刻遞增散佈。
                        (幅度增益只放大 identity 上方 overshoot、不動下方樓地板與時間軸 → 簽章保形。)
@@ -96,6 +97,17 @@ def _rotate_amp(anim):
     return max(amps, default=0.0)
 
 
+def _shear_amp(anim):
+    """max over bones of max|shearX| —— shear 幅度(0 對稱;candidate G-4'' wobble)。
+    直接讀 shear 關鍵幀(`SA.sample` 不處理 shear 通道 → 用 series/sample 會漏)。"""
+    amps = []
+    for _b, ch in anim.get("bones", {}).items():
+        fr = ch.get("shear")
+        if fr:
+            amps.append(max(abs(f.get("x", 0.0)) for f in fr))
+    return max(amps, default=0.0)
+
+
 # base beat key → 類別 → 該套哪個結構簽章
 def _base_beats(anims):
     return {nm: G.beat_category(nm) for nm in anims if "__" not in nm and G.beat_category(nm) in TV.MAIN_SHOW_CATS}
@@ -160,17 +172,27 @@ def run():
     R["J2_interface"] = {**j2, "pass": not j2["bad_end"] and not j2["bad_start"]}
 
     # ---- J3 crux: monotone amplitude per main-show beat ----
+    # 通道感知(candidate G-4''):對每 beat 只對**實際活躍**的通道(amp>TOL)要求嚴格遞增,
+    # 且至少一個通道活躍。scale/rotate beat 行為不變(scale/rotate 活躍);wobble 只 shear 活躍 →
+    # 改驗 shear 峰遞增(否則 scale/rotate 皆 0 會被 is_strictly_increasing([0,0,0,0]) 判 False)。
     j3 = {"beats": {}, "fail": []}
     for beat in main_beats:
         sc = [_scale_overshoot(anims["{}__{}".format(beat, t)]) for t in TIERS]
         ro = [_rotate_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
-        sc_mono = is_strictly_increasing(sc)
-        # rotate:僅在該 beat 有 rotate(amp>0)時要求嚴格遞增
-        ro_mono = True if max(ro) <= TOL else is_strictly_increasing(ro)
+        sh = [_shear_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
+        active = []
+        if max(sc) > TOL:
+            active.append(("scale", is_strictly_increasing(sc)))
+        if max(ro) > TOL:
+            active.append(("rotate", is_strictly_increasing(ro)))
+        if max(sh) > TOL:
+            active.append(("shear", is_strictly_increasing(sh)))
+        ok = bool(active) and all(m for _, m in active)
         j3["beats"][beat] = {"scale_overshoot": [round(x, 4) for x in sc],
                              "rotate_amp": [round(x, 3) for x in ro],
-                             "scale_mono": sc_mono, "rotate_mono": ro_mono}
-        if not (sc_mono and ro_mono):
+                             "shear_amp": [round(x, 3) for x in sh],
+                             "active": {c: m for c, m in active}}
+        if not ok:
             j3["fail"].append(beat)
     R["J3_monotone"] = {**j3, "pass": not j3["fail"]}
 
@@ -255,7 +277,8 @@ def main():
             print("{:22s} {}".format(k, "PASS" if R[k]["pass"] else "FAIL"))
         print("J3 amplitudes:")
         for beat, d in R["J3_monotone"]["beats"].items():
-            print("  {:8s} scale_overshoot {} rotate_amp {}".format(beat, d["scale_overshoot"], d["rotate_amp"]))
+            print("  {:8s} scale_overshoot {} rotate_amp {} shear_amp {}".format(
+                beat, d["scale_overshoot"], d["rotate_amp"], d["shear_amp"]))
         print("OVERALL:", "PASS" if R["OVERALL_PASS"] else "FAIL")
     sys.exit(0 if R["OVERALL_PASS"] else 1)
 
