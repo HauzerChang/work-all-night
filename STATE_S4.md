@@ -7,6 +7,17 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 72(2026-09-10)**:排程再次觸發(同日內第二次)。依 chunk 71「下一步候選」三個
+> 等待條件重跑同一輪檢查:(1) `git log --oneline --all -- assets/` 確認自 chunk 41 起仍
+> 無任何新素材加入(最後一筆 assets/ 改動仍是 chunk 52 的決策檔框位置修正,commit
+> `763c112`,非新素材);(2) GitHub `list_issues`/`list_pull_requests`(state filter)
+> 確認 open issues 0 筆、open PRs 0 筆,三項懸而未決(`bodice`/`sleeve_right` 裁決、
+> `hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者輸入;(3) chunk 71 產出(純狀態
+> 更新,無代碼異動)已 commit(`c38ffd6`),工作樹乾淨無遺留。**結論與 chunk 60~71 相同:
+> 無新工作塊**。這是連續第十三次同樣結果的純檢查性質 chunk。按既有慣例(chunk 27 起已主動
+> 通知過一次,此後同一維護狀態不重複通知)不再對使用者發送新通知。見
+> `log/s4-2026-09-10-072.md`。
+>
 > **chunk 71(2026-09-10)**:排程再次觸發(距 chunk 70 約隔一天,首次跨到新日期)。依
 > chunk 70「下一步候選」三個等待條件重跑同一輪檢查:(1) `git log --oneline --all --
 > assets/` 確認自 chunk 41 起仍無任何新素材加入(最後一筆 assets/ 改動仍是 chunk 52 的
