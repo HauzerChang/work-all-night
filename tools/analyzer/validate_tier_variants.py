@@ -96,6 +96,17 @@ def _rotate_amp(anim):
     return max(amps, default=0.0)
 
 
+def _shear_amp(anim):
+    """max over bones of max|shearX| —— shear 幅度(0 對稱;candidate G-4'' 的 wobble 主秀通道)。"""
+    bones = anim.get("bones", {})
+    amps = []
+    for b in bones:
+        fr = anim.get("bones", {}).get(b, {}).get("shear")
+        if fr:
+            amps.append(max(abs(f["x"]) for f in fr))
+    return max(amps, default=0.0)
+
+
 # base beat key → 類別 → 該套哪個結構簽章
 def _base_beats(anims):
     return {nm: G.beat_category(nm) for nm in anims if "__" not in nm and G.beat_category(nm) in TV.MAIN_SHOW_CATS}
@@ -164,13 +175,18 @@ def run():
     for beat in main_beats:
         sc = [_scale_overshoot(anims["{}__{}".format(beat, t)]) for t in TIERS]
         ro = [_rotate_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
-        sc_mono = is_strictly_increasing(sc)
-        # rotate:僅在該 beat 有 rotate(amp>0)時要求嚴格遞增
-        ro_mono = True if max(ro) <= TOL else is_strictly_increasing(ro)
+        sh = [_shear_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
+        # 通道感知(candidate G-4''):對每個「該 beat 實際使用」的運動通道要求嚴格遞增,
+        # 且至少一個通道有運動(wobble 只有 shear;scale/rotate beat 不受影響仍要求遞增)。
+        sc_used, ro_used, sh_used = max(sc) > TOL, max(ro) > TOL, max(sh) > TOL
+        sc_mono = is_strictly_increasing(sc) if sc_used else True
+        ro_mono = is_strictly_increasing(ro) if ro_used else True
+        sh_mono = is_strictly_increasing(sh) if sh_used else True
         j3["beats"][beat] = {"scale_overshoot": [round(x, 4) for x in sc],
                              "rotate_amp": [round(x, 3) for x in ro],
-                             "scale_mono": sc_mono, "rotate_mono": ro_mono}
-        if not (sc_mono and ro_mono):
+                             "shear_amp": [round(x, 3) for x in sh],
+                             "scale_mono": sc_mono, "rotate_mono": ro_mono, "shear_mono": sh_mono}
+        if not (sc_mono and ro_mono and sh_mono and (sc_used or ro_used or sh_used)):
             j3["fail"].append(beat)
     R["J3_monotone"] = {**j3, "pass": not j3["fail"]}
 
@@ -255,7 +271,8 @@ def main():
             print("{:22s} {}".format(k, "PASS" if R[k]["pass"] else "FAIL"))
         print("J3 amplitudes:")
         for beat, d in R["J3_monotone"]["beats"].items():
-            print("  {:8s} scale_overshoot {} rotate_amp {}".format(beat, d["scale_overshoot"], d["rotate_amp"]))
+            print("  {:8s} scale_overshoot {} rotate_amp {} shear_amp {}".format(
+                beat, d["scale_overshoot"], d["rotate_amp"], d["shear_amp"]))
         print("OVERALL:", "PASS" if R["OVERALL_PASS"] else "FAIL")
     sys.exit(0 if R["OVERALL_PASS"] else 1)
 

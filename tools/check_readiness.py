@@ -283,6 +283,17 @@ BLOCKS = [
                      "shear 隔離 僅 wobble 帶 shear・移除 wobble 其餘 beat 逐位元不變)。回歸:全 priors/tier/beat/pivot 系列 + round-trip"
                      "(--shear-pivot build overall_pass premult MAE 0.031 setup 不變)全綠。"
                      "honest:斜拉 wobble 為 PROPOSAL(阻尼振盪結構簽章非美感);shearY≡0、tier 變體未接;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("wobble_tier_amplitude", "wobble(shear 通道)接檔位幅度差異化(G-4'',shear 峰隨檔位遞增)", "L2",
+                "python3 tools/analyzer/validate_wobble_tier.py", "pipeline",
+                note="補 (G-4')+(J) 的 honest boundary:(G-4') 讓生成器第一次產 shear 通道、(J) 讓主秀依檔位差異化,但 (J) 的 "
+                     "amplify_bone_tl **只放大 scale/rotate/translate 沒碰 shear**、wobble ∉ MAIN_SHOW_CATS → shear 峰不隨檔位遞增。"
+                     "本 cap 把那段接上:MAIN_SHOW_CATS 加 wobble + amplify_bone_tl 對 shear **對 0 對稱放大** v'=g*v(shear identity=0 無樓地板)"
+                     "→ wobble__{Super,Mega,Omg,Legend} 峰 |shearX| 16→21.6→27.2→33.6°(=base×TIER_GAIN)嚴格遞增、阻尼振盪簽章逐檔保形"
+                     "(g>0 不改變號序列、相繼極值同乘 g→遞減關係保留)。全 additive(Super g=1.0 → wobble__Super byte-identical base)。"
+                     "validate_wobble_tier.py 5AC PASS(T1 present+routing+BC/T2 crux 峰單調+比值=階梯/T3 每檔位介面 identity+shear 首尾 0/"
+                     "T4 每檔位阻尼簽章/T5 平增益守衛+__Super 逐位元+shear 隔離存活於 tiering);(J) 閘 J3 同步改通道感知(否則對只有 shear 的 "
+                     "wobble 假陰性)。回歸全系列 + round-trip(--tier-variants --shear-pivot build premult MAE 0.031 setup 不變)全綠。"
+                     "honest:斜拉 wobble/TIER_GAIN 階梯為 PROPOSAL;shearY≡0;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
