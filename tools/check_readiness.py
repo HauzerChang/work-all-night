@@ -297,6 +297,22 @@ BLOCKS = [
                      "T5 負對照 平增益全 1.0→遞增 FALSE 且各檔位==base・通道隔離單元測 scale-only 不生 shear·shear-only 不生 scale)。"
                      "回歸:validate_tier_variants(J,J3 改 channel-aware 仍全綠)/tier_combo_count/shear_gen/全 priors/beat/pivot 系列全綠。"
                      "honest:shear 峰階梯沿用 (J) 幅度增益(PROPOSAL);shearY≡0;wobble 未接 count-aware(shearY/斜拉 squash 為後續);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("wobble_tier_swings", "wobble 搖擺段數隨檔位遞增(G-4''',count-aware nswing Super4→Legend7)", "L2",
+                "python3 tools/analyzer/validate_wobble_swings.py", "pipeline",
+                note="G-4'' 讓 wobble 的 shear 峰**幅度**隨檔位遞增,但 honest boundary:每檔位仍**同樣 4 段**阻尼振盪 —— "
+                     "『更斜』有了、『晃幾下』沒有(同 J→J-2 對 combo 的『更爆』vs『連幾下』)。搖擺段『數』是關鍵幀拓樸,"
+                     "事後 amplify 只能同比放大既有段、無法多長一段 → 走 tier_wobble_swings 在 build_animations 對 wobble 檔位變體"
+                     "以該檔位 nswing **重生成**(gen_wobble 加 nswing 參數,通用 _wobble_env:內窗均分 τ、正負交替、|極值|=A·r^i 遞減),"
+                     "再套幅度增益 g → 段數(結構)與 shear 幅度兩軸**正交可疊**。nswing=4 逐位元同 (G-4') 手調(向後相容 base wobble 恆走此路)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,tier_wobble_swings),validate_wobble_swings.py 5AC PASS"
+                     "(N1 present+backward-compat 每檔位產 wobble__tier finite/有 bone/帶 shear・base 逐位元不變・tier_wobble_swings=None 逐位元同 (G-4'') 幅度-only/"
+                     "N2 crux 段數 [4,5,6,7]==宣告且 Super<Mega<Omg<Legend 嚴格遞增·每檔位仍阻尼(變號≥3/遞減)/"
+                     "N3 每檔位仍阻尼簽章保形且 shear 峰仍單調(與 G-4'' 疊加不衝突)/"
+                     "N4 正交 counts+平增益→段數仍遞增且峰==base·gains+無 counts→段數恆 4 峰遞增(兩軸獨立開關)/"
+                     "N5 負對照 平段數全 4→段數單調 FALSE·slot_reveal 無宣告→wobble_swings_for None 不產變體·swing 只作用 wobble 不外洩到 combo)。"
+                     "回歸:validate_wobble_tier(G-4'')/tier_combo_count(J-2,swing 不干擾 combo)/tier_variants/shear_gen/全 priors/beat/pivot 系列全綠;"
+                     "round-trip validate_build 對 --tier-variants --shear-pivot build(overall_pass、premult MAE 0.031、setup 不變)。"
+                     "honest:搖擺段數階梯為 PROPOSAL(結構簽章客觀、手感留使用者 A 類);shearY≡0;段內 τ 均分(非手感節奏);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

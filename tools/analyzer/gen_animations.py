@@ -222,11 +222,13 @@ from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
     COUNT_AWARE_CATS as _COUNT_AWARE_CATS, amplify_anim as _amplify_anim
 
 
-def _build_beat(beat, cat, bone_of, cx, cy, combo_hits=3):
+def _build_beat(beat, cat, bone_of, cx, cy, count=None):
     """把單一 beat 的每件 role 具體化為 anim dict(bones/slots timelines)。
 
-    cat 依語意分派運動基元;`combo_hits`(candidate J-2)只對 COUNT_AWARE(combo)類別生效,
-    決定連擊「峰數」(其餘類別忽略)。cascade(_PHASE_AWARE)另依件序帶入相位。"""
+    cat 依語意分派運動基元;`count`(candidate J-2 / G-4''')只對 COUNT_AWARE 類別生效:
+    combo 用作連擊「峰數」nhits、wobble 用作搖擺「段數」nswing(其餘類別忽略)。`count=None` →
+    走該生成器自身預設(combo nhits=3 / wobble nswing=4 → 向後相容逐位元不變)。
+    cascade(_PHASE_AWARE)另依件序帶入相位。"""
     bones_tl, slots_tl = {}, {}
     limb_seen = 0
     # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
@@ -251,9 +253,9 @@ def _build_beat(beat, cat, bone_of, cx, cy, combo_hits=3):
             # 件序相位:第一件 0、最後一件 1(單件時 0)→ 各件峰時刻依序錯開
             phase = 0.0 if nvalid <= 1 else pi / (nvalid - 1)
             b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
-        elif cat in _COUNT_AWARE_CATS:
-            # 連擊數:combo 的 impact 峰數 = combo_hits(檔位相依)
-            b, sdict = _DISPATCH[cat](role, side_sign, radial, combo_hits)
+        elif cat in _COUNT_AWARE_CATS and count is not None:
+            # 結構「數」(檔位相依):combo→nhits(峰數)、wobble→nswing(搖擺段數)。
+            b, sdict = _DISPATCH[cat](role, side_sign, radial, count)
         else:
             b, sdict = _DISPATCH[cat](role, side_sign, radial)
         if b:
@@ -268,14 +270,20 @@ def _build_beat(beat, cat, bone_of, cx, cy, combo_hits=3):
     return anim
 
 
-def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None):
+def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
+                     tier_wobble_swings=None):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
     額外產出 `{beat}__{tier}` 幅度差異化變體(檔位愈高愈爆);base beat 不變。
-    tier_combo_hits(candidate J-2):`{tier: nhits}` 時,對 COUNT_AWARE(combo)類別的檔位變體
-    以該檔位的 nhits **重生成**(連擊數隨檔位遞增),再套幅度增益 —— 幅度與連擊數兩效**正交可疊**。
-    兩者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 nhits=3)。"""
+    tier_combo_hits(candidate J-2):`{tier: nhits}` 時,對 COUNT_AWARE 的 **combo** 檔位變體
+    以該檔位 nhits **重生成**(連擊數隨檔位遞增),再套幅度增益。
+    tier_wobble_swings(candidate G-4'''):`{tier: nswing}` 時,對 COUNT_AWARE 的 **wobble** 檔位變體
+    以該檔位 nswing **重生成**(搖擺段數隨檔位遞增),再套幅度增益。
+    「數」(結構)與幅度兩軸**正交可疊**;各 count 對映皆 None(預設)→ 逐位元同舊行為
+    (向後相容;base combo 恆 nhits=3、base wobble 恆 nswing=4)。"""
+    # COUNT_AWARE 類別 → 其檔位「數」對映(gen 時決定結構「數」;None → 走生成器預設)。
+    _count_map = {"combo": tier_combo_hits, "wobble": tier_wobble_swings}
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
@@ -291,11 +299,11 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
         anims[name] = anim
         # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
         if tier_gains and cat in _MAIN_SHOW_CATS:
+            cmap = _count_map.get(cat)          # 該 cat 的檔位「數」對映(或 None)
             for tier, g in tier_gains.items():
-                if tier_combo_hits and cat in _COUNT_AWARE_CATS:
-                    # J-2:連擊數隨檔位遞增 → 以該檔位 nhits 重生成 beat,再套幅度增益 g。
-                    nh = tier_combo_hits.get(tier, 3)
-                    variant = _build_beat(beat, cat, bone_of, cx, cy, combo_hits=nh)
+                if cmap and cat in _COUNT_AWARE_CATS:
+                    # J-2/G-4''':該檔位以 count(combo nhits / wobble nswing)重生成 beat,再套幅度增益 g。
+                    variant = _build_beat(beat, cat, bone_of, cx, cy, count=cmap.get(tier))
                     anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g)
                 else:
                     anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g)

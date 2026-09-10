@@ -317,19 +317,46 @@ _WOBBLE_SHEAR = {"body": 14.0, "特效": 16.0, "head": 10.0, "limb": 12.0}
 WOBBLE_DAMP = 0.5   # 相繼極值幅度衰減比(A → −0.5A → +0.25A → −0.125A)
 
 
-def gen_wobble(role, side_sign=1.0, radial=(0.0, 0.0)):
+# candidate G-4''' — wobble **搖擺「段數」**(nswing)隨檔位遞增(count-aware,結構性差異化)。
+# (G-4'') 讓 wobble 的 shear 峰**幅度**隨檔位遞增(愈斜),但每檔位仍是**同樣 4 段**阻尼振盪
+# ——「更斜」有了、「晃幾下」沒有(同 J→J-2 對 combo 的「更爆」vs「連幾下」)。搖擺段「數」是
+# 關鍵幀**拓樸**,必須在 gen 當下決定(事後 amplify 只能同比放大既有段、無法多長一段),故走
+# `tier_wobble_swings` 在 build_animations 對 wobble 檔位變體以該檔位 nswing **重生成**,再套幅度增益
+# → 段數(結構)與幅度兩軸**正交可疊**(同 J-2)。nswing=4 特例逐位元同 (G-4') 手調(向後相容)。
+def _wobble_env(A, r, nswing):
+    """通用阻尼 shearX 振盪包絡 → [(τ∈[0,1], shearX)]。
+
+    nswing = **非零極值(搖擺段)數**;極值 τ 於內窗 [0.16,0.80] 均分、正負**交替**(首推 +)、
+    |極值| = A·r^i **嚴格遞減**(阻尼);首尾 shearX=0(identity 介面)。任意 nswing≥1 皆:
+    首尾 0、繞 0 變號 = nswing−1、相繼極值遞減 → 阻尼振盪簽章保持(強度/段數變、結構不變)。"""
+    lo, hi = 0.16, 0.80
+    env = [(0.00, 0.0)]
+    for i in range(nswing):
+        tau = lo + (hi - lo) * (i / (nswing - 1) if nswing > 1 else 0.0)
+        sign = 1.0 if i % 2 == 0 else -1.0
+        env.append((round(tau, 4), sign * (r ** i) * A))
+    env.append((1.00, 0.0))
+    return env
+
+
+def gen_wobble(role, side_sign=1.0, radial=(0.0, 0.0), nswing=4):
     """斜拉 jelly wobble:**阻尼 shearX 擺動**(純 shear 通道)。回傳 (bone_timelines, slot_timelines)。
 
-    shearX 包絡(τ):0 →(+A skew)→(−rA 反向)→(+r²A)→(−r³A)→ 0(r=WOBBLE_DAMP)。
-    首尾 identity(shearX=0);shearY≡0(純斜拉)。相繼極值 A>rA>r²A>r³A → **遞減=阻尼**,
-    繞 0 變號 4 次 ≥3 → 振盪簽章。`side_sign` 決定首推方向(左右件反相,同 loop/limb 慣例)。"""
+    shearX 包絡(τ):0 →(+A skew)→(−rA 反向)→(+r²A)→…→ 0(r=WOBBLE_DAMP,共 `nswing` 段極值)。
+    首尾 identity(shearX=0);shearY≡0(純斜拉)。相繼極值 A>rA>r²A>… → **遞減=阻尼**,
+    繞 0 變號 nswing−1 次(≥3 於 nswing≥4)→ 振盪簽章。`side_sign` 決定首推方向(左右件反相)。
+    `nswing`(candidate G-4''')隨檔位遞增(Super 4 → Legend 7);**nswing=4 逐位元同 (G-4') 手調**
+    (golden,向後相容;base wobble 恆走此路)。"""
     T = DUR["wobble"]
     A = _WOBBLE_SHEAR.get(role, 12.0) * side_sign
     r = WOBBLE_DAMP
     b, s = {}, {}
-    # (τ, shearX):阻尼振盪,首尾 0
-    env = [(0.00, 0.0), (0.16, A), (0.38, -r * A),
-           (0.60, r * r * A), (0.80, -r * r * r * A), (1.00, 0.0)]
+    if nswing == 4:
+        # (G-4') 手調 golden 4 段阻尼振盪(保留原關鍵幀 → byte-identical 向後相容)
+        env = [(0.00, 0.0), (0.16, A), (0.38, -r * A),
+               (0.60, r * r * A), (0.80, -r * r * r * A), (1.00, 0.0)]
+    else:
+        env = _wobble_env(A, r, nswing)   # 通用 nswing(段數隨檔位遞增)
     b["shear"] = [{"time": round(tau * T, 4), "x": round(sx, 4), "y": 0.0} for (tau, sx) in env]
     return b, s
 

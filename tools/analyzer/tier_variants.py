@@ -33,9 +33,10 @@ import copy
 # 故 `amplify_bone_tl` 需一併放大 shear 通道(對 0 對稱 → v'=g*v,同 rotate/translate)。
 MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble"}
 
-# candidate J-2 — 依檔位可變「連擊數」的類別(結構性差異化,非只幅度)。
-# combo 的 impact 峰**數**隨檔位遞增;需在 gen 時把 nhits 帶進 gen_combo(不能事後 amplify)。
-COUNT_AWARE_CATS = {"combo"}
+# candidate J-2 / G-4''' — 依檔位可變「數」的類別(結構性差異化,非只幅度)。
+# combo 的 impact 峰**數**(nhits)、wobble 的搖擺**段數**(nswing)隨檔位遞增;皆為關鍵幀拓樸,
+# 需在 gen 時帶入(不能事後 amplify:amplify 只同比放大既有峰/段,無法多長一個)。
+COUNT_AWARE_CATS = {"combo", "wobble"}
 
 # 檔位 → 主秀幅度增益(**嚴格遞增**;base=Super=1.0 → 向後相容逐位元不變)。
 # 增益上界經檢核:最大 role peak(特效 1.35 → q=0.35)在 Legend g=2.1 下 → 1.735(無翻面);
@@ -63,6 +64,19 @@ TIER_COMBO_HITS = {
 def combo_hits_for(genre):
     """回傳該 genre 的 {tier: nhits};無宣告的 genre 回 None(→ combo 檔位變體不變連擊數)。"""
     return TIER_COMBO_HITS.get(genre)
+
+
+# candidate G-4''' — 檔位 → wobble 搖擺**段數**(**嚴格遞增**;base=Super=4 → 逐位元同 (G-4') 手調)。
+# 上界 7:wobble T=0.8s 內容納 7 段極值於內窗 [0.16,0.80](均分 spacing≈0.107)仍 τ 嚴格遞增,
+# 末段 |A·r^6|(r=0.5)仍 >0(role 峰 10–16° → 末段 0.16–0.25°,遠 > dead 1e-6,阻尼簽章成立)。
+TIER_WOBBLE_SWINGS = {
+    "slot_bigwin": {"Super": 4, "Mega": 5, "Omg": 6, "Legend": 7},
+}
+
+
+def wobble_swings_for(genre):
+    """回傳該 genre 的 {tier: nswing};無宣告的 genre 回 None(→ wobble 檔位變體不變段數)。"""
+    return TIER_WOBBLE_SWINGS.get(genre)
 
 
 def _amp_scale(v, g):
