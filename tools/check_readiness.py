@@ -283,6 +283,20 @@ BLOCKS = [
                      "shear 隔離 僅 wobble 帶 shear・移除 wobble 其餘 beat 逐位元不變)。回歸:全 priors/tier/beat/pivot 系列 + round-trip"
                      "(--shear-pivot build overall_pass premult MAE 0.031 setup 不變)全綠。"
                      "honest:斜拉 wobble 為 PROPOSAL(阻尼振盪結構簽章非美感);shearY≡0、tier 變體未接;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("wobble_tier_amplitude", "wobble shear 峰隨檔位遞增(G-4'',shear 通道接檔位差異化)", "L2",
+                "python3 tools/analyzer/validate_wobble_tier.py", "pipeline",
+                note="G-4' 讓 gen_wobble 產出 shear 通道,但當時 honest boundary:wobble ∉ MAIN_SHOW_CATS → **檔位機制(J)未放大 shear**"
+                     "(J 的幅度增益只作用 scale/rotate/translate)。本 cap 補上:把 wobble 併入 MAIN_SHOW_CATS 並讓 amplify_bone_tl 一併"
+                     "放大 shear(對 0 對稱 → v'=g*v,同 rotate/translate)→ wobble 的 shearX 峰隨檔位嚴格遞增(Super16°→Legend33.6°),"
+                     "同時阻尼振盪簽章(振盪+遞減)在**每個檔位**保持(g*v 同比放大 → 符號序列與遞減比不變)。與 (J) 幅度軸同一機制、"
+                     "對 shear 通道的自然推廣 —— 又一『檔位機制就緒 ≠ 每個新通道接上』實例(同 E/H/I/J/G-4')。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_wobble_tier.py 5AC PASS"
+                     "(T1 present+backward-compat 每檔位產 wobble__tier finite/有 bone/帶 shear・base 逐位元不變/"
+                     "T2 crux shear 峰 [16,21.6,27.2,33.6] Super<Mega<Omg<Legend 嚴格遞增且 Super==base/"
+                     "T3 每檔位仍首尾 0+繞 0 變號≥3+相繼極值遞減(阻尼簽章保形)/T4 shear 隔離 只 wobble 及其變體帶 shear/"
+                     "T5 負對照 平增益全 1.0→遞增 FALSE 且各檔位==base・通道隔離單元測 scale-only 不生 shear·shear-only 不生 scale)。"
+                     "回歸:validate_tier_variants(J,J3 改 channel-aware 仍全綠)/tier_combo_count/shear_gen/全 priors/beat/pivot 系列全綠。"
+                     "honest:shear 峰階梯沿用 (J) 幅度增益(PROPOSAL);shearY≡0;wobble 未接 count-aware(shearY/斜拉 squash 為後續);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

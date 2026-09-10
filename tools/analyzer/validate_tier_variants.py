@@ -96,6 +96,17 @@ def _rotate_amp(anim):
     return max(amps, default=0.0)
 
 
+def _shear_amp(anim):
+    """max over bones of max|shearX| —— shear 幅度(0 對稱;candidate G-4'' 的 wobble 節拍)。
+    直接讀 `shear` timeline —— `SA.sample` 不含 shear 通道,必須從 keyframe 取。"""
+    amps = []
+    for b, ch in anim.get("bones", {}).items():
+        fr = ch.get("shear")
+        if fr:
+            amps.append(max(abs(f["x"]) for f in fr))
+    return max(amps, default=0.0)
+
+
 # base beat key → 類別 → 該套哪個結構簽章
 def _base_beats(anims):
     return {nm: G.beat_category(nm) for nm in anims if "__" not in nm and G.beat_category(nm) in TV.MAIN_SHOW_CATS}
@@ -159,18 +170,25 @@ def run():
                         j2["bad_start"].append(("{}__{}".format(beat, t), b, round(bd["scaleX"], 3)))
     R["J2_interface"] = {**j2, "pass": not j2["bad_end"] and not j2["bad_start"]}
 
-    # ---- J3 crux: monotone amplitude per main-show beat ----
+    # ---- J3 crux: monotone amplitude per main-show beat (channel-aware) ----
+    # 每個主秀 beat 依其**實際使用的幅度通道**(scale-overshoot / rotate / shear)量遞增性;
+    # candidate G-4'' 的 wobble 幅度軸在 shear(SA.sample 不含 shear → 用 _shear_amp 直讀)。
+    # 只對「該 beat 在各檔位有非零幅度」的通道要求嚴格遞增;beat 若無任何幅度軸 → fail(主秀應有強度)。
     j3 = {"beats": {}, "fail": []}
     for beat in main_beats:
         sc = [_scale_overshoot(anims["{}__{}".format(beat, t)]) for t in TIERS]
         ro = [_rotate_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
-        sc_mono = is_strictly_increasing(sc)
-        # rotate:僅在該 beat 有 rotate(amp>0)時要求嚴格遞增
-        ro_mono = True if max(ro) <= TOL else is_strictly_increasing(ro)
+        sh = [_shear_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
+        active = {"scale": max(sc) > TOL, "rotate": max(ro) > TOL, "shear": max(sh) > TOL}
+        sc_mono = is_strictly_increasing(sc) if active["scale"] else True
+        ro_mono = is_strictly_increasing(ro) if active["rotate"] else True
+        sh_mono = is_strictly_increasing(sh) if active["shear"] else True
         j3["beats"][beat] = {"scale_overshoot": [round(x, 4) for x in sc],
                              "rotate_amp": [round(x, 3) for x in ro],
-                             "scale_mono": sc_mono, "rotate_mono": ro_mono}
-        if not (sc_mono and ro_mono):
+                             "shear_amp": [round(x, 3) for x in sh],
+                             "active": active,
+                             "scale_mono": sc_mono, "rotate_mono": ro_mono, "shear_mono": sh_mono}
+        if not (any(active.values()) and sc_mono and ro_mono and sh_mono):
             j3["fail"].append(beat)
     R["J3_monotone"] = {**j3, "pass": not j3["fail"]}
 
