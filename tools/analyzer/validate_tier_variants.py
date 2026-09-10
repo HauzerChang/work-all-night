@@ -96,6 +96,43 @@ def _rotate_amp(anim):
     return max(amps, default=0.0)
 
 
+def _shear_x_series(anim, bone):
+    """bone 的 shearX 關鍵幀值序列(無 shear 通道回 [])。candidate G-4'' 用。"""
+    fr = anim.get("bones", {}).get(bone, {}).get("shear")
+    return [f["x"] for f in fr] if fr else []
+
+
+def _shear_amp(anim):
+    """max over bones of max|shearX| —— shear 幅度(0 對稱;wobble 斜拉節拍驅動的通道)。"""
+    amps = [max((abs(v) for v in _shear_x_series(anim, b)), default=0.0)
+            for b in anim.get("bones", {})]
+    return max(amps, default=0.0)
+
+
+def _wobble_damped(anim):
+    """wobble 阻尼振盪簽章:每個帶 shear 的 bone —— 首尾 0、繞 0 變號 ≥3、相繼極值嚴格遞減。"""
+    got = False
+    for b in anim.get("bones", {}):
+        sx = _shear_x_series(anim, b)
+        if not sx:
+            continue
+        got = True
+        nz = [abs(v) for v in sx if abs(v) > 1e-6]
+        ends_ok = abs(sx[0]) < 1e-6 and abs(sx[-1]) < 1e-6
+        nsc = _sign_changes_zero(sx)
+        damped = len(nz) >= 2 and all(nz[i + 1] < nz[i] - 1e-9 for i in range(len(nz) - 1))
+        if not (ends_ok and nsc >= 3 and damped):
+            return False
+    return got
+
+
+def _sign_changes_zero(vals, dead=1e-6):
+    """繞 0 的變號次數(忽略近零項)。"""
+    sgn = [(1 if v > dead else (-1 if v < -dead else 0)) for v in vals]
+    sgn = [s for s in sgn if s != 0]
+    return sum(1 for i in range(1, len(sgn)) if sgn[i] != sgn[i - 1])
+
+
 # base beat key → 類別 → 該套哪個結構簽章
 def _base_beats(anims):
     return {nm: G.beat_category(nm) for nm in anims if "__" not in nm and G.beat_category(nm) in TV.MAIN_SHOW_CATS}
@@ -159,18 +196,25 @@ def run():
                         j2["bad_start"].append(("{}__{}".format(beat, t), b, round(bd["scaleX"], 3)))
     R["J2_interface"] = {**j2, "pass": not j2["bad_end"] and not j2["bad_start"]}
 
-    # ---- J3 crux: monotone amplitude per main-show beat ----
+    # ---- J3 crux: monotone amplitude per main-show beat(**通道無關**)----
+    # candidate G-4'':wobble 由 shear 通道驅動(無 scale/rotate)→ J3 改為對該 beat **實際驅動的通道**
+    #   (max over tiers > TOL)要求嚴格遞增,且至少有一個驅動通道 → hit/reveal(scale±rotate)與
+    #   wobble(shear)皆能被正確檢核。未驅動通道恆 ~0(g*0=0),不誤判。
     j3 = {"beats": {}, "fail": []}
     for beat in main_beats:
         sc = [_scale_overshoot(anims["{}__{}".format(beat, t)]) for t in TIERS]
         ro = [_rotate_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
-        sc_mono = is_strictly_increasing(sc)
-        # rotate:僅在該 beat 有 rotate(amp>0)時要求嚴格遞增
-        ro_mono = True if max(ro) <= TOL else is_strictly_increasing(ro)
+        sh = [_shear_amp(anims["{}__{}".format(beat, t)]) for t in TIERS]
+        checks = {}
+        for label, arr in (("scale", sc), ("rotate", ro), ("shear", sh)):
+            if max(arr) > TOL:                       # 該 beat 實際驅動此通道
+                checks[label] = is_strictly_increasing(arr)
+        driven_mono = bool(checks) and all(checks.values())
         j3["beats"][beat] = {"scale_overshoot": [round(x, 4) for x in sc],
                              "rotate_amp": [round(x, 3) for x in ro],
-                             "scale_mono": sc_mono, "rotate_mono": ro_mono}
-        if not (sc_mono and ro_mono):
+                             "shear_amp": [round(x, 3) for x in sh],
+                             "driven": sorted(checks), "driven_mono": driven_mono}
+        if not driven_mono:
             j3["fail"].append(beat)
     R["J3_monotone"] = {**j3, "pass": not j3["fail"]}
 
@@ -189,6 +233,9 @@ def run():
                 ok = all(sign_changes(series(an, b)) >= 3 for b in an.get("bones", {}))
             elif cat == "cascade":
                 ok = has_cascade_signature(an, order, thr=SPREAD_THR)
+            elif cat == "wobble":
+                # candidate G-4'':阻尼振盪簽章(首尾 0、變號 ≥3、極值嚴格遞減)逐檔位保形。
+                ok = _wobble_damped(an)
             elif cat == "reveal":
                 # burst:峰≥門檻 且 首幀 collapsed(reveal 簽章)
                 ok = all(max(series(an, b)) >= PEAK_THR for b in an.get("bones", {})) and \
@@ -222,8 +269,11 @@ def run():
     flat_anims = G.build_animations(skel, sb, tier_gains=flat)
     any_mono_flat = False
     for beat in main_beats:
+        # 通道無關(含 shear,涵蓋 wobble):平增益下任一驅動通道皆不該嚴格遞增。
         sc = [_scale_overshoot(flat_anims["{}__{}".format(beat, t)]) for t in TIERS]
-        if is_strictly_increasing(sc):
+        ro = [_rotate_amp(flat_anims["{}__{}".format(beat, t)]) for t in TIERS]
+        sh = [_shear_amp(flat_anims["{}__{}".format(beat, t)]) for t in TIERS]
+        if any(is_strictly_increasing(a) for a in (sc, ro, sh)):
             any_mono_flat = True
     # reveal collapsed 首幀:Super vs Legend 相同(下方樓地板檔位無關)
     reveal_beat = next((b for b, c in main_beats.items() if c == "reveal"), None)
