@@ -7,6 +7,17 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 77(2026-09-11)**:排程再次觸發(同日內第三次)。依 chunk 76「下一步候選」三個
+> 等待條件重跑同一輪檢查:(1) `git log --oneline --all -- assets/` 確認自 chunk 41 起仍
+> 無任何新素材加入(最後一筆 assets/ 改動仍是 chunk 52 的決策檔框位置修正,commit
+> `763c112`,非新素材);(2) GitHub `list_issues`/`list_pull_requests`(state filter)
+> 確認 open issues 0 筆、open PRs 0 筆,三項懸而未決(`bodice`/`sleeve_right` 裁決、
+> `hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者輸入;(3) chunk 76 產出(純狀態
+> 更新,無代碼異動)已 commit(`51fc85e`),工作樹乾淨無遺留。**結論與 chunk 60~76 相同:
+> 無新工作塊**。這是連續第十八次同樣結果的純檢查性質 chunk。按既有慣例(chunk 27 起已主動
+> 通知過一次,此後同一維護狀態不重複通知)不再對使用者發送新通知。見
+> `log/s4-2026-09-11-077.md`。
+>
 > **chunk 76(2026-09-11)**:排程再次觸發(同日內第二次)。依 chunk 75「下一步候選」三個
 > 等待條件重跑同一輪檢查:(1) `git log --oneline --all -- assets/` 確認自 chunk 41 起仍
 > 無任何新素材加入(最後一筆 assets/ 改動仍是 chunk 52 的決策檔框位置修正,commit
@@ -1024,6 +1035,12 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-11:**排程第十八次觸發,重跑同一輪檢查,仍無新素材/新裁決,維持 `ACTIVE` 維護模式
+  (chunk 77)** — 依 chunk 76「下一步候選」(a)/(b)/(c) 三個等待條件逐一複查:新素材(無,
+  assets/ 最後改動仍是 chunk52 決策檔框修正)、GitHub open issues/PRs(皆0)、chunk76
+  收尾完整性(已commit `51fc85e`,無遺留)。結論與 chunk 60~76 完全相同,三項懸而未決
+  原樣未解。本次純檢查,未新增實驗、未改 production 代碼;按既有慣例不重複通知使用者。
+  連續第十七次同樣結果。見 `log/s4-2026-09-11-077.md`。
 - 2026-09-09:**排程第九次觸發,重跑同一輪檢查,仍無新素材/新裁決,維持 `ACTIVE` 維護模式
   (chunk 67)** — 依 chunk 66「下一步候選」(a)/(b)/(c) 三個等待條件逐一複查:新素材(無,
   assets/ 最後改動仍是 chunk52 決策檔框修正)、GitHub open issues/PRs(皆0)、chunk66
