@@ -45,6 +45,11 @@
   旋鈕 AC 自動 skip);(e) transform 繼承只精確支援 normal/onlyTranslation。
   見 `knowledge/s6-trajectory-editing-tool.md`、`tools/motion/README.md`、
   `tools/motion/skill_snippet.md`(可貼進 spine-motion-skill 的章節)、圖 `knowledge/figures/s6-trajectory-editor.png`。
+  **追加(使用者要求可下載)**:`tools/motion/package_skill.py` 把原版 skill 當基底 **additive** 併入軌跡
+  工具鏈後打包成 `dist/spine-motion-skill-v1.1.skill`(21 檔/79KB)。SKILL.md 只加不改:description 補觸發詞、
+  標準流程指路、踩雷清單 +3 條、末尾新增「軌跡工具鏈」章節;原章節與 `scripts/` 一字未動。套件佈局讓
+  `scripts/motion/` 對編輯器的相對路徑與 repo 的 `tools/motion/` 相同 → 同一份程式碼兩種佈局共用。
+  驗收:解壓到 repo 外部目錄、**在套件內**跑 `validate_motion_tools.py` 對 main_draw **A1–A8 全 PASS**。
   ⚠ 本次工作在分支 `claude/spine-motion-trajectory-tool-5xq97r`(排程指定),非 `claude/spine-main`。
 - **S1 生成器產出 shear 通道端到端:斜拉 wobble beat(里程碑,2026-09-08 session 002,candidate G-4')** —
   補 G-4 的 **honest boundary**:G-4 補齊了「件繞關節 pivot 一般仿射(含 shear)」的**公式+閘**,但當時

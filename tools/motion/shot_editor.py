@@ -12,7 +12,17 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
+CHROME = os.environ.get("CHROME_PATH", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
+
+
+def editor_path():
+    for c in (os.path.join(ROOT, "spine_trajectory_editor.html"),
+              os.path.join(HERE, "..", "spine_trajectory_editor.html"),
+              os.path.join(HERE, "spine_trajectory_editor.html"),
+              os.environ.get("SPINE_TRAJECTORY_EDITOR", "")):
+        if c and os.path.exists(c):
+            return os.path.abspath(c)
+    raise SystemExit("找不到 spine_trajectory_editor.html")
 
 
 def main():
@@ -36,7 +46,7 @@ def main():
         b = p.chromium.launch(executable_path=CHROME, args=["--no-sandbox"])
         pg = b.new_page(viewport={"width": a.width, "height": a.height}, device_scale_factor=2)
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        pg.goto("file://" + os.path.join(ROOT, "spine_trajectory_editor.html"))
+        pg.goto("file://" + editor_path())
         pg.wait_for_timeout(300)
         info = pg.evaluate("""([skel,anim,bone,body,lag,scale,name]) => {
             loadSkeleton(skel, name);

@@ -16,7 +16,11 @@ import math
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "analyzer"))
+_HERE = os.path.dirname(os.path.abspath(__file__))
+# 本目錄先進 path(skill 套件內帶的 spine_anim 蒐錄版),analyzer 再插到最前面
+# → 在 repo 裡用 tools/analyzer/spine_anim.py(唯一真相來源),打包成 skill 時用套件內的同一份程式碼。
+sys.path.insert(0, _HERE)
+sys.path.insert(0, os.path.join(_HERE, "..", "analyzer"))
 from spine_anim import _interp  # noqa: E402  (重用同一套曲線內插)
 
 # Spine 3.8 支援但本取樣器只精確實作前兩種的 transform 繼承模式

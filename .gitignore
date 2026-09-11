@@ -8,3 +8,6 @@ specs/*_spine/
 
 # 軌跡工具的暫存產出(traj/spec/csv/截圖)
 out/
+
+# skill 打包產出:保留最新版本供下載(由 tools/motion/package_skill.py 重生)
+!dist/

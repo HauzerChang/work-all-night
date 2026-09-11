@@ -5,7 +5,15 @@
 const fs = require("fs");
 const path = require("path");
 
-const html = fs.readFileSync(path.join(__dirname, "..", "..", "spine_trajectory_editor.html"), "utf8");
+const CANDIDATES = [
+  path.join(__dirname, "..", "..", "spine_trajectory_editor.html"),   // repo: tools/motion/ ・ skill: scripts/motion/
+  path.join(__dirname, "..", "spine_trajectory_editor.html"),
+  path.join(__dirname, "spine_trajectory_editor.html"),
+  process.env.SPINE_TRAJECTORY_EDITOR || "",
+].filter(Boolean);
+const editorPath = CANDIDATES.find(p => fs.existsSync(p));
+if (!editorPath) { console.error("找不到 spine_trajectory_editor.html;可用 SPINE_TRAJECTORY_EDITOR 指定"); process.exit(2); }
+const html = fs.readFileSync(editorPath, "utf8");
 const m = html.match(/\/\* ==== spine-motion-core BEGIN[\s\S]*?\/\* ==== spine-motion-core END ==== \*\//);
 if (!m) { console.error("找不到 spine-motion-core 區塊"); process.exit(2); }
 const SMC = eval(m[0] + "; SMC");

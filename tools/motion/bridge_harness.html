@@ -5,8 +5,12 @@
 <meta charset="utf-8"><title>bridge harness</title>
 <style>body{margin:0;font:12px system-ui;background:#0e1016;color:#ccd}iframe{width:100%;height:92vh;border:0}</style>
 <div id="s">harness ready</div>
-<iframe id="f" src="../../spine_trajectory_editor.html"></iframe>
+<iframe id="f"></iframe>
 <script>
+// 編輯器路徑:預設 ../../spine_trajectory_editor.html(repo 的 tools/motion/ 與 skill 的 scripts/motion/
+// 相對位置相同),可用 ?editor=<url> 覆寫。
+document.getElementById('f').src =
+  new URLSearchParams(location.search).get('editor') || '../../spine_trajectory_editor.html';
 window.__preview = null;
 window.__loaded = false;
 document.getElementById('f').onload = () => { window.__loaded = true; };

@@ -30,7 +30,19 @@ import motion_spec as MS  # noqa: E402
 import spine_world as W  # noqa: E402
 import verify_motion as V  # noqa: E402
 
-CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
+CHROME = os.environ.get("CHROME_PATH", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
+
+
+def editor_path():
+    """編輯器位置:repo 的 tools/motion/ 與 skill 套件的 scripts/motion/ 相對位置相同。"""
+    cands = [os.path.join(ROOT, "spine_trajectory_editor.html"),
+             os.path.join(HERE, "..", "spine_trajectory_editor.html"),
+             os.path.join(HERE, "spine_trajectory_editor.html"),
+             os.environ.get("SPINE_TRAJECTORY_EDITOR", "")]
+    for c in cands:
+        if c and os.path.exists(c):
+            return os.path.abspath(c)
+    raise SystemExit("找不到 spine_trajectory_editor.html(可用環境變數 SPINE_TRAJECTORY_EDITOR 指定)")
 RESULTS = []
 
 
@@ -62,6 +74,10 @@ def main(argv=None):
     ap.add_argument("--no-browser", action="store_true")
     a = ap.parse_args(argv)
 
+    if not os.path.exists(a.json):
+        raise SystemExit(f"找不到 skeleton JSON:{a.json}\n"
+                         "(skill 套件不內含測試資產,請用 --json 指向你的 Main.json,"
+                         "並用 --anim/--bone/--body 指定動畫與骨骼)")
     data = json.load(open(a.json, encoding="utf-8"))
     sk = W.Skel(data)
     anim = data["animations"][a.anim]
@@ -226,7 +242,7 @@ def browser_e2e(a):
         return (False, "未安裝 playwright(pip install playwright);其餘 AC 不受影響")
     if not os.path.exists(CHROME):
         return (False, f"找不到 chromium:{CHROME}")
-    page_url = "file://" + os.path.join(ROOT, "spine_trajectory_editor.html")
+    page_url = "file://" + editor_path()
     skel = json.load(open(a.json, encoding="utf-8"))
     errs = []
     with sync_playwright() as p:
@@ -247,7 +263,7 @@ def browser_e2e(a):
                 redraw();
                 return buildSpec();
             }""", [skel, a.anim, a.bone, a.body])
-        shot = os.path.join(ROOT, "out", "editor_e2e.png")
+        shot = os.path.join(os.getcwd(), "out", "editor_e2e.png")
         os.makedirs(os.path.dirname(shot), exist_ok=True)
         pg.screenshot(path=shot, full_page=True)
         b.close()
@@ -264,7 +280,7 @@ def browser_e2e(a):
                            predicted=spec.get("predicted"))
     perr = quant.get("predictErrMax")
     ok = V.all_pass(checks) and perr is not None and perr < 0.5
-    with open(os.path.join(ROOT, "out", "editor_e2e.spec.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(os.getcwd(), "out", "editor_e2e.spec.json"), "w", encoding="utf-8") as f:
         json.dump(spec, f, ensure_ascii=False)
     return (ok, f"頁面匯出 spec(lag=5, scale=1.15, 拖動 1 個關鍵幀)→ 套回後 "
                 f"V1–V7 {'全 PASS' if V.all_pass(checks) else 'FAIL'};"
@@ -280,7 +296,8 @@ def bridge_e2e(a):
         from playwright.sync_api import sync_playwright
     except ImportError:
         return (False, "未安裝 playwright")
-    harness = "file://" + os.path.join(HERE, "bridge_harness.html")
+    harness = ("file://" + os.path.join(HERE, "bridge_harness.html")
+               + "?editor=" + "file://" + editor_path())
     skel = json.load(open(a.json, encoding="utf-8"))
     errs = []
     with sync_playwright() as p:
