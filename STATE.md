@@ -10,6 +10,33 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 wobble 振盪段數隨檔位遞增(里程碑,2026-09-11,candidate G-4''')** — 補 G-4'' 的 honest boundary
+  (「wobble 未接 count-aware」)。(G-4'') 讓 wobble 的 shearX 峰**幅度**隨檔位遞增,但各檔位仍**同樣 4 段**
+  阻尼振盪(有「多斜」沒「晃幾下」)。本次補上振盪**段數** `nosc` 隨檔位嚴格遞增(Super 4→Mega 5→Omg 6→
+  Legend 7)。**關鍵:幅度增益加不出段數** —— 段數是繞 0 交替變號極值的關鍵幀**拓樸**,事後 `amplify_bone_tl`
+  只能同比放大既有極值(`v'=g*v`)、無法多長一段,必須在 `gen_wobble` 生成當下決定;故對 wobble 檔位變體
+  以該檔位 nosc **重生成**整支 beat(`gen_wobble(role,side,radial,nosc=4)` + `_wobble_env(A,nosc)`,
+  **nosc==4 逐位元同 G-4' 手調 golden**),再疊 (G-4'') 幅度增益 g → 與幅度軸**正交可疊**
+  (段數 [4,5,6,7] × 峰幅 [16,21.6,27.2,33.6]° 皆遞增)。**此模式同 (J-2) 對 combo 連擊數**,是第二個**結構
+  (拓樸)軸**的檔位差異化,惟**段數階梯各類別獨立**(combo→`TIER_COMBO_HITS`、wobble→`TIER_WOBBLE_CYCLES`,
+  `build_animations` 依 cat 路由;`_build_beat(count=None)` 泛化原 `combo_hits`,None → 呼叫生成器自身預設保
+  golden byte-identical)。全 additive。整合閘 `validate_wobble_count.py`(先驗庫→**真實 build_spine robot
+  骨架**→build_animations(tier_gains,tier_wobble_cycles))**5 AC 全 PASS**:U1 present+backward-compat
+  (每檔位 `wobble__{tier}` finite/有 bone/帶 shear、**base 恆 4 段逐位元不變**、`tier_wobble_cycles=None` 逐位元
+  同 (G-4'') 幅度-only)、U2 **crux** 段數 [4,5,6,7]==宣告且 Super<Mega<Omg<Legend 嚴格遞增·Super==base、
+  U3 每檔位仍首尾 0+繞 0 變號≥3+相繼極值遞減(阻尼保形)**且峰幅仍隨檔位嚴格遞增**(段數軸不抵消幅度軸)、
+  U4 正交(段數+平增益→段數遞增·峰幅不遞增;增益+無段數→段數恆 4·峰幅遞增)、U5 負對照(a 平段數全 4→
+  U2 遞增 FALSE;b slot_reveal 無宣告→`wobble_cycles_for` None 不亂加;c 段數只作用 wobble 不外洩)。
+  **關鍵發現:結構軸×幅度軸雙軸檔位差異化可推廣**——同一 count-aware 概念在 **combo=scale 峰數**、
+  **wobble=shear 振盪段數**兩個不同通道皆成立;阻尼比 r=0.5 對任意段數天然保簽章(等比阻尼 `A·rⁱ` →
+  相繼極值恆遞減、交替變號 nosc−1 次≥3)。端到端 `build_spine --animate --tier-variants --shear-pivot` 直出
+  `wobble__{Super4,Mega5,Omg6,Legend7}` 段(pivot 補償後仍 [4,5,6,7]),`validate_build` round-trip overall_pass。
+  回歸:validate_wobble_tier(G-4'')/tier_combo_count(J-2)/tier_variants(J)/shear_gen(G-4')/
+  shear_pivot(G-4)/scale_pivot(G-3)/pivot_rotation(0i)/cascade/priors/priors_beats/priors_combo_charge/
+  priors_cascade/more_beats/beat_templates/deform_gen **16 閘全綠**。新增 cap `wobble_count_generation` L2
+  併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。**honest boundary(仍在)**:
+  段數階梯 [4,5,6,7] 為 PROPOSAL(手感留使用者 A 類);shearY≡0;斜拉 squash(shear+coupled scale)為後續。
+  見 `knowledge/s1-wobble-count-generation.md`、圖 `knowledge/figures/s1_wobble_count.png`。
 - **S1 wobble shear 峰隨檔位遞增(里程碑,2026-09-10 session 001,candidate G-4'')** — 補 G-4' 的 honest
   boundary(「tier 變體未接」)。G-4' 讓 `gen_wobble` 成為第一個產 shear 通道的生成器,但當時
   `wobble ∉ MAIN_SHOW_CATS` 且 (J) 的幅度增益只作用 scale/rotate/translate → **wobble 完全不隨檔位放大**
@@ -503,10 +530,15 @@
 >   把 wobble 併入 `MAIN_SHOW_CATS` + `amplify_bone_tl` 放大 shear(`v'=g*v`)→ shearX 峰 Super16°<Mega21.6°<Omg27.2°<Legend33.6° 嚴格遞增、阻尼簽章每檔位保形;
 >   J 閘 J3 改 channel-aware(SA.sample 不含 shear → `_shear_amp` 直讀)。`validate_wobble_tier.py` 5AC(T2 crux 峰遞增、T3 阻尼保形、T5 平增益守衛+通道隔離)。
 >   **續**(擇一,皆自主):(G-4''') wobble 接 count-aware(晃動段數隨檔位,gen 時決定,比照 J-2);或產 shearY / 斜拉 squash(shear+coupled scale 雙通道耦合)。
+> **(G-4''') ~~wobble count-aware(晃動段數隨檔位)~~ ✅ 完成(2026-09-11,candidate G-4''',`wobble_count_generation` L2,見上里程碑)** ——
+>   `gen_wobble(nosc=)`+`_wobble_env(A,nosc)`(nosc==4 逐位元同 G-4' golden)、`TIER_WOBBLE_CYCLES`(Super4→Legend7)、`_build_beat(count=None)` 泛化 + `build_animations(tier_wobble_cycles=)`
+>   依 cat 路由段數(combo/wobble 段數階梯獨立)、`validate_wobble_count.py` 5AC(U2 段數 [4,5,6,7] 嚴格遞增、U3 阻尼簽章+峰幅皆保、U4 正交、U5 平段數守衛+段數不外洩)。
+>   **關鍵:結構軸×幅度軸雙軸檔位差異化可推廣**(count-aware 概念在 combo=scale 峰數、wobble=shear 段數兩通道皆成立)。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4''') wobble count-aware(晃動段數隨檔位)/ shearY / 斜拉 squash(coupled scale)**;
-> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
-> **(J-3) cascade 波速/散佈/件數隨檔位**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
+> **(G-4'''') 產 shearY / 斜拉 squash(shear+coupled scale 雙通道耦合的運動基元 + 端到端閘)**;
+> **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸)**;
+> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
+> S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
 

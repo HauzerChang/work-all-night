@@ -315,21 +315,49 @@ DUR.setdefault("wobble", 0.8)
 # role → shearX 峰值(度)。特效/身體較大、末梢/頭中等(同 _PEAK 的相對關係)。
 _WOBBLE_SHEAR = {"body": 14.0, "特效": 16.0, "head": 10.0, "limb": 12.0}
 WOBBLE_DAMP = 0.5   # 相繼極值幅度衰減比(A → −0.5A → +0.25A → −0.125A)
+# candidate G-4''' — 通用阻尼振盪的極值 τ 窗(首極值落 LEAD、末極值落 TAIL,皆 τ∈[0,1]):
+# nosc≠4 由 `_wobble_env` 於此窗均勻布極值(nosc==4 走下方 golden 手調路,byte-identical 向後相容)。
+WOBBLE_LEAD = 0.16
+WOBBLE_TAIL = 0.80
 
 
-def gen_wobble(role, side_sign=1.0, radial=(0.0, 0.0)):
+def _wobble_env(A, nosc):
+    """通用**阻尼 shearX 振盪**包絡 → [(τ∈[0,1], shearX)]。首尾 identity(0),`nosc` 個交替遞減極值。
+
+    第 i 極值(0-based):符號 (−1)^i(首推 +A)、幅度 A·rⁱ(r=WOBBLE_DAMP 阻尼);τ 於
+    [WOBBLE_LEAD, WOBBLE_TAIL] 均勻分布。⇒ 繞 0 變號 nosc−1 次(nosc≥4 → ≥3)、相繼極值幅度
+    嚴格遞減(阻尼簽章)、首尾 0(setup identity 介面,可插 Loop)。振盪**段數 = nosc**(結構,
+    gen 時決定,事後 amplitude amplify 加不出來 —— 同 J-2 combo 峰數)。"""
+    r = WOBBLE_DAMP
+    env = [(0.00, 0.0)]
+    for i in range(nosc):
+        f = i / (nosc - 1) if nosc > 1 else 0.0
+        tau = WOBBLE_LEAD + (WOBBLE_TAIL - WOBBLE_LEAD) * f
+        env.append((round(tau, 4), ((-1.0) ** i) * A * (r ** i)))
+    env.append((1.00, 0.0))
+    return env
+
+
+def gen_wobble(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
     """斜拉 jelly wobble:**阻尼 shearX 擺動**(純 shear 通道)。回傳 (bone_timelines, slot_timelines)。
 
-    shearX 包絡(τ):0 →(+A skew)→(−rA 反向)→(+r²A)→(−r³A)→ 0(r=WOBBLE_DAMP)。
-    首尾 identity(shearX=0);shearY≡0(純斜拉)。相繼極值 A>rA>r²A>r³A → **遞減=阻尼**,
-    繞 0 變號 4 次 ≥3 → 振盪簽章。`side_sign` 決定首推方向(左右件反相,同 loop/limb 慣例)。"""
+    shearX 包絡(τ):0 →(+A skew)→(−rA 反向)→(+r²A)→ …(共 `nosc` 個交替遞減極值)→ 0
+    (r=WOBBLE_DAMP)。首尾 identity(shearX=0);shearY≡0(純斜拉)。相繼極值 A>rA>r²A>… →
+    **遞減=阻尼**,繞 0 變號 nosc−1 次(nosc≥4 → ≥3)→ 振盪簽章。
+    `side_sign` 決定首推方向(左右件反相,同 loop/limb 慣例)。
+    `nosc`(candidate G-4''')= 晃動振盪**段數**,隨檔位遞增(Super 4 → Legend 7);
+    **nosc==4 逐位元同 G-4' 手調 golden 4 極值**(向後相容 byte-identical)。"""
     T = DUR["wobble"]
     A = _WOBBLE_SHEAR.get(role, 12.0) * side_sign
     r = WOBBLE_DAMP
     b, s = {}, {}
-    # (τ, shearX):阻尼振盪,首尾 0
-    env = [(0.00, 0.0), (0.16, A), (0.38, -r * A),
-           (0.60, r * r * A), (0.80, -r * r * r * A), (1.00, 0.0)]
+    if nosc == 4:
+        # G-4' 手調 golden 4 極值(保留原 τ 關鍵幀 → byte-identical 向後相容;base wobble 恆走此路)
+        env = [(0.00, 0.0), (0.16, A), (0.38, -r * A),
+               (0.60, r * r * A), (0.80, -r * r * r * A), (1.00, 0.0)]
+    else:
+        # 通用 nosc(candidate G-4''):遞增 nosc 個阻尼極值,首尾 identity、簽章保形
+        env = _wobble_env(A, nosc)
     b["shear"] = [{"time": round(tau * T, 4), "x": round(sx, 4), "y": 0.0} for (tau, sx) in env]
     return b, s
 

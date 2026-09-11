@@ -297,6 +297,21 @@ BLOCKS = [
                      "T5 負對照 平增益全 1.0→遞增 FALSE 且各檔位==base・通道隔離單元測 scale-only 不生 shear·shear-only 不生 scale)。"
                      "回歸:validate_tier_variants(J,J3 改 channel-aware 仍全綠)/tier_combo_count/shear_gen/全 priors/beat/pivot 系列全綠。"
                      "honest:shear 峰階梯沿用 (J) 幅度增益(PROPOSAL);shearY≡0;wobble 未接 count-aware(shearY/斜拉 squash 為後續);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("wobble_count_generation", "wobble 振盪段數隨檔位遞增(G-4''',晃動段數 Super4→Legend7 隨檔位遞增)", "L2",
+                "python3 tools/analyzer/validate_wobble_count.py", "pipeline",
+                note="G-4'' 讓 wobble 的 shear 峰**幅度**隨檔位遞增,但各檔位仍**同樣 4 段**阻尼振盪(有『多斜』沒『晃幾下』)。"
+                     "本 cap 補上振盪**段數** nosc 隨檔位嚴格遞增(Super4→Mega5→Omg6→Legend7)。**關鍵:幅度增益加不出段數** —— "
+                     "段數是關鍵幀**拓樸**(繞 0 交替極值個數),須在 gen_wobble 生成當下決定,事後 amplify 只能放大既有極值、無法多長一段;"
+                     "故對 wobble 檔位變體以該檔位 nosc **重生成**(gen_wobble(nosc=),nosc==4 逐位元同 G-4' golden),再疊 (G-4'') 幅度增益 → "
+                     "與幅度軸**正交可疊**(段數 [4,5,6,7]×峰幅 [16,21.6,27.2,33.6]° 皆遞增)。此模式同 (J-2) 對 combo 連擊數,惟段數階梯"
+                     "各類別獨立(combo→TIER_COMBO_HITS、wobble→TIER_WOBBLE_CYCLES,build_animations 依 cat 路由)—— 又一『檔位機制就緒 ≠ 每個軸接上』實例。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,tier_wobble_cycles),validate_wobble_count.py 5AC PASS"
+                     "(U1 present+backward-compat 每檔位產 wobble__tier finite/有 bone/帶 shear・base 恆 4 段逐位元不變・twc=None 逐位元同 (G-4'') 幅度-only/"
+                     "U2 crux 段數 [4,5,6,7]==宣告 Super<Mega<Omg<Legend 嚴格遞增且 Super==base/U3 每檔位仍首尾 0+變號≥3+極值遞減(阻尼保形)且峰幅仍遞增/"
+                     "U4 正交 段數+平增益→段數遞增·峰幅不遞增,增益+無段數→段數恆4·峰幅遞增/U5 負對照 平段數全4→單調 FALSE・slot_reveal wobble_cycles_for None 不亂加・段數只作用 wobble 不外洩)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 wobble__{Super4,Mega5,Omg6,Legend7} 段(pivot 補償後仍 [4,5,6,7]),validate_build round-trip overall_pass。"
+                     "回歸:validate_wobble_tier(G-4'')/tier_combo_count/tier_variants/shear_gen/全 priors/beat/pivot 系列 16 閘全綠。"
+                     "honest:段數階梯 PROPOSAL(手感留使用者 A 類);shearY≡0;斜拉 squash(shear+coupled scale)為後續;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
