@@ -10,6 +10,32 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 squash & stretch:體積守恆的耦合非均勻 scale(里程碑,2026-09-11 session 002,candidate G-4'''')** — 補運動
+  基元庫缺的**12 動畫原理之首**。至此(0d→G-4''')所有 beat 的 scale 皆 **x==y**(等比縮放:gen_hit/combo/
+  cascade/pulse/loop 的 `_scale_frames` 硬設 x==y),而 **squash & stretch**(Disney 12 原理排第一)的定義正是
+  **sx≠sy 且體積守恆**——整個運動基元庫此前**完全沒有**。本次 `gen_squash` 以「拉伸因子」λ(τ) 繞 1 **阻尼振盪**
+  驅動,每幀令 **sy=λ(拉伸軸)、sx=1/λ(壓扁軸)→ sx·sy≡1**(面積精確守恆,round 到 4 位後偏差 <6e-5)——
+  **第一個產出耦合非均勻 scale 的節拍**。λ 包絡:1→(蓄力壓扁 0.88)→(命中拉伸 peak)→ 阻尼回擺 → 1;純
+  **scale** 通道(無 shear/rotate/color → 耦合非均勻孤立可辨)。經 `genre_priors.slot_bigwin` 加 squash beat +
+  `gen_animations` 註冊 `_DISPATCH["squash"]` **直出**。**關鍵鑑別點:非均勻 ≠ 體積守恆** —— 天真「只拉伸不
+  壓扁」(sy=λ,**sx=1**)也非均勻,但面積=λ≠1 → 負對照證閘測的是**耦合不變量**非「有非均勻 scale 即可」
+  (同 G-4' 的「阻尼簽章需振盪+遞減兩條件並立」的閘可信度論證)。全 additive。整合閘 `validate_squash.py`
+  (先驗庫→**真實 build_spine robot 骨架**→build_animations)**5 AC 全 PASS**:Q1 present+additive(squash
+  產出/finite/每 bone 有 scale、**不產** squash__tier 變體(squash ∉ MAIN_SHOW_CATS)、加入 squash 先驗後其餘
+  beat 逐位元不變含 tier 變體)、Q2 **crux 體積守恆**(每 scale 關鍵幀 |sx·sy−1|≤1e-3 實測 5.5e-5;誠實**報告**
+  關鍵幀間線性內插面積偏差 ~4.6% 不 gate)、Q3 簽章(命中幀 sx<1<sy 耦合非均勻 |sx−sy|≥0.2、anticipation
+  命中前壓扁、(sy−1) 繞 0 變號≥3+命中全域最大+命中後極值遞減阻尼、首尾 identity)、Q4 隔離(耦合非均勻只在
+  squash·其餘 base beat 恆 sx==sy·squash bone 只帶 scale)、Q5 負對照(a 真實 hit(x==y)各向異性 FALSE;
+  b 天真只拉伸(sx=1)各向異性 TRUE 但體積守恆 FALSE=crux 鑑別;c 等比拉伸各向異性+體積守恆皆 FALSE)。
+  端到端 `build_spine --animate --tier-variants --shear-pivot` 直出 squash 段,`validate_build` round-trip
+  overall_pass。回歸:wobble_count(G-4''')/wobble_tier(G-4'')/shear_gen(G-4')/tier_variants(J)/tier_combo_count
+  (J-2)/priors/priors_beats/priors_combo_charge/priors_cascade/more_beats/beat_templates/cascade/deform_gen
+  **16 閘全綠**。新增 cap `squash_stretch_generation` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、
+  單一真值資產,防固化)。**honest boundary(仍在)**:squash ∉ MAIN_SHOW_CATS → **tier 幅度變體暫未接**
+  (逐軸 `_amp_scale` 有 identity 下方樓地板、對 sx(<1)/sy(>1)不對稱處理會破壞 sx·sy=1,需**體積感知的 λ 增益**,
+  同 G-4' 先 introduce wobble、G-4'' 才接 tier 的節奏);**關鍵幀間線性內插不保體積守恆**(sx=1/λ 凸,幀間鼓起
+  ~4.6%,屬誠實限制,要幀間嚴格需 log-空間內插/更密取樣);λ 包絡為 PROPOSAL(手感 A 類);shearY≡0。
+  見 `knowledge/s1-squash-stretch-generation.md`、圖 `knowledge/figures/s1_squash_stretch.png`。
 - **S1 wobble 振盪段數隨檔位遞增(里程碑,2026-09-11,candidate G-4''')** — 補 G-4'' 的 honest boundary
   (「wobble 未接 count-aware」)。(G-4'') 讓 wobble 的 shearX 峰**幅度**隨檔位遞增,但各檔位仍**同樣 4 段**
   阻尼振盪(有「多斜」沒「晃幾下」)。本次補上振盪**段數** `nosc` 隨檔位嚴格遞增(Super 4→Mega 5→Omg 6→
@@ -534,8 +560,14 @@
 >   `gen_wobble(nosc=)`+`_wobble_env(A,nosc)`(nosc==4 逐位元同 G-4' golden)、`TIER_WOBBLE_CYCLES`(Super4→Legend7)、`_build_beat(count=None)` 泛化 + `build_animations(tier_wobble_cycles=)`
 >   依 cat 路由段數(combo/wobble 段數階梯獨立)、`validate_wobble_count.py` 5AC(U2 段數 [4,5,6,7] 嚴格遞增、U3 阻尼簽章+峰幅皆保、U4 正交、U5 平段數守衛+段數不外洩)。
 >   **關鍵:結構軸×幅度軸雙軸檔位差異化可推廣**(count-aware 概念在 combo=scale 峰數、wobble=shear 段數兩通道皆成立)。
+> **(G-4'''') ~~squash & stretch:體積守恆的耦合非均勻 scale~~ ✅ 完成(2026-09-11 session 002,candidate G-4'''',`squash_stretch_generation` L2,見上里程碑)** ——
+>   補運動基元庫缺的**12 動畫原理之首**:至此所有 beat 的 scale 皆 x==y(等比),squash & stretch(sx≠sy 且**體積守恆**)完全缺席。
+>   `gen_squash` 以拉伸因子 λ(τ) 繞 1 阻尼振盪,每幀 **sy=λ、sx=1/λ → sx·sy≡1**(面積守恆,第一個產耦合非均勻 scale 的節拍);
+>   `validate_squash.py` 5AC(Q2 crux 每關鍵幀 |sx·sy−1|≤1e-3 實測 5.5e-5、Q5b 天真只拉伸各向異性 TRUE 但體積守恆 FALSE 證閘鑑別)。
+>   **關鍵發現:非均勻 ≠ 體積守恆**——閘直接測耦合不變量。honest:squash ∉ MAIN_SHOW_CATS → tier 幅度變體暫未接(逐軸 amplify 樓地板會破壞 sx·sy=1,需體積感知 λ 增益)。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4'''') 產 shearY / 斜拉 squash(shear+coupled scale 雙通道耦合的運動基元 + 端到端閘)**;
+> **(G-4''''') squash 接 tier(體積感知 λ 增益:放大 λ−1 後重算 sx=1/λ′、sy=λ′,檔位愈高彈性愈大且仍保 sx·sy=1)**;
+> **(G-4'''''') 耦合 squash+shear(斜拉 squash,對角壓扁:sx·sy=1 疊 shearX,det=cos(shear))/ 產 shearY**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。

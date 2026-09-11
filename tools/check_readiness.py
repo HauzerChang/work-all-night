@@ -312,6 +312,21 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 wobble__{Super4,Mega5,Omg6,Legend7} 段(pivot 補償後仍 [4,5,6,7]),validate_build round-trip overall_pass。"
                      "回歸:validate_wobble_tier(G-4'')/tier_combo_count/tier_variants/shear_gen/全 priors/beat/pivot 系列 16 閘全綠。"
                      "honest:段數階梯 PROPOSAL(手感留使用者 A 類);shearY≡0;斜拉 squash(shear+coupled scale)為後續;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("squash_stretch_generation", "squash & stretch:體積守恆的耦合非均勻 scale(G-4'''',12 動畫原理之首)", "L2",
+                "python3 tools/analyzer/validate_squash.py", "pipeline",
+                note="至此所有 beat 的 scale 皆 x==y(等比縮放);squash & stretch(動畫 12 原理之首)需 sx≠sy 且**體積守恆**,運動基元庫此前完全缺席。"
+                     "本 cap 補上 gen_squash:以拉伸因子 λ(τ) 繞 1 阻尼振盪,每幀 sy=λ(拉伸軸)、sx=1/λ(壓扁軸)→ **sx·sy≡1**(面積守恆,第一個產出耦合非均勻 scale 的節拍)。"
+                     "**關鍵鑑別點:非均勻 ≠ 體積守恆** —— 天真只拉伸不壓扁(sy=λ,sx=1)也非均勻,但面積=λ≠1 → 負對照證閘測的是耦合不變量非『有非均勻即可』。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations,validate_squash.py 5AC PASS"
+                     "(Q1 present+additive squash 產出/每 bone 有 scale/不產 tier 變體(squash ∉ MAIN_SHOW_CATS)/其餘 beat 逐位元不變/"
+                     "Q2 crux 每 scale 關鍵幀 |sx·sy−1|≤1e-3(實測 5.5e-5),另誠實報告關鍵幀間線性內插面積偏差 ~4.6%(不 gate)/"
+                     "Q3 簽章 命中幀 sx<1<sy 耦合非均勻・anticipation 壓扁・(sy−1) 繞 0 變號≥3+命中全域最大+命中後極值遞減阻尼・首尾 identity/"
+                     "Q4 隔離 耦合非均勻只在 squash(其餘 base beat 恆 sx==sy)且 squash bone 只帶 scale/"
+                     "Q5 負對照 真實 hit(x==y)各向異性 FALSE・天真只拉伸(sx=1)各向異性 TRUE 但體積守恆 FALSE(crux 鑑別)・等比拉伸各向異性+體積守恆皆 FALSE)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash 段,validate_build round-trip overall_pass。"
+                     "回歸:wobble_count(G-4''')/wobble_tier/shear_gen/tier_variants/tier_combo_count/全 priors/beat/pivot 系列 16 閘全綠。"
+                     "honest:squash ∉ MAIN_SHOW_CATS → tier 幅度變體暫未接(逐軸 amplify 有樓地板會破壞 sx·sy=1,需體積感知的 λ 增益,同 G-4' 先 introduce 後接 tier 的節奏);"
+                     "λ 包絡 PROPOSAL(手感留使用者 A 類);shearY≡0;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

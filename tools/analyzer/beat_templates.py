@@ -362,6 +362,59 @@ def gen_wobble(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
     return b, s
 
 
+# candidate G-4'''' — squash & stretch(壓扁拉伸):**第一個產出「耦合非均勻 scale」的生成器**。
+# 至此所有 beat 的 scale 皆 x==y(等比縮放:gen_hit/combo/cascade/pulse/loop…);squash & stretch
+# ——12 條動畫原理之首——需 **sx≠sy** 且**體積(面積)守恆**(拉長一軸就壓扁另一軸),整個運動基元
+# 庫此前**完全沒有**。本 beat 補上這缺口:純 scale 通道、**兩軸耦合**、帶一條可量化的**不變量**。
+#
+# 運動基元 = **體積守恆的阻尼 squash-stretch 彈跳**:以「拉伸因子」λ(τ) 繞 1 阻尼振盪驅動,
+# 每幀令 **sy=λ(拉伸軸)、sx=1/λ(壓扁軸)** → **sx·sy≡1**(面積精確守恆,pre-round;round 到 4 位
+# 後偏差 <6e-5)。λ 包絡:1 →(蓄力壓扁 λ<1)→(命中拉伸 λ=peak)→ 阻尼回擺 → 1。
+# 結構簽章(可量化、與各種對照乾淨分離):
+#   1. **體積守恆(crux 不變量)**:每個 scale 關鍵幀 |sx·sy−1| ≤ ε —— squash & stretch 的**定義**性質。
+#   2. **非均勻耦合**:命中幀 sx≠sy 且**反相關**(sx<1<sy)——所有既有 beat 皆 sx==sy → 負對照分離。
+#   3. **squash-stretch 時序**:anticipation(命中前 λ<1 壓扁)+ 阻尼 settle((sy−1) 繞 0 變號≥3、
+#      命中後相繼極值遞減);命中(拉伸)為 (sy−1) 全域最大幅度。
+#   4. 首尾 identity(sx=sy=1)→ 可插在 Loop 循環間(同其他主秀 beat)。
+# 關鍵鑑別點:非均勻 ≠ 體積守恆 —— 天真「只拉伸不壓扁」(sy=λ,sx=1)也非均勻,但面積=λ≠1 →
+# 負對照證閘測的是**耦合不變量**非「有非均勻 scale 即可」。(honest boundary:squash ∉ MAIN_SHOW_CATS
+# → tier 幅度變體暫未接 —— 逐軸 `_amp_scale` 有樓地板、會破壞 sx·sy=1,需**體積感知**的 λ 增益,留後續,
+# 同 G-4' 先introduce wobble、G-4'' 才接 tier 的節奏。)
+
+DUR.setdefault("squash", 0.55)
+
+# role → 命中拉伸峰 λ(拉伸軸倍率;壓扁軸為其倒數)。身體/特效大、頭/末梢中(同 _PEAK 相對關係)。
+_SQUASH_STRETCH = {"body": 1.30, "特效": 1.35, "head": 1.18, "limb": 1.22}
+
+
+def _squash_frames(T, taus_lams):
+    """[(τ∈[0,1], λ)] → **體積守恆** scale timeline:每幀 sy=λ(拉伸軸)、sx=1/λ(壓扁軸)→ sx·sy≡1。
+
+    λ=1 → identity(sx=sy=1);λ>1 → 縱向拉伸+橫向壓扁;λ<1 → 縱向壓扁+橫向拉伸(squash)。
+    面積精確守恆(pre-round);round 到 4 位小數後每幀 |sx·sy−1| <6e-5(見 validate_squash Q2)。"""
+    fr = []
+    for (tau, lam) in taus_lams:
+        fr.append({"time": round(tau * T, 4), "x": round(1.0 / lam, 4), "y": round(lam, 4)})
+    return fr
+
+
+def gen_squash(role, side_sign=1.0, radial=(0.0, 0.0)):
+    """Squash & stretch(體積守恆彈跳):**耦合非均勻 scale**(sx=1/λ、sy=λ,面積守恆)。回傳 (bones, slots)。
+
+    λ 包絡(τ):1.0 →(蓄力壓扁)0.88 →(命中拉伸)peak →(回彈壓扁)0.93 →(回彈拉伸)1.06 → 0.985 → 1.0。
+    ⇒ 每幀 sx·sy≡1(體積守恆,crux 不變量);命中幀 sx<1<sy(非均勻反相關);(sy−1) 繞 0 阻尼振盪
+    (anticipation 壓扁 + 命中拉伸 + 遞減 settle);首尾 identity(可插 Loop 間)。純 scale 通道
+    (無 shear/rotate/color → 耦合非均勻 scale **孤立可辨**,產線僅 squash 有 sx≠sy)。
+    `side_sign`/`radial` 不影響(全件同向縱拉橫壓,整體彈跳語意);`peak` 依 role。"""
+    T = DUR["squash"]
+    peak = _SQUASH_STRETCH.get(role, 1.22)
+    b, s = {}, {}
+    env = [(0.00, 1.000), (0.14, 0.880), (0.32, peak), (0.52, 0.930),
+           (0.72, 1.060), (0.88, 0.985), (1.00, 1.000)]
+    b["scale"] = _squash_frames(T, env)
+    return b, s
+
+
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
 HIT_KEYWORDS = ["hit", "impact", "punch", "throb", "slam", "打擊", "命中", "重擊", "衝擊"]
 REVEAL_KEYWORDS = ["reveal", "open", "burst", "showup", "appear_big", "揭曉", "現身", "炸開", "開獎"]
@@ -369,3 +422,4 @@ COMBO_KEYWORDS = ["combo", "multihit", "multi_hit", "chain", "連擊", "連段",
 CHARGE_KEYWORDS = ["charge", "windup", "wind_up", "chargeup", "anticipate_hold", "蓄力", "充能", "蓄勢"]
 CASCADE_KEYWORDS = ["cascade", "wave", "ripple", "sequence", "sweep", "wipe", "錯開", "波", "依序", "接連"]
 WOBBLE_KEYWORDS = ["wobble", "jelly", "sway", "skew", "shear", "lean", "斜拉", "果凍", "晃", "搖擺"]
+SQUASH_KEYWORDS = ["squash", "stretch", "squish", "squashstretch", "bounce", "bouncy", "壓扁", "拉伸", "彈跳", "壓縮回彈"]
