@@ -297,6 +297,22 @@ BLOCKS = [
                      "T5 負對照 平增益全 1.0→遞增 FALSE 且各檔位==base・通道隔離單元測 scale-only 不生 shear·shear-only 不生 scale)。"
                      "回歸:validate_tier_variants(J,J3 改 channel-aware 仍全綠)/tier_combo_count/shear_gen/全 priors/beat/pivot 系列全綠。"
                      "honest:shear 峰階梯沿用 (J) 幅度增益(PROPOSAL);shearY≡0;wobble 未接 count-aware(shearY/斜拉 squash 為後續);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("wobble_tier_segment_count", "wobble 晃動段數隨檔位遞增(G-4''',阻尼擺動極值數 Super4→Legend7)", "L2",
+                "python3 tools/analyzer/validate_wobble_count.py", "pipeline",
+                note="G-4'' 讓 wobble 的 shear **峰值(幅度)**隨檔位遞增,但當時 honest boundary:所有檔位仍**同樣四擺**"
+                     "(有『多斜』沒『晃幾下』)。本 cap 補上:wobble 的阻尼擺動**極值數** nseg 隨檔位嚴格遞增(Super4→Mega5→"
+                     "Omg6→Legend7)。**關鍵:段數是結構、amplify 加不出來**——事後同比放大只能放大既有極值、無法多長一擺;"
+                     "故不走 amplify,而對 wobble 檔位變體以該檔位 nseg **重生成**整個 beat(gen_wobble(nseg=),nseg=4 逐位元同 G-4' 手調"
+                     "golden 四擺,向後相容),**再**疊 (G-4'') shear 幅度增益 → 與幅度軸**正交可疊**(端到端:段數 [4,5,6,7] × "
+                     "shear 峰 [16,21.6,27.2,33.6] 皆遞增)。**又一『幅度機制就緒 ≠ 結構數接上』實例(同 J-2 之於 combo)**。"
+                     "COUNT_AWARE_CATS 併入 wobble;build_animations 加 tier_wobble_segs(None→生成器自身預設,加性 opt-in);"
+                     "build_spine --tier-variants 自動帶 seg。validate_wobble_count.py 5AC PASS"
+                     "(V1 present+backward-compat 每檔位產 wobble__tier finite/有 bone/帶 shear・base 恆 nseg=4 逐位元不變・"
+                     "tier_wobble_segs=None 逐位元同 (G-4'') 幅度-only/V2 crux 段數 [4,5,6,7]==宣告且嚴格遞增·每檔位仍阻尼/"
+                     "V3 每檔位首尾 0+變號≥3+極值遞減·且 shear 峰仍隨檔位遞增(與 G-4'' 疊加不衝突)/V4 正交 segs+平增益→段數仍遞增·"
+                     "gains+無 segs→段數恆 4 幅度遞增/V5 負對照 平段數全 4→遞增 FALSE·slot_reveal 無宣告→不產變體·seg 只作用 wobble 不外洩到 combo)。"
+                     "回歸:validate_wobble_tier(G-4'')/tier_combo_count(J-2)/shear_gen/tier_variants/全 pivot/priors/beat 系列全綠、round-trip build overall_pass。"
+                     "honest:斜拉 wobble 形狀為 PROPOSAL(結構簽章客觀、手感留使用者);shearY≡0;段數上界 7(T=0.8s 時間可容);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

@@ -222,11 +222,13 @@ from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
     COUNT_AWARE_CATS as _COUNT_AWARE_CATS, amplify_anim as _amplify_anim
 
 
-def _build_beat(beat, cat, bone_of, cx, cy, combo_hits=3):
+def _build_beat(beat, cat, bone_of, cx, cy, count=None):
     """把單一 beat 的每件 role 具體化為 anim dict(bones/slots timelines)。
 
-    cat 依語意分派運動基元;`combo_hits`(candidate J-2)只對 COUNT_AWARE(combo)類別生效,
-    決定連擊「峰數」(其餘類別忽略)。cascade(_PHASE_AWARE)另依件序帶入相位。"""
+    cat 依語意分派運動基元;`count` 只對 COUNT_AWARE 類別生效,決定該類別的**結構數**
+    ——combo 的連擊「峰數」(candidate J-2)/ wobble 的阻尼擺動「極值數」(candidate G-4''')。
+    `count=None`(預設)→ 呼叫生成器**自身預設**(combo nhits=3 / wobble nseg=4 → 向後相容逐位元
+    不變)。cascade(_PHASE_AWARE)另依件序帶入相位。"""
     bones_tl, slots_tl = {}, {}
     limb_seen = 0
     # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
@@ -252,8 +254,12 @@ def _build_beat(beat, cat, bone_of, cx, cy, combo_hits=3):
             phase = 0.0 if nvalid <= 1 else pi / (nvalid - 1)
             b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
         elif cat in _COUNT_AWARE_CATS:
-            # 連擊數:combo 的 impact 峰數 = combo_hits(檔位相依)
-            b, sdict = _DISPATCH[cat](role, side_sign, radial, combo_hits)
+            # 結構數(檔位相依):combo 的 impact 峰數 / wobble 的阻尼擺動極值數。
+            # count=None → 用生成器自身預設(向後相容),否則帶入該檔位的 count。
+            if count is None:
+                b, sdict = _DISPATCH[cat](role, side_sign, radial)
+            else:
+                b, sdict = _DISPATCH[cat](role, side_sign, radial, count)
         else:
             b, sdict = _DISPATCH[cat](role, side_sign, radial)
         if b:
@@ -268,14 +274,17 @@ def _build_beat(beat, cat, bone_of, cx, cy, combo_hits=3):
     return anim
 
 
-def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None):
+def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
+                     tier_wobble_segs=None):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
     額外產出 `{beat}__{tier}` 幅度差異化變體(檔位愈高愈爆);base beat 不變。
-    tier_combo_hits(candidate J-2):`{tier: nhits}` 時,對 COUNT_AWARE(combo)類別的檔位變體
-    以該檔位的 nhits **重生成**(連擊數隨檔位遞增),再套幅度增益 —— 幅度與連擊數兩效**正交可疊**。
-    兩者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 nhits=3)。"""
+    tier_combo_hits(candidate J-2):`{tier: nhits}` 時,對 combo 檔位變體以該檔位 nhits **重生成**
+    (連擊數隨檔位遞增),再套幅度增益 —— 幅度與連擊數兩效**正交可疊**。
+    tier_wobble_segs(candidate G-4'''):`{tier: nseg}` 時,對 wobble 檔位變體以該檔位 nseg **重生成**
+    (阻尼擺動段數隨檔位遞增),再套幅度增益 —— 幅度(shear 峰)與段數兩效**正交可疊**。
+    三者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 nhits=3、base wobble 恆 nseg=4)。"""
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
@@ -291,11 +300,17 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
         anims[name] = anim
         # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
         if tier_gains and cat in _MAIN_SHOW_CATS:
+            # 該類別的檔位結構數來源(J-2 combo → nhits / G-4''' wobble → nseg);其餘主秀類別無 count。
+            count_map = None
+            if cat == "combo":
+                count_map = tier_combo_hits
+            elif cat == "wobble":
+                count_map = tier_wobble_segs
             for tier, g in tier_gains.items():
-                if tier_combo_hits and cat in _COUNT_AWARE_CATS:
-                    # J-2:連擊數隨檔位遞增 → 以該檔位 nhits 重生成 beat,再套幅度增益 g。
-                    nh = tier_combo_hits.get(tier, 3)
-                    variant = _build_beat(beat, cat, bone_of, cx, cy, combo_hits=nh)
+                if count_map and cat in _COUNT_AWARE_CATS:
+                    # J-2/G-4''':結構數隨檔位遞增 → 以該檔位 count 重生成 beat,再套幅度增益 g。
+                    # tier 未列於 count_map → count=None → 生成器自身預設(向後相容)。
+                    variant = _build_beat(beat, cat, bone_of, cx, cy, count=count_map.get(tier))
                     anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g)
                 else:
                     anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g)
