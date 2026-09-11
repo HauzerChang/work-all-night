@@ -297,6 +297,23 @@ BLOCKS = [
                      "T5 負對照 平增益全 1.0→遞增 FALSE 且各檔位==base・通道隔離單元測 scale-only 不生 shear·shear-only 不生 scale)。"
                      "回歸:validate_tier_variants(J,J3 改 channel-aware 仍全綠)/tier_combo_count/shear_gen/全 priors/beat/pivot 系列全綠。"
                      "honest:shear 峰階梯沿用 (J) 幅度增益(PROPOSAL);shearY≡0;wobble 未接 count-aware(shearY/斜拉 squash 為後續);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("wobble_tier_count", "wobble 阻尼擺動段數隨檔位遞增(G-4''',Super4→Legend7 隨檔位遞增)", "L2",
+                "python3 tools/analyzer/validate_wobble_count.py", "pipeline",
+                note="G-4'' 讓 wobble 的 shearX **峰**隨檔位放大(愈斜),但 honest boundary:各檔位仍**同樣四段**阻尼擺動 —— "
+                     "有『多斜』沒『晃幾下』。本 cap 補上:wobble 的阻尼**擺動段數**=nswings 隨檔位嚴格遞增(Super4/Mega5/Omg6/Legend7)。"
+                     "段數是**結構**(關鍵幀拓樸,gen 時決定;事後 amplify 同比放大整條包絡只改幅度、加不出段)→ 走 tier_wobble_swings 對 "
+                     "wobble 檔位變體以該檔位 nswings **重生成**再套幅度增益;gen_wobble(nswings=) 通用生成遞增段阻尼擺動(nswings=4 逐位元同 G-4' "
+                     "手調四段擺,向後相容)。與 (G-4'')/(J) 幅度軸**正交可疊**(nswings 決定晃幾下、gain 決定多斜)。build_spine --tier-variants "
+                     "直出(wobble_swings_for slot_bigwin)。此與 (J-2) 對 combo nhits 同一心法(count=拓樸須 gen 時決定)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations,validate_wobble_count.py 5AC PASS"
+                     "(C1 present+backward-compat 每檔位產 wobble__tier finite/有 bone/帶 shear/名仍路由回 wobble・base 恆 4 段不變・"
+                     "tier_wobble_swings=None 逐位元同 (G-4'') 幅度-only 輸出/C2 crux 擺動段數 [4,5,6,7]==宣告且 Super<Mega<Omg<Legend 嚴格遞增・"
+                     "每檔位內部仍阻尼(相繼極值遞減)/C3 每檔位首尾 shearX=0・繞 0 變號≥3・阻尼保形・shearX 峰仍單調(與 G-4'' 疊加不衝突)/"
+                     "C4 正交 swings+平增益→段數仍遞增且各檔位峰相等(幅度關掉)・gains+無 swings→段數恆 4 峰遞增/C5 負對照 平段數全 4→段數單調 FALSE"
+                     "證閘可信・無宣告 swings 的 slot_reveal→wobble_swings_for None 不產變體・swing 只作用 wobble 不外洩(非-wobble 主秀恆 0 shear))。"
+                     "回歸:validate_wobble_tier(G-4'',幅度-only 不變)/tier_combo_count/tier_variants/shear_gen/全 priors/beat/pivot 系列 + round-trip"
+                     "(--tier-variants --shear-pivot build overall_pass premult MAE 0.031 setup 不變)+ anim(+selftest)全綠。"
+                     "honest:段數階梯(4–7)為 PROPOSAL(結構簽章非美感);shearY≡0;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

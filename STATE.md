@@ -10,6 +10,36 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 wobble 阻尼擺動「段數」隨檔位遞增(里程碑,2026-09-11 session 001,candidate G-4''')** — 補 G-4'' 的
+  honest boundary(「wobble 未接 count-aware」)。(G-4'') 讓 wobble 的 shearX **峰**隨檔位放大(愈斜),但各檔位
+  仍是**同樣四段**阻尼擺動 —— 有「多斜」沒「晃幾下」。本次補上 wobble 的阻尼**擺動段數** = `nswings`
+  **隨檔位嚴格遞增**(Super 4→Mega 5→Omg 6→Legend 7)。**與 (J-2) 對 combo `nhits` 完全同一心法**:
+  count = 關鍵幀**拓樸**,必在 gen 當下決定 —— 幅度增益(同比放大整條包絡)只能改幅度、**加不出擺動段**;
+  故走 `tier_wobble_swings` 對 wobble 檔位變體以該檔位 `nswings` **重生成**再套幅度增益 g,與 (G-4'')/(J)
+  的**幅度**軸**正交可疊**(端到端段數 [4,5,6,7] × 峰 [16,21.6,27.2,33.6]° **同時**遞增)。
+  `gen_wobble(role,side,radial,nswings=4)`:**nswings=4 逐位元同 G-4' 手調四段擺**(golden,向後相容;base
+  wobble 恆走此路),`nswings≠4` → 通用 `_wobble_env(A,r,nswings)`(值=(−1)^i·r^i·A:交替符號繞 0 振盪 +
+  r^i 遞減阻尼;τ 由 FIRST 0.16→LAST 0.80 均勻散佈)。`tier_variants.COUNT_AWARE_CATS` 加 `"wobble"`+
+  `TIER_WOBBLE_SWINGS`+`wobble_swings_for`;`gen_animations._build_beat(...,combo_hits=3)` **泛化為
+  `count=None`**(None→各生成器自身預設:combo 3 / wobble 4,向後相容),`build_animations(...,tier_wobble_swings=None)`
+  新參數;`build_spine --tier-variants` 自動帶 swings。整合閘 `validate_wobble_count.py`(先驗庫→**真實
+  build_spine robot 骨架**→build_animations)**5 AC 全 PASS**:C1 present+backward-compat(每檔位產
+  `wobble__{tier}` finite/有 bone/帶 shear/名仍路由回 wobble、**base 恆 4 段逐位元不變**、`tier_wobble_swings=None`
+  逐位元同 (G-4'') 幅度-only)、C2 **crux** 擺動段數 [4,5,6,7]==宣告且嚴格遞增且 Super==base、C3 每檔位仍
+  首尾 shearX=0+繞 0 變號≥3+相繼極值遞減(阻尼保形)+shearX 峰仍單調(與 G-4'' 疊加不衝突)、C4 **正交**
+  (swings+平增益→段數遞增且各檔位峰相等〔幅度關掉〕;gains+無 swings→段數恆 4 峰遞增〔兩軸可獨立開關〕)、
+  C5 負對照(a 平段數全 4→段數單調 FALSE 證閘可信;b slot_reveal 無宣告→`wobble_swings_for` None 不產變體;
+  c swing 只作用 wobble→非-wobble 主秀 beat 各檔位恆 0 shear 不外洩)。**關鍵發現:同比放大改不動拓樸,是
+  「count 必須 gen 時決定」的根因**——(J-2)在 combo、(G-4''')在 wobble 兩度印證幅度軸(amplify,保拓樸)與
+  結構軸(count,改拓樸)天生正交 → **通用設計律:任何「數量隨檔位變」的節拍特徵都得回生成器重生成**;
+  副產把 J-2 的 `combo_hits` 特例升為 `_build_beat` 的通用 `count` 抽象(新增 count-aware 節拍零改 dispatch 骨架)。
+  回歸:validate_wobble_tier(G-4'',幅度-only 不變)/tier_combo_count(J-2)/tier_variants(J)/shear_gen(G-4')/
+  priors/priors_beats/more_beats/beat_templates/cascade/priors_combo_charge/priors_cascade/pivot_rotation/
+  scale_pivot/shear_pivot/deform_gen 全 rc=0/PASS;anim(+selftest)對 --tier-variants build PASS;round-trip
+  `validate_build` 對 `--tier-variants --shear-pivot` build overall_pass(premult MAE 0.031、setup 不變)。新增 cap
+  `wobble_tier_count` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
+  **honest boundary(仍在)**:段數階梯(4–7)為 PROPOSAL(結構簽章客觀、手感留使用者 A 類);shearY≡0;
+  斜拉 squash(shear+coupled scale 雙通道耦合)尚未做。見 `knowledge/s1-wobble-tier-count.md`、圖 `knowledge/figures/s1_wobble_count.png`。
 - **S1 wobble shear 峰隨檔位遞增(里程碑,2026-09-10 session 001,candidate G-4'')** — 補 G-4' 的 honest
   boundary(「tier 變體未接」)。G-4' 讓 `gen_wobble` 成為第一個產 shear 通道的生成器,但當時
   `wobble ∉ MAIN_SHOW_CATS` 且 (J) 的幅度增益只作用 scale/rotate/translate → **wobble 完全不隨檔位放大**
@@ -502,11 +532,14 @@
 > **(G-4'') ~~wobble 接 tier 幅度差異化(shear 峰隨檔位遞增)~~ ✅ 完成(2026-09-10 session 001,candidate G-4'',`wobble_tier_amplitude` L2,見上里程碑)** ——
 >   把 wobble 併入 `MAIN_SHOW_CATS` + `amplify_bone_tl` 放大 shear(`v'=g*v`)→ shearX 峰 Super16°<Mega21.6°<Omg27.2°<Legend33.6° 嚴格遞增、阻尼簽章每檔位保形;
 >   J 閘 J3 改 channel-aware(SA.sample 不含 shear → `_shear_amp` 直讀)。`validate_wobble_tier.py` 5AC(T2 crux 峰遞增、T3 阻尼保形、T5 平增益守衛+通道隔離)。
->   **續**(擇一,皆自主):(G-4''') wobble 接 count-aware(晃動段數隨檔位,gen 時決定,比照 J-2);或產 shearY / 斜拉 squash(shear+coupled scale 雙通道耦合)。
+> **(G-4''') ~~wobble 接 count-aware(晃動段數隨檔位)~~ ✅ 完成(2026-09-11 session 001,candidate G-4''',`wobble_tier_count` L2,見上里程碑)** ——
+>   `gen_wobble(nswings=)` 通用生成遞增段阻尼擺動(nswings=4 逐位元同 G-4')、`tier_wobble_swings` 對 wobble 檔位變體以該檔位 nswings **重生成**再套幅度增益(與 G-4''/J 幅度軸正交:段數 [4,5,6,7]×峰 [16,21.6,27.2,33.6]° 皆遞增);
+>   `_build_beat` 的 `combo_hits` 升為通用 `count`。`validate_wobble_count.py` 5AC(C2 crux 段數 [4,5,6,7] 嚴格遞增、C4 正交、C5 平段數守衛+swing 不外洩)。**續**:產 shearY / 斜拉 squash(shear+coupled scale 雙通道耦合)。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4''') wobble count-aware(晃動段數隨檔位)/ shearY / 斜拉 squash(coupled scale)**;
-> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**;
-> **(J-3) cascade 波速/散佈/件數隨檔位**。S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
+> **產 shearY / 斜拉 squash(shear+coupled scale 雙通道耦合節拍)** —— wobble 通道軸最後一塊(shearY≡0 為現存 honest boundary);
+> **(J-3) cascade 波速/散佈/件數隨檔位** —— cascade 的 count-aware(同 J-2/G-4''' 心法在跨件軸);
+> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
+> S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
 
@@ -523,6 +556,12 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-11 session 001:**S1 wobble 阻尼擺動「段數」隨檔位遞增(里程碑,candidate G-4''')** — 補 G-4'' 的
+  honest boundary(「wobble 未接 count-aware」)。wobble 的擺動段數 `nswings` 隨檔位嚴格遞增(Super 4→Legend 7),
+  與 (J-2) 對 combo nhits 同一心法(count=拓樸,gen 時決定,amplify 加不出)。`gen_wobble(nswings=)` 通用生成 +
+  `tier_wobble_swings` 重生成再套幅度增益(正交可疊)+ `_build_beat` 的 combo_hits 升為通用 count。
+  `validate_wobble_count.py` 5AC 全 PASS + 全回歸(含 --tier-variants round-trip、anim selftest)綠。
+  cap `wobble_tier_count` L2(anim-forge 仍 HOLD)。見 `knowledge/s1-wobble-tier-count.md`、圖 `s1_wobble_count.png`。
 - 2026-09-08 session 002:**S1 生成器產出 shear 通道端到端:斜拉 wobble beat(里程碑,candidate G-4')** —
   補 G-4 的 honest boundary(公式/閘就緒但**沒有 beat 產 shear 通道**,AC7 只用合成 shear)。讓 `gen_wobble`
   (斜拉 jelly wobble,純 shearX **阻尼擺動** 0→A→−rA→+r²A→−r³A→0,首尾 identity)**實際產 shear**(第一個),
