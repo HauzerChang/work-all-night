@@ -326,6 +326,24 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_coupled_amplify", "squash 擠壓/斜拉強度隨檔位遞增(G-4''''',耦合 amplify 保體積守恆)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier —— per-axis _amp_scale 只放大 identity 上方 overshoot、"
+                     "下方樓地板不動 → 對 squash 的 scaleX>1 放大而 scaleY<1 不動 → 破壞體積守恆 scaleX·scaleY≠1,故 squash 被擋在 "
+                     "MAIN_SHOW_CATS 外)。本 cap 補上**耦合 amplify**(tier_variants._amp_scale_coupled:放大拉長軸偏移 q→g·q → "
+                     "scaleX=1+g·q,另一軸取倒數 scaleY=1/scaleX' 保 scaleX·scaleY≡1),使 squash 可安全併入 MAIN_SHOW_CATS:"
+                     "**擠壓/斜拉強度隨檔位嚴格遞增(拉長峰 0.16→0.336、shear 峰 16°→33.6°)而體積守恆與阻尼振盪簽章逐檔位保持**。"
+                     "又一『檔位機制就緒 ≠ 每個通道接上』實例(同 J/G-4''/G-4''')—— 惟 squash 的 scale 是耦合(守恆)而非 per-axis,"
+                     "故 per-axis 放大會破壞守恆,須專屬耦合 amplify 才接得上。build_animations 依 COUPLED_SCALE_CATS={squash} 自動路由。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_squash_tier.py 5AC PASS"
+                     "(X1 present+backward-compat 每檔位產 squash__tier finite/有 bone/dual-channel・base 逐位元不變/"
+                     "X2 crux 拉長峰 [0.16,0.216,0.272,0.336] 與 shear 峰 [16,21.6,27.2,33.6] Super<Mega<Omg<Legend 嚴格遞增·Super==base·"
+                     "**每檔位每極值 scaleX·scaleY≈1 體積守恆不被檔位破壞**(vol_dev <1e-4)/X3 每檔位仍 shear 阻尼振盪+體積守恆耦合(SQ3 判準)/"
+                     "X4 端到端 --tier-variants --shear-pivot 放大後 pivot 殘差 <0.08px vs 負對照 20–71px/X5 負對照 平增益全 1.0→遞增 FALSE 且==base・"
+                     "耦合 vs per-axis 單元測 coupled prod 1.00003 守恆 vs naive prod 1.138 破壞守恆 證耦合 amplify 為關鍵)。"
+                     "回歸:tier_variants(J,squash 入 MAIN_SHOW→J3 channel-aware/J4 else 仍全綠)/tier_combo_count(K5c 改逐位元隔離,取代 _min_peaks 峰數)/"
+                     "全 wobble/shear/priors/beat/pivot 系列 18 閘全綠 + round-trip validate_build overall_pass。"
+                     "honest:squash count-aware(擠壓段數隨檔位,nosc 已備參數未接);shearY≡0;shear 峰階梯沿用 (J) 幅度增益(PROPOSAL);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
