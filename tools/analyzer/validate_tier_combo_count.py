@@ -206,14 +206,20 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:對非-combo 主秀 beat,加上 tier_combo_hits **逐位元不改變**任何變體
+    #     (與只有幅度增益的 (J) build 相同)。此**逐位元隔離**比「數峰數」更強且不受閾值影響 ——
+    #     原以 impact-peak 峰數判定,對 squash(體積守恆非均勻 scale,非 impact overshoot)會因幅度
+    #     跨越 IMPACT_PROM 閾值而**誤報**峰數隨檔位變(其極值段數其實恆 nosc、與檔位無關)。
+    #     改用 full vs amp_only 逐位元比對:combo_hits 只動 combo,非-combo 全不變(附:combo 本身
+    #     於 Mega+ 確實不同 → 見 K2,證此比對有鑑別力非空過)。
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vn = "{}__{}".format(beat, t)
+            if json.dumps(full[vn], sort_keys=True) != json.dumps(amp_only[vn], sort_keys=True):
+                leak.append(vn)      # count 外洩 → 非-combo 變體被 combo_hits 改動
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 

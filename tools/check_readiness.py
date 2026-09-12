@@ -326,6 +326,18 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 擠壓強度隨檔位遞增(G-4''''',耦合 amplify 守恆保持)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier:普通 _amp_scale 只放大 identity 上方 → scaleX>1 放大、scaleY<1 樓地板保留 "
+                     "→ 破壞體積守恆)。把 squash 併入 MAIN_SHOW_CATS 並新增 COUPLED_SCALE_CATS={squash} → amplify 走 _amp_scale_coupled(耦合放大:"
+                     "拉長軸以 1+g(v−1) 放大、壓縮軸取其倒數)⇒ **擠壓非均勻峰隨檔位嚴格遞增(Super 0.30→Legend 0.59)且體積守恆逐檔精確保持"
+                     "(|scaleX·scaleY−1|≤4e-5)**,shear 峰亦隨檔位遞增(16°→33.6°,兩通道一起放大)。**關鍵:體積守恆的檔位放大需耦合 amplify** —— "
+                     "普通 amplify 在 Legend 使 |積−1|=0.15(破壞),耦合 recompute 倒數使積恆 1(QT5b crux 負對照)。全 additive:g=1(Super)逐位元同 base、"
+                     "無 tier_gains 不產變體。validate_squash_tier.py 5AC PASS(QT1 present+backward-compat/QT2 crux 非均勻峰遞增/QT3 crux 體積守恆逐檔保持/"
+                     "QT4 shear 峰遞增+阻尼保形/QT5 負對照:平增益守衛+naive-amplify 破守恆守衛 crux+耦合路由隔離)。端到端 build_spine --tier-variants "
+                     "--shear-pivot 直出 squash__{Super,Mega,Omg,Legend},round-trip validate_build overall_pass。副:tier_combo_count K5c 改逐位元隔離"
+                     "(原 impact-peak 峰數對 squash 體積守恆 scale 誤報)。**關鍵發現:結構軸×幅度軸雙軸差異化推廣到耦合通道** —— shear+非均勻 scale "
+                     "同時隨檔位放大而守恆不破。honest:非均勻峰階梯沿用 (J) 增益(PROPOSAL);shearY≡0;squash count-aware nosc 未接(比照 G-4''')。與 anim-forge 同 HOLD"),
         ],
     },
 ]
