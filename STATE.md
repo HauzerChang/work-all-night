@@ -10,6 +10,35 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 生成器產耦合 shear + 非均勻 scale(體積守恆擠壓)端到端(里程碑,2026-09-12,candidate G-4'''')** —
+  補一路(G-4/G-4')留到現在的 honest boundary(**`shearY≡0`、斜拉 squash(shear+coupled scale)為後續**)。
+  **關鍵:純 shear(G-4' wobble)只是相似變換特例(等距+skew);shear+非均勻 scale 才是真正的一般仿射**。
+  `beat_templates.gen_squash`(斜拉果凍**擠壓**)是**第一個同時產 `shear` 與非均勻 `scale`(sx≠sy)** 的生成器:
+  shearX 同 wobble 阻尼擺動;每個 shear 極值 i 施體積守恆 squash(`scaleX=1+q_i` 拉長、`scaleY=1/(1+q_i)`
+  壓扁,`q_i=Q·rⁱ` 與 shear 同源同阻尼)⇒ `scaleX·scaleY≡1`(面積守恆)且 `scaleX≠scaleY`(非均勻),首尾
+  identity。經 `genre_priors.slot_bigwin` 新增 squash beat **直出**(additive、coverage 仍 1.0、列
+  prior_beats_unused 誠實);`build_spine --shear-pivot`(include_shear 隱含 include_scale)端到端把
+  rotate/scale/**shear** 三通道一起繞關節 pivot 補償 → G-4 的通用 Δ=(M−I)(O−P) **第一次被生成器產的**非均勻
+  scale+shear 同時驅動(M 非相似,det=scaleX·scaleY·cos(shear))而 pivot 精確不動。整合閘
+  `validate_squash_gen.py`(先驗庫→**真實 build_spine robot 骨架**→build_animations)**6 AC 全 PASS**:
+  SQ1 present+dual-channel(crux:shear 峰 16°+非均勻峰 0.298、≥1 bone 同時帶 shear+scale)、SQ2 shear 阻尼
+  振盪(復用 G-4' 判準,繞 0 變號≥3+相繼極值遞減)、SQ3 **crux** 體積守恆耦合(每極值幀 |scaleX·scaleY−1|≤5e-5
+  +非均勻 0.19–0.30+squash 幅度 [Q,Q/2,Q/4,Q/8] 嚴格遞減)、SQ4 identity 介面(shear 首尾 0+scale 首尾
+  (1,1))、SQ5 端到端**一般仿射** pivot 不動(頭/右手/左手殘差 0.005/0.013/0.018px vs 負對照繞件中心
+  9.44/17.71/32.78px,>1000×;pivot≈中心的身體/光暈正確略過)、SQ6 負對照/隔離(a 等比 scale 守衛
+  scaleX==scaleY→非均勻 FALSE、b 非守恆守衛非均勻但兩軸皆拉長積≠1→體積守恆 FALSE 而非均勻仍 TRUE **證兩條件
+  獨立**、c 耦合隔離僅 squash 同時帶 shear+非均勻 scale(wobble 有 shear 無 scale、其餘主秀等比 scale 無 shear)、
+  d 加性移除 squash→其餘 beat 逐位元不變)。**關鍵發現:真簽章常需兩獨立條件並立**(體積守恆 **且** 非均勻;
+  同 (I) cascade「散佈且遞增」、(H) charge「長 hold 且 squash-floor」)。新增 `tier_variants.SHEAR_CATS=
+  {wobble,squash}`(shear 產出者集中一處;shear-isolation 閘 shear_gen W5b / wobble_tier T4 改以此認定,
+  便於後續再加 shear 節拍)。回歸:shear_gen(W5b 更新)/wobble_tier(T4 更新)/wobble_count/shear_pivot(G-4)/
+  scale_pivot(G-3)/pivot_rotation(0i)/tier_variants(J)/tier_combo_count(J-2)/priors/priors_beats/
+  priors_combo_charge/priors_cascade/cascade/more_beats/beat_templates/deform_gen **16 閘全綠** +
+  round-trip `validate_build` 對 `--shear-pivot` build overall_pass(premult MAE 0.031)。新增 cap
+  `squash_shear_scale_coupling` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
+  **honest boundary(仍在)**:squash 未接 tier 幅度(`_amp_scale` 只放大 identity 上方 → 破壞體積守恆,
+  需**耦合 amplify**,後續);shearY≡0;count-aware nosc 已備參數未接(比照 J-2/G-4''')。
+  見 `knowledge/s1-squash-shear-scale-coupling.md`、圖 `knowledge/figures/s1_squash_coupling.png`。
 - **S1 wobble 振盪段數隨檔位遞增(里程碑,2026-09-11,candidate G-4''')** — 補 G-4'' 的 honest boundary
   (「wobble 未接 count-aware」)。(G-4'') 讓 wobble 的 shearX 峰**幅度**隨檔位遞增,但各檔位仍**同樣 4 段**
   阻尼振盪(有「多斜」沒「晃幾下」)。本次補上振盪**段數** `nosc` 隨檔位嚴格遞增(Super 4→Mega 5→Omg 6→
@@ -534,8 +563,13 @@
 >   `gen_wobble(nosc=)`+`_wobble_env(A,nosc)`(nosc==4 逐位元同 G-4' golden)、`TIER_WOBBLE_CYCLES`(Super4→Legend7)、`_build_beat(count=None)` 泛化 + `build_animations(tier_wobble_cycles=)`
 >   依 cat 路由段數(combo/wobble 段數階梯獨立)、`validate_wobble_count.py` 5AC(U2 段數 [4,5,6,7] 嚴格遞增、U3 阻尼簽章+峰幅皆保、U4 正交、U5 平段數守衛+段數不外洩)。
 >   **關鍵:結構軸×幅度軸雙軸檔位差異化可推廣**(count-aware 概念在 combo=scale 峰數、wobble=shear 段數兩通道皆成立)。
+> **(G-4'''') ~~產 shearY / 斜拉 squash(shear+coupled scale 雙通道耦合)~~ ✅ 完成(2026-09-12,candidate G-4'''',`squash_shear_scale_coupling` L2,見上里程碑)** ——
+>   `gen_squash`(shearX 阻尼擺 + 體積守恆非均勻 scale squash)第一個同時產 shear+非均勻 scale;`--shear-pivot`
+>   端到端一般仿射 pivot 不動;`validate_squash_gen.py` 6AC(SQ3 體積守恆耦合、SQ5 一般仿射殘差 <0.02px、SQ6 兩條件獨立守衛)。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4'''') 產 shearY / 斜拉 squash(shear+coupled scale 雙通道耦合的運動基元 + 端到端閘)**;
+> **(G-4''''') squash 接 tier 檔位差異化(需**耦合 amplify**:scaleX/scaleY 一起以體積守恆放大,不破壞 scaleX·scaleY==1** —— `_amp_scale` 現只放大 identity 上方會破壞守恆,故 squash 未在 MAIN_SHOW_CATS);
+>   或 squash count-aware(擠壓段數隨檔位,nosc 已備參數,比照 G-4''')**;
+> **(G-4'''''') 產 shearY(雙軸 shear)/ shear+scale+rotate 三通道同時的運動基元(真正塞滿一般仿射 M 的所有自由度)**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
@@ -555,6 +589,17 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-12:**S1 生成器產耦合 shear + 非均勻 scale(體積守恆擠壓)端到端(里程碑,candidate G-4'''')** —
+  補 G-4/G-4' 留到現在的 honest boundary(shearY≡0、斜拉 squash 為後續)。`gen_squash` 是第一個同時產
+  shear+非均勻 scale(sx≠sy)的生成器:shearX 阻尼擺動 + 每極值施體積守恆 squash(scaleX=1+q_i、
+  scaleY=1/(1+q_i),q_i=Q·rⁱ)⇒ scaleX·scaleY≡1 且 scaleX≠scaleY,首尾 identity。**純 shear 只是相似特例;
+  shear+非均勻 scale 才是真正一般仿射** —— G-4 的 Δ=(M−I)(O−P) 第一次被生成器產的非均勻 scale+shear 同時驅動。
+  `genre_priors` 加 squash beat 直出;`build_spine --shear-pivot` 端到端一般仿射 pivot 補償(殘差 0.005–0.018px
+  vs 負對照 9–33px)。`validate_squash_gen.py` **6 AC 全 PASS**(SQ3 體積守恆耦合 crux、SQ5 一般仿射 pivot 不動、
+  SQ6 兩條件獨立守衛+耦合隔離+加性)。新增 `tier_variants.SHEAR_CATS`;shear-isolation 閘(shear_gen W5b/
+  wobble_tier T4)改以此認定。**16 閘全綠 + round-trip validate_build overall_pass**。cap
+  `squash_shear_scale_coupling` L2;anim-forge 仍 HOLD。honest boundary:squash 未接 tier(需耦合 amplify)、
+  shearY≡0、count-aware nosc 未接。見 `knowledge/s1-squash-shear-scale-coupling.md`、圖 `s1_squash_coupling.png`。
 - 2026-09-08 session 002:**S1 生成器產出 shear 通道端到端:斜拉 wobble beat(里程碑,candidate G-4')** —
   補 G-4 的 honest boundary(公式/閘就緒但**沒有 beat 產 shear 通道**,AC7 只用合成 shear)。讓 `gen_wobble`
   (斜拉 jelly wobble,純 shearX **阻尼擺動** 0→A→−rA→+r²A→−r³A→0,首尾 identity)**實際產 shear**(第一個),

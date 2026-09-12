@@ -1,61 +1,10 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-09-11 run(S1 candidate (G-4'''):**wobble 振盪段數隨檔位遞增** —— 續 (G-4''):(G-4'') 讓 wobble 的 shearX 峰**幅度**隨檔位遞增,但各檔位仍**同樣 4 段**阻尼振盪(有「多斜」沒「晃幾下」)。本次補上振盪**段數** `nosc` 隨檔位嚴格遞增(Super 4→Mega 5→Omg 6→Legend 7)。**幅度增益加不出段數**(段數=繞 0 交替極值的關鍵幀拓樸,須 gen 時決定)→ 對 wobble 檔位變體以該檔位 nosc **重生成**(`gen_wobble(nosc=)`,nosc==4 逐位元同 G-4' golden)再疊 (G-4'') 幅度增益,與幅度軸**正交可疊**(段數 [4,5,6,7]×峰幅 [16,21.6,27.2,33.6]° 皆遞增);段數階梯各類別獨立(combo→`TIER_COMBO_HITS`、wobble→`TIER_WOBBLE_CYCLES`,`build_animations` 依 cat 路由)。`build_spine --tier-variants` 直出。`spine-anim-forge` 新增 cap `wobble_count_generation` L2(pipeline)→ 區塊仍 HOLD。`validate_wobble_count.py` 5AC PASS(U2 段數 [4,5,6,7] 嚴格遞增、U3 阻尼簽章+峰幅皆保、U4 正交、U5 平段數守衛+段數不外洩);16 閘全綠回歸。**關鍵發現:結構軸×幅度軸的雙軸檔位差異化可推廣**(同一 count-aware 概念在 combo=scale 峰數、wobble=shear 振盪段數兩通道皆成立)。可 skill 化 2 區塊 spine-mesh-doctor/spine-weighted-forge 不變。前個里程碑:(G-4'')wobble shear 峰隨檔位遞增(把 wobble 併入 MAIN_SHOW_CATS + amplify_bone_tl 放大 shear,shearX 峰 Super16°→Legend33.6° 嚴格遞增、阻尼簽章每檔位保形;J 閘 J3 改 channel-aware)。)
-> (前次:(G-4')生成器產 shear 通道 / (G-4)件繞關節 pivot 一般仿射 / (J-2) combo 連擊數隨檔位 / (J)檔位幅度差異化 / (I) cascade 接先驗庫 / (H) combo/charge 接先驗庫 / 0i 件繞關節 pivot 轉 / G-3 pivot 縮放。)
+> 產生於 2026-09-12 run(S1 candidate (G-4''''):**生成器產耦合 shear + 非均勻 scale(體積守恆擠壓)** —— 補 G-4/G-4' 一路留到現在的 honest boundary(`shearY≡0`、斜拉 squash(shear+coupled scale)為後續)。`gen_squash` 是**第一個同時產 `shear` 與非均勻 `scale`(sx≠sy)** 的生成器:shearX 同 wobble 阻尼擺動,每個 shear 極值 i 施體積守恆 squash(`scaleX=1+q_i` 拉長、`scaleY=1/(1+q_i)` 壓扁,`q_i=Q·rⁱ` 與 shear 同源同阻尼)⇒ `scaleX·scaleY≡1`(面積守恆)且 `scaleX≠scaleY`(非均勻),首尾 identity。**關鍵:純 shear(G-4' wobble)只是相似變換特例(等距+skew);shear+非均勻 scale 才是真正的一般仿射** —— G-4 的通用 Δ=(M−I)(O−P) **第一次被生成器產的**非均勻 scale+shear 同時驅動(M 非相似,det=scaleX·scaleY·cos(shear))。`genre_priors` 加 squash beat 直出;`build_spine --shear-pivot`(include_shear 隱含 include_scale)端到端把 rotate/scale/shear 三通道一起繞關節 pivot 補償。`spine-anim-forge` 新增 cap `squash_shear_scale_coupling` L2(gen)→ 區塊仍 HOLD。`validate_squash_gen.py` 6AC PASS(SQ1 present+dual-channel crux:shear 峰 16°+非均勻峰 0.30/SQ3 crux 體積守恆耦合:每極值幀 |scaleX·scaleY−1|≤5e-5+非均勻 0.19–0.30+squash 幅度嚴格遞減/SQ5 端到端**一般仿射** pivot 殘差 0.005–0.018px vs 負對照 9–33px >1000×/SQ6 等比 scale 守衛→非均勻 FALSE・非守恆守衛→體積 FALSE 而非均勻 TRUE 證兩條件獨立・耦合隔離・加性);16 閘全綠回歸 + round-trip validate_build overall_pass。新增 `tier_variants.SHEAR_CATS={wobble,squash}`(shear-isolation 閘 shear_gen W5b/wobble_tier T4 改以此認定)。**關鍵發現:真簽章常需兩獨立條件並立**(體積守恆 **且** 非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。可 skill 化 2 區塊 spine-mesh-doctor/spine-weighted-forge 不變。前個里程碑:(G-4''')wobble 振盪段數隨檔位遞增(nosc Super4→Legend7,段數=關鍵幀拓樸須 gen 時決定,與幅度軸正交可疊)。)
+> (前次:(G-4''')wobble 段數隨檔位 / (G-4'')wobble shear 峰隨檔位 / (G-4')生成器產 shear 通道 / (G-4)件繞關節 pivot 一般仿射 / (J-2) combo 連擊數隨檔位 / (J)檔位幅度差異化 / (I) cascade 接先驗庫 / (H) combo/charge 接先驗庫 / 0i 件繞關節 pivot 轉。)
 
 ```
-==============================================================================
-skill 化完成度矩陣(已實跑全部 validator)
-==============================================================================
-
-■ spine-mesh-doctor — mesh 品質 / 變形評估閘套件
-  區塊成熟度 L3 → READY ✅
-  目標:新 skill《spine-mesh-doctor》(補 spine-ai-editor 只可視化、無量化 pass/fail 的空白)
-    [L2] 靜態輪廓 IoU 閘                             閘:GREEN (eval)
-    [L2] unweighted 變形閘(真實位移場)                  閘:GREEN (eval)
-    [L2] weighted 骨綁變形閘                         閘:GREEN (eval)  «今日新增;3 robot 真值 + 負對照»
-    [L3] 整合 AC(端到端 4 mesh)                      閘:GREEN (pipeline)
-
-■ spine-asset-forge — 目標圖/PSD → 可載入 Spine 素材(靜態)
-  區塊成熟度 L3 → HOLD ⛔
-  目標:新 skill《spine-asset-forge》(補 spine-ai-editor 明說『mesh 交給 editor』的空白)
-    [L2] 反推分析:分層 PSD → 五段規格                     閘:RED   (gen)
-    [L2] PSD → 各部位件 + manifest                  閘:GREEN (gen)
-    [L2] 件 → mesh 拓樸(strip)                     閘:GREEN (gen)
-    [L3] SkelToJson 組裝(端到端 round-trip)          閘:GREEN (pipeline)  «限制:只驗靜態幾何/貼圖,不含 animation/weighted/pivot»
-
-■ spine-slicing — 切圖 / atlas 無損重組閘
-  區塊成熟度 L2 → HOLD ⛔
-  目標:併入 forge 為子模組(或獨立輕量 skill)
-    [L2] PSD 切件保真                               閘:GREEN (gen)
-    [L2] atlas 重組保真閘(45/45)                     閘:GREEN (eval)
-    [L2] 多頁 atlas 切圖(CW derotate)               閘:—     (gen)  «方向 bug 已修;由 evaluate_slicing 間接覆蓋»
-
-■ spine-target-analysis — 反推分析 / 需求規格(上游)
-  區塊成熟度 L2 → HOLD ⛔
-  目標:HOLD:折入 forge 前端,或併 spine-ai-editor 的可行性評估
-    [L2] 分層 PSD → 規格(件/特效/分鏡/拆圖/補圖)             閘:RED   (gen)
-    [L2] 分鏡先驗庫(2 類型已驗/2 未驗)                     閘:GREEN (gen)  «覆蓋率 1.0 但僅 2 類型有真值»
-    [L1] 平圖(未分層)自動拆件                            閘:GREEN (gen)  «誠實負結果:同材質語意召回 0,CPU 到頂需 GPU;非能力,是契約依據»
-    [L0] 影片 → 規格                                閘:—     (gen)  «repo 無影片資產,未開始»
-
-■ spine-weighted-forge — weighted mesh 生成 + BBW 權重(候選 2 主體)
-  區塊成熟度 L3 → READY ✅
-  目標:READY:達門檻,可併入 spine-asset-forge(weighted 素材產線)
-    [L2] 變形品質閘(前置)                              閘:GREEN (eval)
-    [L2] heat-diffusion(BBW 近似)權重生成             閘:GREEN (gen)  «不透明件(身體/左手)過閘 + 平滑度≈藝術家;軟性件(光暈極端 reveal)未追平,屬已知限制»
-    [L2] 內部取樣密度控制(triangle max-area)            閘:GREEN (gen)  «body 調到 nv=98 == 藝術家»
-    [L3] build_spine --weighted 端到端產可載入 spine   閘:GREEN (pipeline)  «round-trip + 輪廓 IoU + 合成變形閘;結構件 si=0、特效件 additive 容忍»
-
-■ spine-rig-pivot — S5 rig pivot 推斷(關節=父子件接觸縫)
-  區塊成熟度 L2 → HOLD ⛔
-  目標:HOLD:接 build_spine 骨樹已完成(L2);達 L3 尚缺『多 rig 真值』(Award 僅 1 個可拆肢體 rig,屬資源類),補齊後併入 forge 或開新 skill
-    [L2] pivot 推斷閘(真值+負對照)                      閘:GREEN (eval)  «Award 機器人 rig 3 關節藝術家真值 + 隨機/互換/rect 三負對照,皆有鑑別力»
-    [L2] 接觸縫 pivot 推斷器                          閘:GREEN (gen)  «3 關節 err 2–5% 軀幹尺度、勝質心 baseline;僅驗『關節在接觸縫』子問題,軸向精修屬美術(A類)»
-    [L2] 肢體父子樹自動推斷(root+parent 邊)               閘:GREEN (gen)  «area-primary root + 接觸距離 Dijkstra 樹;對 Award 機器人真值樹 AC1-4 + 3 負對照全 PASS,合成鏈驗多跳通用;取代 rig_layout 的星形先驗(rig 拓樸現完全自決)。honest boundary:effect/structural 角色分類仍為輸入(NC3)»
-    [L2] pivot→bone 父子樹寫入 build_spine(--rig)    閘:GREEN (pipeline)  «build_spine --rig 端到端產關節鏈(父子樹改由 infer_tree 幾何推斷,非星形先驗)+ validate_rig_build 4AC(結構/setup不位移/pivot往返/關節語意 vs 非rig對照)PASS;仍 L2 非 L3:僅單一 robot rig 驗過(Award 僅此件可拆肢體;OMG/SUP/MEG 為單圖+特效,無接觸縫)→ 多 rig 真值屬使用者資源»
-    [L2] --rig × --weighted 併用(weighted 控制骨接進關節鏈) 閘:GREEN (pipeline)  «移除 --rig/--weighted 互斥;weighted mesh 控制骨改掛該件關節骨 b_{nm}(座標轉局部)→ 4AC PASS (結構/ setup 逐頂點 0.00px / 自articulate+鏈帶動 vs weighted-only 脫鉤(0px)/ 關節旋轉逐幀 si=0)。仍 L2:同 pivot_end2end,僅單一 robot rig 驗過(多 rig 真值屬使用者資源)»
     [L2] 多跳 weighted 肢體鏈(weighted mesh 當鏈中段)    閘:GREEN (pipeline)  «補 robot_parts 無『weighted mesh 當鏈中段肢體』樣本的缺口:合成鏈 fixture (make_limb_chain_psd:body→arm→forearm→hand,arm/forearm 皆 weighted mesh)。5AC PASS:鏈深 4≥3 非星形 / setup 0.00px / 遞迴帶動(轉 b_body→forearm 隔一跳仍隨動 80px、轉 b_arm→forearm 動 body 不動、weighted-only 全脫鉤 0px)/ region 葉件隨鏈 / 逐幀 si=0。演算法早已支援(接觸縫遞迴+控制骨掛關節骨),本閘證端到端成立。honest boundary:合成 fixture 非藝術家真值»
 
 ■ spine-anim-forge — 分鏡 → 會動 Spine timeline(bone/slot + mesh deform)
@@ -76,6 +25,7 @@ skill 化完成度矩陣(已實跑全部 validator)
     [L2] 生成器產出 shear 通道端到端(G-4',斜拉 wobble beat + --shear-pivot) 閘:GREEN (pipeline)  «G-4 補齊了『件繞關節 pivot 一般仿射(含 shear)』的**公式+閘**,但 honest boundary:當時**沒有任何 beat 產出 shear**(產線只用 rotate/scale,G-4 的 AC7 用合成 shear 驗管路)。本 cap 補上那最後一段:gen_wobble(斜拉 jelly wobble)**實際產出 shear 通道**(阻尼 shearX 擺動,首尾 identity),經 genre_priors.slot_bigwin 新增 wobble beat 直出;build_spine --shear-pivot 帶 include_shear=True 端到端補償 → 件繞關節 pivot 做一般仿射而 pivot 精確不動。從先驗庫→真實 build_spine robot 骨架→build_animations,validate_shear_gen.py 5AC PASS(W1 present+shear 產出 crux=峰值 16°/W2 阻尼振盪簽章 繞0變號≥3+相繼極值嚴格遞減/W3 identity 介面可插 Loop/W4 端到端 --shear-pivot pivot 殘差 <0.02px vs 負對照 8–24px(arm 50–164px)/W5 負對照 天真單調 shear 簽章 FALSE・shear 隔離 僅 wobble 帶 shear・移除 wobble 其餘 beat 逐位元不變)。回歸:全 priors/tier/beat/pivot 系列 + round-trip(--shear-pivot build overall_pass premult MAE 0.031 setup 不變)全綠。honest:斜拉 wobble 為 PROPOSAL(阻尼振盪結構簽章非美感);shearY≡0、tier 變體未接;單一真值資產。與 anim-forge 同 HOLD»
     [L2] wobble shear 峰隨檔位遞增(G-4'',shear 通道接檔位差異化) 閘:GREEN (pipeline)  «G-4' 讓 gen_wobble 產出 shear 通道,但當時 honest boundary:wobble ∉ MAIN_SHOW_CATS → **檔位機制(J)未放大 shear**(J 的幅度增益只作用 scale/rotate/translate)。本 cap 補上:把 wobble 併入 MAIN_SHOW_CATS 並讓 amplify_bone_tl 一併放大 shear(對 0 對稱 → v'=g*v,同 rotate/translate)→ wobble 的 shearX 峰隨檔位嚴格遞增(Super16°→Legend33.6°),同時阻尼振盪簽章(振盪+遞減)在**每個檔位**保持(g*v 同比放大 → 符號序列與遞減比不變)。與 (J) 幅度軸同一機制、對 shear 通道的自然推廣 —— 又一『檔位機制就緒 ≠ 每個新通道接上』實例(同 E/H/I/J/G-4')。從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_wobble_tier.py 5AC PASS(T1 present+backward-compat 每檔位產 wobble__tier finite/有 bone/帶 shear・base 逐位元不變/T2 crux shear 峰 [16,21.6,27.2,33.6] Super<Mega<Omg<Legend 嚴格遞增且 Super==base/T3 每檔位仍首尾 0+繞 0 變號≥3+相繼極值遞減(阻尼簽章保形)/T4 shear 隔離 只 wobble 及其變體帶 shear/T5 負對照 平增益全 1.0→遞增 FALSE 且各檔位==base・通道隔離單元測 scale-only 不生 shear·shear-only 不生 scale)。回歸:validate_tier_variants(J,J3 改 channel-aware 仍全綠)/tier_combo_count/shear_gen/全 priors/beat/pivot 系列全綠。honest:shear 峰階梯沿用 (J) 幅度增益(PROPOSAL);shearY≡0;wobble 未接 count-aware(shearY/斜拉 squash 為後續);單一真值資產。與 anim-forge 同 HOLD»
     [L2] wobble 振盪段數隨檔位遞增(G-4''',晃動段數 Super4→Legend7 隨檔位遞增) 閘:GREEN (pipeline)  «G-4'' 讓 wobble 的 shear 峰**幅度**隨檔位遞增,但各檔位仍**同樣 4 段**阻尼振盪(有『多斜』沒『晃幾下』)。本 cap 補上振盪**段數** nosc 隨檔位嚴格遞增(Super4→Mega5→Omg6→Legend7)。**關鍵:幅度增益加不出段數** —— 段數是關鍵幀**拓樸**(繞 0 交替極值個數),須在 gen_wobble 生成當下決定,事後 amplify 只能放大既有極值、無法多長一段;故對 wobble 檔位變體以該檔位 nosc **重生成**(gen_wobble(nosc=),nosc==4 逐位元同 G-4' golden),再疊 (G-4'') 幅度增益 → 與幅度軸**正交可疊**(段數 [4,5,6,7]×峰幅 [16,21.6,27.2,33.6]° 皆遞增)。此模式同 (J-2) 對 combo 連擊數,惟段數階梯各類別獨立(combo→TIER_COMBO_HITS、wobble→TIER_WOBBLE_CYCLES,build_animations 依 cat 路由)—— 又一『檔位機制就緒 ≠ 每個軸接上』實例。從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,tier_wobble_cycles),validate_wobble_count.py 5AC PASS(U1 present+backward-compat 每檔位產 wobble__tier finite/有 bone/帶 shear・base 恆 4 段逐位元不變・twc=None 逐位元同 (G-4'') 幅度-only/U2 crux 段數 [4,5,6,7]==宣告 Super<Mega<Omg<Legend 嚴格遞增且 Super==base/U3 每檔位仍首尾 0+變號≥3+極值遞減(阻尼保形)且峰幅仍遞增/U4 正交 段數+平增益→段數遞增·峰幅不遞增,增益+無段數→段數恆4·峰幅遞增/U5 負對照 平段數全4→單調 FALSE・slot_reveal wobble_cycles_for None 不亂加・段數只作用 wobble 不外洩)。端到端 build_spine --animate --tier-variants --shear-pivot 直出 wobble__{Super4,Mega5,Omg6,Legend7} 段(pivot 補償後仍 [4,5,6,7]),validate_build round-trip overall_pass。回歸:validate_wobble_tier(G-4'')/tier_combo_count/tier_variants/shear_gen/全 priors/beat/pivot 系列 16 閘全綠。honest:段數階梯 PROPOSAL(手感留使用者 A 類);shearY≡0;斜拉 squash(shear+coupled scale)為後續;單一真值資產。與 anim-forge 同 HOLD»
+    [L2] 生成器產耦合 shear + 非均勻 scale 體積守恆擠壓(G-4'''') 閘:GREEN (gen)  «補 G-4/G-4' 留到現在的 honest boundary(shearY≡0、斜拉 squash 為後續)。gen_squash 是**第一個同時產 shear 與非均勻 scale(sx≠sy)** 的生成器:shearX 同 wobble 阻尼擺動,每個 shear 極值 i 施體積守恆 squash(scaleX=1+q_i 拉長、scaleY=1/(1+q_i) 壓扁,q_i=Q·rⁱ 與 shear 同源同阻尼)⇒ scaleX·scaleY≡1(面積守恆)且 scaleX≠scaleY(非均勻),首尾 identity。**關鍵:純 shear (G-4' wobble)只是相似變換特例(等距+skew);shear+非均勻 scale 才是真正一般仿射** —— G-4 的通用 Δ=(M−I)(O−P) 第一次被生成器產的非均勻 scale+shear 同時驅動(M 非相似,det=scaleX·scaleY·cos(shear))。genre_priors 加 squash beat 直出(additive、coverage 仍 1.0);build_spine --shear-pivot(include_shear 隱含 include_scale)端到端把 rotate/scale/shear 三通道一起繞關節 pivot 補償。validate_squash_gen.py 6AC PASS(SQ1 present+dual-channel crux:shear 峰 16°+非均勻峰 0.30/SQ2 shear 阻尼振盪/SQ3 crux 體積守恆耦合:每極值幀 |scaleX·scaleY−1|≤5e-5+非均勻 0.19–0.30+squash 幅度嚴格遞減/SQ4 identity 介面/SQ5 端到端一般仿射 pivot 殘差 0.005–0.018px vs 負對照 9–33px >1000×/SQ6 負對照:等比 scale 守衛→非均勻 FALSE、非守恆守衛→體積 FALSE 而非均勻 TRUE 證兩條件獨立、耦合隔離、加性零回歸)。新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD»
 
 ==============================================================================
 可 skill 化(達門檻): spine-mesh-doctor, spine-weighted-forge

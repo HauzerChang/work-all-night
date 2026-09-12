@@ -362,6 +362,73 @@ def gen_wobble(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
     return b, s
 
 
+# candidate G-4'''' — squash(斜拉果凍**擠壓**):**第一個同時產出 `shear` + 耦合 `scale`(非均勻)通道
+# 的生成器**。補上 G-4/G-4' 一路留到現在的 honest boundary —— G-4 補齊了「件繞關節 pivot 的**一般仿射**
+# (含 shear **且** 非均勻 scale sx≠sy)」的公式/閘,但 AC4/AC7 的非均勻 scale 只用**合成**值驗管路;
+# G-4' 的 wobble 只產**純 shearX**(scaleX≡scaleY≡1)。本 beat 讓某節拍實際產出**耦合的 shear + 非均勻
+# scale** —— 斜拉時同時「擠壓保體積」(squash & stretch):skew 來回的同時,拉長一軸、壓縮另一軸使
+# **面積守恆**(scaleX·scaleY==1)。`build_spine --shear-pivot`(include_shear=True 隱含 include_scale)
+# 端到端把「rotate/scale/**shear** 三通道」一起繞關節 pivot 補償 → 件做**真正的一般仿射**(非相似)變換
+# 而 pivot 精確不動(這是 G-4 通用 Δ=(M−I)(O−P) 公式第一次被**生成器產的**非均勻 scale + shear 同時驅動)。
+#
+# 運動基元 = **阻尼 shearX 擺動 + 耦合體積守恆 squash**(shearY≡0,squash 掛在 scaleX/scaleY):
+#   shearX(τ):同 wobble 阻尼擺動 0→+A→−rA→+r²A→…→0(繞 0 變號、相繼極值遞減)。
+#   scale(τ):每個 shear 極值時刻 i 施一次 squash —— scaleX=1+q_i(拉長)、scaleY=1/(1+q_i)(壓扁),
+#     q_i=Q·rⁱ(擠壓幅度隨 shear 一起阻尼)⇒ **scaleX·scaleY==1(面積守恆)且 scaleX≠scaleY(非均勻)**;
+#     首尾 scaleX==scaleY==1(identity 介面)。squash 幅度 q_i 與 |shearX| 同源同阻尼 → **兩通道耦合**。
+# 結構簽章(可量化、負對照乾淨分離,證閘測的是「耦合體積守恆 squash」非「有 scale 即可」):
+#   1. 首尾 identity(shearX==0、scaleX==scaleY==1)→ 可插 Loop 間(同其他主秀 beat)。
+#   2. shear 阻尼振盪(同 wobble:繞 0 變號 ≥3 + 相繼極值嚴格遞減)。
+#   3. **體積守恆 squash 耦合(crux)**:每個 shear 極值幀 (a)scaleX·scaleY≈1(面積守恆);
+#      (b)scaleX≠scaleY(非均勻=真擠壓,非等比 pulse);(c)squash 幅度 |scaleX−1| 隨極值嚴格遞減(阻尼耦合)。
+# 負對照:等比 scale(scaleX==scaleY,pulse)→(b)FALSE;非守恆 scale(scaleX,scaleY 皆拉長,積≠1)
+#   →(a)FALSE —— 證(a)(b)彼此獨立、閘非「有 scale + 有 shear 即通過」。
+
+DUR.setdefault("squash", 0.8)
+
+# role → squash 首極值拉長量 Q(=scaleX−1 峰;特效/身體大、末梢/頭中,同 _WOBBLE_SHEAR 相對關係)。
+_SQUASH_STRETCH = {"body": 0.14, "特效": 0.16, "head": 0.10, "limb": 0.12}
+
+
+def _squash_env(A, Q, nosc):
+    """通用**阻尼 shearX 擺動 + 耦合體積守恆 squash** 包絡。回傳 (shear_env, scale_env):
+      shear_env = [(τ, shearX)]  首尾 0、`nosc` 個交替遞減極值(同 `_wobble_env`)。
+      scale_env = [(τ, scaleX, scaleY)]  首尾 (1,1)、每極值 (1+q_i, 1/(1+q_i)),q_i=Q·rⁱ。
+
+    兩者極值 τ 同點(shear 極值即 squash 極值 → 耦合);r=WOBBLE_DAMP 共用阻尼 → shear 與 squash
+    同源同衰減。scaleX·scaleY≡1(面積守恆)、scaleX≠scaleY(非均勻)、squash 幅度 q_i 隨極值遞減。"""
+    r = WOBBLE_DAMP
+    sh = [(0.00, 0.0)]
+    sc = [(0.00, 1.0, 1.0)]
+    for i in range(nosc):
+        f = i / (nosc - 1) if nosc > 1 else 0.0
+        tau = WOBBLE_LEAD + (WOBBLE_TAIL - WOBBLE_LEAD) * f
+        q = Q * (r ** i)
+        sh.append((round(tau, 4), ((-1.0) ** i) * A * (r ** i)))
+        sc.append((round(tau, 4), round(1.0 + q, 6), round(1.0 / (1.0 + q), 6)))
+    sh.append((1.00, 0.0))
+    sc.append((1.00, 1.0, 1.0))
+    return sh, sc
+
+
+def gen_squash(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
+    """斜拉果凍擠壓:**阻尼 shearX 擺動 + 耦合體積守恆 squash**(shear + 非均勻 scale 雙通道)。
+    回傳 (bone_timelines, slot_timelines)。
+
+    shearX 同 `gen_wobble`(阻尼擺動,首尾 0);scale 每個 shear 極值施體積守恆 squash
+    (scaleX=1+q,scaleY=1/(1+q),q=Q·rⁱ 隨極值阻尼)→ scaleX·scaleY==1 且 scaleX≠scaleY,首尾 (1,1)。
+    `side_sign` 決定 shear 首推方向;`nosc`=振盪/擠壓段數(預設 4,與 wobble 同窗;count-aware 為後續)。"""
+    T = DUR["squash"]
+    A = _WOBBLE_SHEAR.get(role, 12.0) * side_sign
+    Q = _SQUASH_STRETCH.get(role, 0.12)
+    b, s = {}, {}
+    sh, sc = _squash_env(A, Q, nosc)
+    b["shear"] = [{"time": round(tau * T, 4), "x": round(sx, 4), "y": 0.0} for (tau, sx) in sh]
+    b["scale"] = [{"time": round(tau * T, 4), "x": round(scx, 4), "y": round(scy, 4)}
+                  for (tau, scx, scy) in sc]
+    return b, s
+
+
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
 HIT_KEYWORDS = ["hit", "impact", "punch", "throb", "slam", "打擊", "命中", "重擊", "衝擊"]
 REVEAL_KEYWORDS = ["reveal", "open", "burst", "showup", "appear_big", "揭曉", "現身", "炸開", "開獎"]
@@ -369,3 +436,5 @@ COMBO_KEYWORDS = ["combo", "multihit", "multi_hit", "chain", "連擊", "連段",
 CHARGE_KEYWORDS = ["charge", "windup", "wind_up", "chargeup", "anticipate_hold", "蓄力", "充能", "蓄勢"]
 CASCADE_KEYWORDS = ["cascade", "wave", "ripple", "sequence", "sweep", "wipe", "錯開", "波", "依序", "接連"]
 WOBBLE_KEYWORDS = ["wobble", "jelly", "sway", "skew", "shear", "lean", "斜拉", "果凍", "晃", "搖擺"]
+# squash 專屬關鍵字(與 wobble 區隔:wobble=純 shear 擺,squash=shear+耦合體積守恆擠壓)。
+SQUASH_KEYWORDS = ["squash", "stretch", "jellysquash", "diagsquash", "squish", "擠壓", "壓擠", "斜擠", "擠"]

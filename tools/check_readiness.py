@@ -312,6 +312,20 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 wobble__{Super4,Mega5,Omg6,Legend7} 段(pivot 補償後仍 [4,5,6,7]),validate_build round-trip overall_pass。"
                      "回歸:validate_wobble_tier(G-4'')/tier_combo_count/tier_variants/shear_gen/全 priors/beat/pivot 系列 16 閘全綠。"
                      "honest:段數階梯 PROPOSAL(手感留使用者 A 類);shearY≡0;斜拉 squash(shear+coupled scale)為後續;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("squash_shear_scale_coupling", "生成器產耦合 shear + 非均勻 scale 體積守恆擠壓(G-4'''')", "L2",
+                "python3 tools/analyzer/validate_squash_gen.py", "gen",
+                note="補 G-4/G-4' 留到現在的 honest boundary(shearY≡0、斜拉 squash 為後續)。gen_squash 是**第一個同時產 shear 與非均勻 "
+                     "scale(sx≠sy)** 的生成器:shearX 同 wobble 阻尼擺動,每個 shear 極值 i 施體積守恆 squash(scaleX=1+q_i 拉長、scaleY=1/(1+q_i) "
+                     "壓扁,q_i=Q·rⁱ 與 shear 同源同阻尼)⇒ scaleX·scaleY≡1(面積守恆)且 scaleX≠scaleY(非均勻),首尾 identity。**關鍵:純 shear "
+                     "(G-4' wobble)只是相似變換特例(等距+skew);shear+非均勻 scale 才是真正一般仿射** —— G-4 的通用 Δ=(M−I)(O−P) 第一次被生成器產的"
+                     "非均勻 scale+shear 同時驅動(M 非相似,det=scaleX·scaleY·cos(shear))。genre_priors 加 squash beat 直出(additive、coverage 仍 1.0);"
+                     "build_spine --shear-pivot(include_shear 隱含 include_scale)端到端把 rotate/scale/shear 三通道一起繞關節 pivot 補償。validate_squash_gen.py "
+                     "6AC PASS(SQ1 present+dual-channel crux:shear 峰 16°+非均勻峰 0.30/SQ2 shear 阻尼振盪/SQ3 crux 體積守恆耦合:每極值幀 |scaleX·scaleY−1|≤5e-5+"
+                     "非均勻 0.19–0.30+squash 幅度嚴格遞減/SQ4 identity 介面/SQ5 端到端一般仿射 pivot 殘差 0.005–0.018px vs 負對照 9–33px >1000×/"
+                     "SQ6 負對照:等比 scale 守衛→非均勻 FALSE、非守恆守衛→體積 FALSE 而非均勻 TRUE 證兩條件獨立、耦合隔離、加性零回歸)。"
+                     "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
+                     "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
+                     "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
         ],
     },
 ]

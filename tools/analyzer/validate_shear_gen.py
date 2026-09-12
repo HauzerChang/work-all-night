@@ -204,10 +204,12 @@ def run():
     w5["a_naive_shear_guard"] = {"naive_peaks": naive, "sign_changes": _sign_changes_zero(naive),
                                  "damped": _extrema_mags_decreasing(naive),
                                  "signature_true": naive_ok, "pass": not naive_ok}
-    # (b) shear 隔離:非 wobble beat 皆 0 bone 帶 shear
+    # (b) shear 隔離:非 shear-emitter beat 皆 0 bone 帶 shear
+    #     (G-4'''':shear 產出者集合擴為 {wobble, squash};squash 亦合法產 shear,以 SHEAR_CATS 認定)
+    import tier_variants as _TV
     leak = []
     for nm, an in anims.items():
-        if "__" in nm or G.beat_category(nm) == "wobble":
+        if "__" in nm or G.beat_category(nm) in _TV.SHEAR_CATS:
             continue
         sheared = [bn for bn, ch in an.get("bones", {}).items() if _shear_x(ch)]
         if sheared:

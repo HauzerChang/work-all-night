@@ -159,11 +159,12 @@ def run():
                and not t3["few_sign_changes"] and not t3["not_damped"])
     R["T3_damped_signature_per_tier"] = {**t3, "pass": t3_pass}
 
-    # ---- T4 shear isolated to wobble (incl. all tier variants) ----
+    # ---- T4 shear isolated to shear-emitters (incl. all tier variants) ----
+    # (G-4'''':shear 產出者集合擴為 {wobble, squash};以 SHEAR_CATS 認定,squash 亦合法帶 shear)
     t4 = {"leaked": []}
     for nm, an in anims.items():
         base_name = nm.split("__")[0]
-        if G.beat_category(base_name) == "wobble":
+        if G.beat_category(base_name) in TV.SHEAR_CATS:
             continue
         sheared = [bn for bn, ch in an.get("bones", {}).items() if _shear_x(ch)]
         if sheared:
