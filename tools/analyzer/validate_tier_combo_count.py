@@ -206,10 +206,15 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變。
+    # 註(G-4'''''):`impact_peaks` 是 combo 專屬的**顯著度**峰偵測器,量在 scaleX overshoot 上;
+    # squash(VOLUME_CONSERVE_CATS)的 scaleX 是**阻尼多極值**體積守恆包絡(非 impact 連擊),其峰**幅度**
+    # 隨檔位耦合放大(G-4''''')→ 越過顯著度門檻的極值**數**會隨檔位變,但這是幅度效應、非 count-aware 結構
+    # 變化(squash 不在 `_count_maps` → combo 的 nhits 本就不作用於它)。對這類 beat 施 combo 峰偵測是
+    # 類別誤用,故略過(同 J3 對通道 channel-aware 的精神);squash 的段數隔離由其專屬 gen 閘負責。
     leak = []
     for beat, cat in main_beats.items():
-        if cat == "combo":
+        if cat == "combo" or cat in TV.VOLUME_CONSERVE_CATS:
             continue
         counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
         if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
