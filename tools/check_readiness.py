@@ -326,6 +326,21 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 擠壓幅度隨檔位遞增(G-4''''',體積守恆耦合 amplify)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 明列的 honest boundary(squash 未接 tier:_amp_scale 只放大 identity 上方 → scaleX>1 被放大、scaleY<1 樓地板保留 "
+                     "→ 破壞體積守恆 scaleX·scaleY≠1,故 squash 曾被排除於 MAIN_SHOW_CATS)。本 cap 以**體積守恆耦合 amplify** 解此:"
+                     "tier_variants._amp_scale_coupled 由 scaleX 還原 squash 量 q=x−1、以增益 g 放大成 g·q、令 scaleY=1/(1+g·q) → scaleX·scaleY≡1 "
+                     "**精確保持**(各軸獨立 _amp_scale 做不到);shear 通道仍走 g*v(同 G-4'' wobble)。squash 加入 MAIN_SHOW_CATS + 新 COUPLED_SCALE_CATS,"
+                     "build_animations 依 cat 路由 amplify(coupled=True)。**又一「檔位機制就緒 ≠ 每個新通道接上」實例**(此處新通道=耦合非均勻 scale 的體積守恆放大)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_squash_tier.py 5AC PASS"
+                     "(ST1 present+backward-compat 每檔位帶 shear+非均勻 scale・base 逐位元不變・Super==base;ST2 crux 每檔位每幀 |scaleX·scaleY−1|≤0.02 "
+                     "(守恆保持)+峰 stretch Super0.16<Mega0.216<Omg0.272<Legend0.336 嚴格遞增;ST3 shear 阻尼簽章每檔位保形+峰 16→33.6° 遞增(兩通道一致放大);"
+                     "ST4 crux 耦合必要性:同一 base 套 Legend 增益,耦合版 max|vol−1|=0.0001 vs 天真各軸版 0.152(>1500× 分離,證耦合必要且 ST2 判準有鑑別);"
+                     "ST5 平增益守衛→遞增 FALSE 且各檔位==base・耦合隔離 非-squash 主秀 scale 仍等比・移除 squash 加性零回歸)。"
+                     "回歸:validate_tier_combo_count K5c 改『full(gains+hits) vs amp_only(gains)峰數相等』(原『full 內各檔位峰數相同』會把 squash 幅度效應誤判為 count 外洩);"
+                     "18 閘全綠 + round-trip validate_build 對 --tier-variants --shear-pivot build overall_pass(premult MAE 0.031)。"
+                     "honest:增益階梯數值沿用 (J) PROPOSAL(結構簽章非美感);squash count-aware(擠壓段數隨檔位,nosc 已備參數)未接;shearY≡0;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
