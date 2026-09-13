@@ -222,7 +222,8 @@ _PHASE_AWARE = {"cascade"}
 
 # candidate J — 檔位(tier)幅度差異化(主秀 beat 依檔位增益放大;純函式,無 import 迴圈)。
 from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
-    COUNT_AWARE_CATS as _COUNT_AWARE_CATS, amplify_anim as _amplify_anim
+    COUNT_AWARE_CATS as _COUNT_AWARE_CATS, COUPLED_SCALE_CATS as _COUPLED_SCALE_CATS, \
+    amplify_anim as _amplify_anim
 
 
 def _build_beat(beat, cat, bone_of, cx, cy, count=None):
@@ -302,14 +303,16 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
         # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
         if tier_gains and cat in _MAIN_SHOW_CATS:
             cmap = _count_maps.get(cat) if cat in _COUNT_AWARE_CATS else None
+            # G-4''''':squash 的 scale 為體積守恆耦合 → amplify 須用耦合放大(不破壞 scaleX·scaleY≡1)。
+            coupled = cat in _COUPLED_SCALE_CATS
             for tier, g in tier_gains.items():
                 cnt = cmap.get(tier) if cmap else None
                 if cnt is not None:
                     # J-2/G-4''':段數隨檔位遞增 → 以該檔位段數重生成 beat,再套幅度增益 g(正交可疊)。
                     variant = _build_beat(beat, cat, bone_of, cx, cy, count=cnt)
-                    anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g)
+                    anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g, coupled=coupled)
                 else:
-                    anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g)
+                    anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g, coupled=coupled)
     return anims
 
 

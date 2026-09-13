@@ -326,6 +326,20 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位差異化:體積守恆耦合放大(G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 不在 MAIN_SHOW_CATS,因逐軸 _amp_scale 會破壞體積守恆)。讓斜拉果凍**擠壓**"
+                     "(shear + 耦合非均勻 scale)幅度隨檔位嚴格遞增而 scaleX·scaleY≡1 恆保持。**crux=耦合放大**:_amp_scale 放大 scaleX>1 卻把 "
+                     "scaleY<1 當樓地板保留 → 破壞守恆;改用 _amp_scale_coupled(以 scaleX 復原擠壓量 q、線性放大 q'=g·q、重建 scaleX'=1+q'、"
+                     "scaleY'=1/scaleX')→ 守恆重參數化。雙通道一起放大(擠壓峰 [0.16,0.216,0.272,0.336]、shear 峰 [16,21.6,27.2,33.6]°)。"
+                     "g==1.0 零變換捷徑保 Super==base 逐位元(避開耦合重建 4-dec 漂移)。validate_squash_tier.py(先驗庫→真實 robot 骨架→"
+                     "build_animations(tier_gains))6AC PASS(ST1 present+backward-compat base 逐位元不變/ST2 crux 雙通道峰嚴格遞增且 Super==base/"
+                     "ST3 crux 每檔位每極值體積守恆 |積-1|≤4.6e-5+非均勻+阻尼遞減(復用 squash-gen _sq3_eval)/ST4 identity 介面/ST5 shear 隔離/"
+                     "ST6 neg-control:平增益→遞增 FALSE 且==base、**耦合必要性守衛** naive volErr 0.152 vs coupled 5.6e-5 = 2710× 證耦合必要、耦合隔離)。"
+                     "端到端 --tier-variants --shear-pivot 直出各檔位變體、round-trip overall_pass;副修 tier_combo_count K5c(count-隔離 proxy 由『峰數相同』"
+                     "改為直測『full vs gains-only 逐位元同』,對 squash 幅度放大穩健)。**關鍵:第三種檔位放大形態=耦合軸**(繼幅度軸 J、結構段數軸 J-2/G-4''' 之後);"
+                     "crux 是 coupled 地板 vs naive 破壞的數量級差非『誤差<5e-5』(4-dec 對耦合對有 ~1e-4 地板 → 閘容差用 TOL_VOL 0.02 抓守恆 vs 破壞)。"
+                     "honest:段數 count-aware 未接(nosc 已備);shearY≡0;增益 PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

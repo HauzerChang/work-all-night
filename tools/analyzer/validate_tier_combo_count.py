@@ -27,8 +27,9 @@ candidate (J) 讓主秀 beat 依檔位**幅度**差異化(愈高檔位愈爆),�
   K5 neg-control              : (a) **平連擊數**(全 3)→ K2 峰數單調性 FALSE(證閘在測遞增、非恆真);
                                 (b) 無宣告 count 的 genre(slot_reveal)→ `combo_hits_for` 回 None
                                    → combo 變體峰數**恆 base**(不亂加連擊);
-                                (c) **只有 combo 是 count-aware**:同時帶 counts 時,hit/charge/cascade/burst
-                                   等非-combo 主秀 beat 的峰數在各檔位**不變**(count 不外洩到別的節拍)。
+                                (c) **只有 combo 是 count-aware**:`tier_combo_hits`(連擊數機制)對非-combo
+                                   主秀 beat(hit/charge/cascade/wobble/squash…)**零影響** —— full(gains+hits)
+                                   vs gains-only 於每個非-combo 檔位變體逐位元相同(對檔位幅度變化穩健)。
 
 用法:
   python3 validate_tier_combo_count.py            # 摘要
@@ -206,14 +207,19 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:`tier_combo_hits`(連擊數機制)不得改動非-combo 主秀 beat。
+    # 直接比對 full(gains+hits)vs amp_only(gains-only)於每個非-combo 檔位變體 → 須**逐位元相同**
+    # (證 count 機制對非-combo 零影響)。此判準對「幅度隨檔位變化」穩健:兩邊同 gains,差異只可能來自
+    # combo_hits。(舊版以「各檔位峰數是否相同」為 proxy,會被 G-4''''' squash 檔位幅度放大把 head 擠壓峰
+    # 推過 IMPACT_PROM 門檻而誤判 → 改為直接的機制隔離比對。)
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vk = "{}__{}".format(beat, t)
+            if json.dumps(full[vk], sort_keys=True) != json.dumps(amp_only[vk], sort_keys=True):
+                leak.append((beat, cat, t))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 
