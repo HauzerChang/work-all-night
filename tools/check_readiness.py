@@ -326,6 +326,22 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位幅度差異化(G-4''''',體積守恆乘冪放大)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 (G-4'''') 的 honest boundary:squash 的 scale 是體積守恆對 (scaleX=1+q, scaleY=1/(1+q)),一般幅度增益 _amp_scale"
+                     "(只放大 identity 上方 → 放大 scaleX>1、凍結 scaleY<1)會**破壞 scaleX·scaleY==1**,故 squash 被排除在 MAIN_SHOW_CATS 外。"
+                     "本 cap 補上**體積守恆的乘冪(對數空間)放大** _amp_scale_vp(v,g)=v**g:**關鍵恆等式 sx**g·sy**g=(sx·sy)**g=1**g=1** ⇒ "
+                     "放大後乘積仍精確==1(identity 1**g=1 保介面;sx>1 遞增/sy<1 遞減 ⇒ 非均勻隨 g 嚴格遞增)。**這是產線第一個乘法(幾何)增益** —— "
+                     "守恆量無法用加法放大(加法破壞乘積),必須放大**指數**(等價 log-scale 線性放大)。shear 軸仍 g*v。squash 併入 "
+                     "MAIN_SHOW_CATS + COUPLED_SCALE_CATS;既有 build_spine --animate --tier-variants --shear-pivot 直出 squash__{Super,Mega,Omg,Legend}。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_squash_tier.py 5AC PASS"
+                     "(SQT1 present+backward-compat base 逐位元不變・每檔位帶 shear+scale 雙通道/SQT2 crux 非均勻峰 [0.298,0.403,0.510,0.633]+"
+                     "shear 峰 [16,21.6,27.2,33.6]° 皆嚴格遞增且 Super==base/SQT3 crux#2 放大後**每檔位仍體積守恆** |scaleX·scaleY−1|≤1.5e-4+"
+                     "阻尼(scale/shear)保形/SQT4 identity 介面/SQT5 負對照 平增益守衛・**耦合 vs 加法對照**:加法→體積 FALSE、乘冪→體積 TRUE 且非均勻變大"
+                     "(證守恆須乘冪、耦合放大器必要)・通道隔離)。回歸:validate_tier_combo_count(K5c 跳過 SHEAR_CATS,squash scaleX 峰乘冪放大越 impact 門檻"
+                     "→ _min_peaks [0,1,1,1] 隨幅度變非 count 外洩)/tier_variants/wobble_tier/wobble_count/squash_gen 全 18 閘全綠。"
+                     "關鍵發現:守恆量的檔位放大 = log 空間線性放大(乘冪);產線至此三種增益算子(overshoot 加法/對 0 線性/體積守恆乘冪),選錯算子破壞守恆。"
+                     "honest:squash count-aware(擠壓段數 nosc 已備)為後續;shearY≡0;增益階梯沿用 (J) PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

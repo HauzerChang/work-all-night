@@ -207,9 +207,14 @@ def run():
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
     # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # 排除 SHEAR_CATS(wobble/squash):其 scaleX 為阻尼振盪/體積守恆擠壓,非離散 impact pulse,
+    # `_min_peaks`(impact 峰計數器)對其無語意 —— (G-4''''')squash 的 scaleX 峰(Super 1.14)本在
+    # impact 顯著度門檻下、經體積守恆乘冪放大在高檔位越過門檻 → 峰數 [0,1,1,1] 隨**幅度**變(非 count 外洩;
+    # squash 不在 COUNT_AWARE_CATS,從未收 combo count)。這類節拍的 count 隔離由其專屬閘覆蓋
+    # (wobble→wobble_count;squash 尚無 count-aware)。
     leak = []
     for beat, cat in main_beats.items():
-        if cat == "combo":
+        if cat == "combo" or cat in TV.SHEAR_CATS:
             continue
         counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
         if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
