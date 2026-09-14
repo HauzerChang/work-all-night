@@ -326,6 +326,24 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位差異化:體積守恆耦合放大(G-4''''',shear 峰+非均勻幅度同時隨檔位遞增而守恆不破)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "gen",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier:舊 _amp_scale 各軸獨立放大會把拉長軸放大、壓縮軸樓地板不動 → 破壞 "
+                     "scaleX·scaleY==1)。**關鍵:守恆量的檔位放大必須放大不變量本身(q),不能各軸獨立放大** —— squash 對 =(1+q,1/(1+q)),"
+                     "檔位放大 q→g·q ⇒ (1+g·q,1/(1+g·q)) 仍守恆。新增 _amp_scale_coupled(放大拉長軸 overshoot、壓縮軸重算為倒數)+ "
+                     "amplify_bone_tl(coupled=)/COUPLED_SCALE_CATS={squash};squash 因此併入 MAIN_SHOW_CATS(G-4'''' 當時的 boundary 解除)。"
+                     "shear 峰(g*v)與非均勻幅度(耦合 q)**同時**隨檔位嚴格遞增而體積守恆對所有檔位保持。從先驗庫→真實 build_spine robot 骨架→"
+                     "build_animations(tier_gains),validate_squash_tier.py 5AC PASS(V1 present+backward-compat 每檔位產 squash__tier finite/有 bone/"
+                     "帶 shear+scale・base 逐位元不變・tier_gains=None 一致/V2 crux dual-channel:shear 峰 [16,21.6,27.2,33.6]° 與非均勻峰 "
+                     "[0.30,0.39,0.49,0.59] 皆 Super<Mega<Omg<Legend 嚴格遞增且 Super==base/V3 crux 體積守恆每檔位保持 |scaleX·scaleY−1|≤1e-3(耦合 "
+                     "amplify 的回報,非只 base)+squash 幅度每檔位阻尼遞減/V4 每檔位 identity 介面+shear 阻尼簽章保形/V5 負對照:naive 守衛(對 base "
+                     "套舊各軸獨立 _amp_scale→Legend 檔體積破壞 0.15 vs 耦合 0.0001,>1000× 證 V3 非恆真)・平增益守衛全 1.0→遞增 FALSE 且==base・"
+                     "耦合隔離 COUPLED_SCALE_CATS=={squash} 且獨立雙軸 scale coupled=False 逐位元同舊 _amp_scale)。端到端 build_spine --animate "
+                     "--tier-variants --shear-pivot 直出 squash__{Super,Mega,Omg,Legend}(round-trip validate_build overall_pass、premult MAE 0.031)。"
+                     "回歸:validate_squash_gen(G-4'''')/tier_variants(J)/tier_combo_count(K5c 改本質比對 full==amp_only 更強)/wobble_tier/wobble_count/"
+                     "shear_gen/全 priors/beat/pivot 系列 18 閘全綠。honest:增益階梯沿用 (J)(PROPOSAL 手感留使用者 A 類);shearY≡0;squash count-aware "
+                     "(擠壓段數隨檔位,nosc 已備參數)未接;on-disk shear-pivot densify 使 joint bone scale 重取樣 → 極值幀守恆精確、densify 中介幀 "
+                     "≤0.013(Legend,同 base 比例、屬 shear-pivot 重取樣非耦合 amplify)。單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
