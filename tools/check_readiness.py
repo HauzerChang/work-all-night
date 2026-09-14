@@ -326,6 +326,21 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_coupled_amplitude", "squash 接檔位差異化:體積守恆耦合 amplify(G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(『squash 未接 tier 幅度,`_amp_scale` 只放大 identity 上方會破壞體積守恆』)。"
+                     "把 squash 併入 MAIN_SHOW_CATS,scale 通道改走**體積守恆耦合放大** `_amp_squash_pair`:把拉長量 q=scaleX−1 放大 g 倍、"
+                     "scaleY **重建**為 1/(1+g·q) ⇒ scaleX·scaleY≡1(精確守恆)且 scaleX≠scaleY(仍非均勻);**等價於以 Q'=g·Q 重跑 gen_squash**。"
+                     "**關鍵:體積守恆是『耦合約束』非兩個獨立幅度** —— 逐軸獨立放大(舊 _amp_scale 只動 scaleX>1、scaleY<1 樓地板不動)必破壞守恆"
+                     "(Legend g=2.1 下 |積−1| 達 0.15),唯一辦法是把兩軸綁成單一 q 的函數(重建 scaleY)。**第一個需要耦合 amplify 的檔位軸**"
+                     "(前面 J=scale overshoot、G-4''=shear 皆逐軸/單通道對 0 對稱即可)。與 (J) shear/scale/rotate 幅度軸正交可疊;g=1(Super)逐位元同 base、"
+                     "q=0(identity 幀)→(1,1)不動。從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_squash_tier.py 5AC PASS"
+                     "(V1 present+backward-compat 每檔位 squash__tier finite/有 bone/雙通道・base 逐位元不變・Super==base/V2 crux 三軸峰 shear[16,21.6,27.2,33.6]°+"
+                     "拉長[0.16,0.216,0.272,0.336]+非均勻[0.298,0.394,0.486,0.588] 皆嚴格遞增且 Super==base/V3 crux 每檔位每極值幀 |scaleX·scaleY−1|≤0.02(實測<5e-5)+仍非均勻+阻尼遞減/"
+                     "V4 每檔位阻尼 shear(首尾0+變號≥3+極值遞減)+scale 首尾(1,1)/V5 負對照 平增益→遞增 FALSE 且各檔位==base・**耦合判別子** 舊逐軸破壞守恆 vs 耦合守恆・單元測 _amp_squash_pair 精確守恆+identity 不動)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash__{Super..Legend}(shear-pivot 補償走 translate → scale 守恆存活),validate_build round-trip overall_pass。"
+                     "回歸:tier_combo_count(K5c 改逐位元 full-vs-amp_only 隔離判準,因 squash 入 MAIN_SHOW 使 _min_peaks 跨門檻假陽性)/wobble_tier/wobble_count/tier_variants/squash_gen/全 priors/beat/pivot 系列 18 閘全綠。"
+                     "honest:增益階梯 PROPOSAL(手感留使用者 A 類);squash count-aware(nosc 已備參數)未接;shearY≡0;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
