@@ -79,6 +79,16 @@ def _min_peaks(anim):
     return min((len(impact_peaks(series(anim, b))) for b in bones), default=0)
 
 
+def _min_scale_keyframes(anim):
+    """該 anim 各 bone 的 scale 關鍵幀數之最小值 —— **結構量**:只受段數/連擊數(count)影響,
+    **不受幅度增益影響**(amplify 只改值不增減幀)。用於 K5(c) count-isolation:count-aware 重生成會
+    改變 combo 的 scale 幀數,而幅度增益(如 squash 隨檔位變爆)不會 → 對非-combo beat 此量恆定。
+    (candidate G-4''''':squash 進 MAIN_SHOW_CATS 後,其阻尼多極值 scale 峰隨檔位放大會跨越 impact 峰
+    prominence 門檻 → `_min_peaks` 對 squash 非結構量;改用幀數這一真正的「count」結構量。)"""
+    bones = anim.get("bones", {})
+    return min((len(ch.get("scale", [])) for ch in bones.values()), default=0)
+
+
 def _all_escalating(anim):
     return has_combo_signature(anim)
 
@@ -206,13 +216,15 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:非-combo 主秀 beat 的 scale **幀數(結構量)**在各檔位不變。
+    # 用幀數而非 impact 峰數:峰數受幅度門檻影響(squash 隨檔位變爆會跨門檻,非結構外洩),
+    # 幀數只受 count-aware 重生成影響 → 純測「連擊數是否外洩到非-combo beat 的結構」。
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
+        counts = [_min_scale_keyframes(full["{}__{}".format(beat, t)]) for t in TIERS]
+        if len(set(counts)) != 1:      # count 外洩 → 各檔位 scale 幀數不同
             leak.append((beat, cat, counts))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
