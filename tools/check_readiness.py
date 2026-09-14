@@ -326,6 +326,23 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位差異化:耦合體積守恆 amplify(G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 明標的 honest boundary(squash 未接 tier 幅度,`_amp_scale` 只放大 identity 上方會破壞體積守恆,需耦合 amplify)。"
+                     "把 squash 併入 MAIN_SHOW_CATS → 擠壓強度隨檔位遞增:非均勻峰 |scaleX−scaleY| [0.298,0.394,0.486,0.588] 與 shear 峰 "
+                     "[16,21.6,27.2,33.6]° 兩軸同步嚴格遞增,而體積 scaleX·scaleY≡1 恆守恆(每檔位每極值幀 |積−1|≤0.02,實測 max 4.6e-5)。"
+                     "**關鍵:squash 是第一個需要『耦合 amplify』的通道** —— 前面所有檔位通道(scale-pulse scaleX/scaleY、rotate、translate、shear)"
+                     "都對 identity/0 逐軸對稱、獨立放大即可;squash 兩軸互為倒數約束(scaleX·scaleY≡1),放大一軸就強制另一軸。新增 "
+                     "tier_variants.COUPLED_SCALE_CATS={squash} 路由 _amp_squash_scale(拉長軸 sx=1+g(x−1) 沿用 J linear-in-overshoot、壓扁軸 sy=1/sx 保守恆;"
+                     "x==1→identity 幀、g==1→sy=1/x==原 scaleY 退化 identity 變換向後相容);amplify_bone_tl(coupled_scale=False) 預設 → 所有既有節拍逐位元不變;"
+                     "build_animations 依 coupled=cat in COUPLED_SCALE_CATS 路由。validate_squash_tier.py 5AC PASS(V1 present+backward-compat base 逐位元不變·Super==base/"
+                     "V2 crux 每檔位每極值幀體積守恆 + 非均勻峰嚴格遞增/V3 shear 峰嚴格遞增且 Super==base 兩幅度軸同步/V4 每檔位仍 shear 阻尼(首尾0+變號≥3+極值遞減)+squash 幅度阻尼遞減/"
+                     "V5 負對照 a 耦合必要性守衛 plain 破壞守恆 0.152≫0.02 vs coupled 4.6e-5・b 平增益全 1.0→遞增 FALSE 且==base・c 耦合隔離 對等比 pulse 施耦合破壞等比故產線只對 squash 走耦合)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出各檔位 squash(5 bone 全帶 shear+scale、pivot 補償後仍守恆),round-trip validate_build overall_pass。"
+                     "tier_combo_count K5c 微調略過 SHEAR_CATS(類別錯配:impact_peaks 是 scaleX 脈衝串偵測器,squash scaleX 是體積守恆拉長 nosc 恆4、幅度隨檔位遞增,更多阻尼峰跨門檻是幅度效應非 count 外洩)。"
+                     "回歸:squash_gen/wobble_tier/wobble_count/shear_gen/shear_pivot/scale_pivot/pivot_rotation/tier_variants/tier_combo_count/全 priors/beat/deform 系列全綠+round-trip overall_pass。"
+                     "關鍵發現:耦合 amplify 是新一類檔位增益(跨軸耦合,COUPLED_SCALE_CATS 集中路由供後續體積守恆節拍沿用);負對照 (a) 把『為何需要耦合』化為可量化守衛。"
+                     "honest:squash 未接 count-aware(gen_squash(nosc=) 已備);shearY≡0;增益階梯沿用 (J) TIER_GAIN(PROPOSAL);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

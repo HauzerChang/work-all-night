@@ -206,10 +206,15 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變。
+    # (G-4''''')排除 SHEAR_CATS(wobble/squash):`impact_peaks` 是 scaleX **脈衝串**偵測器,只對
+    # scale-pulse 主秀(hit/combo/charge/cascade/reveal)有意義;squash 的 scaleX 是**體積守恆拉長**
+    # (振盪段數 nosc 恆 4、不隨檔位;耦合 amplify 讓拉長幅度隨檔位遞增)→ 更多阻尼峰跨過 impact
+    # prominence 門檻,peak-count 隨檔位變**是幅度效應非 count 外洩**(squash 未在 COUNT_AWARE_CATS、
+    # 從不被 tier_combo_hits 重生成)。以 scaleX 脈衝計數量 squash 屬類別錯配,故略過。
     leak = []
     for beat, cat in main_beats.items():
-        if cat == "combo":
+        if cat == "combo" or cat in TV.SHEAR_CATS:
             continue
         counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
         if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
