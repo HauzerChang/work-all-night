@@ -326,6 +326,21 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_coupled_amplify", "squash 接檔位幅度差異化(G-4''''',體積守恆耦合放大)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier,因 (J) 的 _amp_scale 只放大 identity 上方 overshoot、把 scaleY<1 當樓地板不動 → "
+                     "對 squash 破壞體積守恆,故 G-4'''' 刻意把 squash 排除在 MAIN_SHOW_CATS 外)。本 cap 新增 _amp_scale_coupled:把兩軸共用的『squash 量 q』"
+                     "以增益 g **一起**放大(scaleX=1+g·q、scaleY=1/(1+g·q))→ 放大後 scaleX·scaleY 仍≡1(**體積恆守恆**)、非均勻隨檔位遞增、g=1 逐位元不變(idempotent)。"
+                     "COUPLED_SCALE_CATS={squash} 路由(gen_animations 依 cat 決定 coupled),squash 併入 MAIN_SHOW_CATS。**關鍵:squash 的檔位軸需耦合放大** —— "
+                     "幅度增益必須尊重『非均勻 scale 是體積守恆對』的結構,否則會把 squash&stretch 變成單邊拉長。這是 (J) 對稱 _amp_scale(scale 單邊、rotate/translate/shear "
+                     "對 0 對稱)之外的**第三種通道放大規則**。從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_squash_tier.py 5AC PASS"
+                     "(P1 present+backward-compat 每檔位 squash__tier finite/有 bone/dual channel・Super==base・tier_gains=None 不產變體/P2 crux 三通道同時遞增:"
+                     "shear[16,21.6,27.2,33.6]°・stretch[0.16,0.216,0.272,0.336]・aniso[0.30,0.39,0.49,0.59]/P3 crux 每檔位每極值 |scaleX·scaleY−1|≤2e-4(體積仍守恆)/"
+                     "P4 每檔位阻尼振盪+squash 幅度遞減+identity 介面保形/P5 負對照:天真非耦合放大 Legend 體積誤差 0.152≫0.02 而耦合 1.3e-4 證耦合在做事、平增益守衛、"
+                     "COUPLED_SCALE_CATS=={squash} 耦合不外洩非-squash 主秀 beat==標準 (J) 放大)。端到端 build_spine --animate --tier-variants --shear-pivot 直出 "
+                     "squash__{Super,Mega,Omg,Legend}(dual channel+pivot 補償),validate_build round-trip overall_pass。回歸:tier_variants(J,squash 併入 main_beats,"
+                     "J3 scale+shear 皆遞增)/tier_combo_count(K5c 改『傳 combo_hits 不改非-combo 變體逐位元』避免 squash 單峰跨 IMPACT_PROM 門檻誤判)/其餘 16 閘全綠。"
+                     "關鍵發現:每種 scale 語意需自己的檔位放大規則(overshoot 單邊 vs 體積守恆耦合)。honest:squash count-aware nosc 未接;shearY≡0;幅度階梯 PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

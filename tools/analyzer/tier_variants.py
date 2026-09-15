@@ -31,7 +31,7 @@ import copy
 # candidate (G-4'') — 加入 `wobble`(斜拉 jelly wobble,G-4' 的 shear 通道節拍):
 # 它是主秀節拍,強度理應隨檔位遞增,但幅度軸在 **shear** 而非 scale/rotate,
 # 故 `amplify_bone_tl` 需一併放大 shear 通道(對 0 對稱 → v'=g*v,同 rotate/translate)。
-MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble"}
+MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble", "squash"}
 
 # candidate J-2 / G-4''' — 依檔位可變「段數」的類別(結構性差異化,非只幅度)。
 # combo 的 impact 峰**數**、wobble 的振盪**段數**隨檔位遞增;需在 gen 時把段數帶進生成器
@@ -43,9 +43,16 @@ COUNT_AWARE_CATS = {"combo", "wobble"}
 # squash 加入後(shear + 耦合非均勻 scale 的體積守恆擠壓)成為第二個 shear 產出者。
 # 各 shear-isolation 閘(shear_gen W5b / wobble_tier T4)以此集合認定「合法 shear 產出者」,
 # 集中一處便於後續再加(避免每加一個 shear 節拍就改多個閘的硬編碼 'wobble')。
-# 注意:squash **不在** MAIN_SHOW_CATS —— 其 scaleY<1(壓扁)樓地板會被 `_amp_scale` 保留而 scaleX>1
-# 被放大 → 破壞體積守恆(scaleX·scaleY≠1);squash 的檔位差異化需**耦合 amplify**(honest boundary,後續)。
+# squash 亦是 shear 產出者(斜拉 shearX)。
 SHEAR_CATS = {"wobble", "squash"}
+
+# candidate G-4''''' — scale 通道需**耦合體積守恆放大**(而非 `_amp_scale` 的單邊 identity-上方增益)的類別。
+# squash 的 scale 是體積守恆非均勻對(scaleX=1+q 拉長、scaleY=1/(1+q) 壓扁,scaleX·scaleY==1);
+# 天真 `_amp_scale` 只放大 scaleX>1、把 scaleY<1 當樓地板不動 → scaleX·scaleY≠1 破壞體積守恆
+# (這正是 G-4'''' 把 squash 排除在 MAIN_SHOW_CATS 外的原因)。本集合的類別改走 `_amp_scale_coupled`:
+# 把兩軸共同的「squash 量 q」以增益 g 一起放大(scaleX=1+g·q、scaleY=1/(1+g·q))→ 體積恆守恆、
+# 非均勻隨檔位遞增、g=1 逐位元不變(idempotent)。shear 通道仍走 v'=g·v(與 squash 量同源同增益 → 耦合保持)。
+COUPLED_SCALE_CATS = {"squash"}
 
 # 檔位 → 主秀幅度增益(**嚴格遞增**;base=Super=1.0 → 向後相容逐位元不變)。
 # 增益上界經檢核:最大 role peak(特效 1.35 → q=0.35)在 Legend g=2.1 下 → 1.735(無翻面);
@@ -94,12 +101,37 @@ def _amp_scale(v, g):
     return 1.0 + g * (v - 1.0) if v >= 1.0 else v
 
 
-def amplify_bone_tl(b, g):
-    """對單一 bone timeline 套幅度增益 g(deepcopy,保留曲線鍵)。g=1.0 → identity 變換。"""
+def _amp_scale_coupled(sx, sy, g):
+    """candidate G-4''''' — 體積守恆耦合放大 (scaleX, scaleY)。
+
+    squash 的 scale 是體積守恆非均勻對:scaleX=1+q(拉長)、scaleY=1/(1+q)(壓扁),
+    兩軸共用同一「squash 量 q」使 scaleX·scaleY==1。把 q 以增益 g 一起放大 →
+      scaleX' = 1 + g·q          (由 scaleX 取回 q = scaleX−1)
+      scaleY' = 1/(1 + g·q)      (由 scaleY 取回 q:scaleY=1/(1+q) → q = 1/scaleY − 1)
+    兩軸取回的 q 同源(基態下 scaleX−1 ≈ 1/scaleY−1)⇒ scaleX'·scaleY' ≈ 1(**體積恆守恆**)、
+    非均勻 |scaleX'−scaleY'| 隨 g 遞增(檔位簽章)、端點 identity 對所有 g 保持(sx=sy=1 → 不動)。
+    g=1 → 兩軸皆 idempotent 還原(scaleX'=scaleX、scaleY'=1/(1/scaleY)=scaleY)→ **逐位元不變**。
+    與天真 `_amp_scale`(放大 scaleX、樓地板保留 scaleY)不同 —— 那會破壞 scaleX·scaleY==1。"""
+    nx = 1.0 + g * (sx - 1.0)
+    ny = 1.0 / (1.0 + g * (1.0 / sy - 1.0)) if sy != 0.0 else sy
+    return nx, ny
+
+
+def amplify_bone_tl(b, g, coupled_scale=False):
+    """對單一 bone timeline 套幅度增益 g(deepcopy,保留曲線鍵)。g=1.0 → identity 變換。
+
+    `coupled_scale`(candidate G-4''''')=True 時,scale 通道走**體積守恆耦合放大**
+    (`_amp_scale_coupled`,squash 專用);False(預設)→ 各軸獨立 `_amp_scale`(identity 上方增益)。"""
     b = copy.deepcopy(b)
-    for f in b.get("scale", []):
-        f["x"] = round(_amp_scale(f["x"], g), 4)
-        f["y"] = round(_amp_scale(f["y"], g), 4)
+    if coupled_scale:
+        for f in b.get("scale", []):
+            nx, ny = _amp_scale_coupled(f["x"], f["y"], g)
+            f["x"] = round(nx, 4)
+            f["y"] = round(ny, 4)
+    else:
+        for f in b.get("scale", []):
+            f["x"] = round(_amp_scale(f["x"], g), 4)
+            f["y"] = round(_amp_scale(f["y"], g), 4)
     for f in b.get("rotate", []):
         f["angle"] = round(g * f["angle"], 3)
     for f in b.get("translate", []):
@@ -114,11 +146,13 @@ def amplify_bone_tl(b, g):
     return b
 
 
-def amplify_anim(anim, g):
-    """對整支 beat animation 套幅度增益 g:bones 幅度放大、slots(color/alpha)原樣保留。"""
+def amplify_anim(anim, g, coupled_scale=False):
+    """對整支 beat animation 套幅度增益 g:bones 幅度放大、slots(color/alpha)原樣保留。
+
+    `coupled_scale`(candidate G-4''''')傳遞給 `amplify_bone_tl`(squash 的體積守恆耦合放大)。"""
     out = {}
     if "bones" in anim:
-        out["bones"] = {bn: amplify_bone_tl(b, g) for bn, b in anim["bones"].items()}
+        out["bones"] = {bn: amplify_bone_tl(b, g, coupled_scale) for bn, b in anim["bones"].items()}
     if "slots" in anim:
         out["slots"] = copy.deepcopy(anim["slots"])
     return out
