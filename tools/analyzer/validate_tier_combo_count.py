@@ -206,14 +206,21 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:開啟 tier_combo_hits 對**非-combo** beat 逐位元不影響(== amp_only)。
+    # candidate G-4'''''(強化):原判準「非-combo beat 峰數在各檔位不變」以 scaleX impact-peak
+    # **計數**為 proxy,對 squash 為**偽陽性** —— squash 是體積守恆單一衰減 bump(非離散連擊),其
+    # 真實 scaleX overshoot 隨檔位遞增,頭件峰值(Super 1.10)在高檔位越過固定 IMPACT_PROM 門檻
+    # → 計數 0→1 跳變,被誤判為「外洩」。真正要保證的隔離不變量是:**tier_combo_hits 路由只改
+    # combo**,對非-combo beat 的 tier 變體與「純幅度」(amp_only)**逐位元相同**。改以此 byte-equality
+    # 判定 → 對任何幅度門檻穩健、且比計數 proxy 更強(涵蓋所有非-combo 類別,含 squash 耦合 amplify)。
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vk = "{}__{}".format(beat, t)
+            if json.dumps(full[vk], sort_keys=True) != json.dumps(amp_only[vk], sort_keys=True):
+                leak.append((beat, cat, t))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 

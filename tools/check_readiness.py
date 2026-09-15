@@ -326,6 +326,19 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接 tier 檔位幅度差異化(體積守恆耦合 amplify,G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier:_amp_scale 逐軸放大會破壞體積守恆)。把 squash 併入 MAIN_SHOW_CATS,"
+                     "但**不能照抄 (J)**:squash 的 scale 是**體積守恆的一拉一壓**(scaleX·scaleY==1),逐軸放大(拉長軸 1+g(v−1)、壓扁軸 v<1 樓地板不動)→ 積≠1 破壞守恆。"
+                     "故新增 VOLUME_CONSERVE_CATS={squash} + _amp_squash_coupled:從拉長軸回推擠壓量 q、以 g 放大 q→g·q、再重建壓扁軸 1/(1+g·q) ⇒ **積恆==1**、"
+                     "strain |scaleX−1| 隨檔位嚴格遞增;shear 通道同 wobble(v'=g*v)亦隨檔位遞增。**等價於以 Q→g·Q 重生成 gen_squash**(阻尼比 r 不變 → 簽章保形,"
+                     "同 J-2/G-4''' 重生成等價,只是放大擠壓 strain 旋鈕)。build_spine --animate --tier-variants --shear-pivot 直出 squash__{Super,Mega,Omg,Legend}。"
+                     "validate_squash_tier.py 5AC PASS(V1 present+backward-compat squash__Super(g=1)逐位元==base/V2 crux strain [0.16,0.216,0.272,0.336]・shear [16,21.6,27.2,33.6]° "
+                     "皆嚴格遞增・體積守恆每檔位 |積−1|≤1e-4・非均勻保持/V3 每檔位阻尼振盪+strain 遞減+identity 介面/V4 耦合==regen(Q·g)/V5 負對照 平增益→遞增 FALSE・"
+                     "**天真逐軸最高檔位破壞守恆 |積−1|=0.152(15%)vs 耦合 9.7e-5** 量化證耦合為必要・耦合隔離)。回歸修正 tier_combo_count K5(c):squash 越過 impact 門檻使計數 proxy "
+                     "偽陽性 → 改以『非-combo beat tier 變體 == amp_only 逐位元』(強化非放水)。**關鍵發現:『檔位放大』的正確形式取決於通道守恆結構**——對 0 對稱→v'=g*v、"
+                     "對上方 overshoot→只放大上方、對體積守恆對→耦合放大 strain 再重建守恆軸;接新通道不能盲抄。18 閘全綠+round-trip overall_pass。"
+                     "honest:squash count-aware(擠壓段數隨檔位,nosc 已備參)為後續;shearY≡0;strain 階梯 PROPOSAL。與 anim-forge 同 HOLD"),
         ],
     },
 ]
