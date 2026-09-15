@@ -39,7 +39,7 @@ description: 把目前這個 session 還沒做完的工作交接到 Claude Code 
 
 ### 0.1 前提檢查
 
-- claude.ai 方案是 Pro / Max / Team / Enterprise（Claude Code on the web 目前是這些方案的研究預覽）。Team / Enterprise 使用者若在 claude.ai/code 看到「GitHub access is required」卻沒有登入按鈕，要請組織 Owner 到 **Admin settings → Connectors** 開啟 GitHub connector，這步使用者自己解不了。
+- claude.ai 方案是 Pro / Max / Team，或 Enterprise 且持有 premium seat / Chat + Claude Code seat（Claude Code on the web 目前是這些方案的研究預覽；一般 Enterprise seat 不算）。Team / Enterprise 使用者若在 claude.ai/code 看到「GitHub access is required」卻沒有登入按鈕，要請組織 Owner 到 **Admin settings → Connectors** 開啟 GitHub connector，這步使用者自己解不了。
 - 有 GitHub 帳號；沒有就到 https://github.com/signup 建一個（免費即可）。
 - Windows 使用者：安裝 Claude desktop app（https://claude.com/download，選 Windows x64 或 ARM64），登入後左側有 **Code** 分頁；另外裝 [Git for Windows](https://git-scm.com/downloads/win)，本機 session 建 worktree 會用到。終端機路徑可選：另裝 Claude Code CLI 並 `/login`。
 
@@ -76,18 +76,18 @@ desktop app：**Code** 分頁 → 新 session 的訊息框上方有環境下拉�
 | 欄位 | 建議 |
 |---|---|
 | Name | `work-all-night`（沿用慣例，所有人的 skill 才不用改設定） |
-| Network access | 起步用 **Trusted**（套件庫 + 常見開發域名）。要碰公司內網服務或自家 API 改 **Custom** 加 Allowed domains 並勾「Also include default list of common package managers」；**Full** 全開最省事但風險自負 |
+| Network access | 起步用 **Trusted**（套件庫 + 常見開發域名）。要碰公司內網服務或自家 API 改 **Custom** 加 Allowed domains 並勾「Also include default list of common package managers」；**Full** 全開最省事但風險自負；還有 **None** 完全不開網路，一般用不到 |
 | Environment variables | `.env` 格式，一行一個。**別放機密**——同環境的人都看得到；Pro / Max 用下方 API credentials 存金鑰 |
 | Setup script | 裝專案需要的工具（例如 `npm i -g pnpm`），總時間壓在 5 分鐘內，結果會被快取 |
 
-建好後在下拉裡選它，第一則訊息可以先送「`echo ok && gh auth status`」確認 session 能起、GitHub 代理正常。
+建好後在下拉裡選它，第一則訊息可以先送「`echo ok && gh auth status`」確認 session 能起、GitHub 代理正常（實測 2026-09-15：Routine fire 出來的 session 裡 `gh` 未安裝，指令會回 `command not found`；GitHub 存取靠 proxy 對 `git`/內建 GitHub 工具透明生效，不代表連線異常——換成 `echo ok && git remote -v` 或請 Claude 讀一個私有 repo 檔案來驗證即可）。
 
 ### 0.5 建立 Routine `drop-to-web`
 
 到 https://claude.ai/code/routines → **New routine**（desktop app：Code 分頁 → 側欄 Routines → New routine → 選 **Cloud**）：
 
 - **Name**：`drop-to-web`
-- **Repositories**：`<github-user>/work-all-night`（必加）＋ 常會 drop 的專案 repo（選加；有綁的 repo 雲端直接有 checkout，沒綁的雲端自己 `gh repo clone`）。每次 run 會全部 clone，別綁太多
+- **Repositories**：`<github-user>/work-all-night`（必加）＋ 常會 drop 的專案 repo（選加；有綁的 repo 雲端直接有 checkout，沒綁的雲端自己 `gh repo clone`（實測 2026-09-15：Routine fire 出來的 session 沒裝 `gh`，該指令會失敗，請改用 `git clone https://github.com/<owner>/<repo>.git`——GitHub proxy 對 `git` 一樣認證得到；常用 repo 仍建議直接綁進 Routine，別靠雲端自己 clone））。每次 run 會全部 clone，別綁太多
 - **Environment**：work-all-night
 - **Connectors**：留需要的（Notion、Atlassian…），其他拿掉——Routine 執行沒有權限確認，連接器能做的它都會直接做
 - **Trigger**：選 **API**，儲存後回到 Edit → Generate token（只顯示一次）
