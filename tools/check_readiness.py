@@ -326,6 +326,20 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位幅度差異化(G-4''''',體積守恆耦合 amplify)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier 幅度)。squash 的 scale 是體積守恆耦合對(scaleX·scaleY≡1、scaleX≠scaleY);"
+                     "天真 _amp_scale(僅放大 identity 上方 overshoot)會放大 scaleX>1 卻讓 scaleY<1 壓扁樓地板不動 → 破壞面積守恆。"
+                     "**關鍵洞見:體積守恆的 amplify = log 空間線性放大** —— 守恆 scaleX·scaleY=1 在 log 空間即 ln scaleX+ln scaleY=0(對 0 對稱),"
+                     "放大擠壓=把 log 乘 g(保和=0):_amp_scale_coupled(v,g)=v**g,對 (s,1/s)→(s^g,(1/s)^g) 積 (s·1/s)^g==1 精確守恆、|ln v'|=g|ln v| "
+                     "擠壓隨 g 放大、等比 (v,v)→(v^g,v^g) 仍等比(不造非均勻)、identity 1^g==1、g=1 逐位元向後相容。是 rotate/shear 加性 v'=g·v(對 0 對稱)"
+                     "在乘性守恆約束(積=1)下的自然對應。squash 併入 MAIN_SHOW_CATS + COUPLED_SCALE_CATS={squash};amplify_bone_tl(...,coupled_scale=) 依此路由。"
+                     "validate_squash_tier.py 5AC PASS(ST1 present+backward-compat 每檔位帶 shear+scale・base 逐位元不變/ST2 crux 擠壓峰 [0.16,0.222,0.287,0.366] "
+                     "與 shear 峰 [16,21.6,27.2,33.6]° 皆嚴格遞增且 Super==base/ST3 crux 每檔位每極值幀 scaleX·scaleY≈1(≤1.3e-4)+非均勻+擠壓阻尼遞減+shear 阻尼振盪 "
+                     "四簽章保形/ST4 每檔位 shear 首尾 0+scale 首尾 (1,1)/ST5 負對照 平增益→遞增 FALSE 且==base・crux 天真放大守衛:天真 _amp_scale 於 Legend g=2.1→積 "
+                     "[1.15,1.08,1.04,1.02] 守恆 FALSE 而耦合版≈1.0 TRUE 證耦合必要且閘偵測得到・耦合單元測 等比仍等比·守恆對積仍==1)。"
+                     "順修 tier_combo_count K5(c) proxy(squash scaleX 擠壓峰隨幅度跨 IMPACT_PROM 門檻→改直接比對 count build vs 幅度-only build)。18 閘全綠+round-trip overall_pass。"
+                     "honest:squash count-aware(擠壓段數隨檔位,nosc 已備、與幅度軸正交)為後續;shearY≡0;擠壓幅度階梯沿用 (J) 增益 PROPOSAL。與 anim-forge 同 HOLD"),
         ],
     },
 ]
