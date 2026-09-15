@@ -326,6 +326,26 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位幅度差異化(G-4''''',體積守恆耦合 amplify)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(『squash 未接 tier — 逐通道 _amp_scale 破壞體積守恆』)。squash 的 scale 是"
+                     "**體積守恆耦合對**(scaleX=1+q 拉長、scaleY=1/(1+q) 壓扁,scaleX·scaleY≡1);逐通道 amplify 只放大 scaleX>1、"
+                     "保留 scaleY<1 樓地板 → 破壞守恆(實測 g=2.1 下 prod 1.15≠1),故 G-4'''' 時 squash 被排除在 MAIN_SHOW_CATS 外。"
+                     "本 cap 以**耦合 amplify**(_amp_scale_coupled:抽 q=scaleX−1、放大 q'=g·q、重建互倒對 (1+g·q, 1/(1+g·q)))接上 → "
+                     "**product 恆等 1(面積守恆保持)**、仍非均勻;此耦合放大**等價於以 Q'=g·Q 重生成 gen_squash**(g·Q·rⁱ=g·q_i)。"
+                     "squash 加入 MAIN_SHOW_CATS + 新增 VOLUME_COUPLED_CATS={squash};build_animations 對 squash 走耦合、其餘主秀走原逐通道。"
+                     "**雙軸檔位差異化**:shear 峰(16→21.6→27.2→33.6°)與擠壓量(0.16→0.216→0.272→0.336)**皆**隨檔位嚴格遞增。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_squash_tier.py 5AC PASS"
+                     "(P1 present+backward-compat 每檔位產 squash__tier finite/有 bone/雙通道・base 逐位元不變・Super==base/"
+                     "P2 crux 雙軸遞增 shear 峰+擠壓量皆 Super<Mega<Omg<Legend/P3 crux 每檔位仍體積守恆(|prod−1|≤2e-2)+非均勻+阻尼遞減(復用 SQ3)/"
+                     "P4 每檔位 shear 首尾0+變號≥3+阻尼遞減・scale 首尾 (1,1)/P5 負對照 平增益全1.0→遞增 FALSE 且==base・"
+                     "**耦合必要性守衛(crux 的 crux)**:同一合成極值逐通道 amplify 體積 FALSE(prod 1.15)vs 耦合 TRUE(prod 1.0)・耦合≡重生成解析式)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash__{Super,Mega,Omg,Legend}(pivot 補償後守恆仍成立),validate_build round-trip overall_pass。"
+                     "修 tier_combo_count K5(c):原以 impact 峰計數測 count 隔離,squash tier **幅度**差異化(scale 峰隨檔位變)會跨閾誤判 → 改 full==amp_only 逐位元比對(更強更直接)。"
+                     "回歸:validate_squash_gen(G-4'''')/wobble_count/wobble_tier/tier_combo_count(K5 更新)/tier_variants/shear 全系列/全 priors/beat/pivot 18 閘全綠。"
+                     "**關鍵:體積守恆軸的檔位幅度差異化需耦合 amplify(不能逐通道)** —— 幅度軸在耦合對上時,兩通道必須一起以守恆式重建,"
+                     "同 (J-2)/(G-4''') 段數軸須 gen 時決定的『每個軸各有其接法』。honest:shear 峰+擠壓量階梯沿用 (J) 增益(PROPOSAL,手感留使用者 A 類);"
+                     "shearY≡0;squash count-aware(擠壓段數隨檔位,nosc 已備參數)為後續;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
