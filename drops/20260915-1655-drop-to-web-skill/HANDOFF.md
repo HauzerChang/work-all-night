@@ -63,7 +63,7 @@
 - [x] 待辦 2 每條指令輸出原文（見下）
 - [x] 待辦 3 不一致清單（見下）
 - [x] README 路徑：`skills/drop-to-web/README.md`
-- [ ] draft PR 到 main → **main 分支不存在**，已改開往 `claude/spine-main`（見下方「分岔說明」）
+- [x] draft PR 到 main → **main 分支不存在**，已改開往 `claude/spine-main`：https://github.com/HauzerChang/work-all-night/pull/3（見下方「分岔說明」）
 
 ### 分岔說明：base 分支
 交接文件假設 base 是 `main`，但這個 repo 從沒建過 `main`：`git ls-remote` 沒有 `refs/heads/main`，`git remote show origin` 顯示 `HEAD branch: claude/spine-main`。這不在第 4 節「預設選擇」清單裡（那條只講「main 推不上就改 drop/ 分支」，前提是 main 存在），所以我按「repo 實際預設分支」這個最接近的類比處理：從 `origin/claude/spine-main` 建 `drop/20260915-1655-drop-to-web-skill`，draft PR 也開往 `claude/spine-main`。`drops/`、`skills/` 兩個目錄在 `claude/spine-main` 上都不存在，純新增，沒有衝突。
