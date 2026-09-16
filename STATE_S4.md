@@ -7,6 +7,20 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 95(2026-09-16)**:排程再次觸發(首次跨到 2026-09-16)。依 chunk 94「下一步候選」
+> 三個等待條件重跑同一輪檢查:(1) `git log --oneline --all -- assets/` 確認自 chunk 41 起仍
+> 無任何新素材加入(最後一筆 assets/ 改動仍是 chunk 52 的決策檔框位置修正,commit
+> `763c112`,非新素材);(2) GitHub `list_issues`/`list_pull_requests`(state filter)
+> 確認 open issues 0 筆、open PRs 仍為 1 筆:`#3 drop-to-web skill v2`(draft,
+> base=`claude/spine-main`),與 chunk 93/94 觀察到的同一筆,內容仍與 S4 完全無關(另一
+> Cowork/cloud session 的 skill 交接 PR),不觸及三項懸而未決裁決點、不在 S4 檔案隔離
+> 契約範圍內,不予處理;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front` 語意
+> 邊界、GPT-fill API key 授權)仍無使用者輸入;(3) chunk 94 產出(純狀態更新,無代碼
+> 異動)已 commit(`bce0953`),工作樹乾淨無遺留。**結論與 chunk 60~94 相同:無新工作塊**。
+> 這是連續第三十六次同樣結果的純檢查性質 chunk。按既有慣例(chunk 27 起已主動通知過一次,
+> 此後同一維護狀態不重複通知)不再對使用者發送新通知。見
+> `log/s4-2026-09-16-095.md`。
+>
 > **chunk 94(2026-09-15)**:排程再次觸發(同日內第四次)。依 chunk 93「下一步候選」
 > 三個等待條件重跑同一輪檢查:(1) `git log --oneline --all -- assets/` 確認自 chunk 41 起仍
 > 無任何新素材加入(最後一筆 assets/ 改動仍是 chunk 52 的決策檔框位置修正,commit
@@ -1228,6 +1242,12 @@ trade-off 接受與否;(2) 候選17 API key+費用授權與否(且 1b 已解決�
 
 ## 進度摘要 (progress log)
 
+- 2026-09-16:**排程第三十六次觸發,重跑同一輪檢查,仍無新素材/新裁決,維持 `ACTIVE` 維護模式
+  (chunk 95)** — 依 chunk 94「下一步候選」三個等待條件逐一複查:新素材(無,assets/ 最後
+  改動仍是 chunk52 決策檔框修正)、GitHub open issues/PRs(issues 0,PR 仍為 #3,與 S4 無關、
+  非新出現)、chunk94 收尾完整性(已commit `bce0953`,無遺留)。結論與 chunk 60~94 完全相同,
+  三項懸而未決(`bodice`/`sleeve_right`、`hair_front`、GPT-fill 授權)持續等待使用者輸入。
+  未發送新通知(沿用 chunk27 起的慣例)。
 - 2026-09-11:**排程第十八次觸發,重跑同一輪檢查,仍無新素材/新裁決,維持 `ACTIVE` 維護模式
   (chunk 77)** — 依 chunk 76「下一步候選」(a)/(b)/(c) 三個等待條件逐一複查:新素材(無,
   assets/ 最後改動仍是 chunk52 決策檔框修正)、GitHub open issues/PRs(皆0)、chunk76
