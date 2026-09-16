@@ -79,6 +79,21 @@ def _min_peaks(anim):
     return min((len(impact_peaks(series(anim, b))) for b in bones), default=0)
 
 
+def _min_scale_maxima(anim):
+    """該 anim 各 bone 的 scaleX **結構局部極大**(>identity)數之最小值 —— **幅度增益不變量**。
+
+    candidate G-4''''':K5(c) 隔離守衛原用 `_min_peaks`(impact 門檻 1.10 計數),但 squash 的**體積守恆**
+    擠壓 scaleX 幅度小(Super 峰 1.10–1.16,貼近門檻),耦合 amplify 把各件 scaleX 推過/未過 1.10 →
+    過門檻**計數**隨檔位變(非段數變,是幅度貼門檻的計數擾動)→ 對非-count-aware 的 squash 假陽性。
+    改量「段數」的結構代理 = scaleX 局部極大**數**(不設 impact 門檻,只要 >identity):幅度增益 g 只
+    等比放大 overshoot、不改拓樸 → 極值數與檔位無關,唯真正加段(combo nhits)才改變 → 守衛更貼題且可信。"""
+    def n_max(vals):
+        return sum(1 for i in range(1, len(vals) - 1)
+                   if vals[i] > 1.0 and vals[i - 1] < vals[i] >= vals[i + 1])
+    bones = anim.get("bones", {})
+    return min((n_max(series(anim, b)) for b in bones), default=0)
+
+
 def _all_escalating(anim):
     return has_combo_signature(anim)
 
@@ -206,13 +221,14 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:非-combo 主秀 beat 的**段數**在各檔位不變
+    #     (用幅度不變量 `_min_scale_maxima`,不受 squash 小幅擠壓貼近 impact 門檻的計數擾動影響)。
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
+        counts = [_min_scale_maxima(full["{}__{}".format(beat, t)]) for t in TIERS]
+        if len(set(counts)) != 1:      # 段數外洩 → 各檔位極值數不同
             leak.append((beat, cat, counts))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}

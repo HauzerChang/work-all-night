@@ -326,6 +326,22 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位幅度差異化(G-4''''',耦合體積守恆 amplify;擠壓強度隨檔位遞增而守恆不破)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 留下的 honest boundary(squash 未接 tier:per-channel _amp_scale 會破壞體積守恆)。(J)/(G-4'') 讓主秀 beat "
+                     "的 scale/rotate/shear 幅度隨檔位遞增,但 squash 的 scale 是**體積守恆非均勻**(scaleX·scaleY==1):若用 _amp_scale(只放大 "
+                     "identity 上方 scaleX、保留下方 scaleY 樓地板)→ 積 (1+gq)/(1+q)≠1 **破壞守恆**。本 cap 讓 squash 走**耦合 amplify** "
+                     "(tier_variants.COUPLED_SCALE_CATS / _amp_squash_scale:對拉長量 q=scaleX−1 施 q'=g·q,再令 scaleX'=1+q'、scaleY'=1/(1+q')),"
+                     "shear 同步 g·v 放大(與 scale 同源 → 兩通道耦合)→ 擠壓/斜拉強度隨檔位嚴格遞增而**每個檔位仍體積守恆**。又一『檔位機制就緒 ≠ "
+                     "每個通道接上』實例(同 E/H/I/J/G-4''),惟此通道需**耦合**放大(非 per-channel)。從先驗庫→真實 build_spine robot 骨架→"
+                     "build_animations(tier_gains),validate_squash_tier.py 5AC PASS(V1 present+backward-compat 每檔位產 squash__tier finite/dual-channel・base "
+                     "逐位元不變・Super==base/V2 crux 拉長峰 [0.16,0.216,0.272,0.336]・shear 峰 [16,21.6,27.2,33.6]・非均勻峰 [0.30,0.39,0.49,0.59] 皆嚴格遞增且 Super==base/"
+                     "V3 crux **每檔位每極值幀 scaleX·scaleY≈1(守恆放大後不破)+非均勻+阻尼遞減**・shear 阻尼振盪保形/V4 identity 介面 per tier/"
+                     "V5 負對照 平增益→遞增 FALSE 且==base・**耦合 vs naive 守衛(crux)**:真實幀 [1.16,0.8621] naive 積 1.138 破壞守恆 vs 耦合積 1.00003 守恆且更非均勻・耦合隔離)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash__{Super,Mega,Omg,Legend},validate_build round-trip overall_pass。"
+                     "回歸:tier_combo_count K5(c) 隔離守衛改用幅度不變量 _min_scale_maxima(squash 小幅擠壓貼近 impact 門檻 → 過門檻計數擾動,結構極值數才是段數代理),18 閘全綠。"
+                     "關鍵發現:**體積守恆節拍的檔位放大必須耦合**(per-channel amplify 是錯的)—— 幅度軸有『通道間約束』時,增益要作用在**參數**(q)而非各通道值。"
+                     "honest:squash count-aware nosc 未接(擠壓段數隨檔位,比照 G-4''');shearY≡0;拉長峰階梯沿用 (J) 增益(PROPOSAL);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
