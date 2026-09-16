@@ -34,10 +34,14 @@ import copy
 MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble"}
 
 # candidate J-2 / G-4''' — 依檔位可變「段數」的類別(結構性差異化,非只幅度)。
-# combo 的 impact 峰**數**、wobble 的振盪**段數**隨檔位遞增;需在 gen 時把段數帶進生成器
-# (結構=拓樸,事後 amplify 只能放大既有極值、加不出一段)。各類別的段數階梯彼此獨立
-# (combo → TIER_COMBO_HITS,wobble → TIER_WOBBLE_CYCLES);build_animations 依類別路由。
-COUNT_AWARE_CATS = {"combo", "wobble"}
+# combo 的 impact 峰**數**、wobble 的振盪**段數**、squash 的擠壓**段數**隨檔位遞增;需在 gen 時把段數
+# 帶進生成器(結構=拓樸,事後 amplify 只能放大既有極值、加不出一段)。各類別的段數階梯彼此獨立
+# (combo → TIER_COMBO_HITS,wobble → TIER_WOBBLE_CYCLES,squash → TIER_SQUASH_CYCLES);
+# build_animations 依類別路由。candidate G-4''''' 加入 `squash` —— 它是 count-aware 但**不在**
+# MAIN_SHOW_CATS(見 SHEAR_CATS 註),故其檔位差異化**只走段數軸、不套幅度增益**(段數=拓樸,重生成
+# 即得,不動 scaleX/scaleY 幅度 → 體積守恆 scaleX·scaleY≡1 天然保持;避開 (J) 幅度 amplify 會破壞守恆的
+# honest boundary)。build_animations 對 squash 產「純段數」變體(g 恆 1.0)。
+COUNT_AWARE_CATS = {"combo", "wobble", "squash"}
 
 # candidate G-4'''' — 產出 `shear` 通道的節拍類別(shear-emitting)。原僅 wobble(純 shearX);
 # squash 加入後(shear + 耦合非均勻 scale 的體積守恆擠壓)成為第二個 shear 產出者。
@@ -87,6 +91,21 @@ TIER_WOBBLE_CYCLES = {
 def wobble_cycles_for(genre):
     """回傳該 genre 的 {tier: nosc};無宣告的 genre 回 None(→ wobble 檔位變體不變振盪段數)。"""
     return TIER_WOBBLE_CYCLES.get(genre)
+
+
+# candidate G-4''''' — 檔位 → squash 擠壓段數 nosc(**嚴格遞增**;base=Super=4 → 逐位元同 G-4'''' golden)。
+# 與 wobble 共用同窗(DUR["squash"]==0.8s)、同阻尼(r=0.5);上界 7 同 wobble:末極值 shearX(特效 16°·r⁶
+# =0.25°)與末擠壓 q_6(特效 Q0.16·r⁶=0.0025 → scaleX 1.0025 / scaleY 0.9975)於 4 位小數皆 finite 可辨,
+# 面積守恆 |scaleX·scaleY−1|<5e-5 於任意段數天然保持(每極值 scaleY=1/(1+q))。與 combo/wobble 段數階梯
+# 正交獨立(build_animations 依 cat 路由;squash 只走段數軸,不套幅度增益 → 見 COUNT_AWARE_CATS 註)。
+TIER_SQUASH_CYCLES = {
+    "slot_bigwin": {"Super": 4, "Mega": 5, "Omg": 6, "Legend": 7},
+}
+
+
+def squash_cycles_for(genre):
+    """回傳該 genre 的 {tier: nosc};無宣告的 genre 回 None(→ squash 不產檔位段數變體)。"""
+    return TIER_SQUASH_CYCLES.get(genre)
 
 
 def _amp_scale(v, g):

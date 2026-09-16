@@ -275,7 +275,8 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None):
     return anim
 
 
-def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None, tier_wobble_cycles=None):
+def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
+                     tier_wobble_cycles=None, tier_squash_cycles=None):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
@@ -283,9 +284,12 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     tier_combo_hits(J-2):`{tier: nhits}` 時,對 combo 檔位變體以該檔位 nhits **重生成**(連擊數隨檔位遞增)。
     tier_wobble_cycles(G-4'''):`{tier: nosc}` 時,對 wobble 檔位變體以該檔位 nosc **重生成**(振盪段數隨檔位遞增)。
     段數(結構)先重生成、再套幅度增益 g —— 幅度與段數兩效**正交可疊**(各類別段數階梯獨立)。
-    三者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble 恆 4 段)。"""
+    tier_squash_cycles(G-4'''''):`{tier: nosc}` 時,對 **squash** 產 `{beat}__{tier}` 段數變體(擠壓段數
+    隨檔位遞增)。squash **不在** MAIN_SHOW_CATS(幅度差異化需耦合 amplify,honest boundary),故其變體
+    **只重生成段數、不套幅度增益**(g 恆 1.0)→ 每檔位段數遞增而每幀仍嚴格體積守恆(scaleX·scaleY≡1、非均勻)。
+    四者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash 恆 4 段;squash 無變體)。"""
     # COUNT_AWARE 類別 → 對應的 {tier: count} 映射(依 cat 路由;None → 該類別段數不隨檔位變)
-    _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles}
+    _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles, "squash": tier_squash_cycles}
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
@@ -310,6 +314,16 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
                     anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g)
                 else:
                     anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g)
+        elif cat in _COUNT_AWARE_CATS and _count_maps.get(cat):
+            # candidate G-4''''':count-aware 但**不在** MAIN_SHOW_CATS 的類別(squash)。
+            # 段數(拓樸)隨檔位遞增 → 以該檔位段數**重生成**;但**不套幅度增益**——squash 的幅度差異化需
+            # 耦合 amplify(`_amp_scale` 只放大 identity 上方會破壞 scaleX·scaleY==1 體積守恆),故為 honest
+            # boundary。純段數重生成 → 每檔位擠壓段數遞增而每幀仍嚴格體積守恆(scaleX·scaleY≡1、非均勻),
+            # 首極值幅度(shear 峰/擠壓峰)各檔位恆定(不隨檔位放大 → 段數軸與未接的幅度軸互不干涉)。
+            # 與 tier_gains 無關:即使給 tier_gains,squash 仍只走此段數軸(不在 MAIN_SHOW_CATS)。
+            cmap = _count_maps[cat]
+            for tier, cnt in cmap.items():
+                anims["{}__{}".format(name, tier)] = _build_beat(beat, cat, bone_of, cx, cy, count=cnt)
     return anims
 
 

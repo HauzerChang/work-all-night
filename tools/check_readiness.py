@@ -326,6 +326,23 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_count_generation", "squash 擠壓段數隨檔位遞增(G-4''''',擠壓段數 Super4→Legend7 隨檔位遞增,不套幅度增益守恆)", "L2",
+                "python3 tools/analyzer/validate_squash_count.py", "pipeline",
+                note="G-4'''' 讓 gen_squash 同時產 shear+非均勻 scale(體積守恆擠壓),但各檔位仍**同樣 4 段**擠壓,且 squash **不在** MAIN_SHOW_CATS"
+                     "(scaleY<1 樓地板會被 (J) 的 _amp_scale 保留、scaleX>1 被放大→破壞 scaleX·scaleY==1 守恆)→ (J) 幅度差異化對 squash 為 honest boundary。"
+                     "本 cap 補上 squash 的擠壓**段數** nosc 隨檔位嚴格遞增(Super4→Mega5→Omg6→Legend7),**繞開幅度軸**:段數是關鍵幀**拓樸**(繞 0 交替極值個數),"
+                     "須在 gen_squash 生成當下決定;對 squash 以該檔位 nosc **重生成**整支 beat 而**不套幅度增益**(g≡1.0)→ 擠壓段數隨檔位遞增,而每幀仍嚴格"
+                     "體積守恆(scaleX·scaleY≡1、非均勻),首極值幅度(shear 峰/擠壓峰)各檔位恆定。此為『結構軸可獨立於未接的幅度軸推進』—— 段數階梯各類別獨立"
+                     "(combo→TIER_COMBO_HITS、wobble→TIER_WOBBLE_CYCLES、squash→TIER_SQUASH_CYCLES,build_animations 依 cat 路由;squash 走不套增益的 count-only 分支)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_squash_cycles),validate_squash_count.py 5AC PASS(V1 present+backward-compat 每檔位產"
+                     "squash__tier finite/有 bone/帶 shear+scale 雙通道・base 恆 4 段逐位元不變・tsc=None 完全不產變體・tier_gains 單開亦不產(不在 MAIN_SHOW)/"
+                     "V2 crux 段數由 shear 與 scale **兩通道各自**量得皆 [4,5,6,7]==宣告 Super<Mega<Omg<Legend 嚴格遞增且兩通道相等(同 nosc 耦合)、Super==base/"
+                     "V3 每檔位仍首尾 0+變號≥3+極值遞減(阻尼) 且 SQ3 體積守恆耦合每檔位保持(段數增多不破壞守恆)/V4 honest boundary 各檔位 shear 峰/非均勻峰恆定==base"
+                     "(段數軸不套幅度增益、與未接幅度軸互不干涉)+tier_gains 單開仍零 squash 變體/V5 負對照 平段數全4→單調 FALSE・slot_reveal squash_cycles_for None 不亂加・"
+                     "段數只作用 squash 不外洩(非-squash 主秀不因 tsc 產變體))。端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash__{Super4,Mega5,Omg6,Legend7} 段"
+                     "(pivot 補償後仍 [4,5,6,7]),validate_build round-trip overall_pass。回歸:validate_squash_gen(G-4'''')/wobble_count/wobble_tier/tier_variants/tier_combo_count/"
+                     "shear_gen/全 priors/beat/pivot 系列 18 閘全綠。關鍵發現:結構(段數)軸能在未解幅度耦合(honest boundary)前**獨立**推進——squash 檔位差異化先拿下不破壞守恆的那一半。"
+                     "honest:段數階梯 PROPOSAL(手感留使用者 A 類);squash 幅度差異化仍待耦合 amplify;shearY≡0;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
