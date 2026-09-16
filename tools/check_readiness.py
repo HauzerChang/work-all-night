@@ -326,6 +326,18 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位幅度差異化:體積守恆耦合放大(G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "gen",
+                note="補 G-4'''' honest boundary(squash 未接 tier:_amp_scale 只放大 identity 上方會破壞體積守恆)。把 squash 併入 MAIN_SHOW_CATS,"
+                     "新增 _amp_scale_coupled:保乘積 scaleX·scaleY、只把非均勻比 scaleX/scaleY 以 g 次方放大(sx'=m·√(ratioᵍ)、sy'=m/√(ratioᵍ),m=√(sx·sy))。"
+                     "**關鍵:體積守恆量的放大要在『乘積×比值』座標裡做** —— 把 scale 分解成面積 m²×非均勻比 ratio、只放大 ratio、面積不動 ⇒ 體積守恆成放大的"
+                     "**不變量**;單軸 overshoot 放大必破壞守恆(這正是 squash 原不進 MAIN_SHOW_CATS 的原因)。amplify_bone_tl(coupled_scale=True) 對 squash scale 走"
+                     "耦合放大、shear 照 g·v;build_animations 依 cat∈SCALE_COUPLED_CATS({squash})帶旗標。端到端(build_spine robot,四檔位):shear 峰 16→33.6°、"
+                     "非均勻峰 0.298→0.633 皆隨檔位遞增而面積守恆(誤差 <1.2e-4)。validate_squash_tier.py 5AC PASS(V1 present+backward-compat:base 逐位元不變/"
+                     "V2 crux dual-channel monotone:shear 峰**與** scale 非均勻峰皆嚴格遞增·Super==base/V3 crux volume conserved:每檔位/bone/幀 |sX·sY−1|≤TOL_VOL/"
+                     "V4 每檔位阻尼簽章+identity 介面+squash 幅度遞減保形/V5 負對照:**b 耦合必要性守衛**——通用 _amp_scale 乘積誤差 0.152 破壞守恆 vs 耦合 0.0001,"
+                     "證判準有牙且耦合放大是必要、a 平增益守衛、c 通道隔離)。修 tier_combo_count K5(c)(改 full-vs-amp_only 隔離 count 機制;squash 幅度隨檔位變強令 "
+                     "head scaleX 峰跨越 IMPACT_PROM 使舊判準假陽性)。18 閘全綠+round-trip 過。honest:squash count-aware(nosc 隨檔位,已備參數)未接;shearY≡0。與 anim-forge 同 HOLD"),
         ],
     },
 ]
