@@ -326,6 +326,21 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 斜拉擠壓強度隨檔位遞增(G-4''''',體積守恆耦合放大)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 留的 honest boundary(squash 未接 tier 幅度)。當時 squash 刻意排除於 MAIN_SHOW_CATS —— 天真 _amp_scale "
+                     "(只放大 identity 上方 overshoot、下方樓地板不動)套到 squash 會放大 scaleX>1 卻凍結 scaleY<1 → 破壞體積守恆(scaleX·scaleY≠1)。"
+                     "本 cap 把 squash 併入 MAIN_SHOW_CATS 並新增 _amp_scale_coupled(**體積守恆耦合放大**:拉長軸線性放大 s=1+g(v−1)、壓縮軸取 1/s → "
+                     "積恆 1),build_animations 依 COUPLED_SCALE_CATS={squash} 路由。⇒ squash 的 shear 峰(16→33.6°)與 scale 非均勻(0.30→0.59)"
+                     "隨檔位嚴格遞增,而體積守恆在每個檔位保持(worst |scaleX·scaleY−1|≤1e-4,4 位捨入)。**關鍵發現:體積守恆變換的檔位放大屬於**"
+                     "**log/倒數耦合,不是逐軸獨立放大** —— 天真逐軸放大會把守恆變換推離守恆流形(neg-control 實測 @Legend 偏離 0.15,>1500×)。"
+                     "validate_squash_tier.py 5AC PASS(ST1 present+backward-compat 每檔位 squash__tier finite/有 bone/dual channel・base+Super 逐位元不變/"
+                     "ST2 crux 非均勻峰 [0.30,0.39,0.49,0.59]+shear 峰 [16,21.6,27.2,33.6] 皆嚴格遞增且 Super==base/ST3 crux 每檔位每極值幀體積守恆"
+                     "|XY−1|≤TOL_VOL+squash 幅度遞減+shear 阻尼振盪保形/ST4 每檔位 identity 介面(shear 首尾 0、scale 首尾 (1,1))/"
+                     "ST5 負對照 a 平增益→遞增 FALSE 且==base・b crux 耦合必要性:同 bone 天真非耦合 @Legend 破壞守恆而耦合保持(證耦合必要非裝飾)・c 耦合隔離)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash__{Super,Mega,Omg,Legend}(pivot 補償後體積守恆仍 <0.02),validate_build round-trip overall_pass。"
+                     "副:修 tier_combo_count K5(c) 以 byte-identity 取代 impact-峰數 proxy(squash 幅度過門檻的假陽性)。回歸 17 閘全綠。"
+                     "honest:shear 峰階梯沿用 (J) 增益(PROPOSAL 手感留使用者 A 類);shearY≡0;count-aware nosc 未接(比照 J-2/G-4''');單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

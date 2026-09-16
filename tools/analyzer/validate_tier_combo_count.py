@@ -206,14 +206,19 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:非-combo 主秀 beat 的變體在「幅度+連擊數」與「幅度-only」兩種 build
+    #     下**逐位元相同**(tier_combo_hits 只重生成 combo 變體,不觸碰其他類別)。
+    #     ⚠️ 改用 byte-identity(取代原「impact 峰數不變」proxy):squash 這類幅度隨檔位遞增的節拍,
+    #     其 scaleX overshoot 會在高檔位越過 impact-peak 偵測門檻 → 峰數 proxy 會誤判為 count 外洩;
+    #     但那是**幅度**差異化(由 ST2/K2 正確覆蓋)非 count 差異化。byte-identity 精確隔離兩者且更嚴格。
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vk = "{}__{}".format(beat, t)
+            if json.dumps(full[vk], sort_keys=True) != json.dumps(amp_only[vk], sort_keys=True):
+                leak.append((vk, cat))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 
