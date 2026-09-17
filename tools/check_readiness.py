@@ -326,6 +326,18 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 雙軸幅度隨檔位遞增(G-4''''',耦合體積守恆 amplify)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 明列的 honest boundary『squash 未接 tier(需耦合 amplify)』。G-4'''' 讓 gen_squash 產出耦合 shear+非均勻 scale,"
+                     "但 squash ∉ MAIN_SHOW_CATS —— 因天真 _amp_scale 只放大 identity 上方 overshoot(scaleX>1)、squash 樓地板(scaleY<1)不動 → "
+                     "破壞體積守恆(scaleX·scaleY≠1)。本 cap 引入**耦合 amplify**(tier_variants._amp_scale_coupled:視 scale 為 scaleX·scaleY≡1 的擠壓對,"
+                     "以 q=scaleX−1 放大 q→g·q → scaleX'=1+g·q、scaleY'=1/(1+g·q))⇒ 放大後仍 scaleX'·scaleY'≡1;shear 續用 (G-4'') v'=g*v。squash 遂併入 "
+                     "MAIN_SHOW_CATS 且以 COUPLED_SCALE_CATS 標記走耦合路徑。validate_squash_tier.py 5AC PASS(ST1 present+backward-compat 含 Super 逐位元==base/"
+                     "ST2 crux 雙軸遞增:shear 峰 [16,21.6,27.2,33.6]°+非均勻峰 [0.298,0.394,0.486,0.588] 皆 Super<Mega<Omg<Legend 嚴格遞增/ST3 crux 體積守恆逐檔保:"
+                     "每檔位每極值 |scaleX·scaleY−1|≤TOL_VOL+非均勻+阻尼+shear 阻尼振盪皆保/ST4 耦合隔離只鎖 squash/ST5 負對照:平增益守衛 FALSE + 耦合vs天真單元測"
+                     "(coupled 積殘差 6e-5 守恆 vs naive 積殘差 0.12 破守恆,證耦合路徑必要))。回歸:tier_combo_count K5c 改比 full vs amp_only 隔離 count 機制"
+                     "(舊跨檔位峰數代理被 squash scale-overshoot 幅度混淆);19 閘全綠+round-trip validate_anim(+selftest)/validate_build overall_pass。"
+                     "關鍵:同比放大保阻尼簽章、耦合放大保體積守恆——檔位改強度不改結構。honest(仍在):shearY≡0;squash count-aware(擠壓段數隨檔位,nosc 已備參數)未接。與 anim-forge 同 HOLD"),
         ],
     },
 ]

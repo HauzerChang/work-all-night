@@ -206,14 +206,20 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count(tier_combo_hits)只作用於 combo:非-combo 主秀 beat 的各檔位變體在
+    #     full(幅度+連擊數)與 amp_only(僅幅度)下**逐位元相同**(count 參數對其零影響)。
+    #     ⚠️ 舊版以「跨檔位峰數不變」為代理,但自 (G-4''''') squash(scale-overshoot 主秀 beat)
+    #     併入 MAIN_SHOW_CATS 後,其耦合放大的 scaleX 峰會隨檔位跨 impact prominence 門檻而使**峰數**
+    #     改變(幅度效應,非 count 機制)→ 代理被幅度混淆而假陽性。改直接比 full vs amp_only 隔離
+    #     count 機制本身(更強:證 tier_combo_hits 對非-combo beat 完全無作用,不受幅度干擾)。
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vk = "{}__{}".format(beat, t)
+            if json.dumps(full.get(vk), sort_keys=True) != json.dumps(amp_only.get(vk), sort_keys=True):
+                leak.append((beat, cat, t))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 
