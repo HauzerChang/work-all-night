@@ -222,7 +222,8 @@ _PHASE_AWARE = {"cascade"}
 
 # candidate J — 檔位(tier)幅度差異化(主秀 beat 依檔位增益放大;純函式,無 import 迴圈)。
 from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
-    COUNT_AWARE_CATS as _COUNT_AWARE_CATS, amplify_anim as _amplify_anim
+    COUNT_AWARE_CATS as _COUNT_AWARE_CATS, COUNT_ONLY_CATS as _COUNT_ONLY_CATS, \
+    amplify_anim as _amplify_anim
 
 
 def _build_beat(beat, cat, bone_of, cx, cy, count=None):
@@ -275,17 +276,23 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None):
     return anim
 
 
-def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None, tier_wobble_cycles=None):
+def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
+                     tier_wobble_cycles=None, tier_squash_cycles=None):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
     額外產出 `{beat}__{tier}` 幅度差異化變體(檔位愈高愈爆);base beat 不變。
     tier_combo_hits(J-2):`{tier: nhits}` 時,對 combo 檔位變體以該檔位 nhits **重生成**(連擊數隨檔位遞增)。
     tier_wobble_cycles(G-4'''):`{tier: nosc}` 時,對 wobble 檔位變體以該檔位 nosc **重生成**(振盪段數隨檔位遞增)。
-    段數(結構)先重生成、再套幅度增益 g —— 幅度與段數兩效**正交可疊**(各類別段數階梯獨立)。
-    三者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble 恆 4 段)。"""
+    tier_squash_cycles(G-4'''''):`{tier: nosc}` 時,對 **squash** 檔位變體以該檔位 nosc **重生成**(擠壓
+    段數隨檔位遞增)。squash∈COUNT_ONLY_CATS → 只重生成段數、**不**套幅度增益 g(振幅跨檔位恆定;
+    幅度耦合 amplify 仍為 honest boundary)—— 段數軸天然體積守恆(gen_squash 每 nosc 重生成 prod≡1)。
+    combo/wobble(∈MAIN_SHOW_CATS):段數(結構)先重生成、再套幅度增益 g —— 幅度與段數兩效**正交可疊**。
+    四者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash 恆 4 段,
+    且無 tier_squash_cycles 時 squash **不產任何檔位變體**,同 G-4'''' 前行為)。"""
     # COUNT_AWARE 類別 → 對應的 {tier: count} 映射(依 cat 路由;None → 該類別段數不隨檔位變)
-    _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles}
+    _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles,
+                   "squash": tier_squash_cycles}
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
@@ -299,12 +306,20 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
         cat = beat_category(name)
         anim = _build_beat(beat, cat, bone_of, cx, cy)
         anims[name] = anim
-        # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
-        if tier_gains and cat in _MAIN_SHOW_CATS:
+        # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)。
+        # candidate G-4''''':COUNT_ONLY 類別(squash)也產檔位變體,但走**段數**軸、不套幅度增益。
+        count_only = cat in _COUNT_ONLY_CATS
+        if tier_gains and (cat in _MAIN_SHOW_CATS or count_only):
             cmap = _count_maps.get(cat) if cat in _COUNT_AWARE_CATS else None
             for tier, g in tier_gains.items():
                 cnt = cmap.get(tier) if cmap else None
-                if cnt is not None:
+                if count_only:
+                    # G-4''''':squash 的檔位差異化=段數軸(結構),**不**套幅度增益 g(振幅跨檔位恆定;
+                    # 耦合 amplify 仍 boundary)。段數天然體積守恆(gen_squash 每 nosc 重生成 prod≡1)。
+                    # 僅在有段數宣告(cnt)時才產變體 → 無 tier_squash_cycles 時 squash 無檔位變體(向後相容)。
+                    if cnt is not None:
+                        anims["{}__{}".format(name, tier)] = _build_beat(beat, cat, bone_of, cx, cy, count=cnt)
+                elif cnt is not None:
                     # J-2/G-4''':段數隨檔位遞增 → 以該檔位段數重生成 beat,再套幅度增益 g(正交可疊)。
                     variant = _build_beat(beat, cat, bone_of, cx, cy, count=cnt)
                     anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g)

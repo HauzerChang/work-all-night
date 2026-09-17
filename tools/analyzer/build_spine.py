@@ -304,15 +304,18 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         # candidate J:`--tier-variants` 時,主秀 beat 依 genre 宣告的檔位額外產幅度差異化變體。
         # candidate J-2:combo 另依檔位遞增**連擊數**;G-4''':wobble 另依檔位遞增**振盪段數**
         # (幅度×段數兩效正交疊加,各類別段數階梯獨立)。
-        tg = tch = twc = None
+        # candidate G-4''''':squash 另依檔位遞增**擠壓段數**(只走段數軸、不套幅度增益 →
+        # 振幅跨檔位恆定、體積守恆天然保持;幅度耦合 amplify 仍 boundary)。
+        tg = tch = twc = tsc = None
         if tier_variants:
-            from tier_variants import gains_for, combo_hits_for, wobble_cycles_for
+            from tier_variants import gains_for, combo_hits_for, wobble_cycles_for, squash_cycles_for
             tg = gains_for(genre)
             tch = combo_hits_for(genre)
             twc = wobble_cycles_for(genre)
+            tsc = squash_cycles_for(genre)
         skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"],
                                                   tier_gains=tg, tier_combo_hits=tch,
-                                                  tier_wobble_cycles=twc)
+                                                  tier_wobble_cycles=twc, tier_squash_cycles=tsc)
         if (pivot_rotate or scale_pivot or shear_pivot) and not rig:
             # candidate 0i:件繞**關節 pivot** 轉而非件中心(keyframe 級,不動骨架)。
             # 延伸 G-3:`--scale-pivot` 再把 `scale` 也補償(M=R·S)→ 件繞關節 pivot **旋轉+縮放**。
