@@ -206,10 +206,14 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變。
+    #   (G-4''''')排除 SHEAR_CATS(wobble/squash):`impact_peaks` 是 combo 專屬「衝擊峰」偵測器
+    #   (有 prominence 門檻),對 squash 的**耦合擠壓 scaleX**(非衝擊列)會因幅度隨檔位跨過門檻而
+    #   誤數 [0,1,1,1] —— 那是幅度效應非 count 外洩(squash 的段數 nosc 各檔位其實恆定)。
+    #   squash 的檔位差異化屬**幅度**軸(見 validate_squash_tier),不在本 count-aware 閘範圍。
     leak = []
     for beat, cat in main_beats.items():
-        if cat == "combo":
+        if cat == "combo" or cat in TV.SHEAR_CATS:
             continue
         counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
         if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同

@@ -326,6 +326,25 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 擠壓深度+shear 峰隨檔位遞增(G-4''''',體積守恆耦合 amplify)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier:單軸 _amp_scale 只放大 identity 上方 → 放大 scaleX 卻保留 scaleY 樓地板 → "
+                     "破壞體積守恆 scaleX·scaleY≠1,故 squash 一直被排除在 MAIN_SHOW_CATS 外)。本 cap 補上**耦合 amplify** "
+                     "(_amp_scale_coupled:只放大擠壓量 q=scaleX−1、scaleY 依 1/(1+q') 重算 → scaleX·scaleY≡1 對所有檔位保持;等同以 Q→g·Q 重生成 squash)。"
+                     "把 squash 併入 MAIN_SHOW_CATS + 新增 COUPLED_SCALE_CATS={squash},build_animations 依類別路由 coupled_scale 旗標 "
+                     "(其餘等比 scale 節拍 hit/reveal/combo/charge 仍走單軸 _amp_scale)→ squash 的**擠壓深度**(峰非均勻)與 **shear 峰**"
+                     "**雙通道**隨檔位嚴格遞增(depth 0.298→0.588、shear 16°→33.6°)而**體積守恆對所有檔位保持**(|scaleX·scaleY−1|<1e-4)。"
+                     "**關鍵:耦合 scale 的檔位差異化不可用單軸 amplify** —— 擠壓量是 scaleX/scaleY 綁定的單一自由度 q,兩軸須一起以體積守恆放大;"
+                     "這與 (G-4'') wobble 純 shear(對 0 對稱 v'=g*v)、(J) 等比 scale(只放大上方)皆不同,是第三種通道專屬 amplify 規則。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_squash_tier.py 6AC PASS"
+                     "(ST1 present+backward-compat 每檔位產 squash__tier finite/有 bone/同帶 shear+scale・base 逐位元不變/"
+                     "ST2 crux 擠壓深度+shear 峰雙通道 Super<Mega<Omg<Legend 嚴格遞增且 Super==base/ST3 crux 每檔位每極值幀體積守恆(積≈1)+非均勻+擠壓幅度阻尼遞減/"
+                     "ST4 每檔位 shear 阻尼振盪保形(首尾0+變號≥3+極值遞減)+scale 首尾 identity/ST5 shear 只在 SHEAR_CATS 及其變體/"
+                     "ST6 負對照 平增益→遞增 FALSE 且變體==base・**crux 天真單軸 amplify 對 squash 破壞守恆 |積−1|=0.15≫TOL 證 ST3 有鑑別力**・耦合單元測)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash__{Super,Mega,Omg,Legend},validate_build round-trip overall_pass。"
+                     "回歸:tier_combo_count(K5c 排除 SHEAR_CATS,impact_peaks 對 squash 耦合 scaleX 誤數屬幅度非 count 外洩)/squash_gen/wobble_tier/"
+                     "wobble_count/tier_variants/shear 系列/priors/beat 系列 17 閘全綠。"
+                     "honest:擠壓深度階梯沿用 (J) 增益(PROPOSAL 手感留使用者 A 類);shearY≡0;squash count-aware(擠壓段數隨檔位,nosc 已備參數)為後續;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
