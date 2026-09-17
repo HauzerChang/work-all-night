@@ -222,7 +222,8 @@ _PHASE_AWARE = {"cascade"}
 
 # candidate J — 檔位(tier)幅度差異化(主秀 beat 依檔位增益放大;純函式,無 import 迴圈)。
 from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
-    COUNT_AWARE_CATS as _COUNT_AWARE_CATS, amplify_anim as _amplify_anim
+    COUNT_AWARE_CATS as _COUNT_AWARE_CATS, COUPLED_SCALE_CATS as _COUPLED_SCALE_CATS, \
+    amplify_anim as _amplify_anim
 
 
 def _build_beat(beat, cat, bone_of, cx, cy, count=None):
@@ -283,7 +284,9 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     tier_combo_hits(J-2):`{tier: nhits}` 時,對 combo 檔位變體以該檔位 nhits **重生成**(連擊數隨檔位遞增)。
     tier_wobble_cycles(G-4'''):`{tier: nosc}` 時,對 wobble 檔位變體以該檔位 nosc **重生成**(振盪段數隨檔位遞增)。
     段數(結構)先重生成、再套幅度增益 g —— 幅度與段數兩效**正交可疊**(各類別段數階梯獨立)。
-    三者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble 恆 4 段)。"""
+    三者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble 恆 4 段)。
+    candidate G-4''''':squash(scale 通道體積守恆)的檔位幅度差異化用**耦合 amplify**
+    (`COUPLED_SCALE_CATS`;scaleX、scaleY 一起 `v**g` 放大 → 保 scaleX·scaleY==1、shear 峰亦隨檔位遞增)。"""
     # COUNT_AWARE 類別 → 對應的 {tier: count} 映射(依 cat 路由;None → 該類別段數不隨檔位變)
     _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles}
     # 件名 → bone/slot / setup 位置
@@ -302,14 +305,16 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
         # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
         if tier_gains and cat in _MAIN_SHOW_CATS:
             cmap = _count_maps.get(cat) if cat in _COUNT_AWARE_CATS else None
+            # G-4''''':體積守恆 scale 節拍(squash)用耦合 amplify(保 scaleX·scaleY==1);其餘走 _amp_scale。
+            coupled = cat in _COUPLED_SCALE_CATS
             for tier, g in tier_gains.items():
                 cnt = cmap.get(tier) if cmap else None
                 if cnt is not None:
                     # J-2/G-4''':段數隨檔位遞增 → 以該檔位段數重生成 beat,再套幅度增益 g(正交可疊)。
                     variant = _build_beat(beat, cat, bone_of, cx, cy, count=cnt)
-                    anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g)
+                    anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g, coupled)
                 else:
-                    anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g)
+                    anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g, coupled)
     return anims
 
 

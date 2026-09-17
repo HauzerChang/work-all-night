@@ -206,10 +206,14 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變。
+    # 例外:COUPLED_SCALE_CATS(squash,G-4''''')的 scaleX 是**體積守恆擠壓的拉長量**,其**幅度**
+    # 隨檔位遞增乃設計(耦合 amplify),`impact_peaks(scaleX)` 這個 combo overshoot 計數器會在高檔位
+    # 因拉長量越過 prominence 門檻而**多算**(類別誤用:squash 的段數 nosc 才是其結構「count」,且各檔位
+    # 恆定 → 由 squash-tier 閘 ST2/ST4 保證)。故此處只對 combo overshoot 計數有意義的節拍施 count 隔離。
     leak = []
     for beat, cat in main_beats.items():
-        if cat == "combo":
+        if cat == "combo" or cat in TV.COUPLED_SCALE_CATS:
             continue
         counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
         if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同

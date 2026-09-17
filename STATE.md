@@ -10,6 +10,31 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 squash 接檔位幅度差異化:耦合 amplify(里程碑,2026-09-17,candidate G-4''''')** — 補 G-4'''' 的
+  honest boundary(**squash 未接 tier**:一般 `_amp_scale` 只放大 identity **上方** overshoot、下方樓地板不動,
+  對體積守恆 squash 會破壞 `scaleX·scaleY==1`,故當時 squash **不在** `MAIN_SHOW_CATS`)。**關鍵:體積守恆
+  scale 的自然幅度座標 = 對數應變** `u=ln(v)`;以增益均勻放大 `u'=g·u` ⇒ **`_amp_scale_coupled(v,g)=v**g`** ——
+  對任一保積對 `(sx,sy=1/sx)` 有 `sx**g·sy**g=(sx·sy)**g=1`(**保積,對 g 恆真**、不需閉式,對已四捨五入的 gen 值同樣穩健)、
+  `1**g=1`(identity 定點)、`g=1.0→v**1.0==v`(逐位元向後相容)。squash 加入 `MAIN_SHOW_CATS` + 新
+  `COUPLED_SCALE_CATS={squash}`;`build_animations` 依 cat 對體積守恆 scale 節拍路由耦合 amplify,其餘主秀等比
+  overshoot(hit/combo/charge)仍走 `_amp_scale`(零回歸)。使 squash 的 **shear 峰(16→21.6→27.2→33.6°)與
+  scale 非均勻峰(0.298→0.403→0.510→0.633)皆隨檔位嚴格遞增**,而**體積守恆+阻尼振盪+identity 介面三簽章每檔位
+  保持**。整合閘 `validate_squash_tier.py`(先驗庫→**真實 build_spine robot 骨架**→build_animations(tier_gains))
+  **6 AC 全 PASS**:ST1 present+backward-compat(每檔位 `squash__{tier}` finite/有 bone/帶 shear+scale、base 逐位元
+  不變)、ST2 **crux** 雙軸峰(shear+非均勻)嚴格遞增且 Super==base、ST3 **crux** 每檔位每極值幀
+  |scaleX·scaleY−1|≤0.02 保積、ST4 每檔位阻尼保形(shear 繞 0 變號≥3+遞減)+squash 幅度遞減、ST5 每檔位 identity
+  介面、ST6 負對照(a 平增益守衛→遞增 FALSE 且==base、**b 必要性:同一 squash 幀施天真 `_amp_scale`(g=Legend)→
+  守恆破壞 prod 1.02–1.15,而耦合守恆 → 證耦合 amplify 必要而非裝飾**、c 耦合單元測保積+g=1 逐位元、d 隔離加性
+  squash 入 MAIN_SHOW_CATS 不擾動其他 beat 及其 __tier 變體)。回歸修正:`validate_tier_combo_count.py` K5c 對
+  `COUPLED_SCALE_CATS` 略過 `impact_peaks(scaleX)` 計數(squash 的 scaleX 拉長量隨檔位增乃**設計**,combo overshoot
+  計數器在高檔位因越過 prominence 門檻而多算=類別誤用;squash 結構 count=nosc 段數各檔位恆定,由 ST2/ST4 保證)。
+  **18 閘全綠** + round-trip `validate_build` 對 `--animate --tier-variants --shear-pivot` build overall_pass
+  (直出 `squash__{Super,Mega,Omg,Legend}`)。新增 cap `squash_tier_amplitude` L2 併入 `spine-anim-forge`(**仍
+  HOLD**:運動基元先驗、單一真值資產,防固化)。**關鍵發現:保積 scale 的幅度放大=均勻放大對數應變(`v**g`);
+  不同 scale 語意(非保積 overshoot vs 保積擠壓)需不同幅度規則,由 `COUPLED_SCALE_CATS` 路由**。
+  **honest boundary(仍在)**:幅度增益階梯沿用 (J) `TIER_GAIN`(PROPOSAL,手感留使用者 A 類);shearY≡0;
+  squash count-aware(擠壓段數 nosc 隨檔位,`nosc` 參數與 `_squash_env(A,Q,nosc)` 已備)為後續,比照 J-2/G-4'''。
+  見 `knowledge/s1-squash-tier-amplitude.md`、圖 `knowledge/figures/s1_squash_tier.png`。
 - **S1 生成器產耦合 shear + 非均勻 scale(體積守恆擠壓)端到端(里程碑,2026-09-12,candidate G-4'''')** —
   補一路(G-4/G-4')留到現在的 honest boundary(**`shearY≡0`、斜拉 squash(shear+coupled scale)為後續**)。
   **關鍵:純 shear(G-4' wobble)只是相似變換特例(等距+skew);shear+非均勻 scale 才是真正的一般仿射**。
@@ -566,10 +591,14 @@
 > **(G-4'''') ~~產 shearY / 斜拉 squash(shear+coupled scale 雙通道耦合)~~ ✅ 完成(2026-09-12,candidate G-4'''',`squash_shear_scale_coupling` L2,見上里程碑)** ——
 >   `gen_squash`(shearX 阻尼擺 + 體積守恆非均勻 scale squash)第一個同時產 shear+非均勻 scale;`--shear-pivot`
 >   端到端一般仿射 pivot 不動;`validate_squash_gen.py` 6AC(SQ3 體積守恆耦合、SQ5 一般仿射殘差 <0.02px、SQ6 兩條件獨立守衛)。
+> **(G-4''''') ~~squash 接 tier 檔位差異化(耦合 amplify)~~ ✅ 完成(2026-09-17,candidate G-4''''',`squash_tier_amplitude` L2,見上里程碑)** ——
+>   `_amp_scale_coupled(v,g)=v**g`(對數應變均勻放大 → 保 scaleX·scaleY==1 且 identity 定點)、squash 入 `MAIN_SHOW_CATS` + 新 `COUPLED_SCALE_CATS={squash}`;
+>   `validate_squash_tier.py` 6AC(ST2 crux 雙軸峰遞增、ST3 crux 每檔位保積、ST6b 必要性:天真 _amp_scale 破壞守恆而耦合守恆)。K5c 對 COUPLED_SCALE_CATS 略過 impact 計數。18 閘全綠。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4''''') squash 接 tier 檔位差異化(需**耦合 amplify**:scaleX/scaleY 一起以體積守恆放大,不破壞 scaleX·scaleY==1** —— `_amp_scale` 現只放大 identity 上方會破壞守恆,故 squash 未在 MAIN_SHOW_CATS);
->   或 squash count-aware(擠壓段數隨檔位,nosc 已備參數,比照 G-4''')**;
-> **(G-4'''''') 產 shearY(雙軸 shear)/ shear+scale+rotate 三通道同時的運動基元(真正塞滿一般仿射 M 的所有自由度)**;
+> **(G-4'''''') squash count-aware:擠壓段數 nosc 隨檔位遞增**(`_squash_env(A,Q,nosc)`/`gen_squash(nosc=)` 已備參數;
+>   走 `COUNT_AWARE_CATS`+新 `TIER_SQUASH_CYCLES`,以檔位 nosc 重生成再套**耦合** amplify —— 段數×幅度雙軸正交,比照 J-2/G-4''';
+>   注意 squash 的 amplify 須用耦合版,與 combo/wobble 的線性 amplify 分流);
+> **(G-4''''''') 產 shearY(雙軸 shear)/ shear+scale+rotate 三通道同時的運動基元(真正塞滿一般仿射 M 的所有自由度)**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
@@ -589,6 +618,18 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-17:**S1 squash 接檔位幅度差異化:耦合 amplify(里程碑,candidate G-4''''')** — 補 G-4'''' 的 honest
+  boundary(squash 未接 tier:一般 `_amp_scale` 只放大 identity 上方 → 破壞體積守恆 scaleX·scaleY==1,故 squash
+  不在 MAIN_SHOW_CATS)。**關鍵:體積守恆 scale 的自然幅度座標=對數應變** u=ln(v);均勻放大 u'=g·u ⇒
+  `_amp_scale_coupled(v,g)=v**g`(對保積對保 scaleX·scaleY==1、identity 定點、g=1 逐位元不變)。squash 入
+  MAIN_SHOW_CATS + 新 `COUPLED_SCALE_CATS={squash}`;build_animations 依 cat 對保積 scale 節拍路由耦合 amplify,
+  其餘等比 overshoot 仍走 _amp_scale(零回歸)。shear 峰 16→33.6°、非均勻峰 0.298→0.633 皆隨檔位嚴格遞增,體積
+  守恆+阻尼+identity 三簽章每檔位保持。`validate_squash_tier.py` **6 AC 全 PASS**(ST2 crux 雙軸峰遞增、ST3 crux
+  每檔位保積、**ST6b 必要性:天真 _amp_scale 破壞守恆(prod 1.02–1.15)而耦合守恆** → 證耦合 amplify 必要)。
+  回歸修正:`validate_tier_combo_count.py` K5c 對 COUPLED_SCALE_CATS 略過 impact 計數(squash scaleX 拉長量隨檔位
+  增乃設計,非 combo count 外洩)。**18 閘全綠 + round-trip validate_build overall_pass**。cap
+  `squash_tier_amplitude` L2;anim-forge 仍 HOLD。honest:增益階梯沿用 (J) TIER_GAIN(PROPOSAL);shearY≡0;
+  squash count-aware(nosc 隨檔位)為後續。見 `knowledge/s1-squash-tier-amplitude.md`、圖 `s1_squash_tier.png`。
 - 2026-09-12:**S1 生成器產耦合 shear + 非均勻 scale(體積守恆擠壓)端到端(里程碑,candidate G-4'''')** —
   補 G-4/G-4' 留到現在的 honest boundary(shearY≡0、斜拉 squash 為後續)。`gen_squash` 是第一個同時產
   shear+非均勻 scale(sx≠sy)的生成器:shearX 阻尼擺動 + 每極值施體積守恆 squash(scaleX=1+q_i、

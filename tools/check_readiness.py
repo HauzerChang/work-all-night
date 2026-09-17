@@ -326,6 +326,22 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位幅度差異化:耦合 amplify(G-4''''',shear+非均勻峰隨檔位遞增且體積守恆保持)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier:_amp_scale 只放大 identity 上方 → 破壞體積守恆 scaleX·scaleY==1)。"
+                     "本 cap 補上**耦合 amplify**:`_amp_scale_coupled(v,g)=v**g`(對數應變 u=ln(v) 均勻放大 u'=g·u)—— 對任一保積對 "
+                     "(sx,sy=1/sx) 有 sx**g·sy**g=(sx·sy)**g=1(保積,對 g 恆真)、1**g=1(identity 定點)、g=1.0→v**1.0==v(逐位元向後相容)。"
+                     "squash 入 MAIN_SHOW_CATS + 新 COUPLED_SCALE_CATS={squash};build_animations 依 cat 對體積守恆 scale 節拍路由耦合 amplify、"
+                     "其餘主秀等比 overshoot 仍走 _amp_scale(hit/combo/charge 零回歸)。使 squash 的 shear 峰(16→21.6→27.2→33.6°)與 scale 非均勻峰"
+                     "(0.298→0.403→0.510→0.633)**皆隨檔位嚴格遞增**,而體積守恆+阻尼振盪+identity 介面三簽章每檔位保持。**關鍵:體積守恆 scale "
+                     "的自然幅度座標是對數應變**(等比放大 log-strain → 保積且保 identity;線性 _amp_scale 只對非保積 overshoot 適用)。"
+                     "validate_squash_tier.py 6AC PASS(ST1 present+backward-compat 每檔位 squash__tier finite/有 bone/帶 shear+scale・base 逐位元不變/"
+                     "ST2 crux shear 峰+非均勻峰雙軸嚴格遞增且 Super==base/ST3 crux 每檔位每極值幀 |scaleX·scaleY−1|≤0.02 保積/ST4 每檔位阻尼保形+squash 幅度遞減/"
+                     "ST5 每檔位 identity 介面/ST6 負對照:平增益守衛→遞增 FALSE 且==base・**必要性:天真 _amp_scale 在 Legend 破壞守恆(prod 1.02–1.15)而耦合守恆**・"
+                     "耦合單元測保積+g=1 逐位元・隔離加性 squash 入 MAIN_SHOW_CATS 不擾動其他 beat)。K5c(tier_combo_count)對 COUPLED_SCALE_CATS 略過 "
+                     "impact_peaks 計數(squash scaleX 拉長量隨檔位增乃設計,非 combo count 外洩)。端到端 build_spine --animate --tier-variants --shear-pivot 直出 "
+                     "squash__{Super,Mega,Omg,Legend},validate_build round-trip overall_pass。回歸:18 閘全綠。"
+                     "honest:幅度增益階梯沿用 (J) TIER_GAIN(PROPOSAL,手感留使用者 A 類);shearY≡0;squash count-aware(擠壓段數隨檔位,nosc 已備參數)為後續;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
