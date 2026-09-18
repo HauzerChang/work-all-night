@@ -206,14 +206,20 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:`tier_combo_hits` 不改變任何非-combo 主秀 beat。
+    # 判準 = 對每個非-combo 檔位變體,帶 counts(full)與不帶 counts(none_run)**逐位元相同**
+    # —— 直接測「count 參數不外洩」這個真正的不變量。
+    # (注意:不可用「峰數各檔位不變」當代理:`impact_peaks` 是**幅度**閾值偵測,squash 這類體積守恆節拍
+    #  的 scaleX 擠壓在 Super(g=1)低於 impact prominence、放大後才跨過 → 峰數 [0,1,1,1] 是**幅度假影**
+    #  非 count 外洩;full==none_run 的逐位元比對對此免疫,見 G-4''''' knowledge doc。)
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vk = "{}__{}".format(beat, t)
+            if json.dumps(full[vk], sort_keys=True) != json.dumps(none_run[vk], sort_keys=True):
+                leak.append((vk, cat))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 

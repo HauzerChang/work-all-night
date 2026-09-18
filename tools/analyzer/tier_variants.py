@@ -31,7 +31,11 @@ import copy
 # candidate (G-4'') — 加入 `wobble`(斜拉 jelly wobble,G-4' 的 shear 通道節拍):
 # 它是主秀節拍,強度理應隨檔位遞增,但幅度軸在 **shear** 而非 scale/rotate,
 # 故 `amplify_bone_tl` 需一併放大 shear 通道(對 0 對稱 → v'=g*v,同 rotate/translate)。
-MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble"}
+# candidate (G-4''''') — 加入 `squash`(斜拉果凍擠壓,shear + 耦合非均勻 scale 的體積守恆節拍):
+# 它同樣是主秀節拍(愈高檔位擠壓愈猛),但幅度軸是 **耦合的 shear + 非均勻 scale**,不能用 scale 通道
+# 的預設 `_amp_scale`(只放大 identity 上方 → scaleX>1 被放大而 scaleY<1 樓地板不動 → 破壞 scaleX·scaleY==1
+# 體積守恆);故 squash 的 scale 通道走 **體積守恆 amplify**(`VOLUME_CONSERVING_CATS`,見下)。
+MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble", "squash"}
 
 # candidate J-2 / G-4''' — 依檔位可變「段數」的類別(結構性差異化,非只幅度)。
 # combo 的 impact 峰**數**、wobble 的振盪**段數**隨檔位遞增;需在 gen 時把段數帶進生成器
@@ -43,9 +47,18 @@ COUNT_AWARE_CATS = {"combo", "wobble"}
 # squash 加入後(shear + 耦合非均勻 scale 的體積守恆擠壓)成為第二個 shear 產出者。
 # 各 shear-isolation 閘(shear_gen W5b / wobble_tier T4)以此集合認定「合法 shear 產出者」,
 # 集中一處便於後續再加(避免每加一個 shear 節拍就改多個閘的硬編碼 'wobble')。
-# 注意:squash **不在** MAIN_SHOW_CATS —— 其 scaleY<1(壓扁)樓地板會被 `_amp_scale` 保留而 scaleX>1
-# 被放大 → 破壞體積守恆(scaleX·scaleY≠1);squash 的檔位差異化需**耦合 amplify**(honest boundary,後續)。
+# candidate (G-4'''''):squash **已併入** MAIN_SHOW_CATS —— 它的 scale 通道走**體積守恆 amplify**
+# (VOLUME_CONSERVING_CATS,見下),放大擠壓強度而 scaleX·scaleY≡1 不破;honest boundary 已補上。
 SHEAR_CATS = {"wobble", "squash"}
+
+# candidate (G-4''''') — scale 通道須以**體積守恆**方式放大的類別(避免預設 `_amp_scale` 破壞 scaleX·scaleY==1)。
+# squash 的 scale 是耦合非均勻擠壓(scaleX=1+q 拉長、scaleY=1/(1+q) 壓扁,積≡1);要放大擠壓「強度」而
+# 仍面積守恆,對兩軸取**同一指數 g**:scaleX'=scaleX^g、scaleY'=scaleY^g ⇒ scaleX'·scaleY'=(scaleX·scaleY)^g
+# =1^g=1(**恆體積守恆**)、identity(1) 仍 1(介面契約保持)、非均勻 |scaleX−scaleY| 隨 g 單調變大(檔位簽章)、
+# 相繼極值的擠壓幅度仍嚴格遞減(阻尼保形:scaleX_i 遞減 → scaleX_i^g 遞減 → |scaleX_i^g−1| 遞減)。
+# 對照:預設 `_amp_scale` 只放大 v≥1 一側 → scaleX 被放大、scaleY 樓地板不動 → 積≫1(見 validate_squash_tier 的
+# 「naive-amplify 守衛」端到端證此破壞)。故 squash 的 scale 走 `_amp_scale_vc`,shear/rotate/translate 仍 g*v。
+VOLUME_CONSERVING_CATS = {"squash"}
 
 # 檔位 → 主秀幅度增益(**嚴格遞增**;base=Super=1.0 → 向後相容逐位元不變)。
 # 增益上界經檢核:最大 role peak(特效 1.35 → q=0.35)在 Legend g=2.1 下 → 1.735(無翻面);
@@ -94,12 +107,24 @@ def _amp_scale(v, g):
     return 1.0 + g * (v - 1.0) if v >= 1.0 else v
 
 
-def amplify_bone_tl(b, g):
-    """對單一 bone timeline 套幅度增益 g(deepcopy,保留曲線鍵)。g=1.0 → identity 變換。"""
+def _amp_scale_vc(v, g):
+    """**體積守恆** scale 幅度增益(candidate G-4''''',給 squash 用):兩軸取同一指數 g → v'=v^g。
+    scaleX'·scaleY'=(scaleX·scaleY)^g;squash 的 scaleX·scaleY≡1 → 恆 ≡1(面積守恆不破)。
+    v=1(identity)→ 1;v>0 恆有定義。與 `_amp_scale` 的差別:兩側對稱放大(不設樓地板),故不破壞守恆。"""
+    return v ** g
+
+
+def amplify_bone_tl(b, g, volume_conserving=False):
+    """對單一 bone timeline 套幅度增益 g(deepcopy,保留曲線鍵)。g=1.0 → identity 變換(v^1==v、g*v)。
+
+    `volume_conserving`(candidate G-4''''')= True 時 scale 通道走 `_amp_scale_vc`(v^g,兩軸同指數 →
+    scaleX·scaleY≡1 面積守恆);squash 用。預設 False → scale 走 `_amp_scale`(只放大 identity 上方,
+    給 hit/combo/charge/reveal 的 overshoot+樓地板語意)。shear/rotate/translate 兩模式相同(對 0 對稱 g*v)。"""
     b = copy.deepcopy(b)
+    _sc = _amp_scale_vc if volume_conserving else _amp_scale
     for f in b.get("scale", []):
-        f["x"] = round(_amp_scale(f["x"], g), 4)
-        f["y"] = round(_amp_scale(f["y"], g), 4)
+        f["x"] = round(_sc(f["x"], g), 4)
+        f["y"] = round(_sc(f["y"], g), 4)
     for f in b.get("rotate", []):
         f["angle"] = round(g * f["angle"], 3)
     for f in b.get("translate", []):
@@ -114,11 +139,12 @@ def amplify_bone_tl(b, g):
     return b
 
 
-def amplify_anim(anim, g):
-    """對整支 beat animation 套幅度增益 g:bones 幅度放大、slots(color/alpha)原樣保留。"""
+def amplify_anim(anim, g, volume_conserving=False):
+    """對整支 beat animation 套幅度增益 g:bones 幅度放大、slots(color/alpha)原樣保留。
+    `volume_conserving`(candidate G-4''''')轉傳給 `amplify_bone_tl`(squash 的 scale 通道體積守恆放大)。"""
     out = {}
     if "bones" in anim:
-        out["bones"] = {bn: amplify_bone_tl(b, g) for bn, b in anim["bones"].items()}
+        out["bones"] = {bn: amplify_bone_tl(b, g, volume_conserving) for bn, b in anim["bones"].items()}
     if "slots" in anim:
         out["slots"] = copy.deepcopy(anim["slots"])
     return out
