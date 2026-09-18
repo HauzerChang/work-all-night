@@ -206,10 +206,22 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變。
+    # 排除 squash(G-4'''''):其 scaleX 擠壓幅度隨檔位**幅度增益**(candidate J)遞增,threshold-based
+    # impact_peaks 的跨門檻數會隨之變動 —— 這是**幅度軸**(J)不是 combo 的 **nhits count 軸**(J-2)。
+    # 故對 squash 改測「count 不隨 tier_combo_hits 變」(固定幅度、只切連擊映射)以隔離 count 機制。
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
+            continue
+        if cat == "squash":
+            # squash 峰數對 tier_combo_hits 應完全無感(combo 專屬映射);holding tier_gains 固定、
+            # 只切 tier_combo_hits(None vs hits)→ 各檔位峰數逐一相同 = count 機制未外洩到 squash。
+            # (不比「跨檔位不變」,因 squash scaleX 隨幅度增益跨門檻 → 那是 J 幅度軸,非 J-2 count 軸。)
+            no_hits = [_min_peaks(amp_only["{}__{}".format(beat, t)]) for t in TIERS]
+            wi_hits = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
+            if no_hits != wi_hits:
+                leak.append((beat, cat, {"no_hits": no_hits, "with_hits": wi_hits}))
             continue
         counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
         if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同

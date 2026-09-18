@@ -326,6 +326,23 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_coupled_amplify", "squash 接檔位差異化(G-4''''',體積守恆耦合放大)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(『squash 未接 tier,需耦合 amplify』)。squash 的 scale 是**體積守恆對**"
+                     "(scaleX=1+q 拉長、scaleY=1/(1+q) 壓扁,scaleX·scaleY==1);沿用 (J) 的 `_amp_scale`(兩軸各自獨立、只放大 identity 上方 → "
+                     "scaleX 變大而 scaleY<1 樓地板不動)會**破壞體積守恆**(積≠1)—— 這正是 G-4'''' 把 squash 排除在 MAIN_SHOW_CATS 外的原因。"
+                     "本 cap 加**耦合放大** `_amp_scale_pair`:偵測 squash 對(異側 + 積≈1)後放大拉長量 q→g·q、另一軸取倒數 → **保 scaleX·scaleY==1**;"
+                     "等比對(x==y)與一般 overshoot(積≠1)不觸發耦合 → 逐位元同 (J) 舊行為(向後相容)。squash 併入 MAIN_SHOW_CATS,`build_spine "
+                     "--tier-variants` 直出 squash__{tier}(斜拉+擠壓強度隨檔位遞增而面積始終守恆)。與幅度(J)/shear(G-4'')/段數(G-4''')同軸族,"
+                     "又一『檔位機制就緒 ≠ 每個新通道接上』實例。validate_squash_tier.py 5AC PASS(ST1 present+backward-compat 每檔位產 squash__tier "
+                     "finite/有 bone/帶 shear+scale 雙通道・base 逐位元不變・Super 變體逐位元==base/ST2 crux 峰 |shearX| [16,21.6,27.2,33.6] 與峰非均勻 "
+                     "[0.298,0.394,0.486,0.588] 皆 Super<Mega<Omg<Legend 嚴格遞增・**每檔位每極值幀 |scaleX·scaleY−1|≤2e-2(放大後面積仍守恆)**/"
+                     "ST3 每檔位 shear 阻尼振盪 + squash 幅度嚴格遞減保形/ST4 耦合(shear+非均勻 scale)僅 squash 及其變體/ST5 負對照 平增益全 1.0→遞增 "
+                     "FALSE 且各檔位==base・**耦合放大 crux 單元守衛**:合成 squash 對 (1.16,0.8621) 耦合放大 g=2→scaleX 1.32 且積==1,舊式獨立放大積=1.32×"
+                     "0.8621≠1(vol_err 0.138)證耦合必要且正確・等比對耦合==獨立向後相容)。端到端 build_spine --tier-variants --shear-pivot 直出 squash__tier "
+                     "+ round-trip validate_build overall_pass(premult MAE 0.031)。回歸:squash_gen(G-4'''')/wobble_tier/wobble_count/tier_variants/"
+                     "tier_combo_count(K5c 改『對 tier_combo_hits 無感』隔離 count 機制)/全 shear/pivot/priors/beat 系列 18 閘全綠。"
+                     "honest:增益階梯數值仍 (J) PROPOSAL(結構簽章非美感);squash count-aware(擠壓段數隨檔位,nosc 已備參數)為後續;shearY≡0;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
