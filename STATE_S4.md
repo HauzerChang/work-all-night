@@ -7,6 +7,13 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 104(2026-09-18)**:排程第四十五次觸發(距 chunk 103 同日數小時)。重跑 chunk 103
+> 訂下的檢查:assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub 查證 issues 0 筆、
+> open PR 仍只有同一筆 `#3`(與 S4 無關,無新活動);三項懸而未決仍無使用者輸入。**結論與
+> chunk 103 相同:無新工作塊**,事實無變化。依 chunk 103 留下的「除非有新事實否則不重複
+> 通知」慣例,**本次不重複發送通知**(chunk 103 已通知過,使用者尚未回應;16 天/44 次的
+> 事實本身已於 chunk 103 完整說明過)。未動任何 production 代碼。見 `log/s4-2026-09-18-104.md`。
+>
 > **chunk 103(2026-09-18)**:排程再次觸發。重跑同一輪檢查:(1) `git log --oneline --all -- assets/`
 > 確認自 chunk 41 起仍無新素材(最後改動仍是 chunk 52 決策檔框修正,`763c112`);(2) GitHub
 > open issues 0、open PRs 仍為同一筆 `#3 drop-to-web skill v2`(與 S4 無關,不處理);(3) 三項
