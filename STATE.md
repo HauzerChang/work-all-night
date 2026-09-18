@@ -10,6 +10,35 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 squash 擠壓強度隨檔位遞增(耦合 amplify 保體積守恆)(里程碑,2026-09-18,candidate G-4''''')** —
+  補 (G-4'''') 的 honest boundary(**squash 未接 tier**)。squash(斜拉果凍擠壓)產耦合 shear + 體積守恆非均勻
+  scale,但一直**不在 `MAIN_SHOW_CATS`**:因 (J) 的 scale 幅度增益 `_amp_scale` **只放大 identity 上方 overshoot、
+  下方樓地板不動**(保 anticipation/collapse 語意),對 squash 會把 `scaleX`(>1)放大卻讓 `scaleY`(<1)樓地板
+  不動 → **破壞體積守恆**(`scaleX·scaleY≠1`;實測對真實 base squash 極值以 Legend g=2.1 放大 max|積−1|=**0.152**
+  ≫ 容忍 0.02)。**關鍵解法:體積守恆量的正確放大在對數應變空間** —— 設 σ=ln(scaleX)(對數應變),體積守恆即
+  σ+(−σ)=0;把擠壓變強 g 倍 = 把 σ 放大 g 倍 ⇒ `_amp_scale_coupled(v,g)=v**g`(scaleX'=(1+q)^g、scaleY'=(1+q)^(−g)),
+  乘積 (scaleX·scaleY)^g≡1(**仍守恆**)、非均勻 |scaleX'−scaleY'| 隨 g **單調遞增**(擠壓更強)、identity v=1→1^g=1
+  (介面保持)、g=1→v(Super 向後相容)。全 additive:`tier_variants.py` 加 `_amp_scale_coupled` + `amplify_bone_tl/anim(coupled_scale=)`
+  旗標 + `COUPLED_SCALE_CATS={squash}` + squash 併入 `MAIN_SHOW_CATS`;`gen_animations.build_animations` 對 squash
+  傳 `coupled_scale=True`。shear 通道沿用 (G-4'') `v'=g·v`(shear 峰亦隨檔位遞增)。整合閘 `validate_squash_tier.py`
+  (先驗庫→**真實 build_spine robot 骨架**→build_animations(tier_gains))**5 AC 全 PASS**:ST1 present+backward-compat
+  (每檔位 `squash__{tier}` finite/dual-channel(shear+scale)、名路由回 squash、**base 逐位元不變**)、ST2 **crux** 體積
+  守恆跨檔位(每檔位每極值 |scaleX·scaleY−1|≤0.02,實測 ≤8e-5)、ST3 **crux** 強度遞增(非均勻峰
+  [0.298,0.403,0.510,0.633]+shear 峰 [16,21.6,27.2,33.6]° 皆嚴格遞增、Super==base)、ST4 每檔位 identity 介面
+  +shear 阻尼振盪+squash 幅度遞減皆保形、ST5 負對照(a 平增益→兩峰遞增 FALSE、**b 耦合必要性 crux**:舊 `_amp_scale`
+  以 Legend g 放大真實極值 → vol_err 0.152>0.02 **破壞**、`_amp_scale_coupled` → 0.0001 **守恆**且非均勻更大 —— 直接
+  證耦合 amplify 是修正、普通樓地板 amplify 會壞、c 耦合 scale 只作用 squash(squash 樓地板被同比壓低・非-squash
+  scale 節拍 <1 樓地板各檔位恆定)、d 加性零回歸)。端到端 `build_spine --animate --tier-variants --shear-pivot` 直出
+  squash__{Super,Mega,Omg,Legend}(shear-pivot densify 線性內插**中間幀** product 略偏 ≤1.5%,同 G-4'''' base squash,
+  屬 Spine 線性內插固有非回歸;**體積守恆是關鍵幀性質**,ST2 於極值量測),`validate_build` round-trip overall_pass
+  (premult MAE 0.031)。**回歸 18 閘全綠**:squash_tier(新)+ squash_gen/shear_gen/wobble_tier/wobble_count/
+  shear_pivot/scale_pivot/pivot_rotation/tier_variants/**tier_combo_count**(K5c 隔離判準改「非-combo 檔位變體 full==amp_only
+  逐位元」,免 squash 幅度跨 IMPACT_PROM 門檻使 `_min_peaks` 假陽——更精準)/cascade/more_beats/beat_templates/
+  deform_gen/priors/priors_beats/priors_combo_charge/priors_cascade。新增 cap `squash_tier_amplitude` L2 併入
+  `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。**關鍵發現:體積守恆量的正確放大 = 對數
+  應變空間同比(power),非線性樓地板** —— 守恆量的「變強」必須在其守恆的座標(log-strain)裡做。**honest boundary
+  (仍在)**:幅度階梯沿用 (J) 增益(PROPOSAL,手感 A 類);shearY≡0;squash **count-aware**(擠壓段數隨檔位,
+  `nosc` 已備參數,比照 G-4''')為後續。見 `knowledge/s1-squash-tier-amplitude.md`、圖 `knowledge/figures/s1_squash_tier.png`。
 - **S1 生成器產耦合 shear + 非均勻 scale(體積守恆擠壓)端到端(里程碑,2026-09-12,candidate G-4'''')** —
   補一路(G-4/G-4')留到現在的 honest boundary(**`shearY≡0`、斜拉 squash(shear+coupled scale)為後續**)。
   **關鍵:純 shear(G-4' wobble)只是相似變換特例(等距+skew);shear+非均勻 scale 才是真正的一般仿射**。
@@ -566,10 +595,12 @@
 > **(G-4'''') ~~產 shearY / 斜拉 squash(shear+coupled scale 雙通道耦合)~~ ✅ 完成(2026-09-12,candidate G-4'''',`squash_shear_scale_coupling` L2,見上里程碑)** ——
 >   `gen_squash`(shearX 阻尼擺 + 體積守恆非均勻 scale squash)第一個同時產 shear+非均勻 scale;`--shear-pivot`
 >   端到端一般仿射 pivot 不動;`validate_squash_gen.py` 6AC(SQ3 體積守恆耦合、SQ5 一般仿射殘差 <0.02px、SQ6 兩條件獨立守衛)。
+> **(G-4''''') ~~squash 接 tier 檔位差異化(耦合 amplify 保體積守恆)~~ ✅ 完成(2026-09-18,candidate G-4''''',`squash_tier_amplitude` L2,見上里程碑)** ——
+>   `_amp_scale_coupled(v,g)=v**g`(對數應變空間同比放大 → (scaleX·scaleY)^g≡1 守恆、非均勻隨 g 遞增)+ `COUPLED_SCALE_CATS={squash}`
+>   + squash 併入 `MAIN_SHOW_CATS`;`validate_squash_tier.py` 5AC(ST2 crux 體積守恆跨檔位、ST3 crux 非均勻+shear 峰皆遞增、ST5b 耦合必要性:舊 `_amp_scale` 破壞守恆)。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4''''') squash 接 tier 檔位差異化(需**耦合 amplify**:scaleX/scaleY 一起以體積守恆放大,不破壞 scaleX·scaleY==1** —— `_amp_scale` 現只放大 identity 上方會破壞守恆,故 squash 未在 MAIN_SHOW_CATS);
->   或 squash count-aware(擠壓段數隨檔位,nosc 已備參數,比照 G-4''')**;
-> **(G-4'''''') 產 shearY(雙軸 shear)/ shear+scale+rotate 三通道同時的運動基元(真正塞滿一般仿射 M 的所有自由度)**;
+> **(G-4'''''') squash count-aware(擠壓段數隨檔位,`nosc` 已備參數,比照 G-4''';gen 時決定段數再疊耦合幅度增益,兩軸正交)**;
+> **(G-4''''''') 產 shearY(雙軸 shear)/ shear+scale+rotate 三通道同時的運動基元(真正塞滿一般仿射 M 的所有自由度)**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。

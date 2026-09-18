@@ -326,6 +326,23 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 擠壓強度隨檔位遞增(G-4''''',耦合 amplify 保體積守恆)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier)。G-4'''' 的 squash 產耦合 shear+體積守恆非均勻 scale,但一直"
+                     "不在 MAIN_SHOW_CATS —— (J) 的 scale 幅度增益 `_amp_scale` 只放大 identity 上方 overshoot、下方樓地板不動,對 squash 會把"
+                     "scaleX(>1)放大卻讓 scaleY(<1)不動 → **破壞體積守恆**(scaleX·scaleY≠1)。本 cap 替 squash 的 scale 通道改走**耦合 amplify** "
+                     "`_amp_scale_coupled`(對數應變空間同比放大:scaleX'=scaleX^g、scaleY'=scaleY^g → (scaleX·scaleY)^g≡1 **仍守恆**、非均勻 "
+                     "|scaleX'−scaleY'| 隨 g **單調遞增**),併 squash 入 MAIN_SHOW_CATS + 新增 COUPLED_SCALE_CATS={squash}(build_animations 依此路由);"
+                     "shear 通道沿用 (G-4'') v'=g*v(shear 峰亦隨檔位遞增)。**關鍵:體積守恆的正確放大在對數應變空間**(σ=ln(scaleX)、"
+                     "g·σ+g·(−σ)=0 → 守恆),普通線性樓地板 amplify 破壞守恆。validate_squash_tier.py 5AC PASS(ST1 present+backward-compat 每檔位 "
+                     "squash__tier finite/dual-channel/base 逐位元不變/ST2 crux 每檔位每極值 |scaleX·scaleY−1|≤0.02(實測 ≤8e-5)/ST3 crux 非均勻峰 "
+                     "[0.298,0.403,0.510,0.633]+shear 峰 [16,21.6,27.2,33.6]° 皆嚴格遞增·Super==base/ST4 每檔位 identity 介面+shear 阻尼+squash 幅度遞減保形/"
+                     "ST5 負對照:a 平增益→遞增 FALSE・b **耦合必要性 crux**:舊 _amp_scale 以 Legend g 放大真實極值 → vol_err 0.152>0.02 破壞、耦合 amplify "
+                     "0.0001 守恆且非均勻更大・c 耦合 scale 只作用 squash(squash 樓地板被同比壓低・非-squash scale 節拍 <1 樓地板各檔位恆定)・d 加性零回歸)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash__{Super,Mega,Omg,Legend}(shear-pivot densify 線性內插中間幀 "
+                     "product 略偏 ≤1.5%,同 G-4'''' base squash,屬 Spine 線性內插固有非回歸;體積守恆是關鍵幀性質,ST2 於極值量測),validate_build round-trip overall_pass。"
+                     "回歸:tier_combo_count(K5c 改 byte-identity 隔離,免 squash 幅度跨 IMPACT_PROM 門檻假陽)/wobble_count/wobble_tier/tier_variants/squash_gen/shear 系列/全 priors 18 閘全綠。"
+                     "關鍵發現:體積守恆量的正確放大 = 對數應變空間同比(power)非線性樓地板。honest:幅度階梯沿用 (J) 增益 PROPOSAL;shearY≡0;squash count-aware(擠壓段數隨檔位,nosc 已備)為後續。與 anim-forge 同 HOLD"),
         ],
     },
 ]
