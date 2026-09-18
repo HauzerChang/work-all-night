@@ -206,10 +206,14 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變。
+    # (G-4''''')squash 例外:其 scaleX 是**耦合體積守恆擠壓幅度**(隨檔位放大 → 邊界值跨過
+    # IMPACT_PROM 門檻使 impact_peaks 計數變動),非 combo 連擊 count;squash 恆 4 個擠壓極值
+    # (段數 gen 時固定),其檔位差異化(幅度+守恆)由 validate_squash_tier 專驗 → 此處排除
+    # (同 wobble_tier T4 以 SHEAR_CATS 排除 shear 產出者的作法)。
     leak = []
     for beat, cat in main_beats.items():
-        if cat == "combo":
+        if cat == "combo" or cat in TV.VOLUME_CONSERVING_CATS:
             continue
         counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
         if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同

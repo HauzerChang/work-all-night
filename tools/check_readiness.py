@@ -326,6 +326,22 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_coupled_amplify", "squash 接檔位差異化:體積守恆的耦合 amplify(G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier 幅度)。(J) 的增益 _amp_scale 只放大 identity **上方** overshoot,"
+                     "對等比 scale 正確、對 squash 的**體積守恆非均勻** scale 致命(scaleX>1 被放大、scaleY<1 當樓地板保留 → scaleX·scaleY≠1 "
+                     "破壞守恆)→ 當時 squash 刻意不在 MAIN_SHOW_CATS。本 cap 補上**耦合 amplify** _amp_scale_coupled:放大擠壓幅度 q'=g·q → "
+                     "scaleX'=1+g·q、**scaleY'=1/(1+g·q) 由 scaleX' 重生**(而非獨立放大)⇒ 放大後仍嚴格 scaleX'·scaleY'≡1 且非均勻;g=1 逐位元==base。"
+                     "幀依結構分流(|sx−sy|>ε ∧ |sx·sy−1|≤tol→耦合;等比/identity→退回 _amp_scale),build_animations 依 VOLUME_CONSERVING_CATS={squash} "
+                     "路由 coupled 旗標;shear 通道照 v'=g·v 與 scale 同 g → 兩通道放大後仍同源耦合。squash 併入 MAIN_SHOW_CATS(吃 shear+體積守恆 scale 兩幅度軸)。"
+                     "validate_squash_tier.py 5AC PASS(V1 present+backward-compat:每檔位帶 dual 通道・base 逐位元不變・squash__Super==base/"
+                     "V2 crux 雙軸單調:峰 |shearX| [16,21.6,27.2,33.6]° **且** 峰非均勻 [0.298,0.394,0.486,0.588] 皆 Super<Mega<Omg<Legend 嚴格遞增/"
+                     "V3 crux 每檔位每擠壓幀仍 scaleX·scaleY≈1(放大不破壞守恆)+非均勻+幅度遞減/V4 每檔位阻尼 shear 簽章保持/"
+                     "V5 負對照:平增益→兩軸單調 FALSE 且==base・**耦合必要性單元測** coupled 守恆積 [1.0,1.00004,0.99999,1.00001] vs 天真 _amp_scale 破壞積 [1.15,1.08,1.04,1.02])。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash__{4 檔位}(帶 pivot 補償),round-trip overall_pass。"
+                     "回歸 18 閘全綠(validate_tier_combo_count K5c 以 VOLUME_CONSERVING_CATS 排除 squash)。"
+                     "關鍵發現:體積守恆通道需自己的放大律(守恆是 scaleX/scaleY 的耦合約束,放大要『放大自由度 q、重生受約束量 scaleY』);"
+                     "『檔位機制就緒 ≠ 每通道接上』的新變種——卡點在規則語意非通道覆蓋。honest:squash count-aware(nosc)未接;shearY≡0;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
