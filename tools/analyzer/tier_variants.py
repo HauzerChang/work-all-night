@@ -94,6 +94,53 @@ def _amp_scale(v, g):
     return 1.0 + g * (v - 1.0) if v >= 1.0 else v
 
 
+# candidate G-4''''' — squash 的**耦合體積守恆**幅度增益(coupled amplify)。
+# squash 的 scale 是「非均勻但體積守恆」(scaleX=1+q、scaleY=1/(1+q)、scaleX·scaleY≡1);
+# 一般 `_amp_scale` 只放大 identity **上方**(scaleX>1 放大、scaleY<1 樓地板不動)→ 兩軸增益不對稱
+# → **破壞體積守恆**(放大後 scaleX·scaleY≠1),故 squash 不能走 `amplify_bone_tl`、不在 MAIN_SHOW_CATS
+# (見上 SHEAR_CATS 註)。這裡改對 scale 通道**耦合放大**:以 q=scaleX−1 為擠壓量(squash 恆 ≥0:拉長
+# X 壓 Y),q'=g·q → scaleX'=1+q'、scaleY'=1/(1+q') ⇒ 放大後 scaleX'·scaleY'≡1(**體積守恆對所有
+# 檔位保持**)且 scaleX'≠scaleY'(非均勻仍在);q=0 幀(首尾 identity)→ 仍 (1,1)(介面契約保持);
+# g=1.0 → 逐位元同 base(向後相容)。build_animations 對此集合的 beat 改走 `amplify_squash_anim`。
+COUPLED_AMP_CATS = {"squash"}
+
+
+def _amp_squash_scale(scale_x, g):
+    """squash scale 值的耦合體積守恆增益:回傳放大後 (scaleX', scaleY')。
+    以 q=scaleX−1 為擠壓量,q'=g·q → scaleX'=1+q'、scaleY'=1/(1+q')。
+    ⇒ scaleX'·scaleY'≡1(體積守恆)、q=0 → (1,1)(identity 保持)、g=1 → 同輸入(byte-identical)。"""
+    qg = g * (scale_x - 1.0)
+    return round(1.0 + qg, 4), round(1.0 / (1.0 + qg), 4)
+
+
+def amplify_squash_bone_tl(b, g):
+    """對 squash bone timeline 套**耦合體積守恆**幅度增益 g(deepcopy,保留曲線鍵)。
+    scale 通道耦合放大(見 `_amp_squash_scale`,scaleY 由放大後的 q 重算 → 嚴格守恆);
+    shear/rotate/translate 對 0 對稱 v'=g·v(同 `amplify_bone_tl`,阻尼/簽章保形)。g=1.0 → identity 變換。"""
+    b = copy.deepcopy(b)
+    for f in b.get("scale", []):
+        f["x"], f["y"] = _amp_squash_scale(f["x"], g)
+    for f in b.get("rotate", []):
+        f["angle"] = round(g * f["angle"], 3)
+    for f in b.get("translate", []):
+        f["x"] = round(g * f["x"], 3)
+        f["y"] = round(g * f["y"], 3)
+    for f in b.get("shear", []):
+        f["x"] = round(g * f["x"], 4)
+        f["y"] = round(g * f["y"], 4)
+    return b
+
+
+def amplify_squash_anim(anim, g):
+    """對整支 squash beat 套耦合體積守恆幅度增益 g:bones 耦合放大、slots(color/alpha)原樣保留。"""
+    out = {}
+    if "bones" in anim:
+        out["bones"] = {bn: amplify_squash_bone_tl(b, g) for bn, b in anim["bones"].items()}
+    if "slots" in anim:
+        out["slots"] = copy.deepcopy(anim["slots"])
+    return out
+
+
 def amplify_bone_tl(b, g):
     """對單一 bone timeline 套幅度增益 g(deepcopy,保留曲線鍵)。g=1.0 → identity 變換。"""
     b = copy.deepcopy(b)

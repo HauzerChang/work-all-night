@@ -326,6 +326,21 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位幅度差異化(G-4''''',耦合體積守恆放大:擠壓量 q 與 shear 峰隨檔位遞增)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 明列的 honest boundary(squash 未接 tier 幅度)。squash 的另一半幅度軸在**非均勻 scale**(scaleX=1+q、"
+                     "scaleY=1/(1+q)、scaleX·scaleY≡1);一般 _amp_scale 只放大 identity 上方(scaleX>1 放大、scaleY<1 樓地板不動)→ 兩軸增益不對稱 → "
+                     "**破壞體積守恆**,故 squash 當時無法進 MAIN_SHOW_CATS。本 cap 對 scale 通道**耦合放大**(_amp_squash_scale:q=scaleX−1、q'=g·q → "
+                     "scaleX'=1+q'、scaleY'=1/(1+q'))⇒ 放大後 scaleX'·scaleY'≡1(**體積守恆對所有檔位保持**)且非均勻仍在;shear 通道同 wobble(v'=g·v)。"
+                     "squash 因需耦合 amplify 故不入 MAIN_SHOW_CATS,改由 tier_variants.COUPLED_AMP_CATS 集合在 build_animations 路由到 amplify_squash_anim(與 J 的 "
+                     "amplify_anim 互斥)。從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_squash_tier.py 5AC PASS"
+                     "(S1 present+backward-compat:base 逐位元不變、每檔位變體帶 shear+scale 雙通道/S2 crux 擠壓量 q 峰 Super0.16<Mega0.216<Omg0.272<Legend0.336 "
+                     "嚴格遞增·Super==base/S3 crux 體積守恆@所有檔位:每極值 |scaleX·scaleY−1|≤5e-5+非均勻峰≥0.05+首尾 identity 介面/S4 shear 峰 16→33.6° 亦遞增"
+                     "+每檔位阻尼簽章保形/S5 負對照:平增益守衛+**破壞守恆守衛**(一般 amplify_bone_tl 對 squash bone 體積 err 0.152≫TOL vs 耦合 amplify err 4e-5 → "
+                     "證耦合 amplify 必要且閘抓得到破壞))。**關鍵:squash 幅度=雙軸(shear+非均勻 scale)一起以體積守恆放大**——完成 squash 的『幅度軸』(結構軸=count-aware "
+                     "nosc 為後續,比照 G-4''')。回歸:validate_squash_gen(G-4'''')/wobble_tier(T4 SHEAR_CATS 認定)/tier_variants(J,squash 不在 MAIN_SHOW 故不受擾)/"
+                     "wobble_count/tier_combo_count/shear_gen/全 priors/beat/pivot 系列 16 閘全綠。honest:增益階梯沿用 (J) 幅度增益(PROPOSAL,手感留使用者 A 類);"
+                     "shearY≡0;squash count-aware nosc 未接(參數已備);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
