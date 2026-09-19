@@ -326,6 +326,21 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位差異化:體積守恆耦合 amplify(G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 明列的 honest boundary(「squash 未接 tier,需耦合 amplify」)。squash 的 scale 是**體積守恆耦合對**"
+                     "(scaleX=1+q、scaleY=1/(1+q)、scaleX·scaleY==1);(J) 天真 _amp_scale(只放大 identity 上方 overshoot、scaleY<1 樓地板不動)"
+                     "對 squash 會**放大 scaleX 卻保留 scaleY → 破壞體積守恆**(Legend 首極值積 1.135,偏離 1 達 0.135 ≫ TOL_VOL 0.02)。"
+                     "解法=**耦合 amplify**(_amp_scale_coupled):擠壓量 q=scaleX−1 隨檔位放大(scaleX'=1+g·q)、另一軸由守恆**解出** scaleY'=1/scaleX' "
+                     "⇒ **放大後每幀仍 scaleX·scaleY==1**、identity(q=0)仍 (1,1)。全 additive、依 cat 路由:新增 tier_variants.VOLUME_CONSERVING_CATS={squash}、"
+                     "squash 併入 MAIN_SHOW_CATS,build_animations 對主秀 beat 產變體時 coupled=cat∈VOLUME_CONSERVING_CATS(squash 走耦合、其餘走原 per-component 零回歸)。"
+                     "build_spine --animate --tier-variants --shear-pivot 直出 squash__{Super,Mega,Omg,Legend}。validate_squash_tier.py 5AC PASS"
+                     "(ST1 present+backward-compat/ST2 crux 擠壓峰 |scaleX−1| [0.16,0.216,0.272,0.336]・非均勻 [0.298,0.394,0.486,0.588]・shear [16,21.6,27.2,33.6]° 三峰皆嚴格遞增+Super==base/"
+                     "ST3 crux 每檔位每擠壓極值 |scaleX·scaleY−1|<1e-4≤TOL_VOL+非均勻≥MIN_ANISO+擠壓幅度遞減/ST4 identity 介面+阻尼振盪保形/"
+                     "ST5 (a)平增益守衛→遞增 FALSE 且==base・**(b)耦合守衛=真實 Legend 變體耦合 9.7e-5 vs 天真 0.152 破壞守恆→證耦合 load-bearing**・(c)耦合單元測)。"
+                     "回歸修正 validate_tier_combo_count K5(c) 改 driver-aware(比對 full vs amp_only 逐位元,不被 squash scaleX 振幅跨 impact 閾值誤判)。16 閘全綠+round-trip validate_build overall_pass。"
+                     "關鍵發現:**體積守恆節拍的檔位放大必須「耦合」**(守恆=兩軸乘積約束,per-component 天生破壞;放大一自由度、另一由約束解出)。"
+                     "honest:squash 段數 nosc 未接 count-aware(參數已備,比照 G-4''');shearY≡0;擠壓幅度階梯為 PROPOSAL(手感留使用者 A 類)。與 anim-forge 同 HOLD"),
         ],
     },
 ]

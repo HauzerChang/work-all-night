@@ -206,14 +206,19 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:tier_combo_hits 對非-combo 主秀 beat **零影響**。
+    # 判準改為「full(帶 counts)與 amp_only(同 gains 無 counts)對非-combo 變體逐位元相同」——
+    # 直接隔離「連擊數」驅動效果。舊判準「各檔位峰數不變」會被**振幅**效果誤判:(G-4''''')squash 走
+    # 耦合 amplify,scaleX 隨檔位變大會跨過 impact 峰 prominence 閾值 → 峰「數」看似隨檔位變(0→1),
+    # 但那是幅度非連擊數(driver-aware,同 J3 channel-aware 修正精神)。
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vk = "{}__{}".format(beat, t)
+            if json.dumps(full[vk], sort_keys=True) != json.dumps(amp_only[vk], sort_keys=True):
+                leak.append((beat, cat, t))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 
