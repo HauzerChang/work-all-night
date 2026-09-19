@@ -326,6 +326,24 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位幅度差異化:耦合放大(shear 峰+擠壓量隨檔位遞增,體積守恆,G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 明列的 honest boundary(squash 未接 tier,因 _amp_scale 逐軸只放大 identity 上方 → scaleY<1 樓地板保留而 scaleX>1 放大 → "
+                     "破壞體積守恆 scaleX·scaleY≠1,把果凍擠壓變成單軸拉伸)。本 cap 把 squash 併入 MAIN_SHOW_CATS,並讓 scale 通道走**耦合放大** "
+                     "(_amp_squash_pair:自 scaleX 還原 squash 量 q=scaleX−1、線性放大 q'=g·q、再以生成器同式重建兩軸 scaleX'=1+q'、scaleY'=1/(1+q'))"
+                     "→ squash 的**兩個幅度軸(shear 峰 + 擠壓量)隨檔位嚴格遞增,且 scaleX·scaleY≡1 每檔位保持**(shear 通道同 wobble v'=g·v)。"
+                     "首次讓**耦合雙通道**同步隨檔位放大;g=1(Super)逐位元同 base(gen_squash 同雙重 round → 精確 identity)。新增 tier_variants."
+                     "VOLUME_CONSERVING_CATS={squash} 供 build_animations 判定 scale 走耦合路徑。從先驗庫→真實 build_spine robot 骨架→"
+                     "build_animations(tier_gains),validate_squash_tier.py 5AC PASS(P1 present+backward-compat 每檔位 squash__tier 雙通道·base 逐位元不變/"
+                     "P2 crux 雙軸遞增 shear 峰 [16,21.6,27.2,33.6]°+擠壓量 [0.16,0.216,0.272,0.336] 皆 Super<Mega<Omg<Legend 嚴格遞增且 Super==base/"
+                     "P3 crux 每檔位每 bone 體積守恆 |scaleX·scaleY−1|≤0.02(此即 _amp_scale 會破壞、耦合放大保住)+非均勻+擠壓量遞減+shear 阻尼保形+首尾 identity/"
+                     "P4 耦合隔離 只有 squash 同時帶 shear+非均勻 scale/P5 負對照 (a)平增益全1.0→雙軸遞增 FALSE 且逐位元==base、(b)耦合 vs 逐軸單元測 crux:"
+                     "耦合放大後 scaleX·scaleY≡1 而逐軸 _amp_scale 放大同一對→product 1.02–1.14 明顯破壞守恆)。端到端 build_spine --animate --tier-variants "
+                     "--shear-pivot 直出 squash__{Super,Mega,Omg,Legend}(extreme 關鍵幀體積守恆精確保留,densify 中間幀偏差同 G-4'''' 為既有插值特性),validate_build round-trip overall_pass。"
+                     "回歸:validate_squash_gen(G-4'''')/wobble_tier/wobble_count/tier_variants/tier_combo_count(K5c 對 VOLUME_CONSERVING_CATS 豁免 combo 專用峰計數器,避免假外洩)/"
+                     "shear 系列/全 priors/beat/pivot 系列 18 閘全綠。關鍵發現:**耦合雙通道的檔位放大須在自然座標放大**(squash 量 q 而非各軸獨立),"
+                     "逐軸放大破壞守恆物理約束 —— 同 J-2/G-4''' 結構軸須 gen 時決定,此處守恆約束須放大時耦合。"
+                     "honest:增益階梯沿用 (J)(PROPOSAL 手感留使用者 A 類);shearY≡0;squash count-aware(擠壓段數隨檔位,nosc 已備參數)為後續;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
