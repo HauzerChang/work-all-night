@@ -206,14 +206,20 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:加 `tier_combo_hits` 對**非-combo** 主秀 beat 變體零影響。
+    #   判準 = full(tier_gains + tier_combo_hits)與 amp_only(tier_gains-only)的非-combo 變體**逐位元相同**。
+    #   (前版用 `_min_peaks`=impact 峰數當探針,但 impact_peaks 是 **combo 專屬**度量;squash/wobble 加入
+    #    MAIN_SHOW_CATS 後,其**幅度**檔位差異化(J 軸,scaleX 隨檔位放大)會跨過 impact prominence 門檻 →
+    #    峰數在各檔位不同,造成**假陽性**。改比 full vs amp_only 逐位元:直接測「combo 連擊數機制是否外洩」,
+    #    與其他節拍用什麼通道無關,無探針假影。)
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vk = "{}__{}".format(beat, t)
+            if json.dumps(full.get(vk), sort_keys=True) != json.dumps(amp_only.get(vk), sort_keys=True):
+                leak.append((beat, cat, t))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 
