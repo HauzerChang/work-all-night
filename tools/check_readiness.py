@@ -326,6 +326,22 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位幅度差異化(G-4''''',體積守恆耦合 amplify:log 空間 v^g)", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的第一個 honest boundary(『squash 未接 tier(需耦合 amplify)』)。G-4'''' 的 gen_squash 產耦合 shear+非均勻 scale,"
+                     "但 squash **不在** MAIN_SHOW_CATS —— (J) 舊 _amp_scale(只放大 identity 上方、下方樓地板不動)會把 scaleX>1 放大而 scaleY<1 不動 → "
+                     "**破壞體積守恆**(積誤差達 0.15)。本 cap 讓 squash 的 scale 走 **log 空間耦合放大 v'=v^g**:兩軸同以 g 次冪放大 ⇒ 積 (scaleX·scaleY)^g=1^g=1"
+                     "(**守恆對任意 g 保持、與哪軸拉長無關**)、非均勻 |sx−sy| 隨檔位遞增、identity(1)→1^g==1 不動、g=1.0 逐位元不變。shear 沿用 (G-4'') v'=g*v → "
+                     "**shear 峰與 squash 非均勻峰同隨檔位遞增(雙通道耦合放大)**,阻尼振盪+體積守恆兩簽章每檔位保形。接線:MAIN_SHOW_CATS 加 squash、新增 "
+                     "VOLUME_CONSERVING_CATS、amplify_bone_tl/amplify_anim 加 coupled_scale、build_animations 依 cat 路由。validate_squash_tier.py(先驗庫→真實 "
+                     "build_spine robot 骨架→build_animations(tier_gains))6AC PASS(V1 present+backward-compat 每檔位 squash__tier 雙通道·base 逐位元不變/"
+                     "V2 crux shear 峰 [16,21.6,27.2,33.6]° **且** 非均勻峰 [0.30,0.40,0.51,0.63] 皆嚴格遞增·Super==base/V3 crux 每檔位每極值 |scaleX·scaleY−1|≤TOL_VOL"
+                     "(耦合放大不破壞守恆)+阻尼保形/V4 identity 介面每檔位/V5 負對照:平增益全1.0→遞增 FALSE·**耦合必要性守衛**同一 scale 套舊 _amp_scale(g=2.1)→"
+                     "守恆 FALSE(誤差 0.152)、套 _amp_scale_coupled→守恆 TRUE(1e-4)證舊 amplify 不可沿用·通道隔離/V6 crux 端到端 --tier-variants --shear-pivot "
+                     "放大後變體(含最爆 Legend)pivot 殘差 0.018–0.084px vs 負對照 72px >800×)。18 閘全綠+round-trip overall_pass。回歸修:tier_combo_count K5c "
+                     "改用 full vs amp_only 逐位元隔離(對 squash 等非-scale-overshoot 節拍穩健,原 _min_peaks 啟發式對 squash 誤判)。**關鍵發現:log 空間放大是"
+                     "體積守恆對的自然保形操作 —— 加入檔位機制要先問簽章在哪個代數群下保形(平移/旋轉/純 shear 在加法群 g*v,體積守恆 scale 在乘法群 v^g);選錯放大算子就破壞簽章**。"
+                     "honest:squash count-aware(段數隨檔位)未接、shearY≡0、增益階梯 PROPOSAL、單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
