@@ -31,7 +31,11 @@ import copy
 # candidate (G-4'') — 加入 `wobble`(斜拉 jelly wobble,G-4' 的 shear 通道節拍):
 # 它是主秀節拍,強度理應隨檔位遞增,但幅度軸在 **shear** 而非 scale/rotate,
 # 故 `amplify_bone_tl` 需一併放大 shear 通道(對 0 對稱 → v'=g*v,同 rotate/translate)。
-MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble"}
+# candidate (G-4''''') — 加入 `squash`(斜拉果凍擠壓,shear + 耦合非均勻 scale 的體積守恆節拍):
+# 亦主秀節拍,強度應隨檔位遞增。但其幅度軸同時在 **shear**(可直接 v'=g*v)與 **體積守恆 scale pair**
+# —— 後者不能逐軸放大(拉長軸 scaleX>1 會被放大、壓扁軸 scaleY<1 被 `_amp_scale` 保留 → 破壞
+# scaleX·scaleY==1),必須**耦合 amplify**(見 COUPLED_SCALE_CATS / `_amp_scale_pair`)。
+MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble", "squash"}
 
 # candidate J-2 / G-4''' — 依檔位可變「段數」的類別(結構性差異化,非只幅度)。
 # combo 的 impact 峰**數**、wobble 的振盪**段數**隨檔位遞增;需在 gen 時把段數帶進生成器
@@ -43,9 +47,17 @@ COUNT_AWARE_CATS = {"combo", "wobble"}
 # squash 加入後(shear + 耦合非均勻 scale 的體積守恆擠壓)成為第二個 shear 產出者。
 # 各 shear-isolation 閘(shear_gen W5b / wobble_tier T4)以此集合認定「合法 shear 產出者」,
 # 集中一處便於後續再加(避免每加一個 shear 節拍就改多個閘的硬編碼 'wobble')。
-# 注意:squash **不在** MAIN_SHOW_CATS —— 其 scaleY<1(壓扁)樓地板會被 `_amp_scale` 保留而 scaleX>1
-# 被放大 → 破壞體積守恆(scaleX·scaleY≠1);squash 的檔位差異化需**耦合 amplify**(honest boundary,後續)。
+# (G-4''''')squash 已接檔位幅度差異化(在 MAIN_SHOW_CATS)且以耦合 amplify(COUPLED_SCALE_CATS)
+# 放大擠壓量而不破壞 scaleX·scaleY==1;shear 通道則同 wobble 走 v'=g*v。
 SHEAR_CATS = {"wobble", "squash"}
+
+# candidate G-4''''' — scale 通道需**耦合 amplify** 的節拍類別(體積守恆 squash pair)。
+# 一般 scale 節拍(hit/combo/charge…)逐軸 `_amp_scale`(只放大 identity 上方 overshoot);
+# 但 squash 的 scale 是 (scaleX=1+q, scaleY=1/(1+q)) 的**體積守恆 pair**,逐軸放大會破壞守恆
+# (拉長軸放大、壓扁軸樓地板不動 → 積≠1)。故這些類別的 scale 走 `_amp_scale_pair`:放大擠壓量 q
+# 於拉長軸(1+g·q,與 `_amp_scale` 對 overshoot 同式),另一軸取倒數還原守恆(1/(1+g·q))。
+# shear 通道仍走 v'=g*v(與 wobble 同)—— squash 兩通道同檔位增益 g 一起放大(耦合擠壓 + 斜拉)。
+COUPLED_SCALE_CATS = {"squash"}
 
 # 檔位 → 主秀幅度增益(**嚴格遞增**;base=Super=1.0 → 向後相容逐位元不變)。
 # 增益上界經檢核:最大 role peak(特效 1.35 → q=0.35)在 Legend g=2.1 下 → 1.735(無翻面);
@@ -94,12 +106,42 @@ def _amp_scale(v, g):
     return 1.0 + g * (v - 1.0) if v >= 1.0 else v
 
 
-def amplify_bone_tl(b, g):
-    """對單一 bone timeline 套幅度增益 g(deepcopy,保留曲線鍵)。g=1.0 → identity 變換。"""
+def _amp_scale_pair(scx, scy, g):
+    """candidate G-4''''' — **耦合** scale 幅度增益:放大體積守恆 squash pair 的擠壓量,
+    而**不破壞** scaleX·scaleY==1。
+
+    squash 的每個極值幀 = (scaleX=1+q, scaleY=1/(1+q)),q=拉長量、體積守恆(積≡1)、非均勻。
+    擠壓量 q 取**拉長軸**(值較大者)之 (v−1),放大成 g·q → 拉長軸 = 1+g·q(與 `_amp_scale` 對
+    overshoot 完全同式),另一軸取倒數還原守恆 = 1/(1+g·q)。⇒
+      ① identity(1,1)→ 不變(g 無關,首尾介面契約對所有檔位保形);
+      ② scaleX·scaleY≡1 逐檔位保持(耦合 → 體積守恆簽章不被檔位放大破壞,這是 crux);
+      ③ 擠壓幅度(aniso / |scaleX−1|)隨 g 單調變大(檔位簽章);
+      ④ 各極值 q_i=Q·rⁱ → 放大後 g·q_i 仍嚴格遞減(阻尼簽章保形,共同正因子 g)。
+    純均勻 scale(scx==scy,含 identity)→ 退回逐軸 `_amp_scale`(非 squash pair,不強加耦合)。
+    數值一律 round 到 4 位(對齊 `gen_squash`/`_amp_scale` 的 scale 精度 → g=1.0 時逐位元 == base;
+    4 位下 |scaleX·scaleY−1| ≲ 1e-4,遠在體積守恆容差 TOL_VOL=0.02 內)。"""
+    if abs(scx - scy) < 1e-9:            # 均勻(含 identity):非 squash pair,逐軸處理
+        return round(_amp_scale(scx, g), 4), round(_amp_scale(scy, g), 4)
+    if scx >= scy:                        # x 為拉長軸
+        nx = 1.0 + g * (scx - 1.0)
+        return round(nx, 4), round(1.0 / nx, 4)
+    ny = 1.0 + g * (scy - 1.0)            # y 為拉長軸
+    return round(1.0 / ny, 4), round(ny, 4)
+
+
+def amplify_bone_tl(b, g, coupled_scale=False):
+    """對單一 bone timeline 套幅度增益 g(deepcopy,保留曲線鍵)。g=1.0 → identity 變換。
+
+    `coupled_scale`(G-4''''')=True 時,scale 幀以 `_amp_scale_pair` **耦合**放大(體積守恆 squash pair,
+    見 COUPLED_SCALE_CATS);預設 False → 逐軸 `_amp_scale`(一般主秀節拍的 overshoot 樓地板規則)。"""
     b = copy.deepcopy(b)
-    for f in b.get("scale", []):
-        f["x"] = round(_amp_scale(f["x"], g), 4)
-        f["y"] = round(_amp_scale(f["y"], g), 4)
+    if coupled_scale:
+        for f in b.get("scale", []):
+            f["x"], f["y"] = _amp_scale_pair(f["x"], f["y"], g)
+    else:
+        for f in b.get("scale", []):
+            f["x"] = round(_amp_scale(f["x"], g), 4)
+            f["y"] = round(_amp_scale(f["y"], g), 4)
     for f in b.get("rotate", []):
         f["angle"] = round(g * f["angle"], 3)
     for f in b.get("translate", []):
@@ -114,11 +156,12 @@ def amplify_bone_tl(b, g):
     return b
 
 
-def amplify_anim(anim, g):
-    """對整支 beat animation 套幅度增益 g:bones 幅度放大、slots(color/alpha)原樣保留。"""
+def amplify_anim(anim, g, coupled_scale=False):
+    """對整支 beat animation 套幅度增益 g:bones 幅度放大、slots(color/alpha)原樣保留。
+    `coupled_scale`(G-4''''')轉傳給 `amplify_bone_tl`(squash 等體積守恆 pair 用耦合放大)。"""
     out = {}
     if "bones" in anim:
-        out["bones"] = {bn: amplify_bone_tl(b, g) for bn, b in anim["bones"].items()}
+        out["bones"] = {bn: amplify_bone_tl(b, g, coupled_scale) for bn, b in anim["bones"].items()}
     if "slots" in anim:
         out["slots"] = copy.deepcopy(anim["slots"])
     return out

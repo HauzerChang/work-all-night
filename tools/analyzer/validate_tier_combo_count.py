@@ -206,14 +206,19 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:對非-combo 主秀 beat,加不加 `tier_combo_hits` 逐位元不變。
+    # ⚠️ 不可用「各檔位峰數相同」判斷 —— 其他主秀節拍(如 G-4''''' squash)的 scale 幅度本就隨檔位
+    # 遞增(tier_gains 效果),其 overshoot 峰會在高檔位跨過 impact 峰偵測門檻 → 那是**幅度軸**造成、
+    # 非 combo 連擊數外洩。正解:比較 full(gains+combo_hits) vs amp_only(gains-only)—— 兩者對非-combo
+    # beat 若逐位元相同,即證 `tier_combo_hits` 未外洩到 combo 以外(把連擊數效果與幅度效果分離)。
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vk = "{}__{}".format(beat, t)
+            if json.dumps(full.get(vk), sort_keys=True) != json.dumps(amp_only.get(vk), sort_keys=True):
+                leak.append((vk, cat))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 

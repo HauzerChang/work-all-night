@@ -326,6 +326,19 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_coupled_amplify", "squash 接檔位差異化:耦合 amplify(擠壓量+shear 峰隨檔位遞增,體積守恆不破)(G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier:_amp_scale 逐軸放大會破壞 scaleX·scaleY==1)。把 squash 併入 "
+                     "MAIN_SHOW_CATS,並引入 **耦合 amplify**(COUPLED_SCALE_CATS/`_amp_scale_pair`):放大擠壓量 q 於拉長軸(1+g·q,與 _amp_scale 對 "
+                     "overshoot 同式)、另一軸取倒數還原守恆(1/(1+g·q))⇒ 擠壓幅度(aniso)與 shear 峰**同檔位增益 g 一起隨檔位嚴格遞增**,而**體積守恆 "
+                     "scaleX·scaleY==1 逐檔位保持**(crux)。squash 是**首個需耦合放大**的主秀節拍(shear 走 v'=g*v、scale pair 走耦合)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_squash_tier.py 5AC PASS(Q1 present+backward-compat:base "
+                     "逐位元不變、每檔位帶 shear+非均勻 scale/Q2 crux dual-channel:shear 峰[16,21.6,27.2,33.6]°+aniso[0.30,0.39,0.49,0.59] 皆嚴格遞增·Super==base/"
+                     "Q3 crux 逐檔位體積守恆:每極值幀 |scaleX·scaleY−1|≤2e-2(實測~1e-4)+非均勻+阻尼遞減/Q4 identity 介面(首尾 scale(1,1)+shear 0)/"
+                     "Q5 負對照:平增益守衛+**naive-amplify 守衛**(逐軸 coupled_scale=False→積偏 1.15 破壞守恆·耦合維持 1.0 → 證耦合必要且閘測得出差異)+耦合單元測)。"
+                     "又一『檔位機制就緒≠每個新通道接上』實例(同 E/H/I/J/G-4'/G-4''),但 squash 首個需耦合放大。回歸:tier_combo_count K5c 改以 full vs amp_only "
+                     "比對(把連擊數效果與幅度效果分離,squash scale 幅度隨檔位遞增本非 count 外洩);18 閘全綠+round-trip validate_build(--tier-variants --shear-pivot)overall_pass(premult MAE 0.031)。"
+                     "honest:增益階梯 g 為 PROPOSAL(手感留使用者 A 類);squash count-aware(擠壓段數隨檔位,nosc 已備參數)為後續;shearY≡0;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
