@@ -326,6 +326,23 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位幅度差異化:體積守恆的耦合 amplify(G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 的 honest boundary(squash 未接 tier 幅度,需耦合 amplify)。squash 是產線第一個產 shear+耦合非均勻 "
+                     "scale(scaleX·scaleY≡1)的節拍,但當時 squash∉MAIN_SHOW_CATS:舊逐軸 _amp_scale 放大拉長軸(scaleX>1)、保留壓扁軸"
+                     "(scaleY<1)樓地板 → 破壞面積守恆(逐軸獨立 Legend g=2.1:prod 1.14→1.135≠1)。**關鍵新意=耦合 amplify**:多通道約束"
+                     "(scaleX·scaleY≡1 是一維流形,擠壓量 q 為唯一自由度)下幅度差異化不能逐軸自由做,須**沿約束流形**放大——_amp_scale_coupled "
+                     "放大擠壓量 q(=拉長軸−1=max(sx,sy)−1,對稱認定拉長在 x/y、絕不換軸)、拉長軸'=1+g·q(線性→阻尼比 r 不變)、壓扁軸'=1/拉長軸'"
+                     "(倒數→scaleX'·scaleY'≡1 精確);identity 幀不動、g=1.0 逐位元同輸入(squash__Super==無檔位 squash)。squash 併入 MAIN_SHOW_CATS+"
+                     "新增 COUPLED_SCALE_CATS;amplify_bone_tl/anim(coupled_scale=) 依 cat 路由(其餘節拍逐軸獨立不變)。build_spine --animate --tier-variants "
+                     "--shear-pivot 直出 squash__{Super,Mega,Omg,Legend}(apply_pivots 掃全 anims → 各檔位變體亦繞關節 pivot 補償,放大後更極端一般仿射殘差 <0.02px);"
+                     "round-trip validate_build overall_pass。validate_squash_tier.py 5AC PASS(SQT1 present+backward-compat squash__Super 逐位元==無檔位・base 不變・None 不產變體/"
+                     "SQT2 crux 體積守恆放大後仍成立 |scaleX·scaleY−1|≤TOL_VOL/SQT3 crux 擠壓峰 body[0.14,0.189,0.238,0.294]・shear[14,18.9,23.8,29.4]° "
+                     "Super<Mega<Omg<Legend 嚴格遞增且比值≈tier_gain[1,1.35,1.7,2.1]/SQT4 每檔位仍非均勻+擠壓阻尼遞減+shear 阻尼振盪+identity 介面/"
+                     "SQT5 負對照 耦合守衛 crux:逐軸獨立 _amp_scale→守恆 FALSE(prod[1.135,1.072,1.037,1.019])而耦合→TRUE(prod[1,1,1,1])・平增益全1.0→擠壓峰不遞增且==base・路由隔離非-squash 主秀仍等比 scale)。"
+                     "閘找出真實漏洞:tier_combo_count K5(c) 對 squash 假陽性(峰值因幅度放大跨越 impact 門檻)→改 full-vs-amp_only 對照精確隔離(同 G-4'' J3 channel-aware 模式)。"
+                     "關鍵發現:多通道約束下的幅度差異化=沿約束流形放大守恆量的自由度(可推廣到任何有守恆量的運動基元)。16 閘全綠+round-trip overall_pass。"
+                     "honest:squash count-aware(nosc 已備)未接;shearY≡0;三通道全自由度為後續;階梯 PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

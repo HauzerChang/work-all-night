@@ -206,14 +206,20 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:tier_combo_hits **不改動**非-combo 主秀 beat。
+    #     對照 amplitude-only(amp_only,同 tier_gains 但無 combo_hits):同檔位下加/不加 combo_hits
+    #     若使非-combo beat 的峰數改變,即 combo count 外洩。**改用 full-vs-amp_only 對照**(而非舊
+    #     的「各檔位峰數恆定」):candidate G-4''''' 的 squash 峰值會因 **tier_gains 幅度**放大而跨越
+    #     impact 門檻(1.10)→ 各檔位峰數本就會變(那是幅度效果非 count 外洩),舊判準對它假陽性。
+    #     full-vs-amp_only 精確隔離 combo_hits 這一機制(對 squash 兩者逐位元相同 → 峰數必等)。
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vk = "{}__{}".format(beat, t)
+            if _min_peaks(full[vk]) != _min_peaks(amp_only[vk]):   # 加 combo_hits 改了非-combo beat
+                leak.append((beat, cat, t, _min_peaks(full[vk]), _min_peaks(amp_only[vk])))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 
