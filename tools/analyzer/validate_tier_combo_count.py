@@ -206,14 +206,19 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:非-combo 主秀 beat 的檔位變體不受 tier_combo_hits 影響
+    #     → full(gains+counts)的非-combo 變體與 amp_only(gains-only)**逐位元相同**。
+    #     (較「峰數在各檔位不變」精準且穩健:squash 等節拍的 scale 峰**數**會隨幅度增益 g 跨過
+    #      impact-prominence 門檻而變動 —— 那是 tier_gains 的效果,非 tier_combo_hits 外洩;
+    #      直接比對 full vs amp_only 才乾淨測「連擊數只作用 combo」。)
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vk = "{}__{}".format(beat, t)
+            if json.dumps(full[vk], sort_keys=True) != json.dumps(amp_only[vk], sort_keys=True):
+                leak.append((beat, cat, t))
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 

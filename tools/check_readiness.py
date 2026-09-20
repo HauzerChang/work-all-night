@@ -326,6 +326,23 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_amplitude", "squash 接檔位差異化:體積守恆的耦合 amplify(G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "gen",
+                note="補 G-4'''' 留到現在的 honest boundary「squash 未接 tier 幅度差異化」。squash 的 scale 幅度軸是一對**體積守恆值**"
+                     "(scaleX=1+q 拉長、scaleY=1/(1+q) 壓扁,積≡1);要讓擠壓強度隨檔位遞增又不破壞面積守恆,**不能用逐軸 _amp_scale**"
+                     "(它放大拉長軸卻讓壓縮軸樓地板不動 → 積≠1,實測 Legend 偏離 0.152 遠超容差 0.02),必須走**耦合 amplify** _amp_scale_coupled:"
+                     "放大擠壓量 q→g·q(拉長軸 1+g(x−1))、壓縮軸取放大後拉長軸的倒數 round(1/sx,4) → 積在任何增益下 ≈1(僅 4dp 誤差 ~5e-5);"
+                     "g==1.0/identity 原樣回傳(base=Super 逐位元向後相容)。squash 加入 MAIN_SHOW_CATS + 新增 COUPLED_SCALE_CATS={squash};"
+                     "build_animations 依 cat 路由**兩條 amplify 路徑**(squash 耦合、其餘等比 overshoot 逐軸 _amp_scale),互不干擾。"
+                     "build_spine --shear-pivot --tier-variants 直出 squash__{Super,Mega,Omg,Legend}(pivot 補償只加 translate/rotate、不動 scale/shear → 守恆端到端保持)。"
+                     "validate_squash_tier.py 5AC PASS(Q1 present+backward-compat 每檔位 dual-channel/路由回 squash・base 逐位元不變/"
+                     "Q2 crux 非均勻峰 [0.298,0.394,0.486,0.588] 嚴格遞增**且每檔位每極值幀 |scaleX·scaleY−1|≤5.6e-5 守恆保持**・Super==base/"
+                     "Q3 雙通道阻尼簽章逐檔保形 shear 峰 [16,21.6,27.2,33.6] 遞增+阻尼+squash 幅度遞減/"
+                     "Q4 耦合必要性 a 舊逐軸 amplify g>1 守恆偏離 [0.048,0.097,0.152] 皆破壞證耦合非多餘・b 平增益守衛/"
+                     "Q5 負對照 a _amp_scale_coupled 單元・b 耦合隔離 等比 scale 主秀 hit 變體仍 scaleX==scaleY 未被誤施耦合)。"
+                     "關鍵發現:**不同通道的檔位放大需不同保形變換**(rotate/shear 對 0 對稱 g·v、等比 scale 逐軸 1+g(v−1)、體積守恆 squash 對耦合 (1+g·q,1/(1+g·q)))。"
+                     "18 閘全綠+round-trip validate_build 對 --shear-pivot --tier-variants overall_pass。順帶修正 tier_combo_count K5(c) 為 full-vs-amp_only 逐位元比對"
+                     "(舊峰數判準遇 squash 多阻尼極值×幅度增益跨門檻假陽性)。honest:squash count-aware(nosc 已備參數未接,比照 J-2/G-4''');shearY≡0;三通道同時基元。與 anim-forge 同 HOLD"),
         ],
     },
 ]
