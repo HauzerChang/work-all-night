@@ -326,6 +326,22 @@ BLOCKS = [
                      "新增 tier_variants.SHEAR_CATS={wobble,squash};shear-isolation 閘(shear_gen W5b/wobble_tier T4)改以此認定。16 閘全綠+round-trip validate_build overall_pass。"
                      "關鍵發現:真簽章常需兩獨立條件並立(體積守恆且非均勻;同 cascade 散佈且遞增、charge 長 hold 且 squash-floor)。"
                      "honest:squash 未接 tier(需耦合 amplify:_amp_scale 只放大 identity 上方會破壞守恆);shearY≡0;count-aware nosc 未接。與 anim-forge 同 HOLD"),
+            CAP("squash_tier_coupled_amplify", "squash 接檔位差異化:體積守恆耦合 amplify(G-4''''')", "L2",
+                "python3 tools/analyzer/validate_squash_tier.py", "pipeline",
+                note="補 G-4'''' 明白列出的 honest boundary(squash 未接 tier 幅度:逐軸 _amp_scale 只放大 identity 上方 → 破壞體積守恆,需**耦合 amplify**)。"
+                     "**關鍵:面積守恆 scaleX·scaleY≡1 是跨通道約束**,放大必須沿守恆流形走 —— 逐軸 _amp_scale 會脹 scaleX(>1)卻保留 scaleY(<1)樓地板 → 破守恆"
+                     "(實測逐軸 Legend 增益下 |積−1| 達 0.10–0.15)。解法 _amp_scale_coupled:放大**拉長軸** overshoot(sx'=1+g·q)、壓縮軸設**倒數**(sy'=1/sx')"
+                     " → scaleX·scaleY≡1 **由建構保證**在任一檔位保持,擠壓非均勻度隨檔位嚴格遞增;同源 shearX 峰亦隨檔位遞增(走既有 v'=g*v)⇒ "
+                     "**第一個 shear + 非均勻 scale 兩通道同時檔位差異化**的節拍、**第一個帶跨通道守恆約束的檔位軸**。squash 併入 MAIN_SHOW_CATS;"
+                     "新增 COUPLED_SCALE_CATS={squash},build_animations 依此路由耦合/逐軸 amplify(amplify_bone_tl(coupled=))。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_squash_tier.py 6AC PASS"
+                     "(ST1 present+backward-compat 每檔位 dual-channel・base 逐位元不變・**Super g=1 逐位元==base squash**/"
+                     "ST2 crux 每檔位每極值 |scaleX·scaleY−1|≤2e-4 + 非均勻 [0.298,0.394,0.486,0.588] 與拉長 [0.16,0.216,0.272,0.336] 皆嚴格遞增(Super==base)/"
+                     "ST3 shear 峰 [16,21.6,27.2,33.6]° 遞增 + 每檔位阻尼簽章(繞0變號≥3+相繼極值遞減)保形/ST4 identity 介面(shear 首尾0・scale 首尾(1,1))/"
+                     "ST5 crux 負對照 逐軸 amplify 破守恆 0.10–0.15 vs 耦合 ≤1e-4(>500× 鑑別餘裕)/ST6 平增益守衛+耦合 amplify 單元測+耦合隔離(wobble shear-only 不被波及)+加性零回歸)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash__{tier}(pivot 殘差 <0.06px 即使 Legend 最強一般仿射),validate_build round-trip overall_pass。"
+                     "回歸踩雷:combo 專屬 _min_peaks(impact 門檻 1.10)對 squash head(base 峰恰 1.10)因耦合幅度增益推過門檻而誤判 count 外洩 → validate_tier_combo_count K5(c) 排除 SHEAR_CATS。18 閘全綠。"
+                     "honest:squash count-aware(段數,gen_squash(nosc=) 已備參數未接);shearY≡0;幅度階梯 PROPOSAL(手感 A 類)。與 anim-forge 同 HOLD"),
         ],
     },
 ]
