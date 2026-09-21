@@ -342,6 +342,21 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash__{tier}(pivot 殘差 <0.06px 即使 Legend 最強一般仿射),validate_build round-trip overall_pass。"
                      "回歸踩雷:combo 專屬 _min_peaks(impact 門檻 1.10)對 squash head(base 峰恰 1.10)因耦合幅度增益推過門檻而誤判 count 外洩 → validate_tier_combo_count K5(c) 排除 SHEAR_CATS。18 閘全綠。"
                      "honest:squash count-aware(段數,gen_squash(nosc=) 已備參數未接);shearY≡0;幅度階梯 PROPOSAL(手感 A 類)。與 anim-forge 同 HOLD"),
+            CAP("squash_count_generation", "squash 擠壓段數隨檔位遞增(G-4'''''-c,擠壓段數 Super4→Legend7 隨檔位遞增)", "L2",
+                "python3 tools/analyzer/validate_squash_count.py", "pipeline",
+                note="補 G-4''''' 明白列出的 honest boundary(squash count-aware 未接:gen_squash(nosc=) 已備參數但 build_animations 未路由)。"
+                     "G-4''''' 讓 squash 的 shear 峰幅+非均勻 scale 擠壓強度隨檔位遞增(耦合 amplify),但各檔位仍**同樣 4 段**擠壓(有『擠多重』沒『擠幾下』)。"
+                     "本次接上擠壓**段數** nosc 隨檔位嚴格遞增(Super4→Mega5→Omg6→Legend7)。**關鍵:幅度增益(即使耦合)加不出段數** —— 段數是關鍵幀拓樸"
+                     "(shear 繞0交替極值數 = scale 內部極值數,由 _squash_env 同點耦合),須在 gen 當下決定;故對 squash 檔位變體以該檔位 nosc **重生成**再疊耦合幅度增益 g。"
+                     "**squash 是第一個同時 ∈ COUNT_AWARE_CATS 與 COUPLED_SCALE_CATS 的節拍** → crux=**三效正交**:重生成把極值數變多(段數軸)、耦合 amplify 放大每極值(幅度軸)、"
+                     "每個(含新長出的)極值仍 scaleX·scaleY≡1(守恆軸)—— 這是 wobble count-aware(G-4''')所無的額外跨通道約束。新增 TIER_SQUASH_CYCLES + squash_cycles_for,"
+                     "squash 加入 COUNT_AWARE_CATS,build_animations 依 _count_maps 路由 tier_squash_cycles。validate_squash_count.py 5AC PASS"
+                     "(SC1 present+backward-compat 每檔位 dual-channel・base 恆4段逐位元不變・tsc=None 逐位元==G-4''''' 耦合幅度-only/"
+                     "SC2 crux shear段數與scale極值數皆 [4,5,6,7] 嚴格遞增(Super==base)+每檔位每scale極值 |scaleX·scaleY−1|≤2e-4(段數×幅度×守恆三效正交,實測 ≤4.6e-5)/"
+                     "SC3 每檔位阻尼保形(shear 繞0變號≥3+shear/squash 相繼極值遞減)+shear/非均勻/拉長峰仍隨檔位遞增(段數軸不抵消幅度軸)/"
+                     "SC4 正交(段數+平增益→段數遞增·峰幅不遞增;耦合增益+無段數→段數恆4·峰幅遞增)/SC5 負對照(平段數→遞增FALSE・slot_reveal 無宣告不亂加・段數只作用 squash 不外洩))。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 squash__{Super4,Mega5,Omg6,Legend7}(pivot 補償後段數仍遞增),validate_build round-trip overall_pass(premult MAE 0.031)。19 閘全綠。"
+                     "honest:段數階梯 [4,5,6,7] 為 PROPOSAL(手感 A 類);shearY≡0。與 anim-forge 同 HOLD"),
         ],
     },
 ]

@@ -10,6 +10,32 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 squash 擠壓段數隨檔位遞增(里程碑,2026-09-21 run 002,candidate G-4'''''-c)** — 補 G-4''''' 明白
+  列出的 honest boundary:「squash **count-aware** 未接(`gen_squash(nosc=)` 已備參數但 `build_animations`
+  未路由)」。G-4''''' 讓 squash 的 shear 峰**幅度**+非均勻 scale 擠壓強度隨檔位遞增(耦合 amplify),
+  但各檔位仍**同樣 4 段**擠壓(有「擠多重」沒「擠幾下」)。本次接上擠壓**段數** `nosc` 隨檔位嚴格遞增
+  (Super 4→Mega 5→Omg 6→Legend 7)。**關鍵:幅度增益(即使耦合)加不出段數** —— 段數是關鍵幀拓樸
+  (shear 繞 0 交替極值數 == scale 內部極值數,由 `_squash_env` 同點耦合),須在 gen 當下決定;故對
+  squash 檔位變體以該檔位 nosc **重生成**再疊耦合幅度增益 g。**squash 是第一個同時 ∈ `COUNT_AWARE_CATS`
+  與 `COUPLED_SCALE_CATS` 的節拍** → crux=**段數×幅度×守恆三效正交**:重生成把極值數變多(段數軸)、
+  耦合 amplify 放大每極值(幅度軸)、每個(含新長出的)極值仍 `scaleX·scaleY≡1`(守恆軸,實測 ≤4.6e-5)
+  —— 這是 wobble count-aware(G-4''')所無的額外跨通道約束(重生成只是多產「同樣守恆」的極值,故段數軸
+  與守恆軸天然正交)。新增 `tier_variants.TIER_SQUASH_CYCLES`+`squash_cycles_for`,squash 加入
+  `COUNT_AWARE_CATS`,`build_animations(..., tier_squash_cycles=)` 依 `_count_maps` 路由;`build_spine
+  --tier-variants` 取 `squash_cycles_for` 傳入。整合閘 `validate_squash_count.py`(先驗庫→**真實
+  build_spine robot 骨架**→build_animations)**5 AC 全 PASS**:SC1 present+backward-compat(每檔位
+  dual-channel、base 恆 4 段逐位元不變、`tsc=None` 逐位元==G-4''''' 耦合幅度-only)、SC2 **crux** shear
+  段數與 scale 極值數皆 [4,5,6,7] 嚴格遞增(Super==base)+ 每檔位每 scale 極值 |scaleX·scaleY−1|≤2e-4、
+  SC3 每檔位阻尼保形(shear 繞 0 變號≥3 + shear/squash 相繼極值遞減)+ shear/非均勻/拉長峰仍隨檔位遞增
+  (段數軸不抵消幅度軸)、SC4 正交(段數+平增益→段數遞增·峰幅不遞增;耦合增益+無段數→段數恆 4·峰幅遞增)、
+  SC5 負對照(平段數→遞增 FALSE、slot_reveal 無宣告不亂加、段數只作用 squash 不外洩)。端到端 `build_spine
+  --animate --tier-variants --shear-pivot` 直出 `squash__{Super4,Mega5,Omg6,Legend7}`(pivot 補償後
+  pivot-preserved bone 段數仍遞增)、`validate_build` round-trip overall_pass(premult MAE 0.031)。
+  **19 閘全綠**(新 squash_count + 既有 18)。新增 cap `squash_count_generation` L2 併入 `spine-anim-forge`
+  (**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。**關鍵發現:count-aware 三度推廣**(combo 峰數
+  J-2 / wobble 振盪段數 G-4''' / squash 擠壓段數本次),**且首度證明段數軸與跨通道守恆軸天然正交**。
+  **honest boundary(仍在)**:段數階梯 [4,5,6,7] 為 PROPOSAL(手感 A 類);shearY≡0;單一真值資產。
+  見 `knowledge/s1-squash-count-generation.md`、圖 `knowledge/figures/s1_squash_count.png`。
 - **S1 squash 接檔位差異化:體積守恆耦合 amplify(里程碑,2026-09-21,candidate G-4''''')** —
   補 G-4'''' 明白列出的 honest boundary:「squash 未接 tier 幅度(`_amp_scale` 只放大 identity 上方 →
   破壞體積守恆,需**耦合 amplify**)」。**關鍵:面積守恆 `scaleX·scaleY≡1` 是跨通道約束**,放大必須沿
@@ -596,11 +622,13 @@
 >   `_amp_scale_coupled`(放大拉長軸 overshoot、壓縮軸=倒數 → scaleX·scaleY≡1 由建構保證)+ squash 併入 `MAIN_SHOW_CATS`
 >   + `COUPLED_SCALE_CATS` 路由;`validate_squash_tier.py` 6AC(ST2 crux 每檔位守恆+非均勻/拉長遞增、ST5 crux 逐軸破守恆 0.10–0.15 vs 耦合 ≤1e-4)。
 >   **第一個帶跨通道守恆約束的檔位軸 + 第一個 shear+非均勻 scale 雙通道同時檔位差異化**。
+> **(G-4'''''-c) ~~squash count-aware(擠壓段數隨檔位)~~ ✅ 完成(2026-09-21 run 002,candidate G-4'''''-c,`squash_count_generation` L2,見上里程碑)** ——
+>   `TIER_SQUASH_CYCLES`+`squash_cycles_for`,squash 加入 `COUNT_AWARE_CATS`,`build_animations(tier_squash_cycles=)` 依 `_count_maps` 路由;
+>   `validate_squash_count.py` 5AC(SC2 crux shear 段數與 scale 極值數皆 [4,5,6,7] 嚴格遞增 + 每極值 |scaleX·scaleY−1|≤2e-4 = 段數×幅度×守恆三效正交)。
+>   **第三個 count-aware 軸(combo/wobble/squash)且首度與跨通道守恆疊加**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4'''''-c) squash count-aware(擠壓段數隨檔位):`gen_squash(nosc=)` 已備參數,比照 G-4'''/J-2 加
->   `TIER_SQUASH_CYCLES` + `_count_maps` 一列;crux=確認 nosc 遞增下**逐極值**體積守恆仍保持(段數×幅度×守恆三效正交)**;
-> **(G-4'''''') 產 shearY(雙軸 shear)/ shear+scale+rotate 三通道同時的運動基元(真正塞滿一般仿射 M 的所有自由度)**;
-> **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸)**;
+> **(G-4'''''') 產 shearY(雙軸 shear)/ shear+scale+rotate 三通道同時的運動基元(真正塞滿一般仿射 M 的所有自由度)** —— 一路系列僅剩的通道自由度缺口;
+> **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸,把 count-aware 從單件時序推到跨件時序)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 

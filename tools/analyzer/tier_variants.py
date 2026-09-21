@@ -37,11 +37,13 @@ import copy
 # (這正是 G-4'''' 當時把 squash 排除在外的 honest boundary);故用**耦合 amplify**(見 COUPLED_SCALE_CATS)。
 MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble", "squash"}
 
-# candidate J-2 / G-4''' — 依檔位可變「段數」的類別(結構性差異化,非只幅度)。
-# combo 的 impact 峰**數**、wobble 的振盪**段數**隨檔位遞增;需在 gen 時把段數帶進生成器
-# (結構=拓樸,事後 amplify 只能放大既有極值、加不出一段)。各類別的段數階梯彼此獨立
-# (combo → TIER_COMBO_HITS,wobble → TIER_WOBBLE_CYCLES);build_animations 依類別路由。
-COUNT_AWARE_CATS = {"combo", "wobble"}
+# candidate J-2 / G-4''' / G-4'''''-c — 依檔位可變「段數」的類別(結構性差異化,非只幅度)。
+# combo 的 impact 峰**數**、wobble 的振盪**段數**、squash 的擠壓**段數**隨檔位遞增;需在 gen 時把段數
+# 帶進生成器(結構=拓樸,事後 amplify 只能放大既有極值、加不出一段)。各類別的段數階梯彼此獨立
+# (combo → TIER_COMBO_HITS,wobble → TIER_WOBBLE_CYCLES,squash → TIER_SQUASH_CYCLES);
+# build_animations 依類別路由。(G-4'''''-c)squash **同時** ∈ COUNT_AWARE_CATS 與 COUPLED_SCALE_CATS:
+# 先以該檔位 nosc **重生成**(段數↑),再走**耦合** amplify(幅度↑且體積守恆)—— 段數×幅度×守恆三效正交。
+COUNT_AWARE_CATS = {"combo", "wobble", "squash"}
 
 # candidate G-4'''' — 產出 `shear` 通道的節拍類別(shear-emitting)。原僅 wobble(純 shearX);
 # squash 加入後(shear + 耦合非均勻 scale 的體積守恆擠壓)成為第二個 shear 產出者。
@@ -98,6 +100,23 @@ TIER_WOBBLE_CYCLES = {
 def wobble_cycles_for(genre):
     """回傳該 genre 的 {tier: nosc};無宣告的 genre 回 None(→ wobble 檔位變體不變振盪段數)。"""
     return TIER_WOBBLE_CYCLES.get(genre)
+
+
+# candidate G-4'''''-c — 檔位 → squash 擠壓段數 nosc(**嚴格遞增**;base=Super=4 → 逐位元同 G-4'''' golden)。
+# squash 的每個 shearX 阻尼極值處施一次體積守恆擠壓(scaleX=1+q_i,scaleY=1/(1+q_i),q_i=Q·rⁱ);
+# 段數 nosc 決定「擠幾下」(shear 振盪段數 == scale 內部極值數,兩者由 `_squash_env` 同點耦合)。
+# 與 wobble 共用同窗(DUR=0.8、WOBBLE_LEAD/TAIL、r=0.5)→ 上界 7 同樣安全(末極值 q=Q·r⁶ 於 6 位小數
+# 仍與前一極值可辨,體積守恆 (1+q)(1/(1+q))≡1 對任意 nosc 由建構保證)。與 combo/wobble 的段數階梯
+# **正交獨立**(各類別自有段數,build_animations 依 cat 路由)。crux:段數↑ 與耦合幅度增益 g↑ **正交** ——
+# 重生成把極值數變多、耦合 amplify 把每個極值放大,兩者疊加後每個極值仍 scaleX·scaleY≡1(三效正交)。
+TIER_SQUASH_CYCLES = {
+    "slot_bigwin": {"Super": 4, "Mega": 5, "Omg": 6, "Legend": 7},
+}
+
+
+def squash_cycles_for(genre):
+    """回傳該 genre 的 {tier: nosc};無宣告的 genre 回 None(→ squash 檔位變體不變擠壓段數)。"""
+    return TIER_SQUASH_CYCLES.get(genre)
 
 
 def _amp_scale(v, g):
