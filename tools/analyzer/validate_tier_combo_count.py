@@ -206,14 +206,19 @@ def run():
     k5["b_no_count_genre"] = {"combo_hits_for_slot_reveal": rv_hits,
                               "combo_variants": rv_combo_variants,
                               "pass": rv_hits is None and not rv_combo_variants}
-    # (c) count 只作用於 combo:非-combo 主秀 beat 的峰數在各檔位不變
+    # (c) count 只作用於 combo:加上 `tier_combo_hits` 這個**連擊數旋鈕**後,非-combo 主秀 beat 的
+    # 各檔位變體須與**幅度-only**(amp_only)逐位元相同 —— 即連擊數旋鈕只改 combo,不外洩到其他節拍。
+    # (⚠️ 不可用「各檔位 `_min_peaks` 是否相同」判斷:squash 的體積守恆 scaleX 幅度被檔位增益放大後,
+    #  在較高檔位越過 impact-peak prominence 門檻 → 峰數各檔位本就不同,但那是**幅度**效應(amp_only 亦然)、
+    #  非連擊數旋鈕外洩;正確的 count 隔離判準=比對 full vs amp_only,見 G-4'' 對 J3 channel-aware 的同類修法。)
     leak = []
     for beat, cat in main_beats.items():
         if cat == "combo":
             continue
-        counts = [_min_peaks(full["{}__{}".format(beat, t)]) for t in TIERS]
-        if len(set(counts)) != 1:      # count 外洩 → 各檔位峰數不同
-            leak.append((beat, cat, counts))
+        for t in TIERS:
+            vk = "{}__{}".format(beat, t)
+            if json.dumps(full[vk], sort_keys=True) != json.dumps(amp_only[vk], sort_keys=True):
+                leak.append((beat, cat, t))      # 連擊數旋鈕改動了非-combo 節拍 → 外洩
     k5["c_count_isolated_to_combo"] = {"leaked": leak, "pass": not leak}
     R["K5_neg_control"] = {**k5, "pass": all(v["pass"] for v in k5.values())}
 
