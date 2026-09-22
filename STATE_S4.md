@@ -7,81 +7,20 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
-> **chunk 119(2026-09-22)**:排程第六十次觸發(距 chunk 118 隔日)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,無新活動,與 S4 無關);`ReadNotifications`
-> queue 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill
-> API key 授權)仍無使用者輸入。**結論與 chunk 103~118 相同:無新工作塊**,事實無變化。
-> 依既有慣例**不重複發送通知**。未動任何 production 代碼。見 `log/s4-2026-09-22-119.md`。
+> **chunk 120(2026-09-22)**:排程第六十一次觸發(距 chunk 119 同日內)。重跑同一組檢查:
+> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆(API 直查確認)、
+> open PR 仍只有同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,無新活動,與 S4 無關);
+> `ReadNotifications` queue 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front`
+> 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論與 chunk 103~119 相同:無新工作
+> 塊**,事實無變化。依既有慣例**不重複發送通知**。未動任何 production 代碼。**本次額外
+> 動作**:把 chunk 104~119(16 次逐字重複的「無新工作塊」檢查記錄)合併壓縮成摘要,避免
+> 本檔案無界增長(比照 chunk 103 對 chunk 61~102 的壓縮慣例)。見 `log/s4-2026-09-22-120.md`。
 >
-> **chunk 118(2026-09-21)**:排程第五十九次觸發(距 chunk 117 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,無新活動,與 S4 無關);三項懸而未決
-> (`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者
-> 輸入。**結論與 chunk 103~117 相同:無新工作塊**,事實無變化。依既有慣例**不重複發送
-> 通知**。未動任何 production 代碼。見 `log/s4-2026-09-21-118.md`。
->
-> **chunk 117(2026-09-21)**:排程第五十八次觸發(距 chunk 116 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,無新活動,與 S4 無關);三項懸而未決
-> (`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者
-> 輸入。**結論與 chunk 103~116 相同:無新工作塊**,事實無變化。依既有慣例**不重複發送
-> 通知**。未動任何 production 代碼。見 `log/s4-2026-09-21-117.md`。
->
-> **chunk 116(2026-09-21)**:排程第五十七次觸發(距 chunk 115 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,無新活動,與 S4 無關);三項懸而未決
-> (`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者
-> 輸入。**結論與 chunk 103~115 相同:無新工作塊**,事實無變化。依既有慣例**不重複發送
-> 通知**。未動任何 production 代碼。見 `log/s4-2026-09-21-116.md`。
->
-> **chunk 115(2026-09-21)**:排程第五十六次觸發(距 chunk 114 隔日)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,無新活動,與 S4 無關);三項懸而未決
-> (`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者
-> 輸入。**結論與 chunk 103~114 相同:無新工作塊**,事實無變化。依既有慣例**不重複發送
-> 通知**。未動任何 production 代碼。見 `log/s4-2026-09-21-115.md`。
->
-> **chunk 114(2026-09-20)**:排程第五十五次觸發(距 chunk 113 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,無新活動,與 S4 無關);三項懸而未決
-> (`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者
-> 輸入。**結論與 chunk 103~113 相同:無新工作塊**,事實無變化。依既有慣例**不重複發送
-> 通知**。未動任何 production 代碼。見 `log/s4-2026-09-20-114.md`。
->
-> **chunk 113(2026-09-20)**:排程第五十四次觸發(距 chunk 112 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,無新活動,與 S4 無關);三項懸而未決
-> (`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者
-> 輸入。**結論與 chunk 103~112 相同:無新工作塊**,事實無變化。依既有慣例**不重複發送
-> 通知**。未動任何 production 代碼。見 `log/s4-2026-09-20-113.md`。
->
-> **chunk 112(2026-09-20)**:排程第五十三次觸發(距 chunk 111 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,無新活動,與 S4 無關);三項懸而未決
-> (`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者
-> 輸入。**結論與 chunk 103~111 相同:無新工作塊**,事實無變化。依既有慣例**不重複發送
-> 通知**。未動任何 production 代碼。見 `log/s4-2026-09-20-112.md`。
->
-> **chunk 111(2026-09-20)**:排程第五十二次觸發(距 chunk 110 隔日)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍是 2026-09-15,無新活動,與 S4 無關);三項懸而未決(`bodice`/
-> `sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論
-> 與 chunk 103~110 相同:無新工作塊**,事實無變化。依既有慣例**不重複發送通知**。未動任何
-> production 代碼。見 `log/s4-2026-09-20-111.md`。
->
-> **chunk 110(2026-09-19)**:排程第五十一次觸發(距 chunk 109 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍是 2026-09-15,無新活動,與 S4 無關);三項懸而未決(`bodice`/
-> `sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論
-> 與 chunk 103~109 相同:無新工作塊**,事實無變化。依既有慣例**不重複發送通知**。未動任何
-> production 代碼。見 `log/s4-2026-09-19-110.md`。
->
-> **chunk 104~109(2026-09-18~09-19,共 6 次觸發,已壓縮)**:每次皆重跑 chunk 103 訂下的
+> **chunk 104~119(2026-09-18~09-22,共 16 次觸發,已壓縮)**:每次皆重跑 chunk 103 訂下的
 > 同一組檢查(assets/ 新素材、GitHub issues/PR、三項裁決點使用者輸入),結果逐次相同:
 > **無新素材、無新裁決、無新工作塊**。按 chunk 103 留下的「除非有新事實否則不重複通知」
-> 慣例,這 6 次均未再發送新通知。逐筆 commit/log 仍保留於 git 歷史與 `log/s4-2026-09-18-104.md`
-> ~`log/s4-2026-09-19-109.md`,此處僅壓縮 STATE_S4.md 內文以避免檔案無界增長。
+> 慣例,這 16 次均未再發送新通知。逐筆 commit/log 仍保留於 git 歷史與 `log/s4-2026-09-18-104.md`
+> ~`log/s4-2026-09-22-119.md`,此處僅壓縮 STATE_S4.md 內文以避免檔案無界增長。
 >
 > **chunk 103(2026-09-18)**:排程再次觸發。重跑同一輪檢查:(1) `git log --oneline --all -- assets/`
 > 確認自 chunk 41 起仍無新素材(最後改動仍是 chunk 52 決策檔框修正,`763c112`);(2) GitHub
