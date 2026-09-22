@@ -51,7 +51,10 @@ COUNT_AWARE_CATS = {"combo", "wobble", "squash"}
 # 集中一處便於後續再加(避免每加一個 shear 節拍就改多個閘的硬編碼 'wobble')。
 # (G-4''''')squash **已併入** MAIN_SHOW_CATS(檔位差異化):其 scale 通道走**耦合 amplify**
 # (COUPLED_SCALE_CATS)以保體積守恆;逐軸 `_amp_scale` 會破壞守恆(見下 `_amp_scale_coupled`)。
-SHEAR_CATS = {"wobble", "squash"}
+# (G-4'''''')twist 加入:雙軸 shearX+shearY 正交扭,是第三個 shear 產出者(且第一個產 shearY)。
+# twist **僅**產 shear(不接檔位幅度/count-aware,故不在 MAIN_SHOW_CATS/COUNT_AWARE_CATS)—— shearY 通道
+# 差異化為後續 honest boundary;此處只需讓各 shear-isolation 閘認得它為合法 shear 產出者。
+SHEAR_CATS = {"wobble", "squash", "twist"}
 
 # candidate G-4''''' — 需**耦合 scale amplify** 的類別(shear + 體積守恆非均勻 scale)。
 # 逐軸 `_amp_scale`(只放大 identity 上方 overshoot、樓地板不動)套在 squash 上會:scaleX>1 被脹、

@@ -357,6 +357,21 @@ BLOCKS = [
                      "slot_reveal squash_cycles_for None 不亂加・段數只作用 squash 不外洩 wobble 仍4段)。端到端 build_spine --animate --tier-variants --shear-pivot 直出 "
                      "squash__{Super4,Mega5,Omg6,Legend7},validate_build round-trip overall_pass(premult MAE 0.031)。回歸:19 閘全綠(18 + 新 squash_count)。"
                      "honest:段數階梯 PROPOSAL(手感 A 類);shearY≡0;幅度階梯 PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_dual_axis_shear", "生成器產出 shearY 通道(G-4'''''',雙軸 shearX+shearY 正交扭)", "L2",
+                "python3 tools/analyzer/validate_twist_gen.py", "gen",
+                note="補 wobble(G-4',純 shearX)/squash(G-4'''',shearX+耦合非均勻 scale)一路留到現在的**最後一條 shear honest boundary**"
+                     "(shearY≡0)。一般仿射公式/閘早就吃 shearY(transform_matrix_full 的 b=cos(θ+90+shy)·sy、d=sin(θ+90+shy)·sy;"
+                     "pivot_channels_affine/_world 亦讀 shy),但沒有任何生成器產 shearY。gen_twist 讓 shearY 通道實際被生成器驅動:"
+                     "**雙軸阻尼 shear 於正交相位(quadrature)** —— shearX 到極值時 shearY 恰過 0、反之亦然(斜拉方向隨時間旋轉=『扭』)。"
+                     "用交錯事件達成精確 quadrature(偶事件放 shearX 極值+shearY 顯式 0、奇事件反之),兩軸幅度各自阻尼 A·rⁱ/B·rⁱ。"
+                     "twist∈SHEAR_CATS(第三個 shear 產出者,shear-isolation 閘認得);additive 併入 slot_bigwin 先驗庫。"
+                     "validate_twist_gen.py 6AC PASS(TW1 present+雙軸 crux 峰|shearX|=16°・峰|shearY|=12°≥MIN/TW2 兩軸各自阻尼振盪 首尾0+變號≥3+極值遞減/"
+                     "TW3 crux 正交相位 shearX 峰時 |shearY|/峰≈0・反之亦然(同相退化雙通道=1.0→負對照分離)/TW4 identity 介面/"
+                     "TW5 端到端 --shear-pivot 含 shearY 補償 pivot 殘差 <0.04px vs 負對照 ~22px(>500×,shy_peak 至 8.87°)證 shearY 項端到端被驅動/"
+                     "TW6 負對照 純 shearX→雙軸 FALSE・同相→正交 FALSE・shear 隔離・加性零回歸)。回歸:20 閘全綠(19+新 twist)。"
+                     "**關鍵:一般仿射 M 的所有 shear 自由度已被生成器塞滿(shearX by wobble/squash、shearY by twist)**。"
+                     "honest:twist 未接檔位幅度/count-aware(shearY 通道差異化為後續);shear+scale+rotate 三通道同時的單一運動基元為後續;"
+                     "斜扭形狀 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

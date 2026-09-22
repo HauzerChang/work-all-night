@@ -429,6 +429,80 @@ def gen_squash(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
     return b, s
 
 
+# candidate G-4'''''' — twist(斜扭果凍):**第一個產出 `shearY` 通道的生成器**(雙軸 shear)。
+# 補上 wobble/squash 一路留到現在的**最後一條 shear honest boundary** —— G-4 的一般仿射公式/閘
+# (`transform_matrix_full(θ,sx,sy,shx,shy)`)早就吃 shearY(`b=cos(θ+90+shy)·sy`、`d=sin(θ+90+shy)·sy`),
+# `pivot_channels_affine`/`_world` 也都讀 `shy`,但**沒有任何生成器產 shearY**:wobble 純 shearX、
+# squash 亦 shearX(+耦合非均勻 scale),兩者 `shearY≡0`。本 beat 讓 shearY 通道實際被生成器驅動,
+# 把「一般仿射 M 的所有自由度都被生成器塞滿」這最後一塊接上(見 STATE (G-4''''''))。
+#
+# 運動基元 = **雙軸阻尼 shear 於正交相位(quadrature)**:shearX 與 shearY 皆阻尼擺動,但**相位錯開
+# 90°** —— shearX 到極值時 shearY 恰過 0、反之亦然。幾何上斜拉方向隨時間**旋轉**(平行四邊形的傾斜
+# 方向繞圈,像果凍被「扭」而非單向斜拉),故稱 twist。實作用**交錯事件**達成精確 quadrature:於
+# [WOBBLE_LEAD,WOBBLE_TAIL] 均勻布 2·nosc 個事件,偶事件放 shearX 極值(shearY 於該時刻放顯式 0)、
+# 奇事件放 shearY 極值(shearX 放顯式 0);兩軸極值幅度各自阻尼(A·rⁱ、B·rⁱ)。
+# 結構簽章(可量化、負對照乾淨分離,證閘測的是「雙軸正交扭」非「有 shear 即可」):
+#   1. 首尾 identity(shearX==shearY==0)→ 可插 Loop 間(同其他主秀 beat)。
+#   2. **雙軸皆非平凡(crux)**:峰 |shearX|>0 **且**峰 |shearY|>0 —— 這正是 wobble/squash 缺的
+#      (它們 shearY≡0),故 twist 是產線第一次產 shearY。
+#   3. 兩軸皆阻尼振盪(各自繞 0 變號 ≥3 + 相繼極值嚴格遞減),同 wobble 判準。
+#   4. **正交相位(crux)**:shearX 全域峰時刻 |shearY|≈0、shearY 全域峰時刻 |shearX|≈0 —— 區隔
+#      「真雙軸扭」與「兩軸同相(shearY==shearX)」的退化雙通道(後者兩峰同時 → 不是扭是純斜拉放大)。
+# 負對照:純 shearX(shearY≡0,同 wobble)→(2)FALSE;同相 shear(shearY==shearX)→(4)FALSE。
+
+DUR.setdefault("twist", 0.8)
+
+# role → (shearX 峰 A, shearY 峰 B) 度。兩軸皆非零(才是雙軸)且 A≠B(扭的兩軸幅度可不同);
+# A 沿用 wobble 相對關係、B≈0.7A(仍明顯 > MIN_SHEAR 閘門檻,確保 shearY 產出可辨)。
+_TWIST_SHEAR = {"body": (14.0, 10.0), "特效": (16.0, 12.0), "head": (10.0, 7.0), "limb": (12.0, 9.0)}
+
+
+def _twist_env(A, B, nosc):
+    """通用**雙軸阻尼 shear + 正交相位**包絡。回傳 (shx_env, shy_env),各為 [(τ∈[0,1], val)]:
+      shx_env / shy_env 首尾皆 0;於 [WOBBLE_LEAD,WOBBLE_TAIL] 均勻布 2·nosc 個交錯事件。
+      偶事件 k=2i:shearX 放極值 (−1)ⁱ·A·rⁱ、shearY 放顯式 0(shearX 峰時 shearY 過 0)。
+      奇事件 k=2i+1:shearY 放極值 (−1)ⁱ·B·rⁱ、shearX 放顯式 0(shearY 峰時 shearX 過 0)。
+    ⇒ 兩軸各自:繞 0 變號 nosc−1 次(nosc≥4→≥3)、相繼極值幅度嚴格遞減(阻尼)、首尾 0;
+      且兩軸極值時刻交錯 → **正交相位**(shearX 峰時 shearY≈0,反之亦然)。r=WOBBLE_DAMP 共用阻尼。"""
+    r = WOBBLE_DAMP
+    nev = 2 * nosc
+    shx = [(0.00, 0.0)]
+    shy = [(0.00, 0.0)]
+    for k in range(nev):
+        f = k / (nev - 1) if nev > 1 else 0.0
+        tau = round(WOBBLE_LEAD + (WOBBLE_TAIL - WOBBLE_LEAD) * f, 4)
+        i = k // 2
+        if k % 2 == 0:                                   # shearX 極值 / shearY 過 0
+            shx.append((tau, ((-1.0) ** i) * A * (r ** i)))
+            shy.append((tau, 0.0))
+        else:                                            # shearY 極值 / shearX 過 0
+            shy.append((tau, ((-1.0) ** i) * B * (r ** i)))
+            shx.append((tau, 0.0))
+    shx.append((1.00, 0.0))
+    shy.append((1.00, 0.0))
+    return shx, shy
+
+
+def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
+    """斜扭果凍:**雙軸阻尼 shear 於正交相位**(shearX + shearY 皆產出,相位錯開 90°)。
+    回傳 (bone_timelines, slot_timelines)。
+
+    shearX/shearY 皆阻尼擺動(首尾 0);兩軸極值時刻交錯 → shearX 峰時 shearY≈0(反之亦然),
+    斜拉方向隨時間旋轉(扭)。`side_sign` 決定首推方向;`nosc`=每軸振盪段數(預設 4,與 wobble 同窗)。
+    這是產線第一個產 `shearY` 的生成器 → 塞滿一般仿射 M 的最後一條 shear 自由度。"""
+    T = DUR["twist"]
+    Ar, Br = _TWIST_SHEAR.get(role, (12.0, 9.0))
+    A = Ar * side_sign
+    B = Br * side_sign
+    b, s = {}, {}
+    shx, shy = _twist_env(A, B, nosc)
+    # 兩軸包絡由 `_twist_env` 構於**同一組時間點**(每事件同 tau 各補一幀,首尾亦同)→ 直接 zip 成
+    # 單一 shear timeline {time,x,y}。每幀兩軸皆有顯式值(正交:X 極值幀 y==0、Y 極值幀 x==0)。
+    b["shear"] = [{"time": round(tx * T, 4), "x": round(vx, 4), "y": round(vy, 4)}
+                  for (tx, vx), (ty, vy) in zip(shx, shy)]
+    return b, s
+
+
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
 HIT_KEYWORDS = ["hit", "impact", "punch", "throb", "slam", "打擊", "命中", "重擊", "衝擊"]
 REVEAL_KEYWORDS = ["reveal", "open", "burst", "showup", "appear_big", "揭曉", "現身", "炸開", "開獎"]
@@ -438,3 +512,5 @@ CASCADE_KEYWORDS = ["cascade", "wave", "ripple", "sequence", "sweep", "wipe", "�
 WOBBLE_KEYWORDS = ["wobble", "jelly", "sway", "skew", "shear", "lean", "斜拉", "果凍", "晃", "搖擺"]
 # squash 專屬關鍵字(與 wobble 區隔:wobble=純 shear 擺,squash=shear+耦合體積守恆擠壓)。
 SQUASH_KEYWORDS = ["squash", "stretch", "jellysquash", "diagsquash", "squish", "擠壓", "壓擠", "斜擠", "擠"]
+# twist 專屬關鍵字(與 wobble/squash 區隔:twist=雙軸 shearX+shearY 正交扭)。
+TWIST_KEYWORDS = ["twist", "torque", "wring", "corkscrew", "twirl", "扭", "擰", "扭轉", "旋擰"]
