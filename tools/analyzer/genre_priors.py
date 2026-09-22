@@ -61,6 +61,13 @@ _BIGWIN_ROLES["wobble"] = {
 _BIGWIN_ROLES["squash"] = {
     "body": "斜拉果凍擠壓:阻尼 shearX 擺動 + 拉一軸壓一軸(體積守恆)→收回 identity", "head": "隨身體斜擠",
     "limb": "末梢斜拉擠壓(反相)→阻尼回正", "effect": "斜拉果凍擠壓(shear+非均勻 scale)→回穩"}
+# candidate G-4'''''' 續:對角絞擰(twist,**第一個填 shearY 通道**)節拍接進先驗庫(additive)。
+# twist 是雙軸 shear 節拍(wobble/squash 皆 shearY≡0):shearX 阻尼擺 + shearY=−shearX(對稱對角
+# 純剪切,det=cos2φ<1 非相似)→ 填上 wobble/squash 系列最後一條 shear honest boundary。經 gen_animations
+# 路由到 beat_templates 的 gen_twist(首尾 identity);`--shear-pivot` 帶 include_shear=True 端到端。
+_BIGWIN_ROLES["twist"] = {
+    "body": "斜拉對角絞擰:阻尼 shearX 擺 + shearY=−shearX(對角純剪切)→收回 identity", "head": "隨身體絞擰",
+    "limb": "末梢對角絞擰(反相)→阻尼回正", "effect": "斜拉對角絞擰(雙軸 shear)→回穩"}
 
 
 PRIORS = {
@@ -94,6 +101,10 @@ PRIORS = {
             # Award 真值僅 In/Loop/Out → 亦列 prior_beats_unused(誠實,覆蓋率單調不受擾)。
             {"key": "squash", "kw": ["squash", "stretch", "jellysquash", "diagsquash", "squish", "擠壓", "壓擠", "斜擠", "擠"],
              "desc": "斜拉果凍擠壓主秀:阻尼 shearX 擺動 + 耦合體積守恆 squash(scaleX·scaleY≈1 且 scaleX≠scaleY),首尾 identity(可插 Loop 間)"},
+            # candidate G-4'''''':對角絞擰(twist,首個填 shearY 通道;PROPOSAL,結構簽章非美感)。
+            # Award 真值僅 In/Loop/Out → 亦列 prior_beats_unused(誠實,覆蓋率單調不受擾)。
+            {"key": "twist", "kw": ["twist", "wring", "screw", "corkscrew", "絞", "擰", "扭", "扭轉", "絞擰"],
+             "desc": "對角絞擰主秀:阻尼 shearX 擺 + shearY=−shearX(雙軸 shear,det=cos2φ<1 非相似一般仿射),首尾 identity(可插 Loop 間)"},
             {"key": "Loop", "kw": ["loop", "idle"],
              "desc": "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉"},
             {"key": "Out", "kw": ["out", "exit", "end", "close"],

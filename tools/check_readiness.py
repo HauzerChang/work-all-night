@@ -357,6 +357,23 @@ BLOCKS = [
                      "slot_reveal squash_cycles_for None 不亂加・段數只作用 squash 不外洩 wobble 仍4段)。端到端 build_spine --animate --tier-variants --shear-pivot 直出 "
                      "squash__{Super4,Mega5,Omg6,Legend7},validate_build round-trip overall_pass(premult MAE 0.031)。回歸:19 閘全綠(18 + 新 squash_count)。"
                      "honest:段數階梯 PROPOSAL(手感 A 類);shearY≡0;幅度階梯 PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_sheary_generation", "生成器產 shearY 通道(G-4'''''',雙軸對角絞擰=首個填 shearY 的節拍)", "L2",
+                "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
+                note="補 wobble/squash 系列一路留到現在的**最後一條 shear 通道 honest boundary**:此前每個產 shear 的生成器"
+                     "(gen_wobble、gen_squash)都硬寫 shearY==0,shearY(一般仿射 M 的最後一個未用自由度)從未被填過。"
+                     "本 cap 讓 gen_twist(斜拉對角絞擰)實際產出 shearY:shearX 阻尼擺 + shearY=−shearX(逐幀反相)。**關鍵幾何**:"
+                     "rot=0,sx=sy=1 時 M=transform_matrix_full(0,1,1,φ,−φ)=[[cosφ,sinφ],[sinφ,cosφ]](**對稱矩陣**=沿±45°對角"
+                     "的純剪切),det=cos²φ−sin²φ=**cos(2φ)<1** → 真正**非相似**一般仿射(面積隨絞擰縮小,如擰毛巾);"
+                     "對照 shearX==shearY → M=R(φ)(旋轉,det≡1)=負對照(填了 shearY 卻只是旋轉偽裝)。twist 併入 SHEAR_CATS"
+                     "(shear-isolation 閘認定為合法 shear 產出者),經 genre_priors.slot_bigwin 新增 twist beat 直出;pivot 補償"
+                     "(transform_matrix_full 的 ry=θ+90+shearY 項、_world、apply_pivots(include_shear=True))早已就緒,零改動端到端。"
+                     "validate_twist_gen.py 6AC PASS(V1 present+shearY 峰 16°/V2 雙軸阻尼振盪+shearY=−shearX 反相/V3 identity 介面/"
+                     "V4 crux 峰幀 |1−det|≤max 0.152≥0.05 非相似/V5 端到端 pivot 殘差 <0.03px vs 負對照 8–30px/V6 crux 負對照 "
+                     "shearY:=shearX→det≡1→非相似 FALSE・shearY 隔離 wobble/squash 皆 0・移除 twist 其餘逐位元不變)。端到端 "
+                     "build_spine --animate --tier-variants --shear-pivot 直出 twist,validate_build round-trip overall_pass(premult MAE 0.031)。"
+                     "回歸:20 閘全綠(19 + 新 twist_gen)。honest:twist 未接 MAIN_SHOW_CATS(tier 幅度差異化)—— 比照 G-4' 當時 wobble "
+                     "亦先只產通道、tier 由 G-4'' 補(amplify_bone_tl 對 shear.y 已 g*v 就緒);shearY=−shearX 為對稱特例(獨立 shearY 幅度為後續);"
+                     "絞擰形狀 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

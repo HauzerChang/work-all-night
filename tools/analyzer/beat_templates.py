@@ -429,6 +429,66 @@ def gen_squash(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
     return b, s
 
 
+# candidate G-4'''''' — twist(斜拉對角絞擰):**第一個產出 `shearY` 通道的生成器**。填上 wobble/squash
+# 系列一路留下的**最後一條 shear 通道 honest boundary** —— 此前每個產 shear 的節拍(gen_wobble、
+# gen_squash)都硬寫 `"y": 0.0`,shearY 通道從未被任何生成器填過(一般仿射 M 的最後一個未用自由度)。
+#
+# 運動基元 = **阻尼對角絞擰**(shearX 阻尼擺 + shearY = −shearX,對稱):
+#   shearX(τ):同 wobble 阻尼擺動 0→+A→−rA→+r²A→…→0(繞 0 變號、相繼極值遞減)。
+#   shearY(τ):= −shearX(τ) 逐幀(反相)→ 首尾 0(identity 介面),shearY 通道被填。
+# 幾何(rot=0, sx=sy=1;真實 Spine local `transform_matrix_full`):
+#   M = (cos(shx), cos(90+shy), sin(shx), sin(90+shy)) 於 shy=−shx →
+#   M = [[cos φ, sin φ], [sin φ, cos φ]] —— **對稱矩陣**(沿 ±45° 對角的純剪切:一對角拉伸、
+#   另一對角壓縮),det(M) = cos²φ − sin²φ = **cos(2φ) < 1** ⇒ 真正**非相似**的一般仿射
+#   (面積隨絞擰縮小,如擰毛巾)。對照:若 shearX==shearY 則 M = R(φ)(**旋轉**,det≡1)——
+#   即「填了 shearY 卻只是旋轉偽裝」的負對照,用來證閘測的是真剪切而非「有 shearY 即可」。
+# 結構簽章(可量化、負對照乾淨分離):
+#   1. 首尾 identity(shearX==shearY==0)→ 可插 Loop 間(同其他主秀 beat)。
+#   2. **雙軸**阻尼振盪:shearX 與 shearY 各自繞 0 變號 ≥3 + 相繼極值嚴格遞減;shearY 與 shearX 反相。
+#   3. **非相似一般仿射(crux)**:峰值絞擰幀 det(M)=cos(shearX−shearY) 顯著偏離 1(≥ 門檻)
+#      ⇒ shearX≠shearY(非旋轉)。負對照 shearX==shearY → det≡1 → 此條 FALSE。
+
+DUR.setdefault("twist", 0.8)
+
+# role → 絞擰首極值 shearX 峰(度;同 `_WOBBLE_SHEAR` 的相對關係:特效/身體大、末梢/頭中)。
+_TWIST_SHEAR = {"body": 14.0, "特效": 16.0, "head": 10.0, "limb": 12.0}
+
+
+def _twist_env(A, nosc):
+    """通用**阻尼對角絞擰**包絡 → (shearX_env, shearY_env),各 [(τ∈[0,1], value)]。
+
+    首尾 0、`nosc` 個交替遞減極值(共用 `_wobble_env` 的窗 [WOBBLE_LEAD,WOBBLE_TAIL] 與阻尼 r);
+    shearY = −shearX 逐幀(反相對角絞擰)⇒ det=cos(2·shearX) 非相似。極值 τ 同點(耦合)。"""
+    r = WOBBLE_DAMP
+    shx = [(0.00, 0.0)]
+    shy = [(0.00, 0.0)]
+    for i in range(nosc):
+        f = i / (nosc - 1) if nosc > 1 else 0.0
+        tau = WOBBLE_LEAD + (WOBBLE_TAIL - WOBBLE_LEAD) * f
+        v = ((-1.0) ** i) * A * (r ** i)
+        shx.append((round(tau, 4), v))
+        shy.append((round(tau, 4), -v))
+    shx.append((1.00, 0.0))
+    shy.append((1.00, 0.0))
+    return shx, shy
+
+
+def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
+    """斜拉對角絞擰:**阻尼 shearX 擺動 + shearY = −shearX**(雙軸 shear,首個填 shearY 通道)。
+    回傳 (bone_timelines, slot_timelines)。
+
+    shearX 同 `gen_wobble`(阻尼擺,首尾 0);shearY 每幀取 −shearX → 對稱對角純剪切
+    (M=[[cosφ,sinφ],[sinφ,cosφ]],det=cos2φ<1 非相似),首尾 identity。
+    `side_sign` 決定首推方向;`nosc`=絞擰段數(預設 4,與 wobble/squash 同窗;count-aware 為後續)。"""
+    T = DUR["twist"]
+    A = _TWIST_SHEAR.get(role, 12.0) * side_sign
+    b, s = {}, {}
+    shx, shy = _twist_env(A, nosc)
+    b["shear"] = [{"time": round(tx * T, 4), "x": round(vx, 4), "y": round(vy, 4)}
+                  for (tx, vx), (_ty, vy) in zip(shx, shy)]
+    return b, s
+
+
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
 HIT_KEYWORDS = ["hit", "impact", "punch", "throb", "slam", "打擊", "命中", "重擊", "衝擊"]
 REVEAL_KEYWORDS = ["reveal", "open", "burst", "showup", "appear_big", "揭曉", "現身", "炸開", "開獎"]
@@ -438,3 +498,6 @@ CASCADE_KEYWORDS = ["cascade", "wave", "ripple", "sequence", "sweep", "wipe", "�
 WOBBLE_KEYWORDS = ["wobble", "jelly", "sway", "skew", "shear", "lean", "斜拉", "果凍", "晃", "搖擺"]
 # squash 專屬關鍵字(與 wobble 區隔:wobble=純 shear 擺,squash=shear+耦合體積守恆擠壓)。
 SQUASH_KEYWORDS = ["squash", "stretch", "jellysquash", "diagsquash", "squish", "擠壓", "壓擠", "斜擠", "擠"]
+# twist 專屬關鍵字(與 wobble/squash 區隔:twist=雙軸對角絞擰,填 shearY 通道)。與其餘節拍
+# 關鍵字無交集(避免歸類爭用);Award/main_draw 真值命名皆無這些 token → 覆蓋率不受擾。
+TWIST_KEYWORDS = ["twist", "wring", "screw", "corkscrew", "絞", "擰", "扭", "扭轉", "絞擰"]
