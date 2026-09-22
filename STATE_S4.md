@@ -7,6 +7,13 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 122(2026-09-22)**:排程第六十三次觸發(距 chunk 121 同日內)。重跑同一組檢查:
+> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
+> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關);`ReadNotifications` queue
+> 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key
+> 授權)仍無使用者輸入。**結論與 chunk 103~121 相同:無新工作塊**,事實無變化。依既有慣例
+> **不重複發送通知**。未動任何 production 代碼。見 `log/s4-2026-09-22-122.md`。
+>
 > **chunk 121(2026-09-22)**:排程第六十二次觸發(距 chunk 120 同日內)。重跑同一組檢查:
 > assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
 > 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關);`ReadNotifications` queue
