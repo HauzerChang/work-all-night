@@ -196,11 +196,11 @@ _DISPATCH = {"intro": gen_in, "loop": gen_loop, "outro": gen_out, "hold": gen_ho
 try:
     from beat_templates import gen_hit as _gen_hit, gen_reveal as _gen_reveal, \
         gen_combo as _gen_combo, gen_anticipate_hold as _gen_charge, gen_cascade as _gen_cascade, \
-        gen_wobble as _gen_wobble, gen_squash as _gen_squash, \
+        gen_wobble as _gen_wobble, gen_squash as _gen_squash, gen_twist as _gen_twist, \
         HIT_KEYWORDS as _HIT_KW, REVEAL_KEYWORDS as _REVEAL_KW, \
         COMBO_KEYWORDS as _COMBO_KW, CHARGE_KEYWORDS as _CHARGE_KW, \
         CASCADE_KEYWORDS as _CASCADE_KW, WOBBLE_KEYWORDS as _WOBBLE_KW, \
-        SQUASH_KEYWORDS as _SQUASH_KW, DUR as _DUR_EXT
+        SQUASH_KEYWORDS as _SQUASH_KW, TWIST_KEYWORDS as _TWIST_KW, DUR as _DUR_EXT
     _DISPATCH["hit"] = _gen_hit
     _DISPATCH["reveal"] = _gen_reveal
     _DISPATCH["combo"] = _gen_combo
@@ -208,11 +208,12 @@ try:
     _DISPATCH["cascade"] = _gen_cascade
     _DISPATCH["wobble"] = _gen_wobble  # candidate G-4':產出 shear 通道的斜拉節拍
     _DISPATCH["squash"] = _gen_squash  # candidate G-4'''':shear + 耦合非均勻 scale 的體積守恆擠壓
-    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo/charge/cascade/wobble/squash 時長對 spine_anim.duration 一致
-    # 主秀類別置前:exact/substring 命中優先於泛用 pulse(squash 亦置前;放 wobble 前避免關鍵字爭用)
+    _DISPATCH["twist"] = _gen_twist    # candidate G-4'''''':雙軸旋擰 shear(shearX+shearY)+ 旋轉 squash
+    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo/charge/cascade/wobble/squash/twist 時長對 spine_anim.duration 一致
+    # 主秀類別置前:exact/substring 命中優先於泛用 pulse(squash/twist 亦置前;放 wobble 前避免關鍵字爭用)
     _CAT_KEYWORDS = {"cascade": _CASCADE_KW, "combo": _COMBO_KW, "charge": _CHARGE_KW,
-                     "squash": _SQUASH_KW, "wobble": _WOBBLE_KW, "hit": _HIT_KW,
-                     "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
+                     "twist": _TWIST_KW, "squash": _SQUASH_KW, "wobble": _WOBBLE_KW,
+                     "hit": _HIT_KW, "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
 except ImportError:
     pass
 

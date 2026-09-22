@@ -258,10 +258,13 @@ def run():
     v_nv, a_nv, d_nv = _sq3_eval(nonvol)[:3]
     s6["b_nonvolume_guard"] = {"volume_ok": v_nv, "aniso_ok": a_nv,
                                "pass": (not v_nv) and a_nv}
-    # (c) 耦合隔離:非 squash beat 皆非「同時帶 shear 且非均勻 scale」
+    # (c) 耦合隔離:除**刻意的耦合 shear+非均勻 scale 產出者**(COUPLED_SCALE_CATS,如 squash、
+    #     G-4'''''' 的 twist)外,其餘 beat 皆非「同時帶 shear 且非均勻 scale」。原僅排除 squash,
+    #     但 twist 亦為合法耦合產出者 → 改以類別集合排除(同 K5c 排除 SHEAR_CATS 的作法,避免每加
+    #     一個耦合節拍就誤判 leak)。此仍證「等比 scale 的主秀節拍不會意外帶耦合」。
     leak = []
     for nm, an in anims.items():
-        if "__" in nm or G.beat_category(nm) == "squash":
+        if "__" in nm or G.beat_category(nm) in TV.COUPLED_SCALE_CATS:
             continue
         for bn, ch in an.get("bones", {}).items():
             if _shear_x(ch) and _has_aniso_scale(ch):

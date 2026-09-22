@@ -429,6 +429,111 @@ def gen_squash(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
     return b, s
 
 
+# candidate G-4'''''' — twist(旋擰果凍晃):**第一個同時產出 shearX **且** shearY 的生成器**
+# (雙軸 shear = 塞滿一般仿射 M 的最後一條自由度)。補上 wobble/squash 系列一路留到現在的最後一條
+# honest boundary —— G-4' wobble 只產純 shearX(shearY≡0)、G-4'''' squash 產 shearX + 耦合非均勻
+# scale(shearY 仍≡0)。真實 Spine local M=[[cos(θ+shx)sx, cos(θ+90+shy)sy],[sin(θ+shx)sx,
+# sin(θ+90+shy)sy]]:shearX 只擾第一欄(a,c)的角、shearY 只擾第二欄(b,d)的角 —— 兩者**獨立**。
+# 只產 shearX 時第二欄恆與第一欄正交(相似/近相似殘留);**shearX 與 shearY 同時非零**才讓兩欄的角
+# 各自獨立 → M 為**真正的一般 2×2**(四自由度全填)。本 beat 讓某節拍實際產出雙軸 shear,`build_spine
+# --shear-pivot` 端到端把此一般仿射繞關節 pivot 補償(管路 `transform_matrix_full`/`_sample_shear`
+# 早已讀 shy,見 pivot_rotation;此前無生成器餵它 → AC 只用合成 shy 驗過)。
+#
+# 運動基元 = **旋擰(rotary)阻尼 shear**:shear 向量 (shearX, shearY) 以四分之一週期為步在相位上
+# 前進 → 向量方向**繞圈掃過**(shearX 為峰時 shearY≈0、shearY 為峰時 shearX≈0,即**正交/quadrature**),
+# 幅度隨相位阻尼收回 identity。同時掛一個**旋轉的體積守恆 squash**(拉長軸隨 shear 主導軸在 X/Y 間交替
+# → 真「旋擰果凍」),使單一 beat 同時填 shearX、shearY、非均勻 scale。
+# 結構簽章(可量化、負對照乾淨分離):
+#   1. 首尾 identity(shearX==shearY==0、scaleX==scaleY==1)→ 可插 Loop 間(同其他主秀 beat)。
+#   2. **雙軸阻尼振盪(crux)**:shearX **與** shearY **各自**繞 0 變號 ≥3 + 相繼極值嚴格遞減(阻尼)。
+#   3. **旋擰/正交(crux)**:存在幀 |shearY|大而|shearX|≈0(shearY 主導)**且**存在幀 |shearX|大而
+#      |shearY|≈0(shearX 主導)→ shear 向量方向確實**旋轉**(非固定斜向)。對角 shear(shearY=c·shearX
+#      共線)則兩者同時過零 → 無「一軸大另一軸≈0」的錯位幀 → 負對照分離。
+#   4. **旋轉體積守恆 squash**:每擠壓極值 scaleX·scaleY≈1(面積守恆)且 scaleX≠scaleY(非均勻),
+#      且拉長軸**在 X/Y 間交替**(既有 scaleX>scaleY 幀也有 scaleX<scaleY 幀)→ 與固定軸 squash(恆
+#      拉 X)分離。
+
+DUR.setdefault("twist", 0.9)
+
+# role → shear 峰值(度,shearX 與 shearY 同幅 → 近圓掃);沿用 _WOBBLE_SHEAR 的相對關係。
+_TWIST_SHEAR = dict(_WOBBLE_SHEAR)
+# role → 旋轉 squash 首極值拉長量 Q(=|scale−1| 峰);沿用 _SQUASH_STRETCH。
+_TWIST_STRETCH = dict(_SQUASH_STRETCH)
+# role → limb 的伴隨阻尼 rotate 峰(度);只有 limb 加 rotate → 讓 limb twist bone 同時帶
+# rotate+scale+shear 三通道(演示一般仿射 M=R·shear·S 的完整補償;其餘 role 無 rotate 亦已填滿
+# M 的四自由度=雙軸 shear + 非均勻 scale)。
+_TWIST_LIMB_ROT = 10.0
+# 旋擰的四分之一週期步數(shear 向量掃過的 90° 步數;預設 8 → shearX 5 極值、shearY 4 極值,
+# 兩軸變號皆 ≥3)。窗與 wobble/squash 共用 [WOBBLE_LEAD, WOBBLE_TAIL],阻尼 r=WOBBLE_DAMP。
+TWIST_QTURNS = 8
+# 四分之一相位的 cos/sin 精確查表(避免浮點塵埃;k%4 → {1,0,-1,0}/{0,1,0,-1})。
+_CQ = [1, 0, -1, 0]
+_SQ = [0, 1, 0, -1]
+
+
+def _twist_env(Ax, Ay, Q, nturn):
+    """通用**旋擰阻尼 shear + 旋轉體積守恆 squash** 包絡。回傳 (shear_env, scale_env):
+      shear_env = [(τ, shearX, shearY)]  首尾 (0,0);nturn+1 個相位步,shearX 落偶步、shearY 落奇步。
+      scale_env = [(τ, scaleX, scaleY)]  首尾 (1,1);每步 (1+q,1/(1+q)) 或倒置(拉長軸隨主導軸交替)。
+
+    第 k 步(0-based,f=k/nturn):τ 於 [WOBBLE_LEAD, WOBBLE_TAIL] 均勻;阻尼 decay=r^(k/2);
+      shearX = Ax·decay·cos(k·90°)、shearY = Ay·decay·sin(k·90°)(cos/sin 於 90° 倍數為 0/±1)
+      → shear 向量方向每步轉 90°(旋擰/正交);相繼同軸極值幅度 ×r 遞減(阻尼)。
+      squash 幅度 q=Q·decay;偶步(shearX 主導)拉 X:(1+q, 1/(1+q));奇步(shearY 主導)拉 Y:
+      (1/(1+q), 1+q) → scaleX·scaleY≡1(面積守恆)、scaleX≠scaleY(非均勻)、拉長軸 X/Y 交替(旋轉)。"""
+    r = WOBBLE_DAMP
+    sh = [(0.00, 0.0, 0.0)]
+    sc = [(0.00, 1.0, 1.0)]
+    for k in range(nturn + 1):
+        f = k / nturn if nturn > 0 else 0.0
+        tau = WOBBLE_LEAD + (WOBBLE_TAIL - WOBBLE_LEAD) * f
+        decay = r ** (k / 2.0)
+        shx = Ax * decay * _CQ[k % 4]
+        shy = Ay * decay * _SQ[k % 4]
+        q = Q * decay
+        if k % 2 == 0:                       # shearX 主導步 → 拉長 X
+            scx, scy = 1.0 + q, 1.0 / (1.0 + q)
+        else:                                # shearY 主導步 → 拉長 Y(拉長軸旋轉)
+            scx, scy = 1.0 / (1.0 + q), 1.0 + q
+        sh.append((round(tau, 4), round(shx, 4), round(shy, 4)))
+        sc.append((round(tau, 4), round(scx, 6), round(scy, 6)))
+    sh.append((1.00, 0.0, 0.0))
+    sc.append((1.00, 1.0, 1.0))
+    return sh, sc
+
+
+def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nturn=None):
+    """旋擰果凍晃:**雙軸阻尼 shear(shearX **且** shearY)+ 旋轉體積守恆 squash**。
+    回傳 (bone_timelines, slot_timelines)。
+
+    shear 向量 (shearX, shearY) 以 90° 步旋擰前進(正交:一軸峰時另一軸≈0),幅度阻尼收回 identity;
+    每步施旋轉 squash(拉長軸隨主導軸在 X/Y 交替,scaleX·scaleY==1 且 scaleX≠scaleY),首尾 identity。
+    `side_sign` 決定 shearX 首推方向(左右件反相);`nturn`=旋擰四分之一週期步數(預設 TWIST_QTURNS)。
+    limb role 另加伴隨阻尼 rotate → 該 bone 同時帶 rotate+scale+shear 三通道(演示完整一般仿射補償)。"""
+    T = DUR["twist"]
+    nturn = TWIST_QTURNS if nturn is None else nturn
+    Ax = _TWIST_SHEAR.get(role, 12.0) * side_sign
+    Ay = _TWIST_SHEAR.get(role, 12.0)
+    Q = _TWIST_STRETCH.get(role, 0.12)
+    r = WOBBLE_DAMP
+    b, s = {}, {}
+    sh, sc = _twist_env(Ax, Ay, Q, nturn)
+    b["shear"] = [{"time": round(tau * T, 4), "x": round(sx, 4), "y": round(sy, 4)}
+                  for (tau, sx, sy) in sh]
+    b["scale"] = [{"time": round(tau * T, 4), "x": round(scx, 4), "y": round(scy, 4)}
+                  for (tau, scx, scy) in sc]
+    if role == "limb":
+        # 伴隨阻尼 rotate(對齊 shearX 偶步極值,同相位;首尾 0)→ limb bone 三通道齊備。
+        fr = [(0.0, 0.0)]
+        for k in range(0, nturn + 1, 2):
+            f = k / nturn if nturn > 0 else 0.0
+            tau = WOBBLE_LEAD + (WOBBLE_TAIL - WOBBLE_LEAD) * f
+            fr.append((tau * T, side_sign * _TWIST_LIMB_ROT * (r ** (k / 2.0)) * _CQ[k % 4]))
+        fr.append((T, 0.0))
+        b["rotate"] = _rot(fr)
+    return b, s
+
+
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
 HIT_KEYWORDS = ["hit", "impact", "punch", "throb", "slam", "打擊", "命中", "重擊", "衝擊"]
 REVEAL_KEYWORDS = ["reveal", "open", "burst", "showup", "appear_big", "揭曉", "現身", "炸開", "開獎"]
@@ -438,3 +543,6 @@ CASCADE_KEYWORDS = ["cascade", "wave", "ripple", "sequence", "sweep", "wipe", "�
 WOBBLE_KEYWORDS = ["wobble", "jelly", "sway", "skew", "shear", "lean", "斜拉", "果凍", "晃", "搖擺"]
 # squash 專屬關鍵字(與 wobble 區隔:wobble=純 shear 擺,squash=shear+耦合體積守恆擠壓)。
 SQUASH_KEYWORDS = ["squash", "stretch", "jellysquash", "diagsquash", "squish", "擠壓", "壓擠", "斜擠", "擠"]
+# twist 專屬關鍵字(與 wobble/squash 區隔:twist=雙軸旋擰 shear(shearX+shearY)+旋轉 squash)。
+# 不含 "shear"/"skew"(wobble 用)→ 關鍵字互斥,beat_category 不誤判。
+TWIST_KEYWORDS = ["twist", "rotary", "conical", "gyrate", "swirl", "wring", "旋擰", "扭", "擰", "旋擺", "陀螺"]

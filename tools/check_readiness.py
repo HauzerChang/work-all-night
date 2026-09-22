@@ -357,6 +357,24 @@ BLOCKS = [
                      "slot_reveal squash_cycles_for None 不亂加・段數只作用 squash 不外洩 wobble 仍4段)。端到端 build_spine --animate --tier-variants --shear-pivot 直出 "
                      "squash__{Super4,Mega5,Omg6,Legend7},validate_build round-trip overall_pass(premult MAE 0.031)。回歸:19 閘全綠(18 + 新 squash_count)。"
                      "honest:段數階梯 PROPOSAL(手感 A 類);shearY≡0;幅度階梯 PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("dual_axis_shear_generation", "生成器產雙軸 shear(shearX+shearY 旋擰)填滿一般仿射(G-4'''''')", "L2",
+                "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
+                note="補 wobble/squash 系列一路留到現在的**最後一條 shear 通道 honest boundary(shearY≡0)**。G-4' wobble 只產純 shearX、"
+                     "G-4'''' squash 產 shearX + 耦合非均勻 scale,兩者 shearY≡0。真實 Spine local M 兩欄的角分別由 shearX(第一欄 a,c)與"
+                     "shearY(第二欄 b,d)獨立控制 → **只有 shearX 與 shearY 同時非零**,M 才是真正的一般 2×2(四自由度全填);只產 shearX 時第二欄"
+                     "恆與第一欄近正交。新增生成器 `beat_templates.gen_twist`(旋擰果凍晃):shear 向量 (shearX,shearY) 以 90° 步旋擰掃過"
+                     "(正交:一軸峰時另一軸≈0),幅度阻尼收回 identity,並掛**旋轉**體積守恆 squash(拉長軸隨主導軸在 X/Y 交替);limb 另加伴隨"
+                     "阻尼 rotate → 該 bone 同時帶 rotate+scale+shear。twist 併入 MAIN_SHOW_CATS/SHEAR_CATS/COUPLED_SCALE_CATS;經先驗庫直出,"
+                     "`build_spine --shear-pivot`(include_shear=True 讀 shy;管路 transform_matrix_full/_sample_shear 早備,此前無生成器餵它)"
+                     "端到端把此真正一般仿射繞關節 pivot 補償。validate_twist_gen.py 7AC PASS(TW1 present+雙軸 shear crux:峰 shearX16°·"
+                     "shearY11.3°·aniso0.30/TW2 shearX 與 shearY **各自**繞0變號≥3+極值遞減/TW3 crux 旋擰正交:存在 shearY 主導幀且 shearX 主導幀/"
+                     "TW4 旋轉體積守恆 squash:每極值 scaleX·scaleY≈1+非均勻+拉長軸 X/Y 交替/TW5 identity 介面/TW6 端到端 pivot 殘差 ≤0.18px vs "
+                     "負對照 37–52px、M anisotropy 0.18–0.22 且 shy≠0 證真一般仿射/TW7 負對照:shearY≡0→非雙軸非旋擰、對角 shear 共線→旋擰 FALSE、"
+                     "固定軸 squash→旋轉 FALSE、非 twist 皆無雙軸 shear、加性零回歸)。端到端 build_spine --animate --tier-variants --shear-pivot "
+                     "直出 twist__{tier},validate_build round-trip overall_pass(premult MAE 0.031)。回歸:20 閘全綠(19 + 新 twist_gen;squash_gen "
+                     "SQ6c 耦合隔離改以 COUPLED_SCALE_CATS 排除,容許 twist 為第二個合法耦合產出者,同 K5c 排除 SHEAR_CATS)。**一般仿射 M 六自由度"
+                     "(rotate+sx+sy+shearX+shearY,translate 為 pivot 補償)首次由生成器全填**。honest:雙軸幅度/旋擰形狀為 PROPOSAL(手感 A 類);"
+                     "twist 未接 count-aware(旋擰步數隨檔位,gen_twist(nturn=) 已備參數未接,比照 G-4'''/G-4'''''-c);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

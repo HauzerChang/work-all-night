@@ -35,7 +35,11 @@ import copy
 # 它同為主秀節拍(強度理應隨檔位遞增),但 scale 軸是**耦合體積守恆**(scaleX·scaleY≡1),
 # 逐軸 `_amp_scale`(只放大 identity 上方)會保留 scaleY<1 樓地板而只脹 scaleX → 破壞守恆
 # (這正是 G-4'''' 當時把 squash 排除在外的 honest boundary);故用**耦合 amplify**(見 COUPLED_SCALE_CATS)。
-MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble", "squash"}
+# candidate (G-4'''''') — 加入 `twist`(雙軸旋擰 shear + 旋轉體積守恆 squash 節拍):
+# 它同為主秀節拍(強度理應隨檔位遞增),shear 為雙軸(shearX+shearY)、scale 為**耦合體積守恆**
+# (scaleX·scaleY≡1),故一併入 SHEAR_CATS(shear 產出者)與 COUPLED_SCALE_CATS(耦合 amplify);
+# amplify_bone_tl 對 shear 兩軸(x,y)已同比放大(v'=g*v)→ 雙軸阻尼簽章 + 旋擰正交檔位保形。
+MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble", "squash", "twist"}
 
 # candidate J-2 / G-4''' / G-4'''''-c — 依檔位可變「段數」的類別(結構性差異化,非只幅度)。
 # combo 的 impact 峰**數**、wobble 的振盪**段數**、squash 的擠壓**段數**隨檔位遞增;需在 gen 時把
@@ -51,14 +55,14 @@ COUNT_AWARE_CATS = {"combo", "wobble", "squash"}
 # 集中一處便於後續再加(避免每加一個 shear 節拍就改多個閘的硬編碼 'wobble')。
 # (G-4''''')squash **已併入** MAIN_SHOW_CATS(檔位差異化):其 scale 通道走**耦合 amplify**
 # (COUPLED_SCALE_CATS)以保體積守恆;逐軸 `_amp_scale` 會破壞守恆(見下 `_amp_scale_coupled`)。
-SHEAR_CATS = {"wobble", "squash"}
+SHEAR_CATS = {"wobble", "squash", "twist"}
 
 # candidate G-4''''' — 需**耦合 scale amplify** 的類別(shear + 體積守恆非均勻 scale)。
 # 逐軸 `_amp_scale`(只放大 identity 上方 overshoot、樓地板不動)套在 squash 上會:scaleX>1 被脹、
 # scaleY<1 被保留 → scaleX·scaleY≠1(破壞面積守恆)。故對這些類別改用 `_amp_scale_coupled`:
 # 放大**拉長軸**的 overshoot、壓縮軸設其**倒數** → scaleX·scaleY≡1 在任一檔位保持、非均勻度隨 g 增大。
 # `build_animations` 依 cat 路由是否用耦合(squash→耦合;其餘主秀→逐軸)。
-COUPLED_SCALE_CATS = {"squash"}
+COUPLED_SCALE_CATS = {"squash", "twist"}
 
 # 檔位 → 主秀幅度增益(**嚴格遞增**;base=Super=1.0 → 向後相容逐位元不變)。
 # 增益上界經檢核:最大 role peak(特效 1.35 → q=0.35)在 Legend g=2.1 下 → 1.735(無翻面);
