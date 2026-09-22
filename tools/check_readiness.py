@@ -357,6 +357,18 @@ BLOCKS = [
                      "slot_reveal squash_cycles_for None 不亂加・段數只作用 squash 不外洩 wobble 仍4段)。端到端 build_spine --animate --tier-variants --shear-pivot 直出 "
                      "squash__{Super4,Mega5,Omg6,Legend7},validate_build round-trip overall_pass(premult MAE 0.031)。回歸:19 閘全綠(18 + 新 squash_count)。"
                      "honest:段數階梯 PROPOSAL(手感 A 類);shearY≡0;幅度階梯 PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_shear_y_generation", "生成器產出 shearY 通道(雙軸 shear)端到端(G-4'''''',斜拉扭轉 twist beat + --shear-pivot)", "L2",
+                "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
+                note="補 wobble(G-4')/squash(G-4'''')一路留到現在的**最後一條 shear 通道 honest boundary** —— 兩者皆 shearY≡0。"
+                     "真實 Spine local 2×2 的第二個基向量由 shearY 獨立傾斜(transform_matrix_full:b=cos(rot+90+shy)·sy、d=sin(rot+90+shy)·sy),"
+                     "與第一個基向量(受 shearX 傾斜)正交獨立。gen_twist 是**第一個產出 shearY≠0** 的生成器:shearX 同 wobble 阻尼擺,shearY 同幅同阻尼但"
+                     "極值時刻偏移四分之一週期(正交)→ shear 方向隨時間旋轉、兩軸為兩個獨立自由度(塞滿一般仿射 M 的最後一個 DOF)。twist 併入 SHEAR_CATS"
+                     "(shear-isolation 閘認得);additive 接進 slot_bigwin 先驗庫,build_spine --shear-pivot 端到端把含 shearY 的一般仿射繞關節 pivot 補償。"
+                     "validate_twist_gen.py 6AC PASS(V1 present+shearY 產出 crux 峰 |shearX|,|shearY| 皆 16°/V2 雙軸阻尼:shearX 與 shearY 各自取合併網格轉折點還原真實極值"
+                     "→ 首尾 0+變號≥3+極值遞減/V3 crux 雙軸獨立:比例殘差比 0.82≥0.3(非比例)+乘積 shearX·shearY 繞 0 變號 6≥4(正交)/V4 identity 介面/"
+                     "V5 端到端 pivot 不動 fixed<0.011px vs 未補償 8–29px(shearY 首次驅動 pivot_channels_affine)/V6 負對照 單軸 shearY≡0→產出 FALSE·正交 FALSE、"
+                     "比例 shy=k·shx→殘差 0 變號 0 獨立 FALSE、shear 隔離、加性零回歸)。回歸:20 閘全綠(19 + 新 twist_gen)。"
+                     "honest:twist 未接 tier 幅度/count-aware(shear 峰、雙軸段數隨檔位為後續);shearX=shearY 同幅同源(獨立幅度階梯為後續);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

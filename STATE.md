@@ -10,6 +10,32 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 生成器產出 shearY 通道(雙軸 shear,里程碑,2026-09-22,candidate G-4'''''')** —
+  補 wobble(G-4')/squash(G-4'''')一路留到現在的**最後一條 shear 通道 honest boundary**:兩者皆 `shearY≡0`。
+  真實 Spine local 2×2 的第二個基向量由 shearY 獨立傾斜(`transform_matrix_full`:`b=cos(rot+90+shy)·sy`、
+  `d=sin(rot+90+shy)·sy`),與第一個基向量(受 shearX 傾斜)正交獨立。`beat_templates.gen_twist`(斜拉扭轉)是
+  **第一個產出 `shearY≠0` 的生成器**:讓兩個 skew 軸**同時且獨立**擺動 → 平行四邊形**兩條邊各自傾斜**(單軸只斜一條邊)
+  → 塞滿一般仿射 M 的**最後一個自由度**。運動基元=雙軸阻尼 shear:shearX 逐位元同 `_wobble_env`,shearY 同幅同阻尼
+  但極值時刻**偏移四分之一週期(正交)** → shear 方向隨時間旋轉、兩通道解耦。Spine shear 通道每幀含 x,y → `gen_twist`
+  在兩軸極值時刻**聯集網格**線性取樣合併。twist 併入 `SHEAR_CATS`(shear-isolation 閘認得,零回歸);additive 接進
+  `genre_priors.slot_bigwin`(coverage 仍 1.0、Award 無命名→列 prior_beats_unused,誠實 PROPOSAL);`build_spine
+  --shear-pivot`(include_shear=True)端到端把含 shearY 的一般仿射繞關節 pivot 補償。整合閘 `validate_twist_gen.py`
+  (先驗庫→**真實 build_spine robot 骨架**→build_animations)**6 AC 全 PASS**:V1 present+shearY 產出(crux:峰
+  |shearX| 且峰 |shearY| ≥5° 皆 16° → **產線第一次 shearY≠0**)、V2 **雙軸**阻尼(shearX 與 shearY 各自取合併網格
+  **轉折點**還原真實極值 [16,−8,4,−2] → 首尾 0+繞 0 變號≥3+相繼極值遞減)、V3 **crux 雙軸獨立**(比例殘差比
+  0.82≥0.3 非比例 + 乘積 shearX·shearY 繞 0 變號 6≥4 正交)、V4 identity 介面、V5 端到端 pivot 不動(fixed
+  <0.011px vs 未補償 8–29px,arm 50–164px、peak shearY 10–12°;**shearY 首次驅動 `pivot_channels_affine`**)、
+  V6 負對照(單軸 shearY≡0→產出 FALSE·正交 FALSE、比例 shy=k·shx→殘差 0 變號 0 獨立 FALSE 證第二軸是獨立 DOF、
+  shear 隔離、加性零回歸)。端到端 `build_spine --animate --tier-variants --shear-pivot` 直出 twist,`validate_build`
+  round-trip overall_pass(premult MAE 0.031)。**20 回歸閘全綠**(19 既有 + 新 twist_gen)。新增 cap
+  `twist_shear_y_generation` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、單一真值資產,防固化)。
+  **關鍵發現**:(1) 一般仿射 M 的所有自由度(rotate/scaleX/scaleY/shearX/shearY)已由**獨立通道**到齊 —— shear 通道
+  honest boundary 系列(G-4→G-4'''''')收束;(2) **免受包絡污染的獨立性判準** —— 兩個阻尼同源通道的相關係數被共用
+  衰減包絡拉高(~0.5)不可靠,改用**比例殘差比 + 乘積繞 0 變號**(對幅度縮放不變)乾淨鑑別「正交 vs 比例(旋轉過的
+  單軸)vs 單軸」三態。**踩雷**:合併網格讓單軸值序列含線性段上內插點 → 直接套「相繼幅度遞減」FALSE,須先取轉折點
+  還原真實極值。**honest boundary(仍在)**:twist 未接 tier 幅度/count-aware(shear 峰、雙軸段數隨檔位為後續;twist
+  ∉ MAIN_SHOW_CATS/COUNT_AWARE_CATS 故不產 `twist__{tier}`);shearX=shearY 同幅同源(獨立幅度階梯/獨立段數為後續);
+  單一真值資產。見 `knowledge/s1-twist-shear-y-generation.md`。
 - **S1 squash 擠壓段數隨檔位遞增:count-aware × 幅度 × 體積守恆三效正交(里程碑,2026-09-21 run 002,candidate G-4'''''-c)** —
   補 G-4''''' 明白列出的 honest boundary:「squash **count-aware**(擠壓段數隨檔位,`gen_squash(nosc=)` 已備參數
   未接)」。G-4''''' 讓 squash 的 shear 峰與擠壓**幅度**隨檔位遞增(愈高檔位擠愈深)而體積守恆保持,但各檔位仍
@@ -629,9 +655,13 @@
 >   `build_spine --tier-variants` 帶入 `squash_cycles_for`;`validate_squash_count.py` 5AC(SC2 crux 段數 [4,5,6,7] 嚴格遞增 **且**每檔位每內部
 >   極值 |scaleX·scaleY−1|≤2e-4 max 9.7e-05、SC4 正交含「段數單獨作用亦不破守恆」)。**結構(段數)軸已在 combo/wobble/squash 三通道成立;
 >   帶跨通道守恆約束的類別 count-aware 要多驗一層守恆**。
+> **(G-4'''''') ~~產 shearY(雙軸 shear)~~ ✅ 完成(2026-09-22,candidate G-4'''''',`twist_shear_y_generation` L2,見上里程碑)** ——
+>   `gen_twist`(斜拉扭轉:shearX 阻尼擺 + 正交 shearY 阻尼擺,shear 方向旋轉)第一個產 `shearY≠0`;twist 併入 `SHEAR_CATS`;
+>   `validate_twist_gen.py` 6AC(V1 shearY 產出 crux、V3 雙軸獨立=非比例殘差比 0.82 + 乘積繞 0 變號 6、V5 端到端 pivot 不動 <0.011px)。
+>   **一般仿射 M 所有自由度(rotate/scaleX/scaleY/shearX/shearY)已由獨立通道到齊;shear 通道 honest boundary 系列(G-4→G-4'''''')收束。**
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4'''''') 產 shearY(雙軸 shear)/ shear+scale+rotate 三通道同時的運動基元(真正塞滿一般仿射 M 的所有自由度;
->   目前 shearY≡0,是 wobble/squash 系列一路留下的最後一條 shear 通道 honest boundary)**;
+> **(G-4''''''-t) twist 接 tier 幅度 / count-aware(雙軸 shear 峰隨檔位遞增,比照 G-4'';或雙軸振盪段數隨檔位,比照 G-4''';
+>   或讓 shearX/shearY 各自獨立幅度/相位差異化 —— twist 目前 shearX=shearY 同幅同源)**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸;比照 G-4'''/J-2 但簽章在件之間)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到第四個通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
@@ -652,6 +682,15 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-22:**S1 生成器產出 shearY 通道(雙軸 shear,里程碑,candidate G-4'''''')** — 補 wobble(G-4')/squash(G-4'''')
+  一路留到現在的**最後一條 shear 通道 honest boundary**(兩者皆 shearY≡0)。`gen_twist`(斜拉扭轉)是第一個產 `shearY≠0`
+  的生成器:shearX 同 wobble 阻尼擺、shearY 同幅同阻尼但極值偏移四分之一週期(正交)→ shear 方向旋轉、兩軸為兩個獨立自由度
+  → 塞滿一般仿射 M 的最後一個 DOF。twist 併入 SHEAR_CATS;additive 接進 slot_bigwin 先驗庫;`build_spine --shear-pivot`
+  端到端把含 shearY 的一般仿射繞關節 pivot 補償。`validate_twist_gen.py` 6AC 全 PASS(V1 shearY 產出 crux 皆 16°、V2 雙軸
+  阻尼取轉折點還原真實極值、V3 crux 雙軸獨立 比例殘差比 0.82 + 乘積繞 0 變號 6、V5 端到端 pivot 不動 <0.011px vs 未補償
+  8–29px);20 回歸閘全綠(19 + 新 twist_gen);round-trip overall_pass。新增 cap `twist_shear_y_generation` L2;anim-forge
+  仍 HOLD。關鍵:一般仿射 M 所有自由度已由獨立通道到齊(shear 系列 G-4→G-4'''''' 收束);免受包絡污染的獨立性判準=
+  比例殘差比 + 乘積繞 0 變號(相關係數被共用衰減包絡污染不可靠)。見 `knowledge/s1-twist-shear-y-generation.md`、`log/2026-09-22-001.md`。
 - 2026-09-21:**S1 squash 接檔位差異化:體積守恆耦合 amplify(里程碑,candidate G-4''''')** — 補 G-4''''
   的 honest boundary(squash 未接 tier 幅度,逐軸 `_amp_scale` 破守恆)。`_amp_scale_coupled`(拉長軸 overshoot
   放大、壓縮軸=倒數)使 `scaleX·scaleY≡1` 由建構保證在任一檔位保持,擠壓非均勻度與同源 shear 峰皆隨檔位嚴格遞增
