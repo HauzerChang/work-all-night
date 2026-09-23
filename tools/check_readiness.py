@@ -357,6 +357,21 @@ BLOCKS = [
                      "slot_reveal squash_cycles_for None 不亂加・段數只作用 squash 不外洩 wobble 仍4段)。端到端 build_spine --animate --tier-variants --shear-pivot 直出 "
                      "squash__{Super4,Mega5,Omg6,Legend7},validate_build round-trip overall_pass(premult MAE 0.031)。回歸:19 閘全綠(18 + 新 squash_count)。"
                      "honest:段數階梯 PROPOSAL(手感 A 類);shearY≡0;幅度階梯 PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
+                "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
+                note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"
+                     "(wobble 純 shearX、squash shearX+耦合非均勻 scale)都令 shearY≡0,故 Spine local 一般仿射 M 的第二條 shear 軸(y 軸 skew)"
+                     "從未被**生成器**驅動 —— 公式/閘早就吃 shy(G-4 transform_matrix_full(...,shy)/pivot_channels_affine/apply_pivots(include_shear=True)"
+                     "以合成 shy 驗過管路),生成端這次才接上。gen_twist(斜扭果凍扭轉)= **反相雙軸阻尼 shear**(像擰毛巾:shearX 與 shearY 反相擺動);"
+                     "shearX 同 wobble 阻尼擺(首尾 0),shearY 反號且幅度 ×TWIST_PHI(0.7,獨立通道)。關鍵幾何:兩基底夾角=90+shearY−shearX,反相時"
+                     "偏離=(1+φ)|shearX| 被放大=真雙軸 shear;同相(shearX==shearY)夾角恆90°=旋轉偽裝(負對照)。build_spine --shear-pivot 端到端把"
+                     "rotate/scale/shearX/**shearY** 一起繞關節 pivot 補償 → 件做用滿兩條 shear 軸的一般仿射變換而 pivot 精確不動(G-4 通用 Δ=(M−I)(O−P)"
+                     "第一次被生成器產的 shearY 驅動)。validate_twist_gen.py 6AC PASS(TW1 present+dual-axis crux:shearX 峰 16°・shearY 峰 11.2°(≠0)/"
+                     "TW2 兩軸各自阻尼振盪(繞0變號≥3+極值遞減)/TW3 crux 反相耦合 每內部極值 shearX·shearY<0 且夾角偏離≥8°(峰27.2°)/TW4 identity 介面 shear 首尾(0,0)/"
+                     "TW5 端到端 shearY≠0 驅動下 pivot 殘差<0.015px vs 負對照(繞件中心)≈24px >1000×/TW6 負對照 同相→反相 FALSE・單軸 shearY≡0→雙軸 FALSE・"
+                     "雙軸隔離 twist 獨佔 shearY・加性移除 twist 其餘逐位元不變)。twist 併入 SHEAR_CATS(shear-isolation 閘認定合法 shear 產出者)。"
+                     "回歸:20 閘全綠(19 + 新 twist_gen)。honest:twist 未接 tier 幅度/count-aware(比照 wobble G-4''/G-4''');反相雙軸未接體積守恆耦合 scale"
+                     "(det=cos(shearY−shearX)≠1,area 變化為已知,volume-conserving twist 為後續);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
