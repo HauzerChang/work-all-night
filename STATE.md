@@ -10,6 +10,42 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 twistvol 全仿射行列式守恆的反相雙軸 twist(里程碑,2026-09-23 run 002,candidate G-4''''''-vol)** —
+  補 twist(G-4'''''')明白列出的 honest boundary:「反相雙軸未接體積守恆(`det=cos(shearY−shearX)≠1` →
+  擰轉變面積,volume-conserving twist 為後續)」。twist 的反相雙軸 shear 令真實 Spine local 2×2 的行列式
+  `det=sx·sy·cos(shearX−shearY)` 在 sx=sy=1 下 =cos(shearY−shearX)≠1(峰 Δφ=(1+φ)|shearX|=27.2° → det=0.889 →
+  **擰轉面積剩 ~89%**)。新增 `gen_twistvol`(斜扭果凍守恆扭轉)= twist 的反相雙軸阻尼 shear + 每 shear 極值疊
+  **等軸 scale** `s=1/√(cos(shearY−shearX))` 使 `det=s²·cos≡1`(**擰而不變面積**)。**crux 與 squash 的層級區別**:
+  squash(G-4'''')守 `scaleX·scaleY≡1`(**scale 通道自守**、shearY≡0、非均勻)→ 其全 det=1·cos(shearX)≠1
+  (squash 守的是 scale 產物,非全矩陣);twistvol 守**全 2×2 仿射 det≡1**(scale 精確補償 shear 造成的 det 損失)
+  且 scale **等軸**(scaleX==scaleY,等軸膨脹,與 squash 非均勻乾淨分離)。twistvol 的 scale 是**由 shear 反推的守恆
+  補償**(非獨立擠壓),故為產線第一個「全仿射行列式守恆」的節拍,也是第一個 **shearX+shearY+等軸 scale 三通道
+  同時**驅動的節拍(rotate 由 pivot 補償另加)。經 `genre_priors.slot_bigwin` 新增 twistvol beat **直出**(additive、
+  coverage 仍 1.0);`build_spine --shear-pivot`(include_shear 隱含 include_scale)端到端把 rotate/scale/shearX/
+  shearY 一起繞關節 pivot 補償 → 件做**全仿射守恆扭轉**而 pivot 精確不動。整合閘 `validate_twistvol_gen.py`
+  (先驗庫 slot_bigwin → **真實 build_spine robot 骨架** → build_animations)**6 AC 全 PASS**:TV1 present+雙軸
+  shear+耦合 scale(shearX 峰 16°、shearY 峰 11.2°、scale 膨脹 0.0603)、TV2 兩軸各自阻尼振盪(復用 G-4' 判準)+
+  每內部極值 shearX·shearY<0(反相 → 確為 twist)、TV3 **crux 全 det 守恆+等軸**(每極值 |det−1|<1e-5、scaleX==scaleY、
+  scaleX>1、**去掉 scale 後峰值 det_noscale 0.889/0.915/0.937/0.956 ≤0.98** → 證守恆靠等軸 scale 補償真 det 損失
+  而非 shear 自守)、TV4 identity 介面(shear 首尾 0、scale 首尾 (1,1))、TV5 端到端**在 shearY≠0+scale 同時驅動下**
+  pivot 殘差 <0.016px(右手 0.0131/頭 0.0042/左手 0.0158)vs 負對照(繞件中心)8.6–29.5px(>1000×)、TV6 負對照/
+  隔離(a shear-only 守衛 scale≡1→全 det=cos<1 守恆 FALSE、b **squash 式 scale 守衛** product=1 但非均勻配雙軸 shear→
+  全 det=1·cos≠1 守恆 FALSE 且非等軸=證守的是**全矩陣** det 非 scale 產物、c 同相守衛 shearX==shearY→反相 FALSE、
+  d 隔離 twistvol 獨佔「shearY≠0 且等軸膨脹 scale」組合、e 加性移除 twistvol 其餘逐位元不變)。端到端
+  `build_spine --animate --tier-variants --shear-pivot` 直出 `twistvol`(shearY 峰 11.2° 經 pivot 補償仍存活)、
+  `validate_build` round-trip overall_pass(premult MAE 0.031)。**回歸踩雷(同 twist 模式)**:twistvol 產 shearY →
+  twist 閘 TW6(c) shearY-isolation 原以 `beat_category==twist` 認定合法 shearY 產出者會誤判 twistvol 洩漏 → 改
+  `in (twist, twistvol)`;`twistvol` 併入 `SHEAR_CATS`(shear-isolation 閘認定,集中一處);squash SQ6(c) 用
+  **非均勻** scale(`_has_aniso_scale`)判定 → 等軸 twistvol 天然不觸發、無需改。**回歸 21 閘全綠**(20 既有 + 新
+  twistvol_gen)。新增 cap `twistvol_full_affine_conserved` L2 併入 `spine-anim-forge`(**仍 HOLD**:運動基元先驗、
+  單一真值資產,防固化)。**關鍵發現**:**「體積守恆」有層級之分**(scale 通道產物 `scaleX·scaleY` vs **全 2×2
+  仿射行列式** `sx·sy·cos(Δshear)`);全 det 守恆更嚴(把 shear 造成的面積損失也用 scale 精確抵銷);閘 crux 必驗
+  **全矩陣 det** 並用「squash 式 scale(product=1 非均勻)配雙軸 shear → 全 det≠1」的負對照把兩層級鑑別開;
+  **真簽章需兩獨立條件並立**(全 det≡1 **且** 等軸);**補償型通道**(scale=1/√cos 由 shear 反推)的負對照要證
+  「去掉 scale 則 det 破」(scale 在做真工作)非只「有 scale」。從「用滿一般仿射四自由度」推進到「用滿**且守恆**」。
+  **honest boundary(仍在)**:twistvol 未接 tier 幅度/count-aware(`gen_twistvol(nosc=)` 已備參數未接;接 tier 須
+  **耦合** amplify 重算 `s=1/√cos((1+φ)g|shearX|)`,類比 squash `_amp_scale_coupled` 但目標為全 det 而非 scale
+  product);幅度/φ/等軸為 PROPOSAL(手感 A 類);單一真值資產。見 `knowledge/s1-twistvol-volume-conserving-generation.md`。
 - **S1 twist 反相雙軸 shear:生成器首度驅動 shearY(里程碑,2026-09-23,candidate G-4'''''')** —
   補 wobble(G-4')/squash(G-4'''')一路留到現在的**最後一條 shear 通道 honest boundary(shearY≡0)**。至今所有
   產 shear 的節拍(wobble 純 shearX、squash shearX + 耦合非均勻 scale)都令 shearY≡0,故 Spine local 一般仿射 M
@@ -666,9 +702,16 @@
 >   + `build_spine --shear-pivot` 端到端;`validate_twist_gen.py` 6AC(TW1 crux shearX 峰 16°·shearY 峰 11.2°≠0、TW3 crux 反相耦合
 >   每內部極值 shearX·shearY<0、TW5 shearY≠0 驅動下 pivot 殘差 <0.015px vs 負對照 ≈24px、TW6 同相=旋轉偽裝守衛)。
 >   `twist` 併入 `SHEAR_CATS`(shear-isolation 閘認定)。**一般仿射 M 的 4 自由度生成端至此全數被真實 beat 驅動過**。
+> **(G-4''''''-vol) ~~volume-conserving twist~~ ✅ 完成(2026-09-23 run 002,candidate G-4''''''-vol,`twistvol_full_affine_conserved` L2,見上里程碑)** ——
+>   `gen_twistvol`(反相雙軸 shear + 耦合**等軸** scale `s=1/√cos(shearY−shearX)` → **全 2×2 仿射 det≡1**,擰而不變面積)+
+>   `genre_priors.slot_bigwin` 加 twistvol beat 直出 + `build_spine --shear-pivot` 端到端;`validate_twistvol_gen.py` 6AC
+>   (TV3 crux 每極值 |det−1|<1e-5+等軸+去 scale 後 det_noscale 峰 0.889–0.956 證 scale 補償真 det 損失、TV6 squash 式
+>   scale product=1 非均勻配雙軸 shear→全 det≠1 FALSE=證守全矩陣非 scale 產物)。**「體積守恆」有層級:squash 守 scale
+>   產物、twistvol 守全仿射行列式**;`twistvol` 併入 `SHEAR_CATS`。**一般仿射四自由度從「用滿」推進到「用滿且守恆」**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4''''''-vol) volume-conserving twist(反相雙軸 shear 接體積守恆耦合 scale:`det=cos(shearY−shearX)≠1` → 擰轉變面積,
->   加耦合 scale 使 `sx·sy=1/cos(shearY−shearX)` → 擰而不變面積;shear+scale+rotate 三通道同時 = 塞滿一般仿射四自由度且守恆)**;
+> **(G-4''''''-vol-tier / -count) twistvol 接 tier 幅度 / count-aware —— 接 tier 須**耦合** amplify:shear 峰 g 後
+>   `s=1/√cos((1+φ)g|shearX|)` 要重算(scale 是 shear 的守恆函式,非簡單 v'=g·v;類比 squash `_amp_scale_coupled`
+>   但目標為**全 det≡1** 而非 scale product;含 shearY+等軸 scale 兩者皆隨檔位遞增而 det 恆守);或扭轉段數隨檔位(count-aware,比照 wobble G-4''')**;
 > **(G-4''''''-tier / -count) twist 接 tier 幅度 / count-aware(shearY 峰隨檔位、扭轉段數隨檔位;比照 wobble G-4''/G-4''')**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸;比照 G-4'''/J-2 但簽章在件之間)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到第四個通道)**;
@@ -690,6 +733,17 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-23 run 002:**S1 twistvol 全仿射行列式守恆的反相雙軸 twist(里程碑,candidate G-4''''''-vol)** — 補
+  twist(G-4'''''')的 honest boundary(反相雙軸 shear 令 det=cos(shearY−shearX)≠1 → 擰轉變面積)。`gen_twistvol`
+  在 twist 反相雙軸 shear 上疊**等軸** scale `s=1/√cos(shearY−shearX)` 使**全 2×2 仿射 det≡1**(擰而不變面積)。
+  crux 與 squash 層級不同:squash 守 scale 產物 scaleX·scaleY≡1(非均勻、shearY≡0、全 det≠1);twistvol 守**全矩陣
+  det≡1**(scale 補償 shear det 損失)且等軸。`validate_twistvol_gen.py` 6AC 全 PASS(TV3 crux |det−1|<1e-5+等軸+
+  去 scale 後 det_noscale 峰 0.889–0.956、TV5 pivot 殘差 <0.016px vs 負對照 8.6–29.5px、TV6 squash 式 scale 配雙軸
+  shear→全 det≠1 負對照)。端到端 `build_spine --animate --tier-variants --shear-pivot` 直出 twistvol、round-trip
+  overall_pass。回歸踩雷:twist TW6(c) shearY-isolation 改認 `in (twist,twistvol)`、`twistvol` 併入 `SHEAR_CATS`;
+  squash SQ6(c) 用非均勻 scale 判定故等軸 twistvol 天然不觸發。**回歸 21 閘全綠**(20 既有 + 新 twistvol_gen)。cap
+  `twistvol_full_affine_conserved` L2;anim-forge 仍 HOLD。關鍵:「體積守恆」有層級(scale 產物 vs 全仿射 det);
+  補償型通道的負對照要證「去 scale 則 det 破」。見 `knowledge/s1-twistvol-volume-conserving-generation.md`。
 - 2026-09-21:**S1 squash 接檔位差異化:體積守恆耦合 amplify(里程碑,candidate G-4''''')** — 補 G-4''''
   的 honest boundary(squash 未接 tier 幅度,逐軸 `_amp_scale` 破守恆)。`_amp_scale_coupled`(拉長軸 overshoot
   放大、壓縮軸=倒數)使 `scaleX·scaleY≡1` 由建構保證在任一檔位保持,擠壓非均勻度與同源 shear 峰皆隨檔位嚴格遞增

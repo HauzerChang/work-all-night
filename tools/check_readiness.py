@@ -372,6 +372,20 @@ BLOCKS = [
                      "雙軸隔離 twist 獨佔 shearY・加性移除 twist 其餘逐位元不變)。twist 併入 SHEAR_CATS(shear-isolation 閘認定合法 shear 產出者)。"
                      "回歸:20 閘全綠(19 + 新 twist_gen)。honest:twist 未接 tier 幅度/count-aware(比照 wobble G-4''/G-4''');反相雙軸未接體積守恆耦合 scale"
                      "(det=cos(shearY−shearX)≠1,area 變化為已知,volume-conserving twist 為後續);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twistvol_full_affine_conserved", "生成器產全仿射行列式守恆的反相雙軸 twist(G-4''''''-vol,scale 補償 shear det)", "L2",
+                "python3 tools/analyzer/validate_twistvol_gen.py", "pipeline",
+                note="補 twist(G-4'''''')的 honest boundary(反相雙軸 shear 令 det=cos(shearY−shearX)≠1 → 擰轉變面積,峰 27.2° det=0.889 面積剩89%)。"
+                     "gen_twistvol 在 twist 反相雙軸 shear 上疊**等軸** scale s=1/√cos(shearY−shearX) 使真實 Spine local 2×2 的**全行列式** det=s²·cos≡1"
+                     "(擰而不變面積)。crux 與 squash(G-4'''')層級不同:squash 守 scaleX·scaleY≡1(scale 通道自守、非均勻、shearY≡0)→ 全 det=1·cos(shearX)≠1;"
+                     "twistvol 守**全 2×2 仿射 det≡1**(scale 精確補償 shear det 損失)且**等軸**(scaleX==scaleY)。twistvol 的 scale 是由 shear 反推的守恆補償"
+                     "(非獨立擠壓),為產線第一個全仿射行列式守恆的節拍,也是第一個 shearX+shearY+等軸 scale 三通道同時驅動(rotate 由 pivot 補償另加)。"
+                     "build_spine --shear-pivot 端到端把 rotate/scale/shearX/shearY 一起繞關節 pivot 補償。validate_twistvol_gen.py 6AC PASS"
+                     "(TV1 present+雙軸 shear+耦合 scale shearX16°・shearY11.2°・膨脹0.06/TV2 兩軸阻尼振盪+反相/TV3 crux 每極值|det−1|<1e-5+scaleX==scaleY 等軸+"
+                     "去 scale 後 det_noscale 峰 0.889–0.956 證 scale 補償真 det 損失/TV4 identity 介面/TV5 端到端 pivot 殘差<0.016px vs 負對照8.6–29.5px>1000×/"
+                     "TV6 負對照 shear-only→全 det<1 FALSE・squash 式 scale product=1 非均勻配雙軸 shear→全 det≠1 FALSE(證守全矩陣非 scale 產物)・同相守衛・隔離・加性)。"
+                     "twistvol 併入 SHEAR_CATS;twist TW6(c) shearY-isolation 改認 in(twist,twistvol)。回歸:21 閘全綠(20+新 twistvol_gen)。"
+                     "關鍵:『體積守恆』有層級(scale 產物 vs 全仿射 det);補償型通道的負對照要證『去 scale 則 det 破』。honest:未接 tier/count-aware"
+                     "(接 tier 須耦合 amplify 重算 s=1/√cos((1+φ)g|shearX|));單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

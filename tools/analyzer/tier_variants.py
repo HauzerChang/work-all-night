@@ -52,7 +52,8 @@ COUNT_AWARE_CATS = {"combo", "wobble", "squash"}
 # 集中一處便於後續再加(避免每加一個 shear 節拍就改多個閘的硬編碼 'wobble')。
 # (G-4''''')squash **已併入** MAIN_SHOW_CATS(檔位差異化):其 scale 通道走**耦合 amplify**
 # (COUPLED_SCALE_CATS)以保體積守恆;逐軸 `_amp_scale` 會破壞守恆(見下 `_amp_scale_coupled`)。
-SHEAR_CATS = {"wobble", "squash", "twist"}
+# (G-4''''''-vol)twistvol 加入(反相雙軸 shear + 耦合等軸 scale,全仿射 det 守恆)成為第四個 —— 亦合法帶 shear。
+SHEAR_CATS = {"wobble", "squash", "twist", "twistvol"}
 
 # candidate G-4''''' — 需**耦合 scale amplify** 的類別(shear + 體積守恆非均勻 scale)。
 # 逐軸 `_amp_scale`(只放大 identity 上方 overshoot、樓地板不動)套在 squash 上會:scaleX>1 被脹、

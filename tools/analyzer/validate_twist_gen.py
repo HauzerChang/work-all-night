@@ -249,10 +249,11 @@ def run():
     singleaxis = [(16.0, 0.0), (-8.0, 0.0), (4.0, 0.0), (-2.0, 0.0)]
     cp_1, dev_1, _ = _tw3_eval(singleaxis)
     s6["b_singleaxis_guard"] = {"counterphase_ok": cp_1, "pass": not cp_1}
-    # (c) 雙軸隔離:非 twist beat 皆 shearY≡0(twist 獨佔第二條 shear 軸)
+    # (c) 雙軸隔離:非 twist 系(twist / twistvol)beat 皆 shearY≡0
+    #     (twist 與 twistvol 皆合法驅動第二條 shear 軸;twistvol=twist+耦合等軸 scale 守全 det)。
     leak = []
     for nm, an in anims.items():
-        if "__" in nm or G.beat_category(nm) == "twist":
+        if "__" in nm or G.beat_category(nm) in ("twist", "twistvol"):
             continue
         for bn, ch in an.get("bones", {}).items():
             if _has_shear_y(ch):
