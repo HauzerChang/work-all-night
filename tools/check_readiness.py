@@ -357,6 +357,23 @@ BLOCKS = [
                      "slot_reveal squash_cycles_for None 不亂加・段數只作用 squash 不外洩 wobble 仍4段)。端到端 build_spine --animate --tier-variants --shear-pivot 直出 "
                      "squash__{Super4,Mega5,Omg6,Legend7},validate_build round-trip overall_pass(premult MAE 0.031)。回歸:19 閘全綠(18 + 新 squash_count)。"
                      "honest:段數階梯 PROPOSAL(手感 A 類);shearY≡0;幅度階梯 PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_sheary_generation", "生成器產 shearY 通道(G-4'''''',反相雙軸剪切,件角開合)", "L2",
+                "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
+                note="補 wobble/squash 系列一路留到現在的**最後一條 shear 通道 honest boundary(shearY≡0)**:wobble 只擺 shearX、squash 擺 shearX+"
+                     "耦合非均勻 scale,兩者的 shearY 皆恆 0 —— 件的 **y 軸基向量方向**從未被獨立驅動過。gen_twist(斜扭果凍)是**第一個產出 shearY** 的生成器:"
+                     "shearX 與 shearY **反相**阻尼擺動(shearY=−shearX)使件的兩軸夾角(90+shearY−shearX)來回偏離 90°(菱形開合)= 真兩軸剪切。"
+                     "**關鍵幾何(crux 根據)**:Spine local 兩基向量方向 =(rot+shearX, rot+90+shearY);把 shearX/shearY **同加**一量等同 rotate(冗餘)→ "
+                     "shearX==shearY(等相)⇒ M==R 純旋轉、件角不變(退化);唯有 shearX≠shearY 才獨立操控 y 軸方向、真正塞滿一般仿射 M 最後一個自由度。"
+                     "twist 併入 SHEAR_CATS(第三個 shear 產出者);--shear-pivot(include_shear=True)端到端把含 shearY 的一般仿射繞關節 pivot 補償"
+                     "(pivot_channels_affine 早已取樣 shear x/y;此為 shearY 第一次由生成器驅動該路徑)。validate_twist_gen.py 6AC PASS(T1 present+"
+                     "**shearY 產出** |shearX|、|shearY| 峰皆≥5°/T2 crux 件角剪切 每非零極值反相 shearX·shearY<0+峰件角偏差≥5°+峰幀 M anisotropy≥0.10 真非相似/"
+                     "T3 shearX **與** shearY 兩通道各自阻尼振盪 首尾0+變號≥3+極值遞減/T4 identity 介面/T5 端到端 pivot 殘差<0.02px vs 負對照 6.5–25px(>20×)/"
+                     "T6 crux 負對照 (a)等相 shear=純旋轉 aniso 0.0(M==R)vs 反相 aniso 0.4158→件角簽章 FALSE(證閘測獨立 y 軸歪斜非『shearY 非零即可』)、"
+                     "(b)shearY 隔離 全 storyboard 僅 twist 帶 shearY≠0、(c)加性 移除 twist 其餘 beat 逐位元不變)。端到端 build_spine --animate --tier-variants "
+                     "--shear-pivot 直出 twist beat,validate_build round-trip overall_pass。回歸:20 閘全綠(19 + 新 twist_gen)。"
+                     "**關鍵發現**:shearY 只有在**與 shearX 不同**時才是真正新自由度(矩陣僅透過兩基向量方向 rot+shearX / rot+90+shearY 依賴之,同加=rotate);"
+                     "honest:twist 未接 tier 幅度/count-aware(未併 MAIN_SHOW_CATS;amplify_bone_tl 對 shear x/y 已 v'=g*v,併入即可用);shear+scale+rotate 三通道"
+                     "同時 + shearY 體積守恆為後續;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
