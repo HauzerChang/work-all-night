@@ -35,7 +35,12 @@ import copy
 # 它同為主秀節拍(強度理應隨檔位遞增),但 scale 軸是**耦合體積守恆**(scaleX·scaleY≡1),
 # 逐軸 `_amp_scale`(只放大 identity 上方)會保留 scaleY<1 樓地板而只脹 scaleX → 破壞守恆
 # (這正是 G-4'''' 當時把 squash 排除在外的 honest boundary);故用**耦合 amplify**(見 COUPLED_SCALE_CATS)。
-MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble", "squash"}
+# candidate (G-4''''''-tier) — 加入 `twist`(反相雙軸 shear,G-4'''''' 首度驅動 shearY 的節拍):
+# 它同為主秀節拍(強度理應隨檔位遞增),幅度軸在**兩條 shear 軸**。twist 純 shear(無 scale 通道,
+# 故**不**在 COUPLED_SCALE_CATS),`amplify_bone_tl` 的 shear 迴圈以同一 g 同時放大 shearX 與 shearY
+# (v'=g*v,對 0 對稱)⇒ shearY/shearX = −TWIST_PHI 逐檔**不變**(單一 g 對兩軸同比)、反相(乘積符號)
+# 與阻尼簽章亦保形 → **反相雙軸幾何 scale-invariant**(愈高檔位擰愈狠,但仍是同一種雙軸 shear 扭轉)。
+MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble", "squash", "twist"}
 
 # candidate J-2 / G-4''' / G-4'''''-c — 依檔位可變「段數」的類別(結構性差異化,非只幅度)。
 # combo 的 impact 峰**數**、wobble 的振盪**段數**、squash 的擠壓**段數**隨檔位遞增;需在 gen 時把

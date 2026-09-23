@@ -372,6 +372,19 @@ BLOCKS = [
                      "雙軸隔離 twist 獨佔 shearY・加性移除 twist 其餘逐位元不變)。twist 併入 SHEAR_CATS(shear-isolation 閘認定合法 shear 產出者)。"
                      "回歸:20 閘全綠(19 + 新 twist_gen)。honest:twist 未接 tier 幅度/count-aware(比照 wobble G-4''/G-4''');反相雙軸未接體積守恆耦合 scale"
                      "(det=cos(shearY−shearX)≠1,area 變化為已知,volume-conserving twist 為後續);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_tier_amplitude", "twist 反相雙軸 shear 峰隨檔位遞增(G-4''''''-tier,兩軸同比 φ 保形)", "L2",
+                "python3 tools/analyzer/validate_twist_tier.py", "pipeline",
+                note="補 (G-4'''''') 明列的 honest boundary:「twist 未接 tier 幅度(gen_twist(nosc=) 已備參數未接;比照 wobble G-4''/squash G-4''''')」。"
+                     "twist(反相雙軸 shear)是主秀節拍,強度理應隨檔位遞增,幅度軸在**兩條** shear 軸。twist 純 shear(無 scale 通道,不在 COUPLED_SCALE_CATS),"
+                     "併入 MAIN_SHOW_CATS 後 amplify_bone_tl 的 shear 迴圈以**同一 g** 同時放大 shearX 與 shearY(v'=g*v,對 0 對稱)⇒ 兩軸峰隨檔位嚴格遞增,"
+                     "而 shearY/shearX ≡ −TWIST_PHI 逐檔**不變**(單一 g 對兩軸同比)、反相耦合與阻尼振盪簽章逐檔保形 = 反相雙軸幾何 scale-invariant。"
+                     "crux(與 wobble tier 差異):wobble 一條 shear 軸;twist 兩條,檔位放大須**同比**才保住反相雙軸簽章(φ 比值不變)—— 獨立軸增益會使 φ 漂/翻反相。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains),validate_twist_tier.py 6AC PASS(TT1 present+backward-compat 每檔位 dual-channel・"
+                     "base 逐位元不變/TT2 crux 兩軸峰 shearX[16,21.6,27.2,33.6]°・shearY[11.2,15.12,19.04,23.52]° 皆嚴格遞增 且 Super==base/TT3 crux φ 比值逐檔≈0.7 不變/"
+                     "TT4 兩軸阻尼簽章逐檔保形(繞0變號≥3+極值遞減)/TT5 反相逐檔保形 且 夾角偏離峰[27.2,36.72,46.24,57.12]° 隨檔位遞增/"
+                     "TT6 負對照 平增益→兩軸遞增 FALSE 且==base・單一-g 兩軸同比單元測(獨立軸增益負對照破 φ)・shear 隔離到 SHEAR_CATS)。"
+                     "回歸:21 閘全綠(20 + 新 twist_tier)。honest:twist 未接 count-aware(扭轉段數隨檔位,gen_twist(nosc=) 已備參數未接);反相雙軸未接體積守恆耦合 scale"
+                     "(volume-conserving twist 為後續);幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
