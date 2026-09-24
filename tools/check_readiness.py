@@ -385,6 +385,23 @@ BLOCKS = [
                      "TT6 負對照 平增益→兩軸遞增 FALSE 且==base・單一-g 兩軸同比單元測(獨立軸增益負對照破 φ)・shear 隔離到 SHEAR_CATS)。"
                      "回歸:21 閘全綠(20 + 新 twist_tier)。honest:twist 未接 count-aware(扭轉段數隨檔位,gen_twist(nosc=) 已備參數未接);反相雙軸未接體積守恆耦合 scale"
                      "(volume-conserving twist 為後續);幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_tier_count_aware", "twist 扭轉段數隨檔位遞增(G-4''''''-count,段數×幅度×φ 保形三效正交)", "L2",
+                "python3 tools/analyzer/validate_twist_count.py", "pipeline",
+                note="補 (G-4''''''-tier) 明列的 honest boundary:「twist 未接 count-aware(扭轉段數隨檔位,gen_twist(nosc=) 已備參數未接)」。"
+                     "G-4''''''-tier 讓 twist 兩條 shear 軸峰**幅度**隨檔位遞增(愈高檔位擰愈狠)而 φ 比值(shearY/shearX≡−TWIST_PHI)由單一 g 同比保持,"
+                     "但各檔位仍**同樣 4 段**反相雙軸阻尼擺動(有『擰多用力』沒『擰幾下』)。本 cap 補上扭轉**段數** nosc 隨檔位嚴格遞增"
+                     "(Super4→Mega5→Omg6→Legend7)。**關鍵:幅度增益加不出段數** —— 段數是關鍵幀**拓樸**(繞 0 交替極值個數),"
+                     "須在 gen_twist 生成當下決定;故對 twist 檔位變體以該檔位 nosc **重生成**,再疊 (G-4''''''-tier) 的幅度增益 g。"
+                     "新增 TIER_TWIST_CYCLES + twist∈COUNT_AWARE_CATS;build_animations 依 cat 路由 _count_maps(twist→tier_twist_cycles)。此模式同 "
+                     "(G-4''')wobble、(G-4'''''-c)squash、(J-2)combo,惟段數階梯各類別獨立。**twist 獨有 crux(與 wobble count 差異、同 squash count 精神):"
+                     "twist 帶跨軸關係約束 shearY/shearX≡−TWIST_PHI → 段數重生成後兩軸極值**成對**增生,φ 比值由建構保證逐檔不變,故段數×幅度×φ 保形"
+                     "三效必須同時成立** —— 段數增多會多長出低幅反相極值(A·rⁱ 隨 i 遞減),每個新極值仍由 _twist_env 建構 (shearX,−φ·shearX) → 反相且維持 φ。"
+                     "validate_twist_count.py 5AC PASS(TC1 present+backward-compat 每檔位 dual-axis・base 恆 4 段逐位元不變・ttc=None 逐位元同 (G-4''''''-tier) 幅度-only/"
+                     "TC2 crux 段數 x[4,5,6,7]==y[4,5,6,7]==宣告嚴格遞增 Super==base **且**每檔位每 bone φ 比值≈0.7(≤2e-3)/TC3 每檔位兩軸各首尾0+變號≥3+極值遞減(阻尼)"
+                     "+每內部極值反相 且 兩軸峰仍隨檔位遞增/TC4 正交 段數+平增益→段數遞增·兩軸峰不遞增·φ 仍保持,增益+無段數→段數恆4·兩軸峰遞增/"
+                     "TC5 負對照 平段數全4→單調 FALSE・slot_reveal twist_cycles_for None 不亂加・段數只作用 twist 不外洩 wobble 仍4段)。"
+                     "回歸:22 閘全綠(21 + 新 twist_count)。honest:段數階梯 PROPOSAL(手感 A 類);反相雙軸未接體積守恆耦合 scale(volume-conserving twist 為後續);"
+                     "幅度/φ 為 PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

@@ -48,7 +48,11 @@ MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobbl
 # (combo → TIER_COMBO_HITS,wobble → TIER_WOBBLE_CYCLES,squash → TIER_SQUASH_CYCLES);build_animations 依類別路由。
 # (G-4'''''-c)squash 加入:它同時是 COUPLED_SCALE_CATS,故段數重生成後仍走**耦合** amplify —— 段數×幅度×
 # 體積守恆三效正交可疊(每檔位每擠壓極值 scaleX·scaleY≡1,不論擠壓幾段)。
-COUNT_AWARE_CATS = {"combo", "wobble", "squash"}
+# (G-4''''''-count)twist 加入:twist 的扭轉**段數** nosc 隨檔位遞增。twist 純 shear(不在 COUPLED_SCALE_CATS)
+# 但**帶跨軸關係約束**(shearY/shearX≡−TWIST_PHI):段數由 `_twist_env` 對每個極值同時產 shearX 與 shearY=−φ·shearX,
+# 故段數重生成後兩軸極值**成對增生**、φ 比值**由建構保證**逐檔不變 —— 段數×幅度(TT tier)×φ 保形三效正交可疊
+# (同 squash 的段數×幅度×體積守恆,惟守恆約束換成 φ 比值;crux=段數增多的低幅極值仍反相且維持 φ)。
+COUNT_AWARE_CATS = {"combo", "wobble", "squash", "twist"}
 
 # candidate G-4'''' — 產出 `shear` 通道的節拍類別(shear-emitting)。原僅 wobble(純 shearX);
 # squash 加入後(shear + 耦合非均勻 scale 的體積守恆擠壓)成為第二個 shear 產出者;
@@ -121,6 +125,23 @@ TIER_SQUASH_CYCLES = {
 def squash_cycles_for(genre):
     """回傳該 genre 的 {tier: nosc};無宣告的 genre 回 None(→ squash 檔位變體不變擠壓段數)。"""
     return TIER_SQUASH_CYCLES.get(genre)
+
+
+# candidate G-4''''''-count — 檔位 → twist 扭轉段數 nosc(**嚴格遞增**;base=Super=4 → 逐位元同 G-4'''''' base twist)。
+# 上界 7:twist 與 wobble/squash 共用 `_twist_env` 的同一窗 [WOBBLE_LEAD,WOBBLE_TAIL] 與阻尼 r=0.5(見
+# beat_templates `_twist_env` 對 `_wobble_env` 的引用),故 nosc≤7 的極值時間嚴格遞增、末極值 finite 且可辨
+# (比照 TIER_WOBBLE_CYCLES/TIER_SQUASH_CYCLES 上界論證)。與 wobble/squash 的段數階梯**正交獨立**
+# (各類別自有段數,build_animations 依 cat 路由)。**twist 獨有 crux(與 wobble count 差異、同 squash count 精神)**:
+# twist 帶跨軸關係約束 shearY/shearX≡−TWIST_PHI —— `_twist_env` 對每個極值 i **同時**產 shearX=(−1)ⁱ·A·rⁱ 與
+# shearY=−φ·shearX,故段數增多會**成對**多長 (shearX,shearY) 反相低幅極值,φ 比值由建構保證不變。段數×幅度×φ 保形三效正交。
+TIER_TWIST_CYCLES = {
+    "slot_bigwin": {"Super": 4, "Mega": 5, "Omg": 6, "Legend": 7},
+}
+
+
+def twist_cycles_for(genre):
+    """回傳該 genre 的 {tier: nosc};無宣告的 genre 回 None(→ twist 檔位變體不變扭轉段數)。"""
+    return TIER_TWIST_CYCLES.get(genre)
 
 
 def _amp_scale(v, g):

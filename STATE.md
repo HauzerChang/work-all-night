@@ -10,6 +10,34 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 twist 扭轉段數隨檔位遞增:count-aware × 幅度 × φ 保形三效正交(里程碑,2026-09-24 run 001,candidate G-4''''''-count)** —
+  補 (G-4''''''-tier) 明列的 honest boundary(「twist 未接 count-aware(扭轉段數隨檔位,`gen_twist(nosc=)` 已備參數
+  未接;比照 wobble G-4'''、squash G-4'''''-c)」)。G-4''''''-tier 讓 twist 兩條 shear 軸峰**幅度**隨檔位遞增(愈高
+  檔位擰愈狠)而 φ 比值 shearY/shearX≡−`TWIST_PHI`(0.7)由「單一 g 對兩軸同比」保持,但各檔位仍**同樣 4 段**反相
+  雙軸阻尼擺動(有「擰多用力」沒「擰幾下」)。本次補上扭轉**段數** nosc **隨檔位嚴格遞增**(Super4→Mega5→Omg6→
+  Legend7)。**關鍵:幅度增益加不出段數** —— 段數是關鍵幀**拓樸**(繞 0 交替極值個數),須在 `gen_twist` 生成當下
+  決定;事後 `amplify_bone_tl` 只能同比放大既有極值。故對 twist 檔位變體以該檔位 nosc **重生成**(`_build_beat(count=nosc)`
+  → `gen_twist(...,nosc)`),再疊 G-4''''''-tier 幅度增益 g(與幅度軸正交可疊)。新增 `TIER_TWIST_CYCLES` + twist 併入
+  `COUNT_AWARE_CATS`;`build_animations` 依 cat 路由 `_count_maps`(twist→`tier_twist_cycles`);`build_spine --tier-variants`
+  帶入 `twist_cycles_for`。twist **純 shear**(不在 `COUPLED_SCALE_CATS`)→ 重生成後走逐軸 amplify 的 shear 迴圈
+  (兩軸同一 g)。**twist 獨有 crux(與 wobble count 差異、同 squash count 精神)**:twist 帶**跨軸關係約束**
+  shearY/shearX≡−φ —— `_twist_env(A,nosc)` 對每極值 i **同時**產 shearX=(−1)ⁱ·A·rⁱ 與 shearY=−φ·shearX,故段數重生成
+  後兩軸極值**成對**增生、φ 由建構保證逐檔不變;段數×幅度×**φ 保形**三效必須**同時**成立(段數增多長出低幅反相
+  極值 A·rⁱ,閘須證仍反相且維持 φ)。整合閘 `validate_twist_count.py`(先驗庫 slot_bigwin → **真實 build_spine robot
+  骨架** → build_animations(tier_gains,tier_twist_cycles))**5 AC 全 PASS**:TC1 present+backward-compat(每檔位
+  dual-axis、base 恆 4 段逐位元不變、`ttc=None` 逐位元同 G-4''''''-tier 幅度-only)、TC2 **crux** 段數 x[4,5,6,7]==
+  y[4,5,6,7]==宣告嚴格遞增·Super==base **且**每檔位每 bone φ 比值≈0.7(≤2e-3)、TC3 每檔位兩軸各首尾 0+繞 0 變號≥3+
+  極值遞減(阻尼)+每內部極值反相 且 兩軸峰仍隨檔位遞增(shearX[16,21.6,27.2,33.6]°、shearY[11.2,15.12,19.04,23.52]°)、
+  TC4 正交(段數+平增益→段數遞增·兩軸峰不遞增·φ 仍保持;增益+無段數→段數恆 4·兩軸峰遞增)、TC5 負對照/隔離(a 平段數
+  全 4→單調 FALSE、b slot_reveal `twist_cycles_for` None 且無增益→不產段數變體、c 段數只作用 twist·非-twist 主秀 shear
+  段數各檔位恆定不外洩·wobble 仍 4 段)。端到端 `build_spine --animate --tier-variants --shear-pivot` 直出
+  `twist__{Super4,Mega5,Omg6,Legend7}`(shearY 經 pivot 補償仍存活、段數仍 [4,5,6,7])、`validate_build` round-trip
+  overall_pass(premult MAE 0.031)。**回歸 22 閘全綠**(21 既有 + 新 twist_count;`check_readiness.py` 退出 0,無
+  GREEN→RED)。新增 cap `twist_tier_count_aware` L2 併入 `spine-anim-forge`(**仍 HOLD**)。**關鍵發現**:**結構(段數)
+  軸的檔位差異化已在 combo(J-2)、wobble(G-4''')、squash(G-4'''''-c)、twist(本次)四通道成立;帶跨軸/跨通道約束的
+  類別(squash 體積守恆、twist φ 比值)count-aware 都要多驗一層「約束在段數增多後仍成立」——通則:同源重生成(單一包絡
+  對相關通道成對/耦合產極值)= 約束保形**。**honest boundary(仍在)**:段數/幅度/φ 皆 PROPOSAL(手感 A 類);反相雙軸
+  未接體積守恆耦合 scale(volume-conserving twist / G-4''''''-vol 為後續);單一真值資產。見 `knowledge/s1-twist-count-generation.md`。
 - **S1 twist 反相雙軸 shear 峰隨檔位遞增:兩軸同比 φ 保形(里程碑,2026-09-23 run 002,candidate G-4''''''-tier)** —
   補 (G-4'''''') 明列的 honest boundary(「twist 未接 tier 幅度,`gen_twist(nosc=)` 已備參數未接;比照 wobble
   G-4''/squash G-4'''''」)。twist(反相雙軸阻尼 shear,產線第一個驅動 shearY 的節拍)是主秀節拍,強度理應隨大獎檔位
@@ -697,9 +725,11 @@
 >   `twist` 併入 `SHEAR_CATS`(shear-isolation 閘認定)。**一般仿射 M 的 4 自由度生成端至此全數被真實 beat 驅動過**。
 > **(G-4''''''-tier) ~~twist 接 tier 幅度~~ ✅ 完成(2026-09-23 run 002,candidate G-4''''''-tier,`twist_tier_amplitude` L2,見上里程碑)** ——
 >   twist 併入 `MAIN_SHOW_CATS`,兩軸同一 g 同比放大 → 兩軸峰隨檔位遞增且 φ 比值不變(反相雙軸 scale-invariant);`validate_twist_tier.py` 6AC PASS。
+> **(G-4''''''-count) ~~twist 接 count-aware(扭轉段數 nosc 隨檔位遞增)~~ ✅ 完成(2026-09-24 run 001,candidate G-4''''''-count,`twist_tier_count_aware` L2,見上里程碑)** ——
+>   `TIER_TWIST_CYCLES`(Super4→Legend7)+ twist∈`COUNT_AWARE_CATS` + `build_animations(tier_twist_cycles=)` 依 cat 路由;`gen_twist(nosc=)` 已備參數接上。
+>   twist 帶跨軸約束 shearY/shearX≡−φ → `_twist_env` 對每極值**成對**產 (shearX,−φ·shearX) → 段數重生成後 φ 由建構保證不變;`validate_twist_count.py` 5AC PASS
+>   (TC2 crux 段數 x[4,5,6,7]==y 嚴格遞增 Super==base 且每檔位每 bone φ≈0.7≤2e-3)。**結構(段數)軸至此在 combo/wobble/squash/twist 四通道成立**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4''''''-count) twist 接 count-aware(扭轉段數 nosc 隨檔位遞增,`gen_twist(nosc=)` 已備參數未接;比照 wobble G-4'''/squash G-4'''''-c;
->   crux:段數重生成後兩軸仍須同比保 φ,即 count × tier 幅度 × φ 保形三效正交)**;
 > **(G-4''''''-vol) volume-conserving twist(反相雙軸 shear 接體積守恆耦合 scale:`det=cos(shearY−shearX)≠1` → 擰轉變面積,
 >   加耦合 scale 使 `sx·sy=1/cos(shearY−shearX)` → 擰而不變面積;shear+scale+rotate 三通道同時 = 塞滿一般仿射四自由度且守恆)**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸;比照 G-4'''/J-2 但簽章在件之間)**;
@@ -722,6 +752,18 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-24 run 001:**S1 twist 扭轉段數隨檔位遞增:count-aware × 幅度 × φ 保形三效正交(里程碑,candidate G-4''''''-count)** —
+  補 (G-4''''''-tier) 的 honest boundary(twist 未接 count-aware,`gen_twist(nosc=)` 已備參數)。扭轉段數 nosc 隨檔位嚴格
+  遞增(Super4→Legend7);段數=關鍵幀拓樸須 gen 時定,故以該檔位 nosc **重生成** twist 變體再疊 G-4''''''-tier 幅度增益
+  (正交可疊)。新增 `TIER_TWIST_CYCLES` + twist∈`COUNT_AWARE_CATS`;`build_animations` 加 `tier_twist_cycles` 依 cat 路由。
+  **twist 獨有 crux**:帶跨軸約束 shearY/shearX≡−φ → `_twist_env` 對每極值成對產 (shearX,−φ·shearX) → 段數重生成後 φ
+  由建構保證不變(段數×幅度×φ 保形三效正交)。`validate_twist_count.py` 5AC 全 PASS(TC2 crux 段數 x/y[4,5,6,7] 嚴格遞增
+  Super==base 且每檔位每 bone φ≈0.7≤2e-3;TC3 兩軸阻尼+反相逐檔保形且兩軸峰遞增;TC4 正交;TC5 負對照)。端到端
+  `build_spine --animate --tier-variants --shear-pivot` 直出 `twist__{Super4,Mega5,Omg6,Legend7}`、round-trip overall_pass。
+  **22 閘全綠**(21 + 新 twist_count),`check_readiness.py` 退出 0。cap `twist_tier_count_aware` L2;anim-forge 仍 HOLD。
+  **關鍵發現:結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨軸/跨通道約束的類別 count-aware 要多驗一層
+  「約束在段數增多後仍成立」——通則:同源重生成(單一包絡對相關通道成對/耦合產極值)=約束保形**。honest:段數/幅度/φ
+  PROPOSAL(手感 A 類);反相雙軸未接體積守恆(G-4''''''-vol 為後續);單一真值資產。見 `knowledge/s1-twist-count-generation.md`。
 - 2026-09-21:**S1 squash 接檔位差異化:體積守恆耦合 amplify(里程碑,candidate G-4''''')** — 補 G-4''''
   的 honest boundary(squash 未接 tier 幅度,逐軸 `_amp_scale` 破守恆)。`_amp_scale_coupled`(拉長軸 overshoot
   放大、壓縮軸=倒數)使 `scaleX·scaleY≡1` 由建構保證在任一檔位保持,擠壓非均勻度與同源 shear 峰皆隨檔位嚴格遞增

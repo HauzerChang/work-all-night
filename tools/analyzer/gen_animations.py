@@ -278,7 +278,7 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None):
 
 
 def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
-                     tier_wobble_cycles=None, tier_squash_cycles=None):
+                     tier_wobble_cycles=None, tier_squash_cycles=None, tier_twist_cycles=None):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
@@ -287,10 +287,13 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     tier_wobble_cycles(G-4'''):`{tier: nosc}` 時,對 wobble 檔位變體以該檔位 nosc **重生成**(振盪段數隨檔位遞增)。
     tier_squash_cycles(G-4'''''-c):`{tier: nosc}` 時,對 squash 檔位變體以該檔位 nosc **重生成**(擠壓段數隨檔位遞增);
     因 squash∈COUPLED_SCALE_CATS,重生成後仍走**耦合** amplify → 段數×幅度×體積守恆三效正交可疊(每檔位每擠壓極值 scaleX·scaleY≡1)。
+    tier_twist_cycles(G-4''''''-count):`{tier: nosc}` 時,對 twist 檔位變體以該檔位 nosc **重生成**(扭轉段數隨檔位遞增);
+    twist 帶跨軸關係約束(shearY/shearX≡−TWIST_PHI),段數增多由 `_twist_env` **成對**多長反相 (shearX,shearY) 極值 → φ 比值由建構保證 → 段數×幅度×φ 保形三效正交可疊。
     段數(結構)先重生成、再套幅度增益 g —— 幅度與段數兩效**正交可疊**(各類別段數階梯獨立)。
-    四者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash 恆 4 段)。"""
+    五者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段)。"""
     # COUNT_AWARE 類別 → 對應的 {tier: count} 映射(依 cat 路由;None → 該類別段數不隨檔位變)
-    _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles, "squash": tier_squash_cycles}
+    _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles,
+                   "squash": tier_squash_cycles, "twist": tier_twist_cycles}
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
