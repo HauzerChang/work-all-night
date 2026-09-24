@@ -494,6 +494,80 @@ def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
     return b, s
 
 
+# candidate G-4''''''-vol — twistvol(斜扭果凍**體積守恆**扭轉):**第一個把反相雙軸 shear 接上耦合
+# uniform scale 使**真實面積(行列式)守恆**的生成器**。補上 twist(G-4'''''')一路留到現在的 honest
+# boundary —— twist 產反相雙軸 shear 但**擰轉會變面積**:真實 Spine local M 的
+#     det(M) = scaleX·scaleY·cos(shearX − shearY)                         (見 pivot_rotation.transform_matrix_full)
+# twist 無 scale 通道(scaleX≡scaleY≡1)、shearX≠shearY(反相 → shearX−shearY=(1+φ)·shearX≠0),故
+# det = cos((1+φ)·shearX) < 1 → **擰得愈狠面積縮愈多**(非等積,一般仿射)。本 beat 在**每個 shear 極值**
+# 施一次**耦合 uniform scale** s 使:
+#     s² · cos(shearX − shearY) = 1   ⟺   s = 1/√cos(shearX − shearY)     ⇒ det(M) ≡ 1(真面積守恆)。
+# `build_spine --shear-pivot`(include_shear 隱含 include_scale)端到端把 rotate/scale/shearX/shearY 一起繞
+# 關節 pivot 補償 → 件做**塞滿一般仿射四自由度(旋轉/uniform scale/雙軸 shear)且面積守恆**的變換而 pivot 精確
+# 不動(G-4 通用 Δ=(M−I)(O−P) 第一次被**面積守恆的雙軸 shear + scale**同時驅動)。
+#
+# 運動基元 = twist 的反相雙軸阻尼 shear + **耦合 uniform scale 補償**(scaleX==scaleY,首尾 identity):
+#   shearX / shearY(τ):同 `gen_twist`(反相雙軸阻尼擺,shearY=−φ·shearX)。
+#   scale(τ):每個 shear 極值 i 施 scaleX=scaleY=s_i,s_i=1/√cos((1+φ)|shearX_i|)(隨 shear 一起阻尼回 1);
+#     首尾 scaleX==scaleY==1。⇒ **det≡1 且 scaleX==scaleY(uniform)**。
+# 結構簽章(可量化、負對照乾淨分離):
+#   1. 首尾 identity(shearX==shearY==0、scaleX==scaleY==1)→ 可插 Loop 間(同其他主秀 beat)。
+#   2. 兩軸各自阻尼振盪 + 反相雙軸耦合(繼承 twist:每內部極值 shearX·shearY<0)。
+#   3. **真面積(det)守恆(crux)**:每個 shear 極值幀 det(M)=s²·cos(shearX−shearY)≈1(true 幾何等積);
+#      且 **scaleX==scaleY(uniform)** —— 與 squash 的**非均勻** scale(sx·sy=1 只守 scale 積、shear 在時 det=cos≠1)
+#      正交區分:twistvol 守的是**真面積**、用 uniform scale;squash 守的是 scale 積、用非均勻 scale。
+# 負對照:(a)無 scale(twist,s≡1)→ det=cos(shearX−shearY)≠1(不守恆);
+#         (b)squash 式非均勻 sx·sy=1 → det=1·cos(shearX−shearY)≠1(scale 積守恆 ≠ 真面積守恆)—— 證真面積
+#         守恆須 s²=1/cos、且 uniform 是 twistvol 的方式。
+
+DUR.setdefault("twistvol", 0.8)
+
+
+def _twist_vol_env(A, nosc):
+    """通用**反相雙軸阻尼 shear + 耦合 uniform 面積守恆 scale** 包絡。回傳 (shx_env, shy_env, sc_env):
+      shx_env / shy_env:同 `_twist_env`(反相雙軸,首尾 0,`nosc` 個交替遞減極值)。
+      sc_env = [(τ, s)]:首尾 s=1、每 shear 極值 s_i=1/√cos((1+φ)|shearX_i|)(scaleX==scaleY==s_i,uniform)。
+
+    三者極值 τ 同點(耦合)。每極值 det(M)=s_i²·cos(shearX_i−shearY_i)=s_i²·cos((1+φ)shearX_i)≡1
+    → **真面積守恆**(對照 squash 的 scale-積守恆:在 shear 存在時 det=cos≠1)。s_i≥1(補償 shear 的縮面)。"""
+    r = WOBBLE_DAMP
+    shx = [(0.00, 0.0)]
+    shy = [(0.00, 0.0)]
+    sc = [(0.00, 1.0)]
+    for i in range(nosc):
+        f = i / (nosc - 1) if nosc > 1 else 0.0
+        tau = WOBBLE_LEAD + (WOBBLE_TAIL - WOBBLE_LEAD) * f
+        ex = ((-1.0) ** i) * A * (r ** i)              # shearX 極值(度)
+        ey = -TWIST_PHI * ex                            # shearY 反相 + 獨立幅度
+        diff_deg = abs(ex - ey)                         # |shearX − shearY| = (1+φ)|ex|
+        s = 1.0 / math.sqrt(math.cos(math.radians(diff_deg)))   # s²·cos(diff)=1 → det≡1
+        shx.append((round(tau, 4), ex))
+        shy.append((round(tau, 4), ey))
+        sc.append((round(tau, 4), round(s, 6)))
+    shx.append((1.00, 0.0))
+    shy.append((1.00, 0.0))
+    sc.append((1.00, 1.0))
+    return shx, shy, sc
+
+
+def gen_twist_vol(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
+    """斜扭果凍**體積守恆**扭轉:反相雙軸阻尼 shear + 耦合 **uniform** 面積守恆 scale。回傳 (bones, slots)。
+
+    shearX/shearY 同 `gen_twist`(反相雙軸,首尾 0);scale 每個 shear 極值施 scaleX=scaleY=s_i
+    (s_i=1/√cos((1+φ)|shearX_i|))→ det(M)≡1(真面積守恆)且 scaleX==scaleY(uniform;與 squash 非均勻正交)。
+    首尾 identity(可插 Loop)。`side_sign` 決定 shearX 首推方向;`nosc`=扭轉段數(預設 4;count-aware 為後續)。
+    **這是產線第一個令 det≡1(真等積)的一般仿射節拍**(twist 的補全:擰而不變面積)。"""
+    T = DUR["twistvol"]
+    A = _TWIST_SHEARX.get(role, 12.0) * side_sign
+    b, s = {}, {}
+    shx, shy, sc = _twist_vol_env(A, nosc)
+    b["shear"] = [{"time": round(tx * T, 4), "x": round(vx, 4), "y": round(vy, 4)}
+                  for (tx, vx), (_, vy) in zip(shx, shy)]
+    b["scale"] = [{"time": round(ts * T, 4), "x": round(sv, 4), "y": round(sv, 4)}
+                  for (ts, sv) in sc]
+    return b, {}
+
+
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
 HIT_KEYWORDS = ["hit", "impact", "punch", "throb", "slam", "打擊", "命中", "重擊", "衝擊"]
 REVEAL_KEYWORDS = ["reveal", "open", "burst", "showup", "appear_big", "揭曉", "現身", "炸開", "開獎"]
@@ -505,3 +579,6 @@ WOBBLE_KEYWORDS = ["wobble", "jelly", "sway", "skew", "shear", "lean", "斜拉",
 SQUASH_KEYWORDS = ["squash", "stretch", "jellysquash", "diagsquash", "squish", "擠壓", "壓擠", "斜擠", "擠"]
 # twist 專屬關鍵字(與 wobble/squash 區隔:twist=反相雙軸 shear,首度驅動 shearY)。
 TWIST_KEYWORDS = ["twist", "torsion", "wring", "diagtwist", "扭轉", "扭", "擰", "轉扭"]
+# twistvol 專屬關鍵字(單一 token,避免與 twist 爭用;=體積守恆扭轉,反相雙軸 shear + uniform 面積守恆 scale)。
+TWISTVOL_KEYWORDS = ["twistvol", "voltwist", "conservetwist", "areaconserve",
+                     "體積扭", "守恆扭", "等積扭", "扭守恆"]

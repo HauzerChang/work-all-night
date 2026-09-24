@@ -400,6 +400,23 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
                      "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_conserving", "體積守恆扭轉(G-4''''''-vol,反相雙軸 shear + uniform scale 使 det≡1 真面積守恆)", "L2",
+                "python3 tools/analyzer/validate_twist_vol.py", "pipeline",
+                note="補 twist(G-4'''''')一路留到現在的 honest boundary:twist 產反相雙軸 shear 但**擰轉會變面積** —— 真實 Spine local "
+                     "det(M)=scaleX·scaleY·cos(shearX−shearY),twist 無 scale(≡1)且反相 shearX≠shearY → det=cos((1+φ)shearX)<1(擰愈狠面積縮愈多,一般仿射非等積)。"
+                     "gen_twist_vol 在**每個 shear 極值**施耦合 **uniform** scale s=1/√cos(shearX−shearY) 使 **det(M)≡1(真面積守恆)且 scaleX==scaleY(uniform)** —— "
+                     "塞滿一般仿射四自由度(旋轉/uniform scale/雙軸 shear)且等積。**crux:與 squash 的體積守恆正交** —— squash 用**非均勻** scale 守 scale 積(sx·sy=1),"
+                     "但 shear 在時 det=1·cos≠1(非真面積守恆);twistvol 用 **uniform** scale 守**真 det**。genre_priors 加 twistvol beat 直出(additive、coverage 仍 1.0);"
+                     "build_spine --shear-pivot 端到端把 rotate/scale/shearX/shearY 一起繞關節 pivot 補償 → 件做面積守恆的一般仿射變換而 pivot 精確不動。"
+                     "twistvol 併入 SHEAR_CATS + 新增 DUAL_AXIS_CATS={twist,twistvol}(shearY-isolation 閘集中認定,twist_gen TW6c 改以此認定)。"
+                     "validate_twist_vol.py 6AC PASS(TV1 present+dual-axis+uniform 補償 scale crux:shearX 峰 16°·shearY 峰 11.2°·scale 峰 1.06·每幀 scaleX==scaleY/"
+                     "TV2 兩軸各自阻尼振盪/TV3 反相雙軸耦合/TV4 identity 介面 shear(0,0)·scale(1,1)/TV5 crux 真面積守恆 每內部極值 |det−1|≤2e-3(實測 ≤1e-4)"
+                     "+內建負對照 無 scale/squash 式非均勻 sx·sy=1 皆 max|det−1|≈0.11(scale 積守恆 ≠ 真面積守恆,證須 s²=1/cos)/"
+                     "TV6 端到端 --shear-pivot pivot 殘差 <0.016px vs 負對照(繞件中心)8–29px + uniform vs squash 非均勻 + shearY 隔離到 DUAL_AXIS_CATS + 加性零回歸)。"
+                     "回歸:23 閘全綠(22 + 新 twist_volume_conserving;twist_gen TW6c shearY-isolation 改以 DUAL_AXIS_CATS 認定,twistvol 亦合法產 shearY)。"
+                     "**一般仿射四自由度至此:旋轉·非均勻 scale(squash)·雙軸 shear(twist)·等積約束(twistvol)全被真實 beat 驅動且守恆**。"
+                     "honest:twistvol 未接 tier 幅度/count-aware(放大 shear 後 s=1/√cos 補償須隨之重算,為後續耦合 recompute,比照 squash G-4''''→G-4''''');"
+                     "s²=1/cos 補償為幾何客觀(非美感);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
