@@ -42,13 +42,18 @@ import copy
 # 與阻尼簽章亦保形 → **反相雙軸幾何 scale-invariant**(愈高檔位擰愈狠,但仍是同一種雙軸 shear 扭轉)。
 MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobble", "squash", "twist"}
 
-# candidate J-2 / G-4''' / G-4'''''-c — 依檔位可變「段數」的類別(結構性差異化,非只幅度)。
-# combo 的 impact 峰**數**、wobble 的振盪**段數**、squash 的擠壓**段數**隨檔位遞增;需在 gen 時把
-# 段數帶進生成器(結構=拓樸,事後 amplify 只能放大既有極值、加不出一段)。各類別的段數階梯彼此獨立
-# (combo → TIER_COMBO_HITS,wobble → TIER_WOBBLE_CYCLES,squash → TIER_SQUASH_CYCLES);build_animations 依類別路由。
+# candidate J-2 / G-4''' / G-4'''''-c / G-4''''''-count — 依檔位可變「段數」的類別(結構性差異化,非只幅度)。
+# combo 的 impact 峰**數**、wobble 的振盪**段數**、squash 的擠壓**段數**、twist 的扭轉**段數**隨檔位遞增;
+# 需在 gen 時把段數帶進生成器(結構=拓樸,事後 amplify 只能放大既有極值、加不出一段)。各類別的段數階梯彼此獨立
+# (combo → TIER_COMBO_HITS,wobble → TIER_WOBBLE_CYCLES,squash → TIER_SQUASH_CYCLES,twist → TIER_TWIST_CYCLES);
+# build_animations 依類別路由。
 # (G-4'''''-c)squash 加入:它同時是 COUPLED_SCALE_CATS,故段數重生成後仍走**耦合** amplify —— 段數×幅度×
 # 體積守恆三效正交可疊(每檔位每擠壓極值 scaleX·scaleY≡1,不論擠壓幾段)。
-COUNT_AWARE_CATS = {"combo", "wobble", "squash"}
+# (G-4''''''-count)twist 加入:它是**兩條 shear 軸**的反相雙軸節拍(∈SHEAR_CATS,非 COUPLED_SCALE_CATS)。
+# 段數重生成後兩軸各多長 nosc 個阻尼極值,每個新極值仍由 `_twist_env` 建構 shearY=−TWIST_PHI·shearX
+# → **φ 比值由建構保證,與段數無關**;再套幅度增益(單一 g 對兩軸同比)→ 段數×幅度×φ 保形三效正交可疊
+# (每檔位不論扭幾段,兩軸同比 φ 恆定、反相不變)。這是 twist count 獨有的 crux(比照 squash count 的體積守恆)。
+COUNT_AWARE_CATS = {"combo", "wobble", "squash", "twist"}
 
 # candidate G-4'''' — 產出 `shear` 通道的節拍類別(shear-emitting)。原僅 wobble(純 shearX);
 # squash 加入後(shear + 耦合非均勻 scale 的體積守恆擠壓)成為第二個 shear 產出者;
@@ -121,6 +126,23 @@ TIER_SQUASH_CYCLES = {
 def squash_cycles_for(genre):
     """回傳該 genre 的 {tier: nosc};無宣告的 genre 回 None(→ squash 檔位變體不變擠壓段數)。"""
     return TIER_SQUASH_CYCLES.get(genre)
+
+
+# candidate G-4''''''-count — 檔位 → twist 扭轉段數 nosc(**嚴格遞增**;base=Super=4 → 逐位元同 G-4'''''' base twist)。
+# 上界 7:twist 與 wobble/squash 共用 `_twist_env`/`_wobble_env` 的同一窗 [WOBBLE_LEAD,WOBBLE_TAIL] 與阻尼 r=0.5,
+# 故 nosc≤7 的極值時間嚴格遞增、末極值 finite 且可辨(比照 TIER_WOBBLE_CYCLES/TIER_SQUASH_CYCLES 上界論證;
+# head 最小軸 shearY 7°·r⁶≈0.109° 仍與前極值 0.219° 於 4 位小數可辨)。與 wobble/squash 的段數階梯**正交獨立**
+# (各類別自有段數,build_animations 依 cat 路由)。**twist 獨有(crux)**:段數增多 → 兩軸各多長阻尼極值,每個新極值
+# 仍由 `_twist_env` 建構 shearY=−TWIST_PHI·shearX → φ 比值由建構保證(與段數無關),再經單一-g 幅度增益仍同比 →
+# 段數×幅度×φ 保形三效正交可疊。
+TIER_TWIST_CYCLES = {
+    "slot_bigwin": {"Super": 4, "Mega": 5, "Omg": 6, "Legend": 7},
+}
+
+
+def twist_cycles_for(genre):
+    """回傳該 genre 的 {tier: nosc};無宣告的 genre 回 None(→ twist 檔位變體不變扭轉段數)。"""
+    return TIER_TWIST_CYCLES.get(genre)
 
 
 def _amp_scale(v, g):

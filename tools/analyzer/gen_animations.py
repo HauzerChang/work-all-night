@@ -230,9 +230,10 @@ from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
 def _build_beat(beat, cat, bone_of, cx, cy, count=None):
     """把單一 beat 的每件 role 具體化為 anim dict(bones/slots timelines)。
 
-    cat 依語意分派運動基元;`count`(J-2 combo 峰數 / G-4''' wobble 振盪段數)只對 COUNT_AWARE
-    類別生效。`count is None` → 呼叫生成器**自身預設**(combo=3 峰、wobble=4 段 → golden byte-identical);
-    給定值 → 帶入生成器決定段數。cascade(_PHASE_AWARE)另依件序帶入相位。"""
+    cat 依語意分派運動基元;`count`(J-2 combo 峰數 / G-4''' wobble 振盪段數 / G-4'''''-c squash 擠壓段數 /
+    G-4''''''-count twist 扭轉段數)只對 COUNT_AWARE 類別生效。`count is None` → 呼叫生成器**自身預設**
+    (combo=3 峰、wobble/squash/twist=4 段 → golden byte-identical);給定值 → 帶入生成器決定段數。
+    cascade(_PHASE_AWARE)另依件序帶入相位。"""
     bones_tl, slots_tl = {}, {}
     limb_seen = 0
     # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
@@ -278,7 +279,7 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None):
 
 
 def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
-                     tier_wobble_cycles=None, tier_squash_cycles=None):
+                     tier_wobble_cycles=None, tier_squash_cycles=None, tier_twist_cycles=None):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
@@ -287,10 +288,14 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     tier_wobble_cycles(G-4'''):`{tier: nosc}` 時,對 wobble 檔位變體以該檔位 nosc **重生成**(振盪段數隨檔位遞增)。
     tier_squash_cycles(G-4'''''-c):`{tier: nosc}` 時,對 squash 檔位變體以該檔位 nosc **重生成**(擠壓段數隨檔位遞增);
     因 squash∈COUPLED_SCALE_CATS,重生成後仍走**耦合** amplify → 段數×幅度×體積守恆三效正交可疊(每檔位每擠壓極值 scaleX·scaleY≡1)。
+    tier_twist_cycles(G-4''''''-count):`{tier: nosc}` 時,對 twist 檔位變體以該檔位 nosc **重生成**(扭轉段數隨檔位遞增);
+    twist∈SHEAR_CATS(兩條 shear 軸,非 COUPLED_SCALE_CATS),重生成後每個新極值仍 shearY=−TWIST_PHI·shearX(φ 由建構保證),
+    再走單一-g 幅度增益(兩軸同比)→ 段數×幅度×φ 保形三效正交可疊(每檔位不論扭幾段,φ 恆定、反相不變)。
     段數(結構)先重生成、再套幅度增益 g —— 幅度與段數兩效**正交可疊**(各類別段數階梯獨立)。
-    四者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash 恆 4 段)。"""
+    五者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段)。"""
     # COUNT_AWARE 類別 → 對應的 {tier: count} 映射(依 cat 路由;None → 該類別段數不隨檔位變)
-    _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles, "squash": tier_squash_cycles}
+    _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles,
+                   "squash": tier_squash_cycles, "twist": tier_twist_cycles}
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)

@@ -385,6 +385,21 @@ BLOCKS = [
                      "TT6 負對照 平增益→兩軸遞增 FALSE 且==base・單一-g 兩軸同比單元測(獨立軸增益負對照破 φ)・shear 隔離到 SHEAR_CATS)。"
                      "回歸:21 閘全綠(20 + 新 twist_tier)。honest:twist 未接 count-aware(扭轉段數隨檔位,gen_twist(nosc=) 已備參數未接);反相雙軸未接體積守恆耦合 scale"
                      "(volume-conserving twist 為後續);幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_tier_count_aware", "twist 扭轉段數隨檔位遞增(G-4''''''-count,段數×幅度×φ 保形三效正交)", "L2",
+                "python3 tools/analyzer/validate_twist_count.py", "pipeline",
+                note="補 (G-4''''''-tier) 明列的 honest boundary:「twist 未接 count-aware(扭轉段數隨檔位,gen_twist(nosc=) 已備參數未接;比照 wobble G-4'''/squash G-4'''''-c)」。"
+                     "(G-4''''''-tier) 讓 twist 兩軸 shear 峰幅度隨檔位遞增(同比 φ 不變),但各檔位仍**同樣 4 段**反相雙軸擺 —— 有『擰多狠』沒『擰幾下』。"
+                     "本次補上扭轉**段數** nosc 隨檔位嚴格遞增(Super4→Mega5→Omg6→Legend7)。**幅度增益加不出段數**(段數=關鍵幀拓樸,繞0交替 shearX 極值個數,"
+                     "須在 gen_twist 生成當下決定;事後 amplify 只能同比放大既有極值)→ 對 twist 檔位變體以該檔位 nosc **重生成**再疊單一-g 幅度增益。新增 TIER_TWIST_CYCLES + "
+                     "twist∈COUNT_AWARE_CATS;build_animations 依 cat 路由 _count_maps。此模式同 (G-4'')wobble、(J-2)combo、(G-4'''''-c)squash,惟段數階梯各類別獨立。"
+                     "**twist 獨有 crux(與 wobble count 差異):twist 有**兩條** shear 軸(反相雙軸)—— 段數重生成後兩軸各多長 nosc 個阻尼極值,每個新極值仍由 _twist_env 建構"
+                     "shearY=−TWIST_PHI·shearX → φ 比值**由建構保證、與段數無關**;故段數×幅度×φ 保形三效正交可疊(每檔位不論扭幾段,φ 恆定、反相不變)。**"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,tier_twist_cycles),validate_twist_count.py 5AC PASS(TC1 present+backward-compat 每檔位 dual-axis・"
+                     "base 恆4段逐位元不變・ttc=None 逐位元同幅度-only/TC2 crux 段數[4,5,6,7] 嚴格遞增 且每檔位每 bone φ 比值≈0.7 誤差 0.0/TC3 兩軸阻尼簽章逐檔保形+兩軸峰仍遞增+每內部極值反相/"
+                     "TC4 正交 段數+平增益→段數遞增・兩軸峰不遞增・φ仍不變,增益+無段數→段數恆4・兩軸峰遞增/TC5 負對照 平段數全4→單調 FALSE・slot_reveal twist_cycles_for None 不亂加・段數只作用 twist 不外洩 wobble/squash 仍4段)。"
+                     "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
+                     "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
+                     "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
