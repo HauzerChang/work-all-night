@@ -460,6 +460,25 @@ _TWIST_SHEARX = {"body": 14.0, "特效": 16.0, "head": 10.0, "limb": 12.0}
 TWIST_PHI = 0.7   # shearY / shearX 幅度比(≠1 → shearY 為獨立通道;>0 → 雙軸;反相由符號負號給)
 
 
+def _twist_vol_scale(shx_deg):
+    """candidate G-4''''''-vol — 反相雙軸 shear 的**體積守恆補償均勻 scale**。
+
+    Spine local 2×2(deg=0、shy=−φ·shx)的行列式(見 `pivot_rotation.transform_matrix_full`):
+        det = sx·sy·cos(shearX − shearY) = sx·sy·cos((1+φ)·shearX)。
+    反相雙軸 shear 令 cos((1+φ)·shearX) < 1(|shearX|>0 時)⇒ **擰轉會縮小面積**
+    (G-4''''''→count 一路的 honest boundary:`det=cos(shearY−shearX)≠1`)。加**均勻**耦合 scale
+    `sx=sy=s`、`s = 1/√cos((1+φ)·shearX)` ⇒ `sx·sy = 1/cos((1+φ)·shearX)` ⇒ **det ≡ 1**(擰而不變面積)。
+
+    **crux(與 squash 的差異)**:squash 用**非均勻自守恆** scale(scaleX·scaleY≡1、scaleX≠scaleY)——
+    scale 自己守恆、shear 另計;此處是 shear **本身**破面積,補償 scale 必須是 **均勻**(sx==sy、
+    sx·sy=1/cos>1、淨脹)才不引入擠壓非均勻 → 保住「純扭轉」性質(|sx−sy|≡0 為鑑別簽章)。
+    shearX=0(首尾 identity)→ cos(0)=1 → s=1 → scale=(1,1)(**介面契約保持**,可插 Loop)。"""
+    c = math.cos(math.radians((1.0 + TWIST_PHI) * shx_deg))
+    # cos((1+φ)·shx):|shx|<90/(1+φ)≈52.9° 恆 >0(twist 峰 ≤16°,Legend 放大後 ≤33.6° 仍 <52.9°)。
+    s = 1.0 / math.sqrt(c)
+    return s
+
+
 def _twist_env(A, nosc):
     """通用**反相雙軸阻尼 shear 擺動**包絡。回傳 (shx_env, shy_env),各 = [(τ, val)]:
       shx_env:首尾 0、`nosc` 個交替遞減極值(同 `_wobble_env`,首推 +A)。
@@ -479,18 +498,28 @@ def _twist_env(A, nosc):
     return shx, shy
 
 
-def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
+def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4, vol_conserve=False):
     """斜扭果凍扭轉:**反相雙軸阻尼 shear**(shearX + shearY 同時非零)。回傳 (bone_timelines, slot_timelines)。
 
     shearX 同 `gen_wobble`(阻尼擺動,首尾 0);shearY 與之**反相**且幅度 ×TWIST_PHI(首尾 0)→ 兩基底
     夾角偏離 =(1+φ)|shearX| 被放大(真雙軸 shear);首尾 identity(可插 Loop)。`side_sign` 決定 shearX
-    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 為後續)。**這是產線第一個產 shearY 的生成器**。"""
+    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 為後續)。**這是產線第一個產 shearY 的生成器**。
+
+    `vol_conserve`(candidate G-4''''''-vol,預設 False → 逐位元同無此參數):True 時額外產出**均勻**
+    耦合 scale 通道 `sx=sy=1/√cos((1+φ)·shearX)` → 全 2×2 行列式 **det≡1**(擰而不變面積),補上
+    反相雙軸 shear 一路留到現在的 honest boundary(`det=cos(shearY−shearX)≠1`)。scale 均勻(sx==sy)
+    → 不引入擠壓非均勻(與 squash 的**非均勻**自守恆 scale 鑑別),shear 通道逐位元不變(φ/反相/阻尼皆保)。"""
     T = DUR["twist"]
     A = _TWIST_SHEARX.get(role, 12.0) * side_sign
     b, s = {}, {}
     shx, shy = _twist_env(A, nosc)
     b["shear"] = [{"time": round(tx * T, 4), "x": round(vx, 4), "y": round(vy, 4)}
                   for (tx, vx), (_, vy) in zip(shx, shy)]
+    if vol_conserve:
+        # scale 通道與 shear 同時間點(逐關鍵幀 det≡1;幀間線性插值為近似,同 squash 於極值嚴格守恆)。
+        b["scale"] = [{"time": round(tx * T, 4),
+                       "x": round(_twist_vol_scale(vx), 6), "y": round(_twist_vol_scale(vx), 6)}
+                      for (tx, vx) in shx]
     return b, s
 
 

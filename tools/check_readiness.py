@@ -400,6 +400,19 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
                      "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_conserving", "體積守恆扭轉(G-4''''''-vol,反相雙軸 shear + 均勻耦合 scale → det≡1)", "L2",
+                "python3 tools/analyzer/validate_twist_vol.py", "pipeline",
+                note="補反相雙軸 shear 一路(G-4''''''→tier→count)明列的 honest boundary:**det=cos(shearY−shearX)≠1 → 擰轉變面積**。"
+                     "Spine local 2×2(deg=0、shy=−φ·shx)det = sx·sy·cos((1+φ)·shearX);純扭轉(sx=sy=1)令 cos<1 → 面積縮小(特效峰 16°→det 0.889,~11% 面積損)。"
+                     "gen_twist(vol_conserve=True) 額外產**均勻**耦合 scale sx=sy=1/√cos((1+φ)·shearX) → sx·sy=1/cos → **det≡1**(擰而不變面積)。"
+                     "**crux(與 squash 鑑別):squash 用**非均勻自守恆** scale(scaleX·scaleY≡1、scaleX≠scaleY,scale 自守恆、shear 另計);此處 shear **本身**破面積,"
+                     "補償 scale 必須**均勻**(sx==sy、sx·sy=1/cos>1、淨脹)才不引入擠壓非均勻 → 保住『純扭轉』(|sx−sy|≡0 為鑑別簽章)。**"
+                     "shearX=0(首尾 identity)→ s=1 → scale=(1,1) 介面契約保持;shear 通道逐位元不變(φ/反相/阻尼皆保)。build_spine --twist-volume 端到端,--shear-pivot 補償只加 translate、M 不變 → det≡1 延續。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(twist_volume=True),validate_twist_vol.py 6AC PASS(VV1 present+backward-compat 雙通道・scale 首尾(1,1)・vol=False 無 scale 且 shear 逐位元同/"
+                     "VV2 crux det≡1 每內部極值 worst|det−1|=1e-6・負對照無 vol scale 峰 det≤0.956<0.98/VV3 crux 均勻 |sx−sy|≡0(與 squash 鑑別)+反相雙軸保形+φ≈0.7/VV4 兩軸阻尼保形/"
+                     "VV5 端到端 未重採樣 bone det≡1(worst 9e-7)+關節 pivot 殘差<0.02px vs 負對照 8–29px/VV6 負對照 squash 式 sx·sy=1 補償峰 det 0.889 偏離≥0.11(證均勻補償才是解)・無 scale 峰非守恆・scale 隔離只作用 twist・加性零回歸)。"
+                     "**一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)首度湊齊且面積守恆**(shear+scale+rotate 三通道同時、det=1)。"
+                     "honest:tier 幅度/count 檔位變體套 g 於 shear 卻未依 g 重算 scale 補償 → 高檔位 det≠1(需 _amp_scale_twist_vol 耦合放大,比照 squash _amp_scale_coupled)為後續;均勻補償量為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
