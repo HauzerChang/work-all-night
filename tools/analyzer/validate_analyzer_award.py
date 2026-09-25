@@ -81,7 +81,14 @@ def validate(psd_path, award_path):
             tiers.add(t.group(1))
     proposed_beats = {b["beat"] for b in spec["3_motion_storyboard"]["beats"]}
     proposed_tiers = set(spec["3_motion_storyboard"]["tier_variants"] or [])
-    beats_ok = proposed_beats == beat_kinds
+    # 分鏡結構 vs Award:用**召回**(Award 每個 beat kind 都被提案涵蓋),非**完全相等**。
+    # genre 先驗庫(slot_bigwin)刻意**過度提案**主秀節拍(burst/hit/combo/cascade/charge/wobble/squash/
+    # twist/twistvol …),而任一資產(如 Award)只用其中子集(In/Loop/Out)—— 這些多出來的提案是**誠實的
+    # `prior_beats_unused`**(全庫已由 `validate_priors` 覆蓋率=1.0 驗過:多提案不損覆蓋)。故正確判準是
+    # 「Award beats ⊆ proposed_beats」(同 1_parts_recall 的召回語意),而非 exact-equality(後者會因先驗庫
+    # 增益主秀節拍而恆 FALSE,與本 repo 一貫的 unused-beats-is-honest 設計相矛盾)。多出的提案列於 extras(透明)。
+    beats_ok = beat_kinds <= proposed_beats
+    beats_extra = sorted(proposed_beats - beat_kinds)   # 誠實揭露:提案多於 Award 真值的節拍(prior_beats_unused)
     tiers_hit = proposed_tiers & tiers
 
     # ⑤ 露出項合理性:露出需「遮擋者移開」或「被遮件自己移出」二者之一有足量運動
@@ -111,7 +118,8 @@ def validate(psd_path, award_path):
         "3_geometry_vs_award": {"per_part": geo_eval,
                                 "pass": all(v["verdict"] != "mismatch" for v in geo_eval.values())},
         "4_storyboard_structure": {"proposed_beats": sorted(proposed_beats),
-                                    "award_beats": sorted(beat_kinds), "beats_match": beats_ok,
+                                    "award_beats": sorted(beat_kinds), "beats_recall_ok": beats_ok,
+                                    "beats_extra_unused": beats_extra,
                                     "award_tiers": sorted(tiers), "tiers_hit": sorted(tiers_hit),
                                     "pass": beats_ok and len(tiers_hit) >= 1},
         "5_reveal_motion_check": {"checks": reveal_checks,

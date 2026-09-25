@@ -400,6 +400,23 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
                      "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_conserve", "體積守恆斜扭:反相雙軸 shear + 各向同性面積補償(G-4''''''-vol,守完整仿射面積)", "L2",
+                "python3 tools/analyzer/validate_twist_volume.py", "gen",
+                note="補 twist(G-4'''''')一路留到現在的 honest boundary(反相雙軸 shear 未接體積守恆)。**關鍵幾何**:Spine local 2×2 行列式(=面積縮放)"
+                     "= scaleX·scaleY·cos(shearY−shearX)(見 transform_matrix_full:det=sx·sy·sin(90+shy−shx)=sx·sy·cos(shy−shx))。twist 令 scaleX=scaleY=1 → "
+                     "det=cos(shearY−shearX)<1(反相時 shy−shx=−(1+φ)·shearX)→ **擰轉會縮面積**(擰毛巾投影變小)。gen_twistvol 加一條**各向同性**補償 scale "
+                     "sx=sy=1/√cos(shearY−shearX) 使**完整** local det≡1(含兩條 shear 軸的真面積守恆),首尾 identity。**與 squash 的鑑別(閘鑑別力來源)**:"
+                     "squash 用**非均勻** scale(sx≠sy、sx·sy=1)只守 scale 子塊,完整 det=cos(shearX)<1 仍縮面積;twistvol 用**各向同性** scale 守恆**完整** det → "
+                     "**第一個守恆完整仿射面積的節拍**(shear+scale+rotate 三通道同時、塞滿一般仿射四自由度且守恆)。gen_animations 註冊 twistvol(排 twist 前避子字串爭用);"
+                     "genre_priors 加 twistvol beat 直出(additive、coverage 仍 1.0);tier_variants 新增 twistvol∈SHEAR_CATS + SHEARY_CATS={twist,twistvol}(集中管理 shearY 隔離,"
+                     "validate_twist_gen TW6c 改以此認定,避免硬編碼 'twist')。build_spine --shear-pivot 端到端把 rotate/scale/shearX/shearY 一起繞關節 pivot 補償。"
+                     "validate_twist_volume.py 7AC PASS(VT1 present+dual-axis+scale crux:shearX 峰16°・shearY 峰11.2°・帶 scale 通道/VT2 兩軸阻尼振盪(承 twist)/"
+                     "VT3 反相雙軸耦合(承 twist,復用 _tw3_eval)/VT4 crux 完整 det≈1(|det−1|~1e-6)+ 各向同性 |sx−sy|~0 + 內部補償拉伸/VT5 identity 介面(shear 首尾0・scale 首尾(1,1))/"
+                     "VT6 端到端一般仿射 pivot 殘差 0.004–0.016px vs 負對照 8–29px >1000×/VT7 負對照:純 twist 守衛(identity scale→det=cos<1 volume FALSE)、"
+                     "squash 式守衛(非均勻 sx·sy=1→完整 det=cos(shearX)<1 volume FALSE 且各向同性 FALSE)、正對照單元、耦合隔離(唯 twistvol 帶 shearY+scale)、加性零回歸(含純 twist 逐位元不變證未改 gen_twist))。"
+                     "回歸:23 閘全綠(22 + 新 twist_volume)。**一般仿射四自由度(rotate/scale/shearX/shearY)生成端全數被真實 beat 驅動且達完整面積守恆**;"
+                     "**squash「體積守恆」實只守 scale 子塊、twistvol 才守完整 det** 是本 candidate 的關鍵鑑別發現。"
+                     "honest:各向同性補償 vs 非均勻(squash)為兩種正交面積策略,結合成一節拍(如 twistvol 疊 squash 的非均勻擠壓)為後續;幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

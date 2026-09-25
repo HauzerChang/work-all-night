@@ -44,6 +44,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mesh_gen"))
 import numpy as np
 import spine_anim as SA
 import gen_animations as G
+import tier_variants as TV
 # 復用 G-4' 的 shearX 讀取與阻尼簽章判準,確保與 shear-gen / squash-gen 閘完全一致
 from validate_shear_gen import _shear_x, _sign_changes_zero, _extrema_mags_decreasing
 from validate_shear_pivot import _world   # 真實 Spine local(含雙軸 shear)世界座標求值
@@ -249,10 +250,10 @@ def run():
     singleaxis = [(16.0, 0.0), (-8.0, 0.0), (4.0, 0.0), (-2.0, 0.0)]
     cp_1, dev_1, _ = _tw3_eval(singleaxis)
     s6["b_singleaxis_guard"] = {"counterphase_ok": cp_1, "pass": not cp_1}
-    # (c) 雙軸隔離:非 twist beat 皆 shearY≡0(twist 獨佔第二條 shear 軸)
+    # (c) 雙軸隔離:非 shearY 產出者的 beat 皆 shearY≡0(唯 SHEARY_CATS={twist,twistvol} 獨佔第二條 shear 軸)
     leak = []
     for nm, an in anims.items():
-        if "__" in nm or G.beat_category(nm) == "twist":
+        if "__" in nm or G.beat_category(nm) in TV.SHEARY_CATS:
             continue
         for bn, ch in an.get("bones", {}).items():
             if _has_shear_y(ch):
