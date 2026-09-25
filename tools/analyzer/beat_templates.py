@@ -479,19 +479,58 @@ def _twist_env(A, nosc):
     return shx, shy
 
 
-def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
+def _twist_vol_scale(shx_deg, shy_deg):
+    """candidate G-4''''''-vol — 反相雙軸 shear 的**均勻(isotropic)面積補償 scale**。
+
+    Spine local 一般仿射的**完整行列式** det(M) = scaleX·scaleY·cos(shearX−shearY)
+    (見 `validate_shear_pivot.transform_matrix_full`)。twist 反相雙軸 shear 使 shearX−shearY
+    =(1+φ)·shearX ≠0 → **純 shear 的 cos 因子 <1 → 擰轉使面積縮**(det=cos(shx−shy) 的 honest boundary)。
+    補一支**均勻** scale s(sx=sy=s)使 s²·cos(shx−shy)≡1 → **s = 1/√cos(shx−shy)**:
+      - 端點 shx=shy=0 → cos0=1 → s=1(identity 介面保持,首尾 (1,1));
+      - 每個 shear 極值 s>1(等向微脹,恰補回 shear 損失的面積)⇒ **完整 det ≡1**(擰而不變面積)。
+    **均勻 scale = 與 squash(非均勻 sx≠sy)的關鍵區別**:squash 用 scaleX·scaleY≡1 的**scale 通道自身**守恆
+    (完整 det 仍=cos(shearX));voltwist 是**首個令完整仿射 det≡1** 的節拍(用等向 scale 抵消 shear 的 cos 因子)。
+    |shx−shy| 峰 =(1+φ)·A(特效 16°→27.2°)< 90° → cos>0 恆非奇異。"""
+    c = math.cos(math.radians(shx_deg - shy_deg))
+    return 1.0 / math.sqrt(c)
+
+
+def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4, volume_conserve=False):
     """斜扭果凍扭轉:**反相雙軸阻尼 shear**(shearX + shearY 同時非零)。回傳 (bone_timelines, slot_timelines)。
 
     shearX 同 `gen_wobble`(阻尼擺動,首尾 0);shearY 與之**反相**且幅度 ×TWIST_PHI(首尾 0)→ 兩基底
     夾角偏離 =(1+φ)|shearX| 被放大(真雙軸 shear);首尾 identity(可插 Loop)。`side_sign` 決定 shearX
-    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 為後續)。**這是產線第一個產 shearY 的生成器**。"""
+    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 為後續)。**這是產線第一個產 shearY 的生成器**。
+
+    `volume_conserve`(candidate G-4''''''-vol,預設 False → 逐位元同原輸出,向後相容):True 時額外產一支
+    **均勻面積補償 scale**(sx=sy=1/√cos(shearX−shearY))使**完整仿射 det≡1**(擰而不變面積);見
+    `_twist_vol_scale` / `gen_twist_vol`。"""
     T = DUR["twist"]
     A = _TWIST_SHEARX.get(role, 12.0) * side_sign
     b, s = {}, {}
     shx, shy = _twist_env(A, nosc)
     b["shear"] = [{"time": round(tx * T, 4), "x": round(vx, 4), "y": round(vy, 4)}
                   for (tx, vx), (_, vy) in zip(shx, shy)]
+    if volume_conserve:
+        # 每幀等向 scale 抵消該幀 shear 的面積因子 → 完整 det ≡1;端點 (0,0)→s=1→(1,1)。
+        b["scale"] = [{"time": round(tx * T, 4),
+                       "x": round(_twist_vol_scale(vx, vy), 6),
+                       "y": round(_twist_vol_scale(vx, vy), 6)}
+                      for (tx, vx), (_, vy) in zip(shx, shy)]
     return b, s
+
+
+def gen_twist_vol(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
+    """candidate G-4''''''-vol — **體積守恆扭轉(volume-conserving twist)**:反相雙軸阻尼 shear
+    + **均勻面積補償 scale** ⇒ **完整仿射 det ≡1**(擰而不變面積)。回傳 (bone_timelines, slot_timelines)。
+
+    補 twist(G-4'''''')一路留到現在的 honest boundary:反相雙軸 shear 使 det=cos(shearX−shearY)≠1 →
+    擰轉變面積。本節拍加**等向**(isotropic,sx=sy) scale s=1/√cos(shearX−shearY) 抵消該 cos 因子 →
+    **產線第一個令完整局部仿射行列式守恆** 的節拍。shear 通道與 `gen_twist` 完全一致(反相雙軸阻尼擺,
+    兩軸 φ 保形),故仍是「同一種雙軸 shear 扭轉」;差別只在多一支等向 scale 把面積鎖住。
+    與 squash 的區別:squash 的守恆是 scaleX·scaleY≡1(scale 通道自身,完整 det 仍=cos(shearX));
+    voltwist 的守恆是**完整 det≡1**、且 scale **均勻**(sx=sy,非 squash 的 sx≠sy)。"""
+    return gen_twist(role, side_sign, radial, nosc, volume_conserve=True)
 
 
 # 供 gen_animations 註冊到 _DISPATCH / _CAT_KEYWORDS 用
@@ -505,3 +544,7 @@ WOBBLE_KEYWORDS = ["wobble", "jelly", "sway", "skew", "shear", "lean", "斜拉",
 SQUASH_KEYWORDS = ["squash", "stretch", "jellysquash", "diagsquash", "squish", "擠壓", "壓擠", "斜擠", "擠"]
 # twist 專屬關鍵字(與 wobble/squash 區隔:twist=反相雙軸 shear,首度驅動 shearY)。
 TWIST_KEYWORDS = ["twist", "torsion", "wring", "diagtwist", "扭轉", "扭", "擰", "轉扭"]
+# voltwist 專屬關鍵字(volume-conserving twist:反相雙軸 shear + 均勻面積補償 scale → 完整 det≡1)。
+# 與 twist 區隔:必須是**整詞** voltwist/等積扭轉…(gen_animations 的 _CAT_KEYWORDS 將 voltwist 置於
+# twist **之前**,exact-then-substring 命中確保「voltwist」不被 twist 的子字串「twist」搶去)。
+VOLTWIST_KEYWORDS = ["voltwist", "volumetwist", "isotwist", "wringvol", "等積扭轉", "守恆扭轉", "體積守恆扭轉"]

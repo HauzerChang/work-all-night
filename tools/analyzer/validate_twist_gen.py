@@ -249,10 +249,12 @@ def run():
     singleaxis = [(16.0, 0.0), (-8.0, 0.0), (4.0, 0.0), (-2.0, 0.0)]
     cp_1, dev_1, _ = _tw3_eval(singleaxis)
     s6["b_singleaxis_guard"] = {"counterphase_ok": cp_1, "pass": not cp_1}
-    # (c) 雙軸隔離:非 twist beat 皆 shearY≡0(twist 獨佔第二條 shear 軸)
+    # (c) 雙軸隔離:非 shearY 產出類別的 beat 皆 shearY≡0(shearY 由 SHEARY_CATS 獨佔第二條 shear 軸)。
+    # 以中央 TV.SHEARY_CATS 認定(G-4''''''-vol voltwist 加入後亦合法產 shearY,同 twist → 一併排除)。
+    import tier_variants as _TV
     leak = []
     for nm, an in anims.items():
-        if "__" in nm or G.beat_category(nm) == "twist":
+        if "__" in nm or G.beat_category(nm) in _TV.SHEARY_CATS:
             continue
         for bn, ch in an.get("bones", {}).items():
             if _has_shear_y(ch):

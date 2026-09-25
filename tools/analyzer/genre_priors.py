@@ -68,6 +68,14 @@ _BIGWIN_ROLES["squash"] = {
 _BIGWIN_ROLES["twist"] = {
     "body": "斜扭果凍扭轉:x/y 軸反相阻尼 shear 擺動(擰)→收回 identity", "head": "隨身體斜扭",
     "limb": "末梢斜扭(反相)→阻尼回正", "effect": "斜扭果凍扭轉(雙軸 shear)→回穩"}
+# candidate G-4''''''-vol 續:斜扭**體積守恆**扭轉(volume-conserving twist)節拍接進先驗庫(additive)。
+# voltwist 是**第一個令完整局部仿射行列式守恆(det≡1)** 的節拍:反相雙軸 shear(同 twist)使
+# det=cos(shearX−shearY)≠1(擰轉變面積),額外加一支**均勻**面積補償 scale(sx=sy=1/√cos(shearX−shearY))
+# 抵消該 cos 因子 → 擰而不變面積。與 squash 的區別:squash 守恆 scaleX·scaleY≡1(scale 通道自身,完整
+# det 仍=cos(shearX));voltwist 守恆**完整 det≡1** 且 scale **均勻**。經 gen_animations 路由到 gen_twist_vol。
+_BIGWIN_ROLES["voltwist"] = {
+    "body": "斜扭體積守恆扭轉:反相雙軸阻尼 shear + 均勻面積補償(擰而不變面積)→收回 identity", "head": "隨身體斜扭(守恆)",
+    "limb": "末梢斜扭(反相)+均勻補償→阻尼回正", "effect": "斜扭體積守恆扭轉(雙軸 shear+等向 scale)→回穩"}
 
 
 PRIORS = {
@@ -105,6 +113,10 @@ PRIORS = {
             # Award 真值僅 In/Loop/Out → 亦列 prior_beats_unused(誠實,覆蓋率單調不受擾)。
             {"key": "twist", "kw": ["twist", "torsion", "wring", "diagtwist", "扭轉", "扭", "擰", "轉扭"],
              "desc": "斜扭果凍扭轉主秀:反相雙軸阻尼 shear(shearX 與 shearY 反號、兩軸各繞 0 變號≥3、相繼極值遞減),首尾 identity(可插 Loop 間)"},
+            # candidate G-4''''''-vol:斜扭**體積守恆**扭轉(反相雙軸 shear + 均勻面積補償 scale → 完整 det≡1;PROPOSAL,結構簽章非美感)。
+            # Award 真值僅 In/Loop/Out → 亦列 prior_beats_unused(誠實,覆蓋率單調不受擾)。
+            {"key": "voltwist", "kw": ["voltwist", "volumetwist", "isotwist", "wringvol", "等積扭轉", "守恆扭轉", "體積守恆扭轉"],
+             "desc": "斜扭體積守恆扭轉主秀:反相雙軸阻尼 shear + 均勻面積補償 scale(sx=sy=1/√cos(shearX−shearY))使完整仿射 det≡1(擰而不變面積),首尾 identity(可插 Loop 間)"},
             {"key": "Loop", "kw": ["loop", "idle"],
              "desc": "待機循環:整體微呼吸(±小角度/位移),特效持續脈動/緩轉"},
             {"key": "Out", "kw": ["out", "exit", "end", "close"],

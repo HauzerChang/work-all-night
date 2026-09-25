@@ -400,6 +400,19 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
                      "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_conserving", "生成器產體積守恆扭轉(G-4''''''-vol,完整仿射 det≡1)", "L2",
+                "python3 tools/analyzer/validate_twist_vol.py", "pipeline",
+                note="補 twist(G-4''''''/tier/count)一路明列的 honest boundary:反相雙軸 shear 使**完整** Spine local 仿射 det=scaleX·scaleY·cos(shearX−shearY) 在 shearX−shearY=(1+φ)·shearX≠0 時 <1 → **擰轉使面積縮**。"
+                     "**關鍵:至今沒有節拍令完整 det≡1** —— wobble 純 shearX(det=cos(shearX))、squash 只令 scale 通道自身 scaleX·scaleY≡1(完整 det 仍=cos(shearX))、twist 反相雙軸(det=cos((1+φ)shearX))。"
+                     "gen_twist_vol 在反相雙軸 shear 上額外產一支**均勻**(isotropic,sx=sy) scale s=1/√cos(shearX−shearY) 抵消 shear 的 cos 因子 → **完整仿射 det≡1**(擰而不變面積)= **產線第一個令完整局部仿射行列式守恆** 的節拍。"
+                     "shear 通道與 gen_twist 完全一致(反相雙軸阻尼擺、兩軸 φ 保形)→ 仍是『同一種雙軸 shear 扭轉』,差別只在多一支等向 scale 把面積鎖住。與 squash 的區別:squash 守恆 scaleX·scaleY≡1(scale 通道自身)且 scale **非均勻**(sx≠sy);"
+                     "voltwist 守恆**完整 det≡1** 且 scale **均勻**(sx=sy)。經 genre_priors 加 voltwist beat 直出(additive、coverage 仍 1.0);build_spine --shear-pivot(include_shear 隱含 include_scale)端到端把 rotate/scale/shearX/shearY 一起繞關節 pivot 補償。"
+                     "voltwist 併入 SHEAR_CATS(合法 shear 產出者)+ 新增中央 SHEARY_CATS={twist,voltwist}(合法 shearY 產出者,twist_gen TW6c shearY-isolation 改以此認定,避免硬編碼)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations,validate_twist_vol.py 7AC PASS(VV1 present+dual-channel crux:反相雙軸 shear(shearX 峰16°・shearY 峰11.2°)+scale/"
+                     "VV2 兩軸阻尼振盪+反相(每內部極值 shearX·shearY<0)/VV3 crux 完整 det 守恆 每幀|det−1|≤1e-3(實測<5e-6)/VV4 均勻補償 每幀|scaleX−scaleY|≤1e-3+內部極值 scale>1+端點(1,1)/"
+                     "VV5 identity 介面/VV6 端到端 pivot 殘差<0.016px vs 負對照 24–29px(>1000×)/VV7 負對照 (a)純 twist 無補償 scale→完整 det 守恆 FALSE證閘測『完整 det≡1』非『有 scale 即可』(b)squash 樣(非均勻 sx·sy≡1・shearY≡0)→完整 det=cos(shearX)≠1 且非均勻→證『完整 det≡1』≠『scale 自身守恆』且均勻性分兩者(c)shearY 隔離到 SHEARY_CATS(d)加性移除 voltwist 其餘逐位元不變)。"
+                     "**關鍵發現:完整仿射四自由度(rotate/非均勻 scale/shearX/shearY)生成端至此不僅全數被驅動過(G-4''''''),更首度可令其**完整行列式守恆**——用等向 scale 抵消 shear 的 cos 因子是塞滿一般仿射且面積守恆的通則。**"
+                     "honest boundary:voltwist 未接 tier/count-aware(tier 放大兩軸 shear 後補償 scale 需依放大後 shear 重算才續守恆,比照 squash G-4'''' → G-4''''' 的分步);均勻補償是等積扭轉的一種(另有非均勻等積解);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
