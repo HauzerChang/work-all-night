@@ -197,10 +197,12 @@ try:
     from beat_templates import gen_hit as _gen_hit, gen_reveal as _gen_reveal, \
         gen_combo as _gen_combo, gen_anticipate_hold as _gen_charge, gen_cascade as _gen_cascade, \
         gen_wobble as _gen_wobble, gen_squash as _gen_squash, gen_twist as _gen_twist, \
+        gen_twistvol as _gen_twistvol, \
         HIT_KEYWORDS as _HIT_KW, REVEAL_KEYWORDS as _REVEAL_KW, \
         COMBO_KEYWORDS as _COMBO_KW, CHARGE_KEYWORDS as _CHARGE_KW, \
         CASCADE_KEYWORDS as _CASCADE_KW, WOBBLE_KEYWORDS as _WOBBLE_KW, \
-        SQUASH_KEYWORDS as _SQUASH_KW, TWIST_KEYWORDS as _TWIST_KW, DUR as _DUR_EXT
+        SQUASH_KEYWORDS as _SQUASH_KW, TWIST_KEYWORDS as _TWIST_KW, \
+        TWISTVOL_KEYWORDS as _TWISTVOL_KW, DUR as _DUR_EXT
     _DISPATCH["hit"] = _gen_hit
     _DISPATCH["reveal"] = _gen_reveal
     _DISPATCH["combo"] = _gen_combo
@@ -209,11 +211,13 @@ try:
     _DISPATCH["wobble"] = _gen_wobble  # candidate G-4':產出 shear 通道的斜拉節拍
     _DISPATCH["squash"] = _gen_squash  # candidate G-4'''':shear + 耦合非均勻 scale 的體積守恆擠壓
     _DISPATCH["twist"] = _gen_twist    # candidate G-4'''''':反相雙軸 shear(首度驅動 shearY)
-    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo/charge/cascade/wobble/squash/twist 時長對 spine_anim.duration 一致
-    # 主秀類別置前:exact/substring 命中優先於泛用 pulse(squash/twist 亦置前;放 wobble 前避免關鍵字爭用)
+    _DISPATCH["twistvol"] = _gen_twistvol  # candidate G-4''''''-vol:反相雙軸 shear + 均勻體積守恆 scale(det≡1)
+    DUR.update(_DUR_EXT)  # 讓 hit/reveal/combo/charge/cascade/wobble/squash/twist/twistvol 時長對 spine_anim.duration 一致
+    # 主秀類別置前:exact/substring 命中優先於泛用 pulse。twistvol 置於 twist 前(其 exact token 'twistvol'
+    # 不與 twist 關鍵字相等 → beat_category('twistvol') 由 exact 迴圈命中 twistvol,不誤入 twist)。
     _CAT_KEYWORDS = {"cascade": _CASCADE_KW, "combo": _COMBO_KW, "charge": _CHARGE_KW,
-                     "twist": _TWIST_KW, "squash": _SQUASH_KW, "wobble": _WOBBLE_KW, "hit": _HIT_KW,
-                     "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
+                     "twistvol": _TWISTVOL_KW, "twist": _TWIST_KW, "squash": _SQUASH_KW,
+                     "wobble": _WOBBLE_KW, "hit": _HIT_KW, "reveal": _REVEAL_KW, **_CAT_KEYWORDS}
 except ImportError:
     pass
 
