@@ -479,18 +479,33 @@ def _twist_env(A, nosc):
     return shx, shy
 
 
-def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
+def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4, vol_conserve=False):
     """斜扭果凍扭轉:**反相雙軸阻尼 shear**(shearX + shearY 同時非零)。回傳 (bone_timelines, slot_timelines)。
 
     shearX 同 `gen_wobble`(阻尼擺動,首尾 0);shearY 與之**反相**且幅度 ×TWIST_PHI(首尾 0)→ 兩基底
     夾角偏離 =(1+φ)|shearX| 被放大(真雙軸 shear);首尾 identity(可插 Loop)。`side_sign` 決定 shearX
-    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 為後續)。**這是產線第一個產 shearY 的生成器**。"""
+    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 見 tier_twist_cycles)。**這是產線第一個產 shearY 的生成器**。
+
+    `vol_conserve`(candidate G-4''''''-vol,opt-in;預設 False → 逐位元同上,向後相容):
+      反相雙軸 shear 的 Spine local `det(M)=sx·sy·cos(shearY−shearX)`;純 shear(sx=sy=1)時
+      `det=cos(shearY−shearX)=cos(−(1+φ)shearX)<1` → **擰轉使面積縮小**(這是 twist 最後一條 honest boundary)。
+      本模式補一條**均勻** scale `s=1/√cos(shearY−shearX)` 逐幀 → `det=s²·cos≡1`(**擰而不變面積**,體積守恆);
+      首尾 shear=0 → cos0=1 → s=1(identity 介面不變)。**均勻(sx=sy=s)是關鍵**:只補償面積、不引入 squash 的
+      **非均勻**(scaleX≠scaleY)簽章 —— 與 squash 的體積守恆(非均勻倒數對 scaleX·scaleY=1)是**兩種不同的守恆幾何**
+      (twist=均勻放大補償剪切面積損失;squash=非均勻拉壓保面積)。shear+均勻 scale 兩通道同時被生成器驅動且守恆。"""
     T = DUR["twist"]
     A = _TWIST_SHEARX.get(role, 12.0) * side_sign
     b, s = {}, {}
     shx, shy = _twist_env(A, nosc)
     b["shear"] = [{"time": round(tx * T, 4), "x": round(vx, 4), "y": round(vy, 4)}
                   for (tx, vx), (_, vy) in zip(shx, shy)]
+    if vol_conserve:
+        sc = []
+        for (tx, vx), (_, vy) in zip(shx, shy):
+            c = math.cos(math.radians(vy - vx))          # local det 的 cos 因子(<1 於擰轉極值)
+            s_u = 1.0 / math.sqrt(c) if c > 1e-9 else 1.0  # 均勻補償 s=1/√cos → det=s²·cos≡1
+            sc.append({"time": round(tx * T, 4), "x": round(s_u, 6), "y": round(s_u, 6)})
+        b["scale"] = sc
     return b, s
 
 

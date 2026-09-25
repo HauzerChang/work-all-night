@@ -190,6 +190,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
 
 def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False,
           deform=False, pivot_rotate=False, scale_pivot=False, shear_pivot=False, tier_variants=False,
+          twist_vol_conserve=False,
           deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
@@ -318,7 +319,8 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"],
                                                   tier_gains=tg, tier_combo_hits=tch,
                                                   tier_wobble_cycles=twc, tier_squash_cycles=tsc,
-                                                  tier_twist_cycles=ttc)
+                                                  tier_twist_cycles=ttc,
+                                                  twist_vol_conserve=twist_vol_conserve)
         if (pivot_rotate or scale_pivot or shear_pivot) and not rig:
             # candidate 0i:件繞**關節 pivot** 轉而非件中心(keyframe 級,不動骨架)。
             # 延伸 G-3:`--scale-pivot` 再把 `scale` 也補償(M=R·S)→ 件繞關節 pivot **旋轉+縮放**。
@@ -378,11 +380,13 @@ def main():
                     help="G-4':件繞關節 pivot 一般仿射(含 shear;wobble 節拍的 shear 亦繞關節;含 --scale-pivot 語意;非 rig 用,需 --animate)")
     ap.add_argument("--tier-variants", dest="tier_variants", action="store_true",
                     help="candidate J:主秀 beat 依 genre 宣告檔位產幅度差異化變體 {beat}__{tier}(需 --animate)")
+    ap.add_argument("--twist-volume-conserve", dest="twist_vol_conserve", action="store_true",
+                    help="G-4''''''-vol:twist 補均勻 scale 使 det≡1(擰而不變面積;需 --animate,建議配 --shear-pivot)")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
     s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,
               pivot_rotate=a.pivot_rotate, scale_pivot=a.scale_pivot, shear_pivot=a.shear_pivot,
-              tier_variants=a.tier_variants)
+              tier_variants=a.tier_variants, twist_vol_conserve=a.twist_vol_conserve)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

@@ -10,7 +10,36 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 volume-conserving twist:擰而不變面積(里程碑,2026-09-25,candidate G-4''''''-vol)** —
+  補 twist 一路(G-4''''''/-tier/-count)留到現在的**最後一條 honest boundary**:反相雙軸 shear 的 Spine local
+  `det(M)=scaleX·scaleY·cos(shearY−shearX)`;純 shear(sx=sy=1)時 `det=cos(−(1+φ)shearX)<1` → **擰轉使面積縮小**
+  (實測 base twist 峰 det 特效0.889/body0.915/limb0.937/head0.956,最深~11% 面積損失)。本次(`vol_conserve` opt-in)
+  讓 `gen_twist(vol_conserve=True)` 補一條**均勻** scale `s=1/√cos(shearY−shearX)` 逐幀 → `det=s²·cos≡1`(體積守恆);
+  首尾 shear=0 → cos0=1 → s=1(identity 介面不變)。**均勻(sx=sy)是關鍵**:只補償面積損失、不引入 squash 的
+  **非均勻**(scaleX≠scaleY)簽章 —— twist 與 squash 是**兩種不同的體積守恆幾何**(twist=均勻放大補剪切面積損失,
+  scale 是**補償**;squash=非均勻拉壓保面積,scale 是**主體**)。補償 scale 峰特效1.060/body1.045/limb1.033/head1.023
+  (=`1/√det_base` 恰抵銷)。至此生成器把 **shear(兩軸)+ 均勻 scale 兩通道同時驅動且守恆**。全 additive/opt-in:
+  `gen_animations` 加 `_build_beat/build_animations(twist_vol_conserve=)`(以 `cat=="twist"` 守衛把 `vol_conserve`
+  傳給 `gen_twist`),`build_spine --twist-volume-conserve` 旗標。整合閘 `validate_twist_vol.py`(先驗庫→**真實
+  build_spine robot 骨架**→build_animations)**6 AC 全 PASS**:VC1 present+dual-axis+**scale 通道**(crux:shearX16°、
+  shearY11.2°、補償 scale 峰 1.060>1,非 identity)、VC2 **crux** 每 twist bone 每幀 `|det−1|≤1e-3`(worst 1e-6)、
+  VC3 均勻(`|scaleX−scaleY|=0`,非 squash 非均勻)+ s≥1(補償只放大)+ 峰 scale 幀==峰 |shearY−shearX| 幀(scale
+  跟隨 shear)+ 兩軸阻尼簽章保形、VC4 identity 介面(shear 首尾(0,0)、scale 首尾(1,1))、VC5 端到端
+  `--shear-pivot` pivot 殘差 右手0.013/頭0.004/左手0.016px vs 負對照(繞件中心,含雙軸 shear+均勻 scale)
+  8.6–29.5px(>1000×)、VC6 負對照/隔離/加性(a **非守恆守衛** base twist 峰 det 0.889<1 → VC2 對 base FALSE、
+  b **非均勻守衛** squash 式非均勻對→均勻判準 FALSE、c 向後相容 vol_conserve=False 逐位元同預設 + 隔離 True 下
+  非 twist beat 逐位元同 False + 加性移除 twist 其餘不變)。**回歸 23 閘全綠**(22 既有 + 新 twist_volume_conserving;
+  `check_readiness.py` 退出 0,0 GREEN→RED)。新增 cap `twist_volume_conserving` L2 併入 `spine-anim-forge`
+  (**仍 HOLD**)。**關鍵發現**:**一般仿射 M 四自由度(rotate/非均勻 scale/shearX/shearY)生成端全數驅動過後,
+  twist 補上「shear 兩軸 + 均勻 scale 兩通道同時且守恆」= 第一個用 scale 去補償 shear 面積效應的節拍**(squash 的
+  scale 是主體、twist 的 scale 是補償);**體積守恆有多種幾何**:同一 `scaleX·scaleY≡const` 約束,squash 走非均勻
+  倒數對、twist 走均勻放大 —— 約束在乘積,幾何自由度(均勻 vs 非均勻)由運動語意決定;由建構(`s=1/√cos`)保證
+  逐幀守恆 = **沿守恆流形生成**通則再現。**honest boundary(仍在)**:`vol_conserve × tier` **幅度** amplify 對
+  scale/shear 各自 ×g 是**非線性破守恆**(shear ×g → 需要的補償 `1/√cos(g·Δ)`≠`1+g(s−1)`;需比照 squash 耦合
+  amplify 沿守恆流形放大 → **G-4''''''-vol-tier 為後續**;本旗標與 tier_gains 併用時變體暫不守恆,已於 docstring 標記);
+  均勻補償為 PROPOSAL(手感 A 類);單一真值資產。見 `knowledge/s1-twist-volume-conserving.md`。
 - **S1 twist 扭轉段數隨檔位遞增:count-aware × 幅度 × φ 保形三效正交(里程碑,2026-09-24 run 001,candidate G-4''''''-count)** —
+  補 (G-4''''''-tier) 明列的 honest boundary(「twist 未接 count-aware,扭轉段數隨檔位,`gen_twist(nosc=)` 已備參數
   補 (G-4''''''-tier) 明列的 honest boundary(「twist 未接 count-aware,扭轉段數隨檔位,`gen_twist(nosc=)` 已備參數
   未接;比照 wobble G-4'''/squash G-4'''''-c」)。(G-4''''''-tier) 讓 twist 兩軸 shear 峰**幅度**隨檔位遞增(兩軸同一
   g 同比 → φ 不變),但各檔位仍**同樣 4 段**反相雙軸阻尼擺。本次補上扭轉**段數** nosc 隨檔位嚴格遞增
@@ -722,9 +751,14 @@
 >   twist 併入 `MAIN_SHOW_CATS`,兩軸同一 g 同比放大 → 兩軸峰隨檔位遞增且 φ 比值不變(反相雙軸 scale-invariant);`validate_twist_tier.py` 6AC PASS。
 > **(G-4''''''-count) ~~twist 接 count-aware(扭轉段數 nosc 隨檔位遞增)~~ ✅ 完成(2026-09-24 run 001,candidate G-4''''''-count,`twist_tier_count_aware` L2,見上里程碑)** ——
 >   `TIER_TWIST_CYCLES`(Super4→Legend7)+ twist∈`COUNT_AWARE_CATS` + `build_animations(tier_twist_cycles=)` 依 cat 路由;段數重生成後兩軸仍 `shearY=−φ·shearX`(φ 由建構保證)→ count × tier 幅度 × φ 保形三效正交;`validate_twist_count.py` 5AC PASS。**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立**。
+> **(G-4''''''-vol) ~~volume-conserving twist~~ ✅ 完成(2026-09-25,candidate G-4''''''-vol,`twist_volume_conserving` L2,見上里程碑)** ——
+>   `gen_twist(vol_conserve=True)` 補**均勻** scale `s=1/√cos(shearY−shearX)` → `det=s²·cos≡1`(擰而不變面積);
+>   均勻(非 squash 非均勻)= twist 與 squash 兩種不同守恆幾何;`build_spine --twist-volume-conserve`;`validate_twist_vol.py` 6AC PASS
+>   (VC2 crux 每幀 |det−1|≤1e-6、VC6a base 峰 det 0.889<1 非守恆守衛)。**shear 兩軸 + 均勻 scale 兩通道同時且守恆**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4''''''-vol) volume-conserving twist(反相雙軸 shear 接體積守恆耦合 scale:`det=cos(shearY−shearX)≠1` → 擰轉變面積,
->   加耦合 scale 使 `sx·sy=1/cos(shearY−shearX)` → 擰而不變面積;shear+scale+rotate 三通道同時 = 塞滿一般仿射四自由度且守恆)**;
+> **(G-4''''''-vol-tier) volume-conserving twist 接 tier 幅度(耦合補償 amplify):tier ×g 對 vol-conserve twist 的 scale/shear 各自放大
+>   是**非線性破守恆**(shear ×g → 需要的補償 `1/√cos(g·Δ)`≠`1+g(s−1)`);需比照 squash 的耦合 amplify,對 tier 變體以放大後的
+>   shear 夾角**重算**均勻補償 `s'=1/√cos(g·(shearY−shearX))` 使每檔位仍 det≡1 —— twist 的守恆流形放大(對照 squash `_amp_scale_coupled`)**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸;比照 G-4'''/J-2 但簽章在件之間)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到第四個通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。

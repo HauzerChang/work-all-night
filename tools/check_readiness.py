@@ -400,6 +400,20 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
                      "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_conserving", "volume-conserving twist(G-4''''''-vol,擰而不變面積:均勻補償 scale 使 det≡1)", "L2",
+                "python3 tools/analyzer/validate_twist_vol.py", "pipeline",
+                note="補 twist 一路(G-4''''''/-tier/-count)留到現在的**最後一條 honest boundary**:反相雙軸 shear 的 Spine local det=sx·sy·cos(shearY−shearX);"
+                     "純 shear(sx=sy=1)時 det=cos(−(1+φ)shearX)<1 → **擰轉使面積縮小**(實測 base twist 峰 det 低至 0.889,~11% 面積損失)。本次(vol_conserve opt-in)"
+                     "讓 gen_twist(vol_conserve=True) 補一條**均勻** scale s=1/√cos(shearY−shearX) 逐幀 → det=s²·cos≡1(體積守恆);首尾 shear=0 → s=1(identity 介面不變)。"
+                     "**均勻(sx=sy)是關鍵**:只補償面積、不引入 squash 的**非均勻**(scaleX≠scaleY)簽章 —— twist 與 squash 是**兩種不同的體積守恆幾何**"
+                     "(twist=均勻放大補剪切面積損失;squash=非均勻拉壓保面積)。至此生成器把 **shear(兩軸)+ 均勻 scale 兩通道同時驅動且守恆**。"
+                     "新增 build_spine --twist-volume-conserve 旗標 + build_animations(twist_vol_conserve=)。從先驗庫→真實 build_spine robot 骨架→build_animations,"
+                     "validate_twist_vol.py 6AC PASS(VC1 present+dual-axis+scale 通道 crux:shearX16°・shearY11.2°・補償 scale 峰 1.060/VC2 crux 每幀 |det−1|≤1e-6/"
+                     "VC3 均勻(|sx−sy|=0)+s≥1+scale 跟隨 shear 峰+兩軸阻尼保形/VC4 identity 介面 shear(0,0) scale(1,1)/VC5 端到端 --shear-pivot pivot 殘差 0.004–0.016px vs 負對照 8.6–29.5px(>1000×)/"
+                     "VC6 負對照 base twist 峰 det 0.889<1(非守恆守衛)・squash 式非均勻對→均勻 FALSE・vol_conserve=False 逐位元同預設・True 下非 twist beat 逐位元同 False・移除 twist 其餘不變)。"
+                     "**一般仿射 M 四自由度(rotate/非均勻 scale/shearX/shearY)生成端全數驅動過後,twist 補上 shear+均勻 scale 兩通道同時且守恆**。"
+                     "honest:vol_conserve × tier **幅度** amplify 對 scale/shear 各自 ×g 非線性破守恆(需比照 squash 耦合 amplify 沿守恆流形放大 → G-4''''''-vol-tier 為後續);"
+                     "均勻補償手感為 PROPOSAL(A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
