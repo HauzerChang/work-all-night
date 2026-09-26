@@ -7,128 +7,22 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
-> **chunk 135(2026-09-26)**:排程第七十六次觸發(距 chunk 134 隔一日)。重跑同一組檢查:
+> **chunk 136(2026-09-26)**:排程第七十七次觸發(距 chunk 135 同日內)。重跑同一組檢查:
 > `git log --oneline -- assets/` 確認 assets/ 仍無新素材(最後仍 chunk 52 `763c112`);
 > GitHub `list_issues` 確認 open issues 0 筆;`list_pull_requests` 確認 open PR 仍只有
 > 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關,無新活動);
 > `ReadNotifications` queue 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front`
-> 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論與 chunk 103~134 相同:無新工作
+> 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論與 chunk 103~135 相同:無新工作
 > 塊**,事實無變化。依既有慣例(chunk 103 已主動通知過一次)**不重複發送通知**。未動
-> 任何 production 代碼。見 `log/s4-2026-09-26-135.md`。
+> 任何 production 代碼。**本次額外動作**:把 chunk 121~135(15 次逐字重複的「無新工作塊」
+> 檢查記錄)合併壓縮成摘要,避免本檔案無界增長(比照 chunk 103/120 的壓縮慣例)。見
+> `log/s4-2026-09-26-136.md`。
 >
-> **chunk 134(2026-09-25)**:排程第七十五次觸發(距 chunk 133 同日內)。重跑同一組檢查:
-> `git log --oneline -- assets/` 確認 assets/ 仍無新素材(最後仍 chunk 52 `763c112`);
-> GitHub `list_issues` 確認 open issues 0 筆;`list_pull_requests` 確認 open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關,無新活動);
-> `ReadNotifications` queue 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front`
-> 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論與 chunk 103~133 相同:無新工作
-> 塊**,事實無變化。依既有慣例(chunk 103 已主動通知過一次)**不重複發送通知**。未動
-> 任何 production 代碼。見 `log/s4-2026-09-25-134.md`。
->
-> **chunk 133(2026-09-25)**:排程第七十四次觸發(距 chunk 132 同日內)。重跑同一組檢查:
-> `git log --oneline -- assets/` 確認 assets/ 仍無新素材(最後仍 chunk 52 `763c112`);
-> GitHub `list_issues` 確認 open issues 0 筆;`list_pull_requests` 確認 open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關,無新活動);
-> `ReadNotifications` queue 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front`
-> 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論與 chunk 103~132 相同:無新工作
-> 塊**,事實無變化。依既有慣例(chunk 103 已主動通知過一次)**不重複發送通知**。未動
-> 任何 production 代碼。見 `log/s4-2026-09-25-133.md`。
->
-> **chunk 132(2026-09-25)**:排程第七十三次觸發(距 chunk 131 同日內)。重跑同一組檢查:
-> `git log --oneline -- assets/` 確認 assets/ 仍無新素材(最後仍 chunk 52 `763c112`);
-> GitHub `list_issues` 確認 open issues 0 筆;`list_pull_requests` 確認 open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關,無新活動);
-> `ReadNotifications` queue 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front`
-> 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論與 chunk 103~131 相同:無新工作
-> 塊**,事實無變化。依既有慣例(chunk 103 已主動通知過一次)**不重複發送通知**。未動
-> 任何 production 代碼。見 `log/s4-2026-09-25-132.md`。
->
-> **chunk 131(2026-09-25)**:排程第七十二次觸發(距 chunk 130 隔一日)。重跑同一組檢查:
-> `git log --oneline -- assets/` 確認 assets/ 仍無新素材(最後仍 chunk 52 `763c112`);
-> GitHub `list_issues` 確認 open issues 0 筆;`list_pull_requests` 確認 open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關,無新活動);
-> `ReadNotifications` queue 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front`
-> 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論與 chunk 103~130 相同:無新工作
-> 塊**,事實無變化。依既有慣例(chunk 103 已主動通知過一次)**不重複發送通知**。未動
-> 任何 production 代碼。見 `log/s4-2026-09-25-131.md`。
->
-> **chunk 130(2026-09-24)**:排程第七十一次觸發(距 chunk 129 同日內)。重跑同一組檢查:
-> `git log --oneline -- assets/` 確認 assets/ 仍無新素材(最後仍 chunk 52 `763c112`);
-> GitHub `list_issues` 確認 open issues 0 筆;`list_pull_requests` 確認 open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關,無新活動);
-> `ReadNotifications` queue 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front`
-> 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論與 chunk 103~129 相同:無新工作
-> 塊**,事實無變化。依既有慣例(chunk 103 已主動通知過一次)**不重複發送通知**。未動
-> 任何 production 代碼。見 `log/s4-2026-09-24-130.md`。
->
-> **chunk 129(2026-09-24)**:排程第七十次觸發(距 chunk 128 同日內)。重跑同一組檢查:
-> `git log --oneline -- assets/` 確認 assets/ 仍無新素材(最後仍 chunk 52 `763c112`);
-> GitHub `list_issues` 確認 open issues 0 筆;`list_pull_requests` 確認 open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關,無新活動);
-> `ReadNotifications` queue 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front`
-> 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論與 chunk 103~128 相同:無新工作
-> 塊**,事實無變化。依既有慣例(chunk 103 已主動通知過一次)**不重複發送通知**。未動
-> 任何 production 代碼。見 `log/s4-2026-09-24-129.md`。
->
-> **chunk 128(2026-09-24)**:排程第六十九次觸發(距 chunk 127 同日內)。重跑同一組檢查:
-> `git log --oneline -- assets/` 確認 assets/ 仍無新素材(最後仍 chunk 52 `763c112`);
-> GitHub `list_issues` 確認 open issues 0 筆;`list_pull_requests` 確認 open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關,無新活動);
-> `ReadNotifications` queue 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front`
-> 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論與 chunk 103~127 相同:無新工作
-> 塊**,事實無變化。依既有慣例(chunk 103 已主動通知過一次)**不重複發送通知**。未動
-> 任何 production 代碼。見 `log/s4-2026-09-24-128.md`。
->
-> **chunk 127(2026-09-24)**:排程第六十八次觸發(距 chunk 126 隔一日)。重跑同一組檢查:
-> `git log --oneline -- assets/` 確認 assets/ 仍無新素材(最後仍 chunk 52 `763c112`);
-> GitHub `list_issues` 確認 open issues 0 筆;`list_pull_requests` 確認 open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關,無新活動);
-> `ReadNotifications` queue 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front`
-> 語意邊界、GPT-fill API key 授權)仍無使用者輸入。**結論與 chunk 103~126 相同:無新工作
-> 塊**,事實無變化。依既有慣例(chunk 103 已主動通知過一次)**不重複發送通知**。未動
-> 任何 production 代碼。見 `log/s4-2026-09-24-127.md`。
->
-> **chunk 126(2026-09-23)**:排程第六十七次觸發(距 chunk 125 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關);`ReadNotifications` queue
-> 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key
-> 授權)仍無使用者輸入。**結論與 chunk 103~125 相同:無新工作塊**,事實無變化。依既有慣例
-> **不重複發送通知**。未動任何 production 代碼。見 `log/s4-2026-09-23-126.md`。
->
-> **chunk 125(2026-09-23)**:排程第六十六次觸發(距 chunk 124 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關);`ReadNotifications` queue
-> 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key
-> 授權)仍無使用者輸入。**結論與 chunk 103~124 相同:無新工作塊**,事實無變化。依既有慣例
-> **不重複發送通知**。未動任何 production 代碼。見 `log/s4-2026-09-23-125.md`。
->
-> **chunk 124(2026-09-23)**:排程第六十五次觸發(距 chunk 123 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關);`ReadNotifications` queue
-> 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key
-> 授權)仍無使用者輸入。**結論與 chunk 103~123 相同:無新工作塊**,事實無變化。依既有慣例
-> **不重複發送通知**。未動任何 production 代碼。見 `log/s4-2026-09-23-124.md`。
->
-> **chunk 123(2026-09-23)**:排程第六十四次觸發(距 chunk 122 隔一日)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關);`ReadNotifications` queue
-> 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key
-> 授權)仍無使用者輸入。**結論與 chunk 103~122 相同:無新工作塊**,事實無變化。依既有慣例
-> **不重複發送通知**。未動任何 production 代碼。見 `log/s4-2026-09-23-123.md`。
->
-> **chunk 122(2026-09-22)**:排程第六十三次觸發(距 chunk 121 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關);`ReadNotifications` queue
-> 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key
-> 授權)仍無使用者輸入。**結論與 chunk 103~121 相同:無新工作塊**,事實無變化。依既有慣例
-> **不重複發送通知**。未動任何 production 代碼。見 `log/s4-2026-09-22-122.md`。
->
-> **chunk 121(2026-09-22)**:排程第六十二次觸發(距 chunk 120 同日內)。重跑同一組檢查:
-> assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆、open PR 仍只有
-> 同一筆 `#3`(`updated_at` 仍 2026-09-15T10:22:54Z,與 S4 無關);`ReadNotifications` queue
-> 為空;三項懸而未決(`bodice`/`sleeve_right` 裁決、`hair_front` 語意邊界、GPT-fill API key
-> 授權)仍無使用者輸入。**結論與 chunk 103~120 相同:無新工作塊**,事實無變化。依既有慣例
-> **不重複發送通知**。未動任何 production 代碼。見 `log/s4-2026-09-22-121.md`。
+> **chunk 121~135(2026-09-22~09-26,共 15 次觸發,已壓縮)**:每次皆重跑 chunk 120 訂下的
+> 同一組檢查(assets/ 新素材、GitHub issues/PR、三項裁決點使用者輸入),結果逐次相同:
+> **無新素材、無新裁決、無新工作塊**。按 chunk 103 留下的「除非有新事實否則不重複通知」
+> 慣例,這 15 次均未再發送新通知。逐筆 commit/log 仍保留於 git 歷史與 `log/s4-2026-09-22-121.md`
+> ~`log/s4-2026-09-26-135.md`,此處僅壓縮 STATE_S4.md 內文以避免檔案無界增長。
 >
 > **chunk 120(2026-09-22)**:排程第六十一次觸發(距 chunk 119 同日內)。重跑同一組檢查:
 > assets/ 仍無新素材(最後仍 chunk 52 `763c112`);GitHub open issues 0 筆(API 直查確認)、
