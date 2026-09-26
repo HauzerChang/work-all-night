@@ -400,6 +400,26 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
                      "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_conserving", "體積守恆反相雙軸 shear:完整矩陣 det≡1(G-4''''''-vol)", "L2",
+                "python3 tools/analyzer/validate_twist_vol.py", "pipeline",
+                note="補 twist(G-4'''''')系列一路留到現在的 honest boundary:反相雙軸 shear **會改變面積** —— 真實 Spine local 一般仿射 "
+                     "det(M)=sx·sy·cos(shearY−shearX)(a·d−b·c=sx·sy·sin(90+shy−shx),與 rot 無關),純 twist(sx=sy=1,shearY=−φ·shearX)"
+                     "⇒ det=cos((1+φ)·shearX)<1 → 擰轉時件面積縮小。gen_twist_vol 補上耦合**均勻** scale s=1/√(cos(shearY−shearX)) 使 "
+                     "det=s²·cos(shy−shx)≡1 → 擰而不變面積(像擰乾毛巾),rotate/scale/shearX/shearY **四通道**同時被生成器驅動且面積逐關鍵幀嚴格守恆。"
+                     "**crux(與 squash 的體積守恆對立)**:squash 守 **scale 子塊** scaleX·scaleY≡1(但 shearX≠0 → 完整 det=cos(shearX)≠1,不守完整矩陣);"
+                     "twist_vol 守**完整 Spine local 矩陣** det(M)≡1,scale 為均勻 sx=sy=s>1 → scaleX·scaleY=s²>1(與 squash 的 ≡1 恰相反)—— "
+                     "兩者在『守 scale 子塊 vs 守完整矩陣』上正交對立(負對照 c 乾淨分離)。twist_vol 併入 SHEAR_CATS(shear-isolation 閘認定);"
+                     "刻意**不在** MAIN_SHOW_CATS(tier 幅度放大 shear 會改峰使守恆 scale 需重算,檔位差異化為後續 honest boundary)。"
+                     "genre_priors.slot_bigwin 加 twist_vol beat(kw 明確前綴不含裸 twist)直出(additive、coverage 仍 1.0);build_spine --shear-pivot "
+                     "端到端把 rotate/scale/shearX/shearY 四通道一起繞關節 pivot 補償。validate_twist_vol.py 6AC PASS(VT1 present+dual-axis+scale crux:"
+                     "shearX 峰 16°・shearY 峰 11.2°・scale 峰 0.06/VT2 兩軸阻尼振盪/VT3 crux 反相耦合每內部極值 shearX·shearY<0/VT4 crux 完整矩陣體積守恆:"
+                     "每極值 |det−1|≤8.8e-5・scale 均勻(gap 0)・scaleX·scaleY 峰 1.045–1.124>1・純-twist 縮小 0.044–0.111 證 scale 做真實功/"
+                     "VT5 identity 介面(shear 首尾0・scale 首尾1)+ 端到端 pivot 殘差 0.004–0.016px vs 負對照 8.5–29.5px/VT6 負對照:純-twist scale≡1→守恆 FALSE・"
+                     "定值 scale→FALSE・**squash-式 sx·sy≡1 非均勻→完整 det≠1 FALSE(守 scale 子塊≠守完整矩陣)**・正控 s=1/√cos→TRUE・shearY 隔離到 {twist,twist_vol}・"
+                     "加性移除 twist_vol 零回歸)。twist_gen TW6c shearY 隔離改認 {twist,twist_vol}。回歸:23 閘全綠(22 + 新 twist_vol)。"
+                     "**至此 Spine local 一般仿射四自由度(rotate+非均勻/均勻 scale+雙軸 shear)全被真實 beat 驅動、且面積可依需求守恆(squash 守子塊、twist_vol 守完整矩陣)**。"
+                     "honest:twist_vol 未接 tier/count-aware(檔位放大須重算守恆 scale,非 amplify);均勻 scale 分配為設計選擇(亦可非均勻只要 sx·sy=1/cos);"
+                     "守恆僅在關鍵幀嚴格、幀間線性(同 squash);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

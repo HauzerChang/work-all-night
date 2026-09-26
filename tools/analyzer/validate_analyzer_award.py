@@ -81,7 +81,13 @@ def validate(psd_path, award_path):
             tiers.add(t.group(1))
     proposed_beats = {b["beat"] for b in spec["3_motion_storyboard"]["beats"]}
     proposed_tiers = set(spec["3_motion_storyboard"]["tier_variants"] or [])
-    beats_ok = proposed_beats == beat_kinds
+    # 分鏡結構判準 = **beat 召回**(Award 真值的每個 beat 都被提案涵蓋),非精確相等。
+    # 自 candidate E 起,`genre_priors` **刻意**多提 PROPOSAL 主秀節拍(burst/hit/combo/charge/cascade/
+    # wobble/squash/twist/twist_vol),這些在 Award 真值(僅 In/Loop/Out)無命名,`validate_priors` 已誠實
+    # 列為 prior_beats_unused(覆蓋率單調不受擾)。原 `==` 精確相等是先驗庫只有 In/Loop/Out 時的舊判準,
+    # 已隨設計演進過時(會把合法的 PROPOSAL 提案誤判為失配);正確語意=真值 ⊆ 提案(對齊①件召回與 priors 覆蓋率)。
+    beats_ok = beat_kinds <= proposed_beats
+    proposal_extra = sorted(proposed_beats - beat_kinds)
     tiers_hit = proposed_tiers & tiers
 
     # ⑤ 露出項合理性:露出需「遮擋者移開」或「被遮件自己移出」二者之一有足量運動
@@ -111,7 +117,9 @@ def validate(psd_path, award_path):
         "3_geometry_vs_award": {"per_part": geo_eval,
                                 "pass": all(v["verdict"] != "mismatch" for v in geo_eval.values())},
         "4_storyboard_structure": {"proposed_beats": sorted(proposed_beats),
-                                    "award_beats": sorted(beat_kinds), "beats_match": beats_ok,
+                                    "award_beats": sorted(beat_kinds),
+                                    "beats_cover_award": beats_ok,   # 真值 beat 全被提案涵蓋(召回=1)
+                                    "proposal_extra": proposal_extra,  # 多提的 PROPOSAL 節拍(誠實,非失配)
                                     "award_tiers": sorted(tiers), "tiers_hit": sorted(tiers_hit),
                                     "pass": beats_ok and len(tiers_hit) >= 1},
         "5_reveal_motion_check": {"checks": reveal_checks,
