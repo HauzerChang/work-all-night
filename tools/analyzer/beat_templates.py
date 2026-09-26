@@ -479,18 +479,41 @@ def _twist_env(A, nosc):
     return shx, shy
 
 
-def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
+def _twist_vol_scale(shx_deg, shy_deg):
+    """candidate G-4''''''-vol — 反相雙軸 shear 的**均勻體積守恆**補償 scale 值:s = 1/√cos(shearX−shearY)。
+
+    幾何:Spine local 一般仿射 det = scaleX·scaleY·cos(shearX−shearY)(θ=0;見 `pivot_rotation.transform_matrix_full`)。
+    twist 純雙軸 shear(sx=sy=1)時 det = cos(shearX−shearY) ≠ 1 → **擰轉會變面積**(G-4'''''' 留下的 honest boundary)。
+    施**均勻** scale sx=sy=s=1/√cos(shearX−shearY) ⇒ det = s²·cos(shearX−shearY) ≡ 1 → **擰而不變面積**。
+    均勻(sx==sy)而非 squash 的非均勻:只補回 shear 造成的面積損失、**不另引入任意各向異性**
+    (一般仿射的非相似性由兩條 shear 軸給定,scale 僅守恆補償)。shear=0(首尾)→ cos0=1 → s=1(identity 介面)。
+    因 cos((1+φ)|shearX|) ≤ 1 → s ≥ 1(輕微等向脹回被 shear 擠掉的面積);shear 阻尼衰減 → s 逐極值趨近 1。"""
+    c = math.cos(math.radians(shx_deg - shy_deg))
+    return round(1.0 / math.sqrt(c), 4)
+
+
+def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4, vol=False):
     """斜扭果凍扭轉:**反相雙軸阻尼 shear**(shearX + shearY 同時非零)。回傳 (bone_timelines, slot_timelines)。
 
     shearX 同 `gen_wobble`(阻尼擺動,首尾 0);shearY 與之**反相**且幅度 ×TWIST_PHI(首尾 0)→ 兩基底
     夾角偏離 =(1+φ)|shearX| 被放大(真雙軸 shear);首尾 identity(可插 Loop)。`side_sign` 決定 shearX
-    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 為後續)。**這是產線第一個產 shearY 的生成器**。"""
+    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 見 G-4''''''-count)。**這是產線第一個產 shearY 的生成器**。
+
+    `vol=True`(candidate G-4''''''-vol,**體積守恆扭轉**):額外產出**均勻耦合體積守恆 scale** 通道
+    (每 shear 極值 sx=sy=1/√cos(shearX−shearY),見 `_twist_vol_scale`)→ Spine local det≡1(擰而不變面積);
+    shear+scale 同時 = 塞滿一般仿射四自由度且守恆。`vol=False`(預設)→ **逐位元同舊 twist**(只有 shear 通道,向後相容)。"""
     T = DUR["twist"]
     A = _TWIST_SHEARX.get(role, 12.0) * side_sign
     b, s = {}, {}
     shx, shy = _twist_env(A, nosc)
     b["shear"] = [{"time": round(tx * T, 4), "x": round(vx, 4), "y": round(vy, 4)}
                   for (tx, vx), (_, vy) in zip(shx, shy)]
+    if vol:
+        # 均勻體積守恆耦合 scale:每幀(含首尾)sx=sy=1/√cos(shearX−shearY)。首尾 shear=0 → s=1 → (1,1) identity。
+        # det = s²·cos(shearX−shearY) ≡ 1(擰而不變面積);均勻 → 不引入任意各向異性(有別於 squash 的非均勻擠壓)。
+        b["scale"] = [{"time": round(tx * T, 4),
+                       "x": _twist_vol_scale(vx, vy), "y": _twist_vol_scale(vx, vy)}
+                      for (tx, vx), (_, vy) in zip(shx, shy)]
     return b, s
 
 

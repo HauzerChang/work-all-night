@@ -227,12 +227,13 @@ from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
     amplify_anim as _amplify_anim
 
 
-def _build_beat(beat, cat, bone_of, cx, cy, count=None):
+def _build_beat(beat, cat, bone_of, cx, cy, count=None, vol=False):
     """把單一 beat 的每件 role 具體化為 anim dict(bones/slots timelines)。
 
     cat 依語意分派運動基元;`count`(J-2 combo 峰數 / G-4''' wobble 振盪段數 / G-4'''''-c squash 擠壓段數 /
     G-4''''''-count twist 扭轉段數)只對 COUNT_AWARE 類別生效。`count is None` → 呼叫生成器**自身預設**
     (combo=3 峰、wobble/squash/twist=4 段 → golden byte-identical);給定值 → 帶入生成器決定段數。
+    `vol=True`(G-4''''''-vol,僅 twist 生效)→ 帶 `gen_twist(vol=True)` 產均勻耦合體積守恆 scale(det≡1)。
     cascade(_PHASE_AWARE)另依件序帶入相位。"""
     bones_tl, slots_tl = {}, {}
     limb_seen = 0
@@ -260,10 +261,12 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None):
             b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
         elif cat in _COUNT_AWARE_CATS:
             # 段數(檔位相依):combo 峰數 / wobble 振盪段數。count is None → 生成器自身預設(golden)。
+            # G-4''''''-vol:vol 僅對 twist 生效(gen_twist(vol=True) 產均勻耦合體積守恆 scale);其餘生成器不吃 vol。
+            tkw = {"vol": True} if (vol and cat == "twist") else {}
             if count is None:
-                b, sdict = _DISPATCH[cat](role, side_sign, radial)
+                b, sdict = _DISPATCH[cat](role, side_sign, radial, **tkw)
             else:
-                b, sdict = _DISPATCH[cat](role, side_sign, radial, count)
+                b, sdict = _DISPATCH[cat](role, side_sign, radial, count, **tkw)
         else:
             b, sdict = _DISPATCH[cat](role, side_sign, radial)
         if b:
@@ -307,10 +310,14 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     for beat in storyboard["beats"]:
         name = beat["beat"]
         cat = beat_category(name)
-        anim = _build_beat(beat, cat, bone_of, cx, cy)
+        # candidate G-4''''''-vol:體積守恆扭轉(twist_vol)—— 反相雙軸 shear + 均勻耦合體積守恆 scale(det≡1)。
+        # 以 beat 名區分(beat_category 仍路由回 twist);vol 節拍為 base-only(未接 tier/count 差異化,honest boundary),
+        # 故下方 tier 變體迴圈以 `not vol` 略過(體積守恆的 tier amplify 需依放大後 shear 角重算 scale,為後續)。
+        vol = (cat == "twist" and "vol" in name.lower())
+        anim = _build_beat(beat, cat, bone_of, cx, cy, vol=vol)
         anims[name] = anim
         # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
-        if tier_gains and cat in _MAIN_SHOW_CATS:
+        if tier_gains and cat in _MAIN_SHOW_CATS and not vol:
             cmap = _count_maps.get(cat) if cat in _COUNT_AWARE_CATS else None
             # (G-4''''')squash 等耦合 scale 類別 → amplify 走體積守恆耦合(scaleX·scaleY≡1);其餘逐軸。
             coupled = cat in _COUPLED_SCALE_CATS

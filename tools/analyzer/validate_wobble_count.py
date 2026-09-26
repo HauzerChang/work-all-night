@@ -72,8 +72,10 @@ def _wobble_beats(anims):
 
 
 def _main_beats(anims):
+    # G-4''''''-vol:twist_vol(體積守恆扭轉)為 base-only 主秀節拍(未接 tier/count 差異化,無 {nm}__{tier} 變體)
+    # → 排除,避免下方隔離檢查索引其不存在的檔位變體(KeyError);它本非 tier 差異化 beat。
     return {nm: G.beat_category(nm) for nm in anims
-            if "__" not in nm and G.beat_category(nm) in TV.MAIN_SHOW_CATS}
+            if "__" not in nm and "vol" not in nm.lower() and G.beat_category(nm) in TV.MAIN_SHOW_CATS}
 
 
 def _nosc(anim):

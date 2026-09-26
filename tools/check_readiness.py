@@ -400,6 +400,22 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
                      "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_conserving", "體積守恆扭轉:反相雙軸 shear 接均勻耦合體積守恆 scale(G-4''''''-vol,det≡1)", "L2",
+                "python3 tools/analyzer/validate_twist_vol.py", "pipeline",
+                note="補 (G-4'''''') 明列的最後一條 twist honest boundary(反相雙軸未接體積守恆耦合 scale:det=cos(shearX−shearY)≠1 → 擰轉變面積)。"
+                     "**幾何:Spine local 一般仿射 det = scaleX·scaleY·cos(shearX−shearY)(θ=0)**;twist 純雙軸 shear(scale=identity)det=cos(shearX−shearY)≠1 → 擰轉會變面積"
+                     "(擰毛巾愈用力面積縮愈多,實測 effect 峰 |det−1|=0.11)。gen_twist(vol=True) 加**均勻**耦合體積守恆 scale(每 shear 極值 scaleX=scaleY=1/√cos(shearX−shearY))⇒ "
+                     "det=s²·cos(shearX−shearY)≡1 → **擰而不變面積**;shear+scale 兩通道同時被生成器驅動、塞滿一般仿射四自由度(rotate 由 pivot 補償、斜切/各向異性由兩條 shear 軸)且體積守恆。"
+                     "**為何均勻(sx==sy)而非 squash 非均勻**:det 只約束 scaleX·scaleY 之積;均勻 split 是**唯一不另引入任意各向異性**的守恆補償(一般仿射的非相似性全由兩條 shear 軸給定,scale 僅補回面積);"
+                     "非均勻 split 守恆同樣成立但屬手感 A 類主觀(honest boundary)。**與 squash 分工**:squash=shearX+**非均勻**耦合 scale(scaleX≠scaleY);twist_vol=反相**雙軸** shear+**均勻**耦合 scale。"
+                     "twist_vol 併入 genre_priors.slot_bigwin 直出(additive、coverage 仍 1.0、beat_category 以 'twist' 子字串仍路由回 twist、gen_animations 依名帶 vol=True);base twist 逐位元不變且無 scale(vol opt-in)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations,validate_twist_vol.py 6AC PASS(VV1 present+tri-channel crux:shearX 峰16°・shearY 峰11.2°+scale 通道/VV2 twist 簽章保持 兩軸阻尼振盪+反相/"
+                     "VV3 crux 體積守恆 每 shear 關鍵幀 |det−1|≤2e-4(worst 8.8e-5)/VV4 crux 負對照 純 shear 峰 |det−1|=0.11≥0.02(耦合 scale 是守恆關鍵)・單軸放大非守恆 0.057≥0.02(需特定 sx·sy=1/cos)・均勻守衛 scaleX==scaleY(非 squash 非均勻)/"
+                     "VV5 identity 介面(shear 首尾0・scale 首尾(1,1))+純 twist 逐位元不變且無 scale+加性移除 twist_vol 其餘逐位元不變/VV6 端到端 --shear-pivot pivot 殘差<0.02px vs 負對照 8–29px "
+                     "且守恆端到端存活:非重取樣 bone(光暈/身體)|det−1|≤2e-4 精確、關節 bone 於極值時刻 |det−1|≤5e-3(密網格重取樣內插殘差,仍 >20× 低於未守恆 0.11))。"
+                     "**關鍵發現:一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)+ 體積守恆(det≡1)生成端全數成立** —— twist_vol 是最後一塊(反相雙軸 shear 且守恆);"
+                     "守恆補償的 split 自由度(均勻 vs 非均勻)是新的 A 類手感選擇。honest:守恆在生成器極值精確、關節 bone 端到端有密網格內插殘差(同 squash --shear-pivot 只 round-trip/pivot-fixed 驗);"
+                     "均勻 split 為預設(非均勻守恆扭轉屬 A 類);vol 未接 tier/count(體積守恆的 tier amplify 需依放大後 shear 角重算 scale=1/√cos(g·angle),非線性,為後續 G-4''''''-vol-tier);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

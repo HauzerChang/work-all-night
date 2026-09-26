@@ -80,7 +80,9 @@ def _is_ident(bd, tol=TOL):
 
 
 def _twist_beats(anims):
-    return [nm for nm in anims if "__" not in nm and G.beat_category(nm) == "twist"]
+    # G-4''''''-vol:twist_vol(體積守恆扭轉)為 base-only 節拍(未接 tier/count 差異化)→ 排除,
+    # 使本閘所量的 twist 集合與新增 twist_vol 前逐一相同(此閘只驗純雙軸 shear twist 及其檔位變體)。
+    return [nm for nm in anims if "__" not in nm and "vol" not in nm.lower() and G.beat_category(nm) == "twist"]
 
 
 def _shear_y(chans):

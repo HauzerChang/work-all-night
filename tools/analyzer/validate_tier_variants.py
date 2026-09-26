@@ -109,7 +109,10 @@ def _shear_amp(anim):
 
 # base beat key → 類別 → 該套哪個結構簽章
 def _base_beats(anims):
-    return {nm: G.beat_category(nm) for nm in anims if "__" not in nm and G.beat_category(nm) in TV.MAIN_SHOW_CATS}
+    # G-4''''''-vol:twist_vol(體積守恆扭轉)為 base-only 主秀節拍(未接 tier 差異化,無 {nm}__{tier} 變體)
+    # → 排除,避免下方逐檔位索引其不存在的變體(KeyError);它本非幅度差異化 beat(vol 的 tier amplify 為後續)。
+    return {nm: G.beat_category(nm) for nm in anims
+            if "__" not in nm and "vol" not in nm.lower() and G.beat_category(nm) in TV.MAIN_SHOW_CATS}
 
 
 def run():
