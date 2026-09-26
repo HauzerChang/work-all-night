@@ -400,6 +400,20 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
                      "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("vtwist_volume_conserving", "體積守恆扭轉:反相雙軸 shear + 耦合 uniform scale 使 full-matrix det≡1(G-4''''''-vol)", "L2",
+                "python3 tools/analyzer/validate_vtwist_gen.py", "pipeline",
+                note="補 twist(G-4'''''')一路留到現在的最後 honest boundary:「反相雙軸 shear 未接體積守恆(det=cos(shearY−shearX)≠1 → 擰轉變面積,volume-conserving twist 為後續)」。"
+                     "twist 的反相雙軸 shear(shearY=−φ·shearX)本身 full det=sx·sy·cos(shearX−shearY),純雙軸 shear(sx=sy=1)時 = cos(Δ)(Δ=(1+φ)·shearX)**<1** → 擰轉會**變面積**"
+                     "(峰 Δ≈27° → cos≈0.889 → 掉 ~11%)。新增 gen_vtwist:在反相雙軸 shear 上加一層**耦合 uniform scale** s=1/√cos(Δ) 使 sx·sy=s²=1/cos(Δ) ⇒ **整個 local 仿射 det≡1**(擰而不變面積)—— "
+                     "塞滿一般仿射四自由度且體積守恆。經 genre_priors.slot_bigwin 新增 vtwist beat 直出;build_spine --shear-pivot(include_shear 隱含 include_scale)端到端把 rotate/scale/shearX/shearY 一起繞關節 pivot 補償。"
+                     "**與 squash 的關鍵差異(兩種體積守恆)**:squash 用**非均勻** scale(scaleX·scaleY=1)但純 shearX 仍使 full det=cos(shx)≠1(守 **scale 通道**積);vtwist 用**均勻** scale 使 **full-matrix** det≡1(守**整個仿射**面積)。"
+                     "vtwist∈SHEAR_CATS(第四個 shear 產出者;scale 均勻故**不**在 COUPLED_SCALE_CATS)。從先驗庫→真實 build_spine robot 骨架→build_animations,validate_vtwist_gen.py 6AC PASS"
+                     "(VT1 present+dual-channel crux:shearX 峰16°・shearY 峰11.2°・scale 峰0.06/VT2 兩軸阻尼振盪+反相/VT3 crux full-matrix det≡1 |det−1|≤3e-3(實測 <9e-5)且 scale uniform(aniso=0)且純 shear 峰面積損失≥2%(實測11%)/"
+                     "VT4 identity 介面(shear 0・scale 1)/VT5 端到端守恆仿射 pivot 殘差 <0.016px vs 負對照 8–29px(>1000×)/VT6 負對照 無scale→det≠1・非均勻scale→uniform FALSE・shearY 隔離・加性零回歸・"
+                     "**跨beat鑑別crux**:同build squash full-det 偏離 0.039 vs vtwist 8.8e-5 → 量化兩種體積守恆差異)。"
+                     "**關鍵發現:full-matrix 體積守恆 ≠ scale-通道守恆**(squash 守 scale 積但整個矩陣 det=cos(shx)≠1;vtwist 守整個矩陣 det≡1,用 uniform scale 補 shear 的面積損失)—— 兩者以 scale 是否 uniform 乾淨分離、互不洩漏。"
+                     "回歸踩雷:vtwist 產 shearY → validate_twist_gen TW6(c) shearY-isolation 原以 ==\"twist\" 認定,補為 in(\"twist\",\"vtwist\");vtwist 產 shear → 併入 SHEAR_CATS(shear-isolation 閘認定)。"
+                     "honest:vtwist 未接 tier 幅度/count-aware(比照 twist G-4''''''-tier/-count 為後續);uniform 守恆為一種選擇(亦可非均勻守恆 full det,為後續);幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
