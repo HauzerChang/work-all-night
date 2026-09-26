@@ -479,18 +479,48 @@ def _twist_env(A, nosc):
     return shx, shy
 
 
-def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
+def _twist_vol_scale(shx_env, shy_env):
+    """反相雙軸 shear → **體積守恆等向耦合 scale** 包絡。回傳 sc_env = [(τ, s, s)]:
+
+    Spine local M 的 det = sx·sy·cos(shearY−shearX)(見 `validate_shear_pivot._M_spine`,
+    AC6b:pure shearX φ 的 det==cos φ)。純反相雙軸 shear(sx=sy=1)det=cos(shearY−shearX)≠1
+    → **擰轉變面積**(peak (1+φ)|shearX|=27.2° → det=cos27.2°≈0.889,面積縮 11%)。
+    加**等向** scale s 使 sx·sy=s²=1/cos(shearY−shearX) → det≡1(擰而不變面積)。
+
+    **等向(sx==sy)是關鍵設計選擇**:體積守恆只約束乘積 sx·sy;取等向解則耦合 scale **不引入
+    任何額外各向異性形變** —— 件唯一的非相似形變仍純由反相雙軸 shear(扭轉)給,scale 只做面積修正。
+    (對照 squash:squash 的形變**就是**非均勻 scale,故 squash 取 scaleX≠scaleY;twist 的形變是 shear,
+    故 scale 取等向。)首尾 shearX=shearY=0 → Δ=0 → cos=1 → s=1(identity 保住,可插 Loop)。"""
+    r = math.radians
+    sc = []
+    for (tau, vx), (_, vy) in zip(shx_env, shy_env):
+        c = math.cos(r(vy - vx))           # = cos(shearY − shearX) = det(pure dual-axis shear)
+        s = c ** -0.5                        # s² = 1/c → det = s²·c ≡ 1;c>0(|Δ|<90° 恆成立)
+        sc.append((tau, round(s, 6), round(s, 6)))
+    return sc
+
+
+def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4, vol_conserve=False):
     """斜扭果凍扭轉:**反相雙軸阻尼 shear**(shearX + shearY 同時非零)。回傳 (bone_timelines, slot_timelines)。
 
     shearX 同 `gen_wobble`(阻尼擺動,首尾 0);shearY 與之**反相**且幅度 ×TWIST_PHI(首尾 0)→ 兩基底
     夾角偏離 =(1+φ)|shearX| 被放大(真雙軸 shear);首尾 identity(可插 Loop)。`side_sign` 決定 shearX
-    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 為後續)。**這是產線第一個產 shearY 的生成器**。"""
+    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 為後續)。**這是產線第一個產 shearY 的生成器**。
+
+    `vol_conserve`(candidate G-4''''''-vol,預設 False → 逐位元同舊行為):True 時額外產出**體積守恆
+    等向耦合 scale** 通道 —— 補反相雙軸 shear 一路留著的最後一條 honest boundary(det=cos(shearY−shearX)≠1
+    → 擰轉變面積)。加 s=1/√cos(shearY−shearX) 使 det≡1(shear+scale+rotate 三通道同時=用滿一般仿射
+    自由度且面積守恆)。shear 通道與非守恆版**逐位元相同**(scale 為純加性通道,不改扭轉簽章)。"""
     T = DUR["twist"]
     A = _TWIST_SHEARX.get(role, 12.0) * side_sign
     b, s = {}, {}
     shx, shy = _twist_env(A, nosc)
     b["shear"] = [{"time": round(tx * T, 4), "x": round(vx, 4), "y": round(vy, 4)}
                   for (tx, vx), (_, vy) in zip(shx, shy)]
+    if vol_conserve:
+        sc = _twist_vol_scale(shx, shy)
+        b["scale"] = [{"time": round(tau * T, 4), "x": round(sx, 4), "y": round(sy, 4)}
+                      for (tau, sx, sy) in sc]
     return b, s
 
 

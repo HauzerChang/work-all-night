@@ -227,13 +227,15 @@ from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
     amplify_anim as _amplify_anim
 
 
-def _build_beat(beat, cat, bone_of, cx, cy, count=None):
+def _build_beat(beat, cat, bone_of, cx, cy, count=None, vol_twist=False):
     """把單一 beat 的每件 role 具體化為 anim dict(bones/slots timelines)。
 
     cat 依語意分派運動基元;`count`(J-2 combo 峰數 / G-4''' wobble 振盪段數 / G-4'''''-c squash 擠壓段數 /
     G-4''''''-count twist 扭轉段數)只對 COUNT_AWARE 類別生效。`count is None` → 呼叫生成器**自身預設**
     (combo=3 峰、wobble/squash/twist=4 段 → golden byte-identical);給定值 → 帶入生成器決定段數。
-    cascade(_PHASE_AWARE)另依件序帶入相位。"""
+    cascade(_PHASE_AWARE)另依件序帶入相位。
+    `vol_twist`(G-4''''''-vol,預設 False → 逐位元同舊行為):True 時對 **twist** beat 加體積守恆
+    等向耦合 scale(det≡1);只作用 twist(kwarg 僅在 cat=='twist' 時傳,其餘生成器不受影響)。"""
     bones_tl, slots_tl = {}, {}
     limb_seen = 0
     # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
@@ -254,6 +256,9 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None):
         n = math.hypot(dx, dy) or 1.0
         radial = (dx / n, dy / n)
 
+        # G-4''''''-vol:體積守恆等向耦合 scale 只作用 twist(kwarg 僅在 cat=='twist' 時傳,
+        # 空 dict 對其餘生成器安全 → 不改任何非 twist beat)。
+        tw_kw = {"vol_conserve": True} if (vol_twist and cat == "twist") else {}
         if cat in _PHASE_AWARE:
             # 件序相位:第一件 0、最後一件 1(單件時 0)→ 各件峰時刻依序錯開
             phase = 0.0 if nvalid <= 1 else pi / (nvalid - 1)
@@ -261,11 +266,11 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None):
         elif cat in _COUNT_AWARE_CATS:
             # 段數(檔位相依):combo 峰數 / wobble 振盪段數。count is None → 生成器自身預設(golden)。
             if count is None:
-                b, sdict = _DISPATCH[cat](role, side_sign, radial)
+                b, sdict = _DISPATCH[cat](role, side_sign, radial, **tw_kw)
             else:
-                b, sdict = _DISPATCH[cat](role, side_sign, radial, count)
+                b, sdict = _DISPATCH[cat](role, side_sign, radial, count, **tw_kw)
         else:
-            b, sdict = _DISPATCH[cat](role, side_sign, radial)
+            b, sdict = _DISPATCH[cat](role, side_sign, radial, **tw_kw)
         if b:
             bones_tl[bname] = b
         if sdict:
@@ -279,7 +284,8 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None):
 
 
 def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
-                     tier_wobble_cycles=None, tier_squash_cycles=None, tier_twist_cycles=None):
+                     tier_wobble_cycles=None, tier_squash_cycles=None, tier_twist_cycles=None,
+                     vol_twist=False):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
@@ -292,7 +298,9 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     twist∈SHEAR_CATS(兩條 shear 軸,非 COUPLED_SCALE_CATS),重生成後每個新極值仍 shearY=−TWIST_PHI·shearX(φ 由建構保證),
     再走單一-g 幅度增益(兩軸同比)→ 段數×幅度×φ 保形三效正交可疊(每檔位不論扭幾段,φ 恆定、反相不變)。
     段數(結構)先重生成、再套幅度增益 g —— 幅度與段數兩效**正交可疊**(各類別段數階梯獨立)。
-    五者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段)。"""
+    五者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段)。
+    vol_twist(G-4''''''-vol,預設 False):True 時 twist beat 產體積守恆等向耦合 scale(det≡1);
+    只作用 twist,其餘 beat 逐位元不變。tier×vol 的耦合 amplify 為後續 honest boundary(見 knowledge)。"""
     # COUNT_AWARE 類別 → 對應的 {tier: count} 映射(依 cat 路由;None → 該類別段數不隨檔位變)
     _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles,
                    "squash": tier_squash_cycles, "twist": tier_twist_cycles}
@@ -307,7 +315,7 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     for beat in storyboard["beats"]:
         name = beat["beat"]
         cat = beat_category(name)
-        anim = _build_beat(beat, cat, bone_of, cx, cy)
+        anim = _build_beat(beat, cat, bone_of, cx, cy, vol_twist=vol_twist)
         anims[name] = anim
         # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
         if tier_gains and cat in _MAIN_SHOW_CATS:

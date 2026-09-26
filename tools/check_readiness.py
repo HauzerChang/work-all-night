@@ -400,6 +400,18 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
                      "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_conserving", "twist 反相雙軸 shear 接體積守恆等向耦合 scale(G-4''''''-vol,det≡1)", "L2",
+                "python3 tools/analyzer/validate_twist_vol.py", "pipeline",
+                note="補 (G-4'''''' / -tier / -count) 一路明列的 twist honest boundary:「反相雙軸未接體積守恆耦合 scale(det=cos(shearY−shearX)≠1 → 擰轉變面積)」。"
+                     "Spine local M 的 det=sx·sy·cos(shearY−shearX)(validate_shear_pivot._M_spine,AC6b 已驗 pure shearX φ det==cos φ);純反相雙軸 shear(sx=sy=1)det=cos(shearY−shearX)≠1 → "
+                     "peak (1+φ)|shearX|=27.2° → det≈0.889(面積縮 ~11%)。gen_twist(vol_conserve=True)加**等向**耦合 scale s 使 s²=1/cos(shearY−shearX) → **det≡1(擰而不變面積)**。"
+                     "**crux(與 squash 體積守恆異同):squash 的形變就是非均勻 scale(scaleX≠scaleY),故 squash 取非均勻;twist 的形變是反相雙軸 shear,故耦合 scale 取**等向(sx=sy)** —— 只做面積修正、不引入任何額外各向異性"
+                     "(件唯一非相似形變仍純由扭轉 shear 給)。** 兩者同屬帶跨通道關係約束的耦合:volume 守恆是**關鍵幀級不變量**(squash 亦然;線性內插之關鍵幀間有界小殘差,是稀疏關鍵幀存非線性耦合的共通性質,非 twist 缺陷)。"
+                     "shear 通道與非守恆版逐位元相同(scale 純加性,不改扭轉簽章);vol on/off 僅 twist beat 異、其餘逐位元不變。從先驗庫→真實 build_spine robot 骨架→build_animations(vol_twist=True),validate_twist_vol.py 6AC PASS"
+                     "(VV1 present+backward-compat+隔離/VV2 crux 每關鍵幀 det≈1(range[0.9999,1.0001])/VV3 等向 sx==sy+公式 sx≈cos(Δ)^(−1/2)+首尾(1,1)+內部極值 sx>1/VV4 負對照 未耦合 plain twist peak 面積損 0.1106・錯 scale det≠1・等向 aniso 0.0 vs 非均勻 0.279/"
+                     "VV5 扭轉簽章正交保住 反相+φ≈0.7 與 plain 逐位元同/VV6 端到端 build_spine --animate --shear-pivot --vol-twist pivot 不動 0.004–0.016px vs 負對照 8.6–29.5px(雙軸 shear+等向 scale 同時驅動下),重採樣關鍵幀間 det 漂移 0.037 informational)。"
+                     "端到端 build_spine --animate --shear-pivot --vol-twist 直出 twist(scale+shear+補償 translate 一起繞關節 pivot)。**一般仿射 M 的 det(面積)自由度首度被生成器以耦合守恆(rotate/scale/shear 三通道同時=用滿仿射且守恆)**。"
+                     "honest:vol×tier 的耦合 amplify(放大 shear 後須重算耦合 scale 保 det≡1,比照 squash tier 耦合 amplify)為後續;等向/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
