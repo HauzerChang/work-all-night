@@ -412,6 +412,18 @@ BLOCKS = [
                      "TV5 端到端三通道 pivot 殘差 <0.016px vs 負對照 8–29px(含補償 scale)/TV6 負對照 無補償縮面積・等向 vs squash 非均勻隔離・twist_volume=False 逐位元同 shear-only+移除 twist 其餘不變)。"
                      "**一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)+ 體積守恆全數在生成端成立;跨通道約束(twist:det≡1)由建構(等向補償)保證**。"
                      "honest:vol 僅作用 base twist(tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1,比照 squash 耦合 amplify,為後續);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_tier", "volume-conserving twist 接檔位差異化(G-4''''''-vol-tier,補償 scale 隨檔位重算)", "L2",
+                "python3 tools/analyzer/validate_twist_vol_tier.py", "pipeline",
+                note="補 twist_volume_conserving 明列的 honest boundary:「vol 僅作用 base twist,tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1」。"
+                     "檔位放大兩軸 shear 後(shearX'=g·shearX、shearY'=g·shearY,單一 g → φ 保形),補償 scale 由**放大後的 shear 重算** s'=1/√cos(shearX'−shearY') → det≡1 在**每個檔位**仍成立。"
+                     "crux(與 squash 耦合 amplify 的差異,亦是鑑別力來源):twist 補償對 shear 是 cos 的**反推**(非線性),直接對舊 scale 施線性 _amp_scale(1+g·(s−1))追不上 → 破守恆(負對照 Legend |det−1| 0.11–0.31);"
+                     "必須重算。squash 的 scale 本身即擠壓(非均勻)走耦合 amplify;twist 的 scale 純為補償 shear(等向)走重算——同保守恆、機制不同源。三通道×三效(幅度/段數/守恆)正交可疊。"
+                     "amplify_bone_tl(twist_vol=)/build_animations(tier_gains,twist_volume=True)/build_spine --twist-volume --tier-variants --shear-pivot 端到端。validate_twist_vol_tier.py 6AC PASS(VT1 每檔位 dual-channel+等向+Super==base-vol・"
+                     "VT2 crux 每檔位每關鍵幀 |det−1|≤2e-4 vs 負對照線性放大 max-gain 破守恆 0.11–0.31/VT3 雙軸峰遞增 shearX16→33.6°+φ 逐檔0.7000/VT4 雙軸阻尼反相逐檔保形+scale 首尾(1,1)/"
+                     "VT5 端到端三通道 pivot 殘差 <0.16px(TOL 0.5)vs 負對照 8–55px・n_with_scale≥1/VT6 平增益==base-vol・等向 vs squash 非均勻+耦合隔離・twist_volume=False tier 無 scale 向後相容)。"
+                     "**一般仿射四自由度 + 體積守恆在 base 與 tier(幅度/段數)全數成立;跨通道約束(twist:det≡1)由建構在每檔位保證**。"
+                     "honest:端到端 --shear-pivot 密取樣後 shear/scale 各自線性內插,補償對 shear 非線性 → 內插中間幀 det 略偏(關鍵幀仍≡1,base vol 亦然,為線性內插近似非線性約束的固有性質,未來可加 bezier/加密關鍵幀收斂);"
+                     "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

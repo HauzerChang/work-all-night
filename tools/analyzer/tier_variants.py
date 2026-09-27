@@ -26,6 +26,7 @@
 以 deepcopy 保留,只覆寫數值欄位。
 """
 import copy
+import math
 
 # 主秀類別(與 beat_templates 的節拍對應;In/Loop/Out 不在此 → 檔位無關)。
 # candidate (G-4'') — 加入 `wobble`(斜拉 jelly wobble,G-4' 的 shear 通道節拍):
@@ -70,6 +71,43 @@ SHEAR_CATS = {"wobble", "squash", "twist"}
 # 放大**拉長軸**的 overshoot、壓縮軸設其**倒數** → scaleX·scaleY≡1 在任一檔位保持、非均勻度隨 g 增大。
 # `build_animations` 依 cat 路由是否用耦合(squash→耦合;其餘主秀→逐軸)。
 COUPLED_SCALE_CATS = {"squash"}
+
+# candidate G-4''''''-vol-tier — twist 的**體積守恆等向補償 scale** 隨檔位重算的類別。
+# volume-conserving twist(G-4''''''-vol)在 base 掛一條**等向**補償 scale `s=1/√cos(shearX−shearY)`
+# 使全域 local 行列式 det≡1(擰而不變面積)。檔位放大時兩軸 shear 被同一 g 放大(shearX'=g·shearX、
+# shearY'=g·shearY,φ 保形),(shearX'−shearY') 隨檔位變大 → cos 變小 → **補償 s 必須非線性重算**
+# `s'=1/√cos(shearX'−shearY')` 才維持 det≡1。這與 squash 的耦合 amplify 目的相同(保守恆)但機制不同源:
+#   - squash:scale **本身即擠壓**(非均勻,scaleX≠scaleY),耦合 amplify 放大拉長軸、壓縮軸取倒數;
+#   - twist :scale **純為補償** shear 造成的面積變化(等向,scaleX==scaleY),隨檔位由**放大後的 shear
+#             重算**(而非對舊 scale 值施 `_amp_scale`)。
+# crux:直接把舊補償 scale 拿去 `_amp_scale`(線性 1+g·(s−1))**破壞守恆** —— 補償對 shear 是 cos 的
+# 反推(非線性),線性放大追不上;必須從放大後的 shear 重算(這是本閘 VT2 負對照的鑑別力來源)。
+VOLUME_TWIST_CATS = {"twist"}
+
+
+def _twist_vol_scale(shx, shy):
+    """反相雙軸 shear 的**體積守恆等向**補償 scale `s = 1/√cos(shearX − shearY)`(度)。
+
+    純 twist(shear-only)的 Spine local det = cos(shearX − shearY)(反相被擰緊 → cos<1 → 縮面積);
+    掛此等向 s 使全域 det = s²·cos(shearX − shearY) ≡ 1。shear=0 → cos(0)=1 → s=1(identity 介面保持)。
+    與 `beat_templates._twist_scale_env` 同一公式(那裡對 env 逐點算,此處供 amplify 後逐幀重算)。"""
+    det_shear = math.cos(math.radians(shx - shy))
+    return 1.0 / math.sqrt(det_shear) if det_shear > 0 else 1.0
+
+
+def _recompute_twist_vol_scale(shear_frames, scale_frames):
+    """candidate G-4''''''-vol-tier:依**放大後的 shear** 重算等向補償 scale(就地覆寫 scale_frames）。
+
+    twist(vol)的 shear/scale 關鍵幀由 `gen_twist(vol_conserve=True)` 以同一 env 產生 → **同 τ、同索引、
+    同長度**;shear 經檔位增益 g 放大後(shearX'=g·shearX、shearY'=g·shearY),對每幀重算 s'=1/√cos(shearX'−shearY')
+    使 det≡1 在該檔位仍成立。以 time 對位(對 4-dec 捨入時間為精確 float 相等)以防未來通道分歧。"""
+    by_t = {round(f["time"], 4): (f["x"], f["y"]) for f in shear_frames}
+    for fc in scale_frames:
+        shx, shy = by_t[round(fc["time"], 4)]
+        # 與 gen_twist 產 scale 的捨入路徑一致(env round(s,6) → 寫檔 round(·,4)),使 g=1 逐位元同 base-vol。
+        s = round(round(_twist_vol_scale(shx, shy), 6), 4)
+        fc["x"] = s
+        fc["y"] = s
 
 # 檔位 → 主秀幅度增益(**嚴格遞增**;base=Super=1.0 → 向後相容逐位元不變)。
 # 增益上界經檢核:最大 role peak(特效 1.35 → q=0.35)在 Legend g=2.1 下 → 1.735(無翻面);
@@ -168,14 +206,27 @@ def _amp_scale_coupled(sx, sy, g):
     return round(1.0 / sy2, 4), round(sy2, 4)
 
 
-def amplify_bone_tl(b, g, coupled=False):
+def amplify_bone_tl(b, g, coupled=False, twist_vol=False):
     """對單一 bone timeline 套幅度增益 g(deepcopy,保留曲線鍵)。g=1.0 → identity 變換。
 
     `coupled=True`(squash 等 COUPLED_SCALE_CATS):scale 走**體積守恆耦合**放大
     (`_amp_scale_coupled` → scaleX·scaleY≡1 保持);否則(其餘主秀)scale 逐軸放大 overshoot。
+    `twist_vol=True`(candidate G-4''''''-vol-tier,twist 專用):shear 兩軸以同一 g 放大後,scale
+    通道**依放大後的 shear 重算**等向補償 `s=1/√cos(shearX'−shearY')`(而非 `_amp_scale`)→ det≡1
+    在該檔位仍成立;`twist_vol` 與 `coupled` 互斥(twist 不在 COUPLED_SCALE_CATS)。
     """
     b = copy.deepcopy(b)
-    if coupled:
+    # shear 先放大(twist_vol 的補償 scale 需由**放大後**的 shear 重算)。(G-4'')shear 通道對 0 對稱 →
+    # v'=g*v:首尾 0 仍 0(介面契約保持)、符號序列與相繼極值遞減比不變(阻尼振盪簽章保形);
+    # g=1.0 → identity(無 shear 的 beat 此迴圈空轉,零回歸)。
+    for f in b.get("shear", []):
+        f["x"] = round(g * f["x"], 4)
+        f["y"] = round(g * f["y"], 4)
+    if twist_vol and b.get("shear") and b.get("scale"):
+        # (G-4''''''-vol-tier)twist 體積守恆:補償 scale 對 shear 是 cos 的反推(非線性),
+        # 不能對舊值施 `_amp_scale`(線性放大會破壞 det≡1);改由放大後的 shear 逐幀重算等向 s。
+        _recompute_twist_vol_scale(b["shear"], b["scale"])
+    elif coupled:
         # (G-4''''')耦合 scale:scaleX/scaleY 一起以面積守恆放大(拉長軸脹、壓縮軸為其倒數)。
         for f in b.get("scale", []):
             f["x"], f["y"] = _amp_scale_coupled(f["x"], f["y"], g)
@@ -188,21 +239,16 @@ def amplify_bone_tl(b, g, coupled=False):
     for f in b.get("translate", []):
         f["x"] = round(g * f["x"], 3)
         f["y"] = round(g * f["y"], 3)
-    # (G-4'')shear 通道(斜拉 wobble / squash):對 0 對稱 → v'=g*v(同 rotate/translate)。
-    # 每幀同比放大 → 首尾 0 仍 0(介面契約保持)、符號序列與相繼極值遞減比不變
-    # (阻尼振盪簽章保形);g=1.0 → identity 變換(無 shear 的 beat 此迴圈空轉,零回歸)。
-    for f in b.get("shear", []):
-        f["x"] = round(g * f["x"], 4)
-        f["y"] = round(g * f["y"], 4)
     return b
 
 
-def amplify_anim(anim, g, coupled=False):
+def amplify_anim(anim, g, coupled=False, twist_vol=False):
     """對整支 beat animation 套幅度增益 g:bones 幅度放大、slots(color/alpha)原樣保留。
-    `coupled` 透傳給 `amplify_bone_tl`(squash → 體積守恆耦合 scale 放大)。"""
+    `coupled` / `twist_vol` 透傳給 `amplify_bone_tl`(squash → 耦合;twist(vol)→ 補償 scale 重算)。"""
     out = {}
     if "bones" in anim:
-        out["bones"] = {bn: amplify_bone_tl(b, g, coupled=coupled) for bn, b in anim["bones"].items()}
+        out["bones"] = {bn: amplify_bone_tl(b, g, coupled=coupled, twist_vol=twist_vol)
+                        for bn, b in anim["bones"].items()}
     if "slots" in anim:
         out["slots"] = copy.deepcopy(anim["slots"])
     return out
