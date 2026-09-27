@@ -227,12 +227,13 @@ from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
     amplify_anim as _amplify_anim
 
 
-def _build_beat(beat, cat, bone_of, cx, cy, count=None):
+def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False):
     """把單一 beat 的每件 role 具體化為 anim dict(bones/slots timelines)。
 
     cat 依語意分派運動基元;`count`(J-2 combo 峰數 / G-4''' wobble 振盪段數 / G-4'''''-c squash 擠壓段數 /
     G-4''''''-count twist 扭轉段數)只對 COUNT_AWARE 類別生效。`count is None` → 呼叫生成器**自身預設**
     (combo=3 峰、wobble/squash/twist=4 段 → golden byte-identical);給定值 → 帶入生成器決定段數。
+    `twist_vol`(G-4''''''-vol):True 時只對 twist 掛體積守恆等向補償 scale(shear+scale+rotate 三通道同時且守恆)。
     cascade(_PHASE_AWARE)另依件序帶入相位。"""
     bones_tl, slots_tl = {}, {}
     limb_seen = 0
@@ -260,10 +261,12 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None):
             b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
         elif cat in _COUNT_AWARE_CATS:
             # 段數(檔位相依):combo 峰數 / wobble 振盪段數。count is None → 生成器自身預設(golden)。
+            # G-4''''''-vol:twist 專屬 vol_conserve(等向補償 scale → 體積守恆);其餘類別不吃此 kwarg。
+            kw = {"vol_conserve": True} if (cat == "twist" and twist_vol) else {}
             if count is None:
-                b, sdict = _DISPATCH[cat](role, side_sign, radial)
+                b, sdict = _DISPATCH[cat](role, side_sign, radial, **kw)
             else:
-                b, sdict = _DISPATCH[cat](role, side_sign, radial, count)
+                b, sdict = _DISPATCH[cat](role, side_sign, radial, count, **kw)
         else:
             b, sdict = _DISPATCH[cat](role, side_sign, radial)
         if b:
@@ -279,7 +282,8 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None):
 
 
 def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
-                     tier_wobble_cycles=None, tier_squash_cycles=None, tier_twist_cycles=None):
+                     tier_wobble_cycles=None, tier_squash_cycles=None, tier_twist_cycles=None,
+                     twist_volume=False):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
@@ -292,7 +296,10 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     twist∈SHEAR_CATS(兩條 shear 軸,非 COUPLED_SCALE_CATS),重生成後每個新極值仍 shearY=−TWIST_PHI·shearX(φ 由建構保證),
     再走單一-g 幅度增益(兩軸同比)→ 段數×幅度×φ 保形三效正交可疊(每檔位不論扭幾段,φ 恆定、反相不變)。
     段數(結構)先重生成、再套幅度增益 g —— 幅度與段數兩效**正交可疊**(各類別段數階梯獨立)。
-    五者皆 None(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段)。"""
+    twist_volume(G-4''''''-vol):True → base twist 掛體積守恆等向補償 scale(擰而不變面積,shear+scale+rotate
+    三通道同時且 det≡1);False(預設)→ twist 逐位元同 shear-only(向後相容)。**本 chunk 僅作用於 base twist**
+    (tier 變體仍 shear-only:vol 隨檔位放大需重算補償 scale 以維持 det≡1,比照 squash 耦合 amplify,為後續)。
+    六者皆 None/False(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、twist 無 scale)。"""
     # COUNT_AWARE 類別 → 對應的 {tier: count} 映射(依 cat 路由;None → 該類別段數不隨檔位變)
     _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles,
                    "squash": tier_squash_cycles, "twist": tier_twist_cycles}
@@ -307,7 +314,7 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     for beat in storyboard["beats"]:
         name = beat["beat"]
         cat = beat_category(name)
-        anim = _build_beat(beat, cat, bone_of, cx, cy)
+        anim = _build_beat(beat, cat, bone_of, cx, cy, twist_vol=twist_volume)
         anims[name] = anim
         # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
         if tier_gains and cat in _MAIN_SHOW_CATS:

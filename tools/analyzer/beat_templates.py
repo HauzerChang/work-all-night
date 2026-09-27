@@ -479,18 +479,46 @@ def _twist_env(A, nosc):
     return shx, shy
 
 
-def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4):
+def _twist_scale_env(shx_env, shy_env):
+    """candidate G-4''''''-vol:反相雙軸 shear 的**體積守恆**等向補償 scale 包絡。
+
+    純 twist(shear-only)的 Spine local 行列式 `det = cos(shearX − shearY)`(x/y 基底夾角 =
+    90 + shearY − shearX,反相時被擰緊 → cos<1 → **擰轉使面積縮小**,`gen_twist` 至今的 honest boundary)。
+    補一條**等向**(uniform)scale `s = 1/√(cos(shearX − shearY))` → 全域 local 行列式
+    `det = (s·s)·cos(shearX − shearY) ≡ 1`(**體積守恆**:擰而不變面積)。
+
+    回傳 scale_env = [(τ, s, s)]:與 shear 極值 τ **同點**(耦合)、首尾 (1,1)(shear=0 → cos(0)=1 → s=1,
+    identity 介面保持)。crux:補償為**等向**(scaleX==scaleY)—— twist 的各向異性全由 shear 提供,scale 只做
+    等向的面積復原;此與 squash 的**非均勻**(scaleX≠scaleY)體積守恆機制**不同源**(squash 的 scale 本身即擠壓,
+    twist 的 scale 純為補償 shear 造成的面積變化)。det 是 sx·sy 的約束,等向是最小(不再引入額外各向異性)的守恆選擇。"""
+    sc = []
+    for (tau, shx), (_, shy) in zip(shx_env, shy_env):
+        det_shear = math.cos(math.radians(shx - shy))   # 反相雙軸 shear 的面積縮放(≤1)
+        s = 1.0 / math.sqrt(det_shear) if det_shear > 0 else 1.0
+        sc.append((tau, round(s, 6), round(s, 6)))
+    return sc
+
+
+def gen_twist(role, side_sign=1.0, radial=(0.0, 0.0), nosc=4, vol_conserve=False):
     """斜扭果凍扭轉:**反相雙軸阻尼 shear**(shearX + shearY 同時非零)。回傳 (bone_timelines, slot_timelines)。
 
     shearX 同 `gen_wobble`(阻尼擺動,首尾 0);shearY 與之**反相**且幅度 ×TWIST_PHI(首尾 0)→ 兩基底
     夾角偏離 =(1+φ)|shearX| 被放大(真雙軸 shear);首尾 identity(可插 Loop)。`side_sign` 決定 shearX
-    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 為後續)。**這是產線第一個產 shearY 的生成器**。"""
+    首推方向(左右件反相);`nosc`=振盪段數(預設 4;count-aware 見 G-4''''''-count)。**這是產線第一個產 shearY 的生成器**。
+
+    `vol_conserve`(candidate G-4''''''-vol):True → 額外掛一條**等向**補償 scale
+    (`s=1/√cos(shearX−shearY)`,scaleX==scaleY)使全域 local 行列式 ≡1(擰而不變面積,shear+scale+rotate
+    三通道同時作用且體積守恆);False(預設)→ **逐位元同舊 shear-only twist**(向後相容,無 scale 通道)。"""
     T = DUR["twist"]
     A = _TWIST_SHEARX.get(role, 12.0) * side_sign
     b, s = {}, {}
     shx, shy = _twist_env(A, nosc)
     b["shear"] = [{"time": round(tx * T, 4), "x": round(vx, 4), "y": round(vy, 4)}
                   for (tx, vx), (_, vy) in zip(shx, shy)]
+    if vol_conserve:
+        sc = _twist_scale_env(shx, shy)
+        b["scale"] = [{"time": round(tau * T, 4), "x": round(scx, 4), "y": round(scy, 4)}
+                      for (tau, scx, scy) in sc]
     return b, s
 
 

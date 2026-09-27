@@ -400,6 +400,18 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
                      "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_conserving", "volume-conserving twist(G-4''''''-vol,反相雙軸 shear 接體積守恆等向 scale)", "L2",
+                "python3 tools/analyzer/validate_twist_volume.py", "pipeline",
+                note="補 twist 系列一路留到現在的最後一條 honest boundary:「反相雙軸未接體積守恆耦合 scale(det=cos(shearY−shearX)≠1 → 擰轉變面積,volume-conserving twist 為後續)」。"
+                     "純 twist(shear-only)Spine local 行列式 det=cos(shearX−shearY)(兩基底夾角 90+shearY−shearX,反相被擰緊 → cos<1 → **擰轉使面積縮小**)。"
+                     "本次補一條**等向**(uniform)補償 scale s=1/√cos(shearX−shearY) → 全域 det=(s·s)·cos(shearX−shearY)≡1(**擰而不變面積**):shear+scale+rotate 三通道同時作用、"
+                     "塞滿一般仿射四自由度**且體積守恆**。crux:twist 補償為**等向**(scaleX==scaleY)——各向異性全由 shear 提供,scale 只做等向面積復原;與 squash(G-4'''')的**非均勻**"
+                     "(scaleX≠scaleY)體積守恆機制**不同源**(squash 的 scale 本身即擠壓)。det 是 sx·sy 的約束,等向是最小(不引入額外各向異性)的守恆選擇。gen_twist(vol_conserve=) 掛 scale 通道(False 逐位元同 shear-only);"
+                     "build_animations(twist_volume=)/build_spine --twist-volume 端到端,配 --shear-pivot 三通道一起繞關節 pivot 補償。validate_twist_volume.py 6AC PASS(TV1 present+shear&scale 雙通道 crux:"
+                     "shearX 峰16°・shearY 峰11.2°・scale 等向/TV2 crux 體積守恆 每內部極值 |det−1|≤8.8e-5 vs 負對照 scale≡1 純 twist |det−1| 0.04–0.11 縮面積/TV3 雙軸反相阻尼簽章保形/TV4 identity 介面(shear 0,scale 1)/"
+                     "TV5 端到端三通道 pivot 殘差 <0.016px vs 負對照 8–29px(含補償 scale)/TV6 負對照 無補償縮面積・等向 vs squash 非均勻隔離・twist_volume=False 逐位元同 shear-only+移除 twist 其餘不變)。"
+                     "**一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)+ 體積守恆全數在生成端成立;跨通道約束(twist:det≡1)由建構(等向補償)保證**。"
+                     "honest:vol 僅作用 base twist(tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1,比照 squash 耦合 amplify,為後續);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
