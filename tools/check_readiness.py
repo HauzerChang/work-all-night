@@ -412,6 +412,18 @@ BLOCKS = [
                      "TV5 端到端三通道 pivot 殘差 <0.016px vs 負對照 8–29px(含補償 scale)/TV6 負對照 無補償縮面積・等向 vs squash 非均勻隔離・twist_volume=False 逐位元同 shear-only+移除 twist 其餘不變)。"
                      "**一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)+ 體積守恆全數在生成端成立;跨通道約束(twist:det≡1)由建構(等向補償)保證**。"
                      "honest:vol 僅作用 base twist(tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1,比照 squash 耦合 amplify,為後續);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_tier", "volume-conserving twist 接檔位差異化(G-4''''''-vol-tier,tier 放大重算等向補償維持 det≡1)", "L2",
+                "python3 tools/analyzer/validate_twist_volume_tier.py", "pipeline",
+                note="補 (G-4''''''-vol) 明列的 honest boundary:「vol 僅作用 base twist;tier 變體 vol 隨檔位放大需**重算**補償 scale 維持 det≡1,比照 squash 耦合 amplify」。"
+                     "crux:補償 s=1/√cos(shearX−shearY) 是 shear 的**函式**(跨通道);tier 放大令 shear ×g → cos(shearX'−shearY')=cos(g·(shearX−shearY)) **非線性改變** → 逐軸 _amp_scale(1+g(s−1))"
+                     "只是線性拉長『為 base shear 算的』補償 → 與新 shear 不匹配破守恆(實測 Legend |det−1| 0.31)。必須以**放大後 shear** 重算 s'=1/√cos(g·(shearX−shearY))。與 squash 耦合 amplify 差異:squash 由 scale"
+                     "自身另一軸反推(scaleX·scaleY≡1,**非均勻**);twist 由同幀 shear 重算(**等向** scaleX==scaleY)——不同源。amplify_bone_tl(twist_vol=)/amplify_anim(twist_vol=);build_animations 以 cat=='twist' and twist_volume 路由;"
+                     "與 tier_twist_cycles 段數重生成正交(段數×幅度×守恆×φ 四效正交可疊)。從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,twist_volume=True),validate_twist_volume_tier.py 6AC PASS"
+                     "(VL1 present+backward-compat 每檔位 dual-channel+等向 scale・base 逐位元不變・Super==base vol 逐位元/VL2 crux 逐檔守恆 |det−1|≤9.6e-5 + s 峰嚴格遞增 1.06→1.36(證重算非凍結)+ 負對照逐軸 _amp_scale 高檔破守恆 Legend 0.31/"
+                     "VL3 crux 等向逐檔保形(scaleX==scaleY)+ squash 檔位變體非均勻隔離/VL4 兩軸峰遞增+φ 逐檔≈0.7 不變/VL5 每檔位 identity 介面+雙軸阻尼/反相簽章/VL6 端到端 build_spine --twist-volume --tier-variants --shear-pivot 三通道逐檔 pivot 殘差 <0.5px vs 負對照大位移)。"
+                     "**一般仿射四自由度 + 體積守恆 + 檔位差異化四軸(幅度/段數/守恆/φ)全數在生成端正交成立;跨通道約束(twist:det≡1)在 tier 放大後由重算(等向補償=cos 反推)維持**。"
+                     "回歸:check_readiness 全綠(既有 + 新 twist_volume_tier)。honest:守恆是關鍵幀級性質(build_spine densify 的密網格上線性內插 s 與 shear 天然不滿足 det≡1,base 亦然,非本 feature 迴歸);vol-tier 已補齊,twist 系列幅度/段數/守恆三軸皆接檔位;"
+                     "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
