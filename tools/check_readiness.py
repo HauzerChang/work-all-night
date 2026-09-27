@@ -412,6 +412,15 @@ BLOCKS = [
                      "TV5 端到端三通道 pivot 殘差 <0.016px vs 負對照 8–29px(含補償 scale)/TV6 負對照 無補償縮面積・等向 vs squash 非均勻隔離・twist_volume=False 逐位元同 shear-only+移除 twist 其餘不變)。"
                      "**一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)+ 體積守恆全數在生成端成立;跨通道約束(twist:det≡1)由建構(等向補償)保證**。"
                      "honest:vol 僅作用 base twist(tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1,比照 squash 耦合 amplify,為後續);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_tier", "volume-conserving twist 接檔位差異化(G-4''''''-vol-tier,補償 scale 由放大後 shear 重算 → 每檔位 det≡1)", "L2",
+                "python3 tools/analyzer/validate_twist_volume_tier.py", "pipeline",
+                note="補 G-4''''''-vol 的 honest boundary(vol 僅作用 base twist,tier 變體仍 shear-only)。crux:tier 放大讓兩軸 shear 同比 ×g(shearX'=g·shearX、shearY'=g·shearY → φ 不變),"
+                     "故補償須 s'=1/√cos(g·(shearX−shearY))——**對 g 非線性**(cos 之反推);逐軸 `_amp_scale`(對 s 線性放大)→ det 隨檔位漂移(實測 Legend g=2.1 |det−1|≈0.31)。"
+                     "故 twist(vol)檔位變體的 scale 必須**由(放大後的)shear 重算**(amplify_bone_tl(twist_vol=True))→ 每檔位每扭轉極值 det≡1。與 squash 耦合 amplify 同守恆目標、不同源(twist 走等向:scale 純補償)。"
+                     "gen_animations.build_animations(tier_gains,twist_volume=True) 端到端;段數重生成亦帶 vol_conserve(逐段重算補償)。validate_twist_volume_tier.py 6AC PASS(TVT1 present+等向雙通道+Super==base 逐位元/"
+                     "TVT2 crux 每檔位 |det−1|≤9.6e-5 vs 負對照 逐軸線性放大 0.06→0.16→0.31 單調漂移 >500× 分離/TVT3 兩軸峰[16→33.6°/11.2→23.52°]+補償 scale 峰[1.06→1.36]皆遞增·φ 逐檔恆 0.7/"
+                     "TVT4 identity 介面/TVT5 反相+阻尼簽章逐檔保形/TVT6 平增益守衛==base・count×tier×vol 正交 段數[4,5,6,7]遞增且守恆・twist_volume=False 檔位變體無 scale 逐位元同 shear-only)。"
+                     "**體積守恆(det≡1)沿檔位軸成立:同一 g 放大兩軸 shear、補償 scale 由放大後 shear 反推 → 段數×幅度×φ×守恆四效正交**。honest:幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
