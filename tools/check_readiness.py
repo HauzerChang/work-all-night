@@ -412,6 +412,19 @@ BLOCKS = [
                      "TV5 端到端三通道 pivot 殘差 <0.016px vs 負對照 8–29px(含補償 scale)/TV6 負對照 無補償縮面積・等向 vs squash 非均勻隔離・twist_volume=False 逐位元同 shear-only+移除 twist 其餘不變)。"
                      "**一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)+ 體積守恆全數在生成端成立;跨通道約束(twist:det≡1)由建構(等向補償)保證**。"
                      "honest:vol 僅作用 base twist(tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1,比照 squash 耦合 amplify,為後續);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_tier", "volume-conserving twist 接檔位差異化(G-4''''''-vol-tier,補償 scale 隨檔位重算維持 det≡1)", "L2",
+                "python3 tools/analyzer/validate_twist_vol_tier.py", "pipeline",
+                note="補 G-4''''''-vol 明列的 honest boundary(vol 僅作用 base twist:tier 變體仍 shear-only,vol 隨檔位放大需**重算**補償 scale 維持 det≡1)。"
+                     "twist∈TWIST_VOLUME_CATS:twist_volume=True + tier_gains 時,twist__{tier} 的兩軸 shear 照常單一-g 放大(v'=g*v,φ 逐檔不變),"
+                     "等向補償 scale 則由 amplify_anim(twist_vol=True)以**放大後**的雙軸 shear **重算**(s=1/√cos(shearX−shearY),cos 非線性)→ **det≡1 逐檔保持**。"
+                     "crux(與 squash tier 耦合 amplify 對比):squash 走非均勻(拉長軸自由/壓縮軸=倒數);twist 走等向(scaleX==scaleY)且 s 由 cos **反推重算** —— "
+                     "**補償不可逐軸線性放大**(_amp_scale(s,g) 放大既有 s 會讓 s²·cos≠1 破守恆,見 VL3 crux 負對照)。tier_variants._twist_vol_scale + amplify_bone_tl(twist_vol=)、"
+                     "gen_animations 依 TWIST_VOLUME_CATS 路由。validate_twist_vol_tier.py 6AC PASS(VL1 present+backward-compat 每檔位雙通道(shear+等向 scale)・Super==base vol・"
+                     "base 逐位元不變・twist_volume=False tier 變體 shear-only/VL2 crux 每檔位每內部極值 |det−1|≤9.6e-5(TOL 2e-4)+ 等向/VL3 crux 逐軸線性放大(不重算)Legend |det−1| 0.11–0.31 "
+                     "vs 重算 <1e-4 → >1000× 分離/VL4 兩軸峰遞增 shearX[16→33.6]・shearY[11.2→23.52]+φ 逐檔≈0.7+補償 scale 峰遞增[1.0603→1.3572]/VL5 兩軸阻尼+反相簽章逐檔保形/"
+                     "VL6 identity 介面・等向 vs squash 非均勻隔離・count×vol 正交 段數[4,5,6,7]遞增且逐極值守恆)。回歸:全 twist/squash/wobble/priors/tier/beat/pivot 系列全綠。"
+                     "**跨通道約束(det≡1)在檔位放大下由重算(cos 反推)保證;squash 走非均勻耦合、twist 走等向重算——不同源守恆機制皆可檔位差異化**。"
+                     "honest:vol-tier 幅度階梯沿用 (J) 增益(PROPOSAL,手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
