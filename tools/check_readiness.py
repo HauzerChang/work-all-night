@@ -411,7 +411,22 @@ BLOCKS = [
                      "shearX 峰16°・shearY 峰11.2°・scale 等向/TV2 crux 體積守恆 每內部極值 |det−1|≤8.8e-5 vs 負對照 scale≡1 純 twist |det−1| 0.04–0.11 縮面積/TV3 雙軸反相阻尼簽章保形/TV4 identity 介面(shear 0,scale 1)/"
                      "TV5 端到端三通道 pivot 殘差 <0.016px vs 負對照 8–29px(含補償 scale)/TV6 負對照 無補償縮面積・等向 vs squash 非均勻隔離・twist_volume=False 逐位元同 shear-only+移除 twist 其餘不變)。"
                      "**一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)+ 體積守恆全數在生成端成立;跨通道約束(twist:det≡1)由建構(等向補償)保證**。"
-                     "honest:vol 僅作用 base twist(tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1,比照 squash 耦合 amplify,為後續);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+                     "honest:vol 僅作用 base twist(tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1,比照 squash 耦合 amplify,為後續 → G-4''''''-vol-tier);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_tier", "volume-conserving twist 接檔位差異化(G-4''''''-vol-tier,補償等向 scale 由放大後 shear 重算)", "L2",
+                "python3 tools/analyzer/validate_twist_volume_tier.py", "pipeline",
+                note="補 G-4''''''-vol 明白列出的最後一條 honest boundary(vol 僅作用 base twist;tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1)。"
+                     "G-4''''''-vol 讓 base twist 掛等向補償 s=1/√cos(shearX−shearY)→det≡1;G-4''''''-tier 讓兩軸 shear 峰隨檔位以同一 g 同比放大。兩者相乘有**跨通道耦合陷阱**:"
+                     "檔位放大以 v'=g*v 同比放大兩軸 shear → cos(shearX'−shearY')=cos(g·(shearX−shearY)) **隨 g 改變**(擰愈狠、面積縮愈多)→ base 幅度算的補償 scale 已不足維持 det≡1"
+                     "(沿用 base 或線性放大 → 實測 Legend |det−1| 0.39 破裂)。解法 tier_variants._twist_vol_scale_from_shear + amplify_bone_tl(twist_vol=True):tier 變體補償等向 scale 由**放大後** shear **重算** "
+                     "s'=1/√cos(shearX'−shearY') → det≡1 由建構保證在任一檔位保持。**crux(與 squash 耦合 amplify 差異):squash 的守恆約束(scaleX·scaleY≡1)與 shear 無關(scaleX 反推 scaleY);twist 的守恆約束"
+                     "(s²·cos(shearX−shearY)≡1)耦合到放大後的 shear 值,必須讀放大後 shear 才能重算 s** —— twist vol-tier 獨有鑑別點(比照 squash 沿守恆流形放大,惟 twist 走等向且補償量取決於放大後 shear)。"
+                     "gen_animations.build_animations(tier_gains,twist_volume=True) 對 twist 檔位變體路由 twist_vol=True;build_spine --tier-variants --twist-volume --shear-pivot 端到端三通道繞關節 pivot 補償。"
+                     "validate_twist_volume_tier.py 6AC PASS(VTT1 present+dual-channel+backward-compat 每檔位 twist__tier finite/雙軸 shear+等向 scale・base 逐位元不變・twist_volume=False→tier 變體 shear-only 無 scale/"
+                     "VTT2 crux 每檔位每內部極值 |det−1|≤2e-4(max 9.6e-5,不只 base)+負對照(a)無補償縮面積 [0.11,0.20,0.31,0.46] 隨檔位遞增+負對照(b)base scale 未重算 [~0,0.099,0.222,0.390] Mega/Omg/Legend 破裂且遞增→證補償須由放大後 shear 重算/"
+                     "VTT3 每檔位 scale 等向+兩軸峰 shearX[16,21.6,27.2,33.6]°/shearY[11.2,15.12,19.04,23.52]° 遞增+補償 |s−1| [0.060,0.117,0.202,0.357] 遞增/VTT4 每檔位雙軸阻尼簽章+反相+φ 比值≈0.7 保形/"
+                     "VTT5 每檔位 identity 介面(shear 0,scale 1)/VTT6 端到端 build_spine --tier-variants --twist-volume --shear-pivot 每檔位 twist__tier pivot 殘差 <0.5px(Legend 最強一般仿射 0.32px)vs 負對照 ≥18px >150×)。"
+                     "**一般仿射四自由度 + 體積守恆 + 檔位差異化(幅度)全數在生成端疊起;跨通道耦合守恆(det≡1)在放大後仍由建構(重算補償=cos 的反推)保證**。"
+                     "honest:vol-tier 僅作用 base twist 的檔位幅度軸(twist count-aware 段數隨檔位另走 tier_twist_cycles,vol 於段數變體亦由重算補償涵蓋);幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

@@ -296,9 +296,10 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     twist∈SHEAR_CATS(兩條 shear 軸,非 COUPLED_SCALE_CATS),重生成後每個新極值仍 shearY=−TWIST_PHI·shearX(φ 由建構保證),
     再走單一-g 幅度增益(兩軸同比)→ 段數×幅度×φ 保形三效正交可疊(每檔位不論扭幾段,φ 恆定、反相不變)。
     段數(結構)先重生成、再套幅度增益 g —— 幅度與段數兩效**正交可疊**(各類別段數階梯獨立)。
-    twist_volume(G-4''''''-vol):True → base twist 掛體積守恆等向補償 scale(擰而不變面積,shear+scale+rotate
-    三通道同時且 det≡1);False(預設)→ twist 逐位元同 shear-only(向後相容)。**本 chunk 僅作用於 base twist**
-    (tier 變體仍 shear-only:vol 隨檔位放大需重算補償 scale 以維持 det≡1,比照 squash 耦合 amplify,為後續)。
+    twist_volume(G-4''''''-vol / -vol-tier):True → base twist 掛體積守恆等向補償 scale(擰而不變面積,
+    shear+scale+rotate 三通道同時且 det≡1);False(預設)→ twist 逐位元同 shear-only(向後相容)。
+    **配 tier_gains 時檔位變體亦守恆(G-4''''''-vol-tier)**:兩軸 shear 同比放大後,補償等向 scale 由**放大後**
+    shear 重算(`cos(g·(shearX−shearY))` 隨 g 變 → det≡1 須非線性維持,比照 squash 耦合 amplify,惟 twist 走等向)。
     六者皆 None/False(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、twist 無 scale)。"""
     # COUNT_AWARE 類別 → 對應的 {tier: count} 映射(依 cat 路由;None → 該類別段數不隨檔位變)
     _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles,
@@ -321,14 +322,19 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
             cmap = _count_maps.get(cat) if cat in _COUNT_AWARE_CATS else None
             # (G-4''''')squash 等耦合 scale 類別 → amplify 走體積守恆耦合(scaleX·scaleY≡1);其餘逐軸。
             coupled = cat in _COUPLED_SCALE_CATS
+            # (G-4''''''-vol-tier)volume-conserving twist 檔位變體:兩軸 shear 同比放大後,補償等向 scale
+            # 須由**放大後** shear 重算(cos(g·(shearX−shearY)) 隨 g 變 → det≡1 須非線性維持,比照 squash 耦合)。
+            tvol = (cat == "twist" and twist_volume)
             for tier, g in tier_gains.items():
                 cnt = cmap.get(tier) if cmap else None
                 if cnt is not None:
                     # J-2/G-4''':段數隨檔位遞增 → 以該檔位段數重生成 beat,再套幅度增益 g(正交可疊)。
-                    variant = _build_beat(beat, cat, bone_of, cx, cy, count=cnt)
-                    anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g, coupled=coupled)
+                    # G-4''''''-vol-tier:重生成時亦帶 twist_vol → 變體 base 幅度已掛等向補償 scale
+                    # (Super g=1 逐位元同 base;g≠1 由 amplify 依放大後 shear 重算)。
+                    variant = _build_beat(beat, cat, bone_of, cx, cy, count=cnt, twist_vol=twist_volume)
+                    anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g, coupled=coupled, twist_vol=tvol)
                 else:
-                    anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g, coupled=coupled)
+                    anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g, coupled=coupled, twist_vol=tvol)
     return anims
 
 

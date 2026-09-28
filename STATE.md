@@ -10,6 +10,32 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 volume-conserving twist 接檔位差異化:補償等向 scale 由放大後 shear 重算(里程碑,2026-09-28 run 001,candidate G-4''''''-vol-tier)** —
+  補 (G-4''''''-vol) 明列的最後一條 honest boundary(「vol 僅作用 base twist;tier 變體 vol 隨檔位放大需重算補償 scale
+  維持 det≡1,比照 squash 耦合 amplify」)。**跨通道耦合陷阱**:G-4''''''-vol 在 base 幅度掛等向補償 `s=1/√cos(shearX−shearY)`
+  → det≡1;G-4''''''-tier 以同一 g 同比放大兩軸 shear(`v'=g·v`)。兩者相乘時 `cos(shearX'−shearY')=cos(g·(shearX−shearY))`
+  **隨 g 改變**(擰愈狠、面積縮愈多)→ base 幅度算的補償 scale 已不足維持 det≡1(沿用 base 或線性放大 → 實測 Legend
+  `|det−1|` 達 **0.39** 破裂)。解法:tier 變體補償等向 scale 由**放大後** shear **重算** `s'=1/√cos(shearX'−shearY')`
+  → det≡1 由建構保證在任一檔位保持。**crux(與 squash 耦合 amplify 差異)**:squash 的守恆約束(scaleX·scaleY≡1)
+  **與 shear 無關**(由 scaleX 反推 scaleY);twist 的守恆約束(`s²·cos(shearX−shearY)≡1`)**耦合到放大後的 shear 值**,
+  必須讀放大後 shear 才能重算 s —— twist vol-tier 獨有鑑別點。全 additive:`tier_variants._twist_vol_scale_from_shear`
+  + `amplify_bone_tl(twist_vol=True)`(先放大兩軸 shear 再由放大後 shear 重算等向 scale);`build_animations(tier_gains,
+  twist_volume=True)` 對 twist 檔位變體路由 `twist_vol=True`;`build_spine --tier-variants --twist-volume --shear-pivot`
+  端到端三通道繞關節 pivot 補償。整合閘 `validate_twist_volume_tier.py`(先驗庫 → **真實 build_spine robot 骨架** →
+  build_animations(tier_gains, twist_volume=True))**6 AC 全 PASS**:VTT1 present+dual-channel+backward-compat(每檔位
+  `twist__{tier}` finite/雙軸 shear+等向 scale・base 逐位元不變・`twist_volume=False`→tier 變體 shear-only 無 scale)、
+  VTT2 **crux** 每檔位每內部極值 `|det−1|≤2e-4`(max 9.6e-5,**不只 base**)+ 負對照(a)無補償 `[0.11,0.20,0.31,0.46]`
+  隨檔位遞增縮面積 + 負對照(b)base scale 未重算 `[~0,0.099,0.222,0.390]` Mega/Omg/Legend 破裂且遞增 → 證補償須由
+  放大後 shear 重算、VTT3 每檔位 scale 等向 + 兩軸峰(shearX `[16,21.6,27.2,33.6]°`/shearY `[11.2,15.12,19.04,23.52]°`)
+  + 補償 `|s−1| [0.060,0.117,0.202,0.357]` 皆隨檔位嚴格遞增、VTT4 每檔位雙軸阻尼簽章+反相+φ 比值≈0.7 保形、
+  VTT5 每檔位 identity 介面(shear (0,0)、scale (1,1))、VTT6 端到端 `build_spine --tier-variants --twist-volume
+  --shear-pivot` 每檔位 pivot 殘差 <0.5px(Legend 最強一般仿射 0.32px)vs 負對照 ≥18px(>150×);**此路徑同帶
+  `tier_twist_cycles`(段數 4→7)→ 段數 × 幅度 × 體積守恆三效端到端同時驗證**。**回歸 24 閘全綠**(23 既有 + 新
+  twist_volume_tier;`check_readiness.py` 退出 0,0 RED,無 GREEN→RED)。新增 cap `twist_volume_tier` L2 併入
+  `spine-anim-forge`(**仍 HOLD**)。**關鍵發現**:**兩個各自守恆/保形的機制相乘,未必自動守恆 —— 當守恆約束耦合到
+  被放大的通道(twist:det 依賴放大後 shear),補償必須沿放大後的狀態重算,不能沿用 base;squash 的守恆與 shear
+  無關故不必回看,twist 的必須。** **honest boundary(仍在)**:幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產;
+  twist 系列(生成→tier→count→vol→**vol-tier**)自主結構軸至此收斂。見 `knowledge/s1-twist-volume-tier.md`。
 - **S1 volume-conserving twist:反相雙軸 shear 接體積守恆等向 scale(里程碑,2026-09-27 run 001,candidate G-4''''''-vol)** —
   補 twist 系列(G-4'''''' 生成 → tier → count)一路留到現在的**最後一條 honest boundary**:反相雙軸 shear 的
   Spine local 行列式 `det = cos(shearX − shearY) < 1`(兩基底夾角 90+shearY−shearX,反相被擰緊 → cos<1)→
@@ -754,8 +780,10 @@
 >   等向補償 scale `s=1/√cos(shearX−shearY)` → 全域 `det≡1`(擰而不變面積);shear+scale+rotate 三通道同時 = 塞滿一般仿射四自由度**且守恆**;
 >   crux twist 補償**等向**(vs squash 非均勻)不同源;`gen_twist(vol_conserve=)`/`build_spine --twist-volume`;`validate_twist_volume.py` 6AC PASS。
 >   **一般仿射四自由度 + 體積守恆全數在生成端成立**。**續**(擇一,皆自主):(G-4''''''-vol-tier) vol 接 tier 幅度(隨檔位放大重算補償 scale 維持 det≡1,比照 squash 耦合 amplify);其餘見下。
+> **(G-4''''''-vol-tier) ~~volume-conserving twist 接檔位差異化~~ ✅ 完成(2026-09-28 run 001,candidate G-4''''''-vol-tier,`twist_volume_tier` L2,見上里程碑)** ——
+>   tier 放大兩軸 shear(v'=g·v)→ cos(g·(shearX−shearY)) 隨 g 變 → 補償等向 scale 由**放大後** shear **重算** s'=1/√cos(shearX'−shearY') → 每檔位 det≡1(sequential 沿用 base 破裂 Legend 0.39);
+>   `tier_variants._twist_vol_scale_from_shear`+`amplify_bone_tl(twist_vol=)`,`validate_twist_volume_tier.py` 6AC PASS(VTT2 crux 每檔位 |det−1|≤2e-4 + 雙負對照 無補償/base 未重算皆隨檔位破裂遞增)。twist 系列(生成→tier→count→vol→vol-tier)結構軸收斂。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4''''''-vol-tier) volume-conserving twist 接檔位差異化(tier 放大 shear → cos(shearX−shearY) 變 → 補償 s 須非線性重算維持 det≡1;比照 squash G-4''''' 的耦合 amplify,但 twist 走等向補償)**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸;比照 G-4'''/J-2 但簽章在件之間)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到第四個通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
