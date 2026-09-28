@@ -412,6 +412,21 @@ BLOCKS = [
                      "TV5 端到端三通道 pivot 殘差 <0.016px vs 負對照 8–29px(含補償 scale)/TV6 負對照 無補償縮面積・等向 vs squash 非均勻隔離・twist_volume=False 逐位元同 shear-only+移除 twist 其餘不變)。"
                      "**一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)+ 體積守恆全數在生成端成立;跨通道約束(twist:det≡1)由建構(等向補償)保證**。"
                      "honest:vol 僅作用 base twist(tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1,比照 squash 耦合 amplify,為後續);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_tier_amplitude", "volume-conserving twist 接檔位差異化(G-4''''''-vol-tier,重算等向補償維持 det≡1)", "L2",
+                "python3 tools/analyzer/validate_twist_vol_tier.py", "pipeline",
+                note="補 G-4''''''-vol 明列的 honest boundary:「vol 僅作用 base twist(tier 變體仍 shear-only:vol 隨檔位放大需**重算補償 scale** 以維持 det≡1,比照 squash 耦合 amplify,為後續)」。"
+                     "**crux(為何不能沿用既有 amplify)**:補償 scale 是 shearX/shearY 的**函式**(s=1/√cos(shearX−shearY)),非 scale 自身可線性放大的量。檔位放大 shear(shearX'=g·shearX、shearY'=g·shearY)後,"
+                     "cos(shearX'−shearY')=cos(g·(shearX−shearY)) 隨 g **非線性**縮小 → 正確補償變 s'=1/√cos(g·(shearX−shearY));逐軸 _amp_scale(線性)甚至耦合倒數 _amp_scale_coupled 都算不出 → 破守恆(實測逐軸放大 Legend |det−1|=0.31)。"
+                     "解法:amplify_bone_tl 對 volume-conserving twist 走 **shear-compensated** 分支——先放大 shear,再**從放大後的 shear 重算**等向補償 s → det≡1 於**每個檔位**由建構保證。新增 SHEAR_COMPENSATED_SCALE_CATS={twist};"
+                     "build_animations 依 cat+twist_volume 路由(twist∧twist_volume → 重算;count 變體重生成時帶 twist_vol)。**crux(與 squash 耦合 amplify 機制差異)**:squash 耦合是 scale **內部**倒數(scaleY=1/scaleX,永不讀 shear);"
+                     "twist-vol 補償是**跨通道**(scale 從放大後 shear 重算)—— 皆維持 det≡1 但**不同源**;scale 的語意角色(自己是擠壓 vs 補償別人)決定放大機制。twist_vol_scale 抽為單一真相來源(base 與 tier 重算共用同式)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,twist_volume=True),validate_twist_vol_tier.py 6AC PASS(VVT1 present+backward-compat 每檔位雙軸 shear+等向 scale・**Super(g=1)逐位元==base twist(vol)**・"
+                     "base 帶/不帶 tier_gains 逐位元不變・twist_volume=False 檔位變體逐位元==shear-only 無 scale/VVT2 crux 每檔位 |det−1|≤9.6e-5 vs 負對照逐軸線性放大高檔位 0.063/0.159/0.311 破守恆(>600× 至 >3600× 分離)/"
+                     "VVT3 兩軸峰遞增 shearX[16,21.6,27.2,33.6]°・shearY[11.2,15.12,19.04,23.52]°(Super==base)・φ 逐檔≈0.7・scale 等向・**補償 scale 峰隨檔位遞增 [1.060,1.117,1.202,1.357]**(擰愈狠補償愈大,scale 通道檔位簽章)/"
+                     "VVT4 兩軸阻尼反相簽章逐檔保形/VVT5 端到端 build_spine --tier-variants --twist-volume --shear-pivot 三通道 pivot 殘差 <0.33px(TOL 0.5;Legend 極強一般仿射)vs 負對照大位移/"
+                     "VVT6 負對照/隔離/正交(a 平增益→兩軸遞增 FALSE 且各檔位==base・b 機制隔離 twist 等向 vs squash 非均勻 vs wobble 無 scale・c 段數×幅度×體積守恆三效正交 段數[4,5,6,7]遞增且每檔位仍守恆))。"
+                     "**一般仿射四自由度 + 體積守恆的檔位差異化全數在生成端成立;跨通道守恆約束的放大——squash 走 scale-內部倒數、twist 走從 shear 重算,同目標不同源機制皆由建構保證**。"
+                     "honest:幅度/段數階梯為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

@@ -10,6 +10,39 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 volume-conserving twist 接檔位差異化:tier 放大重算等向補償維持 det≡1(里程碑,2026-09-28 run 001,candidate G-4''''''-vol-tier)** —
+  補 (G-4''''''-vol) 明列的最後一條 honest boundary(「vol 僅作用 base twist;tier 變體仍 shear-only:vol 隨檔位放大需
+  **重算補償 scale** 以維持 det≡1,比照 squash 耦合 amplify,為後續」)。讓 volume-conserving twist 的**檔位變體**
+  (`twist__{tier}`)也維持體積守恆。**crux 1(為何不能沿用既有 amplify)**:補償 scale 是 shearX/shearY 的**非線性
+  函式** `s=1/√cos(shearX−shearY)`;檔位以**單一 g** 放大 shear(shearX'=g·shearX、shearY'=g·shearY,兩軸同比 → φ
+  不變)後,`cos(shearX'−shearY')=cos(g·(shearX−shearY))` 隨 g **非線性**縮小 → 正確補償變 `s'=1/√cos(g·(shearX−shearY))`;
+  逐軸 `_amp_scale`(線性放大 identity 上方)甚至 squash 的耦合倒數 `_amp_scale_coupled` 都算不出 → 破守恆
+  (實測逐軸線性放大 Mega/Omg/Legend |det−1|=0.063/0.159/0.311)。**解法**:`amplify_bone_tl(shear_compensated=True)`
+  先放大 shear、再**從放大後的 shear 重算**等向補償 s → det≡1 於**每個檔位由建構保證**。新增
+  `tier_variants.SHEAR_COMPENSATED_SCALE_CATS={twist}`;`build_animations` 依 cat+twist_volume 路由(twist∧twist_volume
+  → 重算;count 變體重生成時帶 twist_vol → 段數×幅度×體積守恆三效正交);`beat_templates.twist_vol_scale(shx,shy)` 抽為
+  **單一真相來源**(base `_twist_scale_env` 與 tier 重算共用同式;tier_variants 延遲 import 避模組載入期循環)。
+  **crux 2(與 squash 耦合 amplify 機制差異)**:squash(G-4''''')的耦合是 scale **內部**倒數(scaleY=1/scaleX,
+  **永不讀 shear**);twist-vol 的補償是**跨通道**(scale 從放大後的 shear 重算)—— 皆維持 det≡1 但由**不同建構**保證;
+  **scale 的「語意角色」(自己是擠壓 vs 補償別人)決定放大機制**。整合閘 `validate_twist_vol_tier.py`(先驗庫 →
+  **真實 build_spine robot 骨架** → build_animations(tier_gains, twist_volume=True))**6 AC 全 PASS**:VVT1 present+
+  backward-compat(每檔位雙軸 shear+等向 scale、**Super(g=1) 逐位元==base twist(vol)**、base 帶/不帶 tier_gains 逐位元不變、
+  `twist_volume=False` 檔位變體逐位元==shear-only 無 scale)、VVT2 **crux 體積守恆 per tier** 每檔位 |det−1|≤9.6e-5
+  (TOL 2e-4)vs **負對照逐軸線性放大 0.063/0.159/0.311**(>600× 至 >3600× 分離)、VVT3 兩軸峰遞增
+  shearX[16,21.6,27.2,33.6]°·shearY[11.2,15.12,19.04,23.52]°(Super==base)+φ 逐檔≈0.7+scale 等向+**補償 scale 峰
+  [1.060,1.117,1.202,1.357] 隨檔位遞增**(擰愈狠補償愈大=scale 通道的檔位簽章)、VVT4 兩軸阻尼反相簽章逐檔保形、
+  VVT5 端到端 `build_spine --tier-variants --twist-volume --shear-pivot` 三通道(shear+scale+rotate)pivot 殘差 <0.33px
+  (TOL 0.5;Legend 極強一般仿射殘差最大 1.55× 餘裕)vs 負對照大位移、VVT6 負對照/隔離/正交(a 平增益→兩軸遞增 FALSE
+  且各檔位==base、b 機制隔離 twist 等向 vs squash 非均勻 vs wobble 無 scale、c 段數×幅度×體積守恆三效正交 段數[4,5,6,7]
+  遞增且每檔位仍守恆)。新增 cap `twist_volume_tier_amplitude` L2 併入 `spine-anim-forge`(**仍 HOLD**)。**回歸:anim
+  生成線全 GREEN**(twist gen/tier/count/vol + squash tier/count + wobble tier/count + tier_variants/combo_count 直跑全 exit0;
+  新 vol-tier 併入 check_readiness pipeline 子集)。⚠️ **check_readiness 另有 2 條 pre-existing RED**(`反推分析:分層 PSD
+  → 五段規格` = `validate_analyzer_award` 的 `4_storyboard_structure` beats_match:先驗庫主秀 beat 已長成 burst/cascade/
+  charge/combo/hit/squash/twist/wobble,而 Award 命名真值僅 In/Loop/Out → beats_match FALSE)—— **與本 chunk 無關、
+  stash 本次改動後仍 RED**(見「未解問題」)。**關鍵發現**:**跨通道守恆約束的檔位放大有兩種源** —— 被約束通道(scale)
+  按其語意角色,或沿約束**重算**(twist:從 shear 重算等向補償)、或沿約束流形**耦合放大**(squash:scale 內部倒數);
+  單一 g 同比放大**主動**通道(shear)保住跨軸關係(φ),**被動/補償**通道由建構(重算)保住守恆。**honest boundary
+  (仍在)**:幅度/段數階梯為 PROPOSAL(手感 A 類);單一真值資產。見 `knowledge/s1-twist-volume-tier-amplitude.md`。
 - **S1 volume-conserving twist:反相雙軸 shear 接體積守恆等向 scale(里程碑,2026-09-27 run 001,candidate G-4''''''-vol)** —
   補 twist 系列(G-4'''''' 生成 → tier → count)一路留到現在的**最後一條 honest boundary**:反相雙軸 shear 的
   Spine local 行列式 `det = cos(shearX − shearY) < 1`(兩基底夾角 90+shearY−shearX,反相被擰緊 → cos<1)→
@@ -753,9 +786,13 @@
 > **(G-4''''''-vol) ~~volume-conserving twist~~ ✅ 完成(2026-09-27 run 001,candidate G-4''''''-vol,`twist_volume_conserving` L2,見上里程碑)** ——
 >   等向補償 scale `s=1/√cos(shearX−shearY)` → 全域 `det≡1`(擰而不變面積);shear+scale+rotate 三通道同時 = 塞滿一般仿射四自由度**且守恆**;
 >   crux twist 補償**等向**(vs squash 非均勻)不同源;`gen_twist(vol_conserve=)`/`build_spine --twist-volume`;`validate_twist_volume.py` 6AC PASS。
->   **一般仿射四自由度 + 體積守恆全數在生成端成立**。**續**(擇一,皆自主):(G-4''''''-vol-tier) vol 接 tier 幅度(隨檔位放大重算補償 scale 維持 det≡1,比照 squash 耦合 amplify);其餘見下。
+>   **一般仿射四自由度 + 體積守恆全數在生成端成立**。**續**:(G-4''''''-vol-tier) ✅ 完成(見下)。
+> **(G-4''''''-vol-tier) ~~volume-conserving twist 接檔位差異化~~ ✅ 完成(2026-09-28 run 001,candidate G-4''''''-vol-tier,`twist_volume_tier_amplitude` L2,見上里程碑)** ——
+>   `amplify_bone_tl(shear_compensated=True)` 先放大 shear、再**從放大後的 shear 重算**等向補償 s=1/√cos(shearX'−shearY')
+>   → det≡1 於每個檔位由建構保證(補償是 shear 的**非線性**函式,不能線性放大既有 s)。新增 `SHEAR_COMPENSATED_SCALE_CATS={twist}`;
+>   `twist_vol_scale` 抽為單一真相來源。crux:squash 耦合是 scale 內部倒數(不讀 shear)、twist-vol 補償是跨通道從 shear 重算 —— 同守恆目標不同源。
+>   `validate_twist_vol_tier.py` 6AC PASS(VVT2 每檔位 |det−1|≤9.6e-5 vs 負對照逐軸線性放大 0.063/0.159/0.311)。**一般仿射四自由度+體積守恆的檔位差異化全數在生成端成立**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4''''''-vol-tier) volume-conserving twist 接檔位差異化(tier 放大 shear → cos(shearX−shearY) 變 → 補償 s 須非線性重算維持 det≡1;比照 squash G-4''''' 的耦合 amplify,但 twist 走等向補償)**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸;比照 G-4'''/J-2 但簽章在件之間)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到第四個通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
@@ -769,6 +806,14 @@
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
+- ⚠️ **check_readiness 有 2 條 pre-existing RED(2026-09-28 發現,與 anim 生成線無關)**:`反推分析:分層 PSD → 五段規格`
+  兩 cap 共用的 `validate_analyzer_award.py` 的 **`4_storyboard_structure` beats_match FALSE** —— 先驗庫的主秀 beat 已成長為
+  {burst,cascade,charge,combo,hit,squash,twist,wobble}(歷次 E/H/I/G-4* 里程碑加入,皆為 `prior_beats_unused` 誠實 PROPOSAL),
+  但 Award 命名真值僅 {In,Loop,Out} → 嚴格 beats_match 不符。**stash 本 chunk 改動後仍 RED → 非本次造成**,屬歷史累積。
+  過往里程碑「回歸 N 閘全綠」指的是 **anim 生成線的回歸子集**(twist/squash/wobble/tier/pivot/priors 系列),非此 analyzer 閘。
+  修法(未做,候選,屬 S1 analyzer 範圍非本 anim chunk):把 beats_match 改為「Award 命名 beat ⊆ proposed」的**子集**判準
+  (承認先驗庫主秀 beat 是 additive PROPOSAL,同 validate_priors 的 prior_beats_unused 處理),或分開量「命名 beat 覆蓋率」與
+  「額外 PROPOSAL beat 清單」。此為評估器判準與現況不一致,非生成器缺陷。
 - ❓ 排程頻率未定(使用者尚未決定)。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。

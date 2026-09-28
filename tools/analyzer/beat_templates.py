@@ -479,6 +479,20 @@ def _twist_env(A, nosc):
     return shx, shy
 
 
+def twist_vol_scale(shx_deg, shy_deg):
+    """反相雙軸 shear 的**體積守恆等向補償** scale(單一幀,度)。
+
+    純 twist(shear-only)的 Spine local 行列式 `det = cos(shearX − shearY)`(反相被擰緊 → cos<1 → 縮面積)。
+    等向補償 `s = 1/√cos(shearX − shearY)` 使全域 `det = s²·cos(shearX − shearY) ≡ 1`。
+    shear=0 → cos(0)=1 → s=1(identity 介面);cos≤0(極端擰角)退回 1.0(不奇異)。
+
+    **單一真相來源**:base twist(`_twist_scale_env`)與檔位放大後**重算補償**(`tier_variants.amplify_bone_tl`
+    的 shear-compensated 分支,candidate G-4''''''-vol-tier)共用此式 —— 補償 scale 是 shear 的函式,
+    檔位放大 shear 後補償必須**重算**(非線性),用同一式保證各檔位 det≡1。"""
+    det_shear = math.cos(math.radians(shx_deg - shy_deg))
+    return 1.0 / math.sqrt(det_shear) if det_shear > 0 else 1.0
+
+
 def _twist_scale_env(shx_env, shy_env):
     """candidate G-4''''''-vol:反相雙軸 shear 的**體積守恆**等向補償 scale 包絡。
 
@@ -493,8 +507,7 @@ def _twist_scale_env(shx_env, shy_env):
     twist 的 scale 純為補償 shear 造成的面積變化)。det 是 sx·sy 的約束,等向是最小(不再引入額外各向異性)的守恆選擇。"""
     sc = []
     for (tau, shx), (_, shy) in zip(shx_env, shy_env):
-        det_shear = math.cos(math.radians(shx - shy))   # 反相雙軸 shear 的面積縮放(≤1)
-        s = 1.0 / math.sqrt(det_shear) if det_shear > 0 else 1.0
+        s = twist_vol_scale(shx, shy)   # 反相雙軸 shear 的體積守恆等向補償(單一真相來源)
         sc.append((tau, round(s, 6), round(s, 6)))
     return sc
 
