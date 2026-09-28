@@ -10,6 +10,35 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 volume-conserving twist 接檔位差異化:補償 scale 隨檔位重算維持 det≡1(里程碑,2026-09-28 run 001,candidate G-4''''''-vol-tier)** —
+  補 (G-4''''''-vol) 明列的**最後 honest boundary**:「vol 僅作用 base twist,tier 變體仍 shear-only —— vol 隨檔位放大需
+  重算補償 scale 維持 det≡1」。tier 放大 shear(兩軸同一 g → 扭角差 `g·(shearX−shearY)`)後,等向補償 scale 由
+  `tier_variants._twist_vol_scale` 從**放大後 shear** 逐幀重算 `s'=1/√cos(g·(shearX−shearY))` → 每檔位
+  `det=s'²·cos(g·(shearX−shearY))≡1`(體積守恆在任一檔位保持),而兩軸 shear 峰隨檔位嚴格遞增(shearX 16→33.6°、
+  shearY 11.2→23.52°)、φ=shearY/shearX 比值不變(0.7)。**crux(與 squash 耦合 amplify 對比)**:squash 補償**非均勻**
+  (`scaleX·scaleY≡1`,scale 自己即擠壓)、twist 補償**等向**(scaleX==scaleY,scale 純補償 shear)—— 同一守恆目標、
+  不同源;共通原則:**檔位放大帶跨通道守恆約束的節拍時,守恆由『從放大後主通道重算補償』保證**(補償是主通道效應
+  的反函數,故隨檔位**非線性重算**,不能沿用「線性放大 identity 上方」的 `_amp_scale`)。**關鍵實作抉擇**:從**實際
+  存下的放大後 shear** 重算(非從舊 scale 值反推 dφ)—— 後者與 4-dec 放大後 shear 有獨立捨入 → det 殘差隨 g 疊大
+  (Legend 達 6e-4);前者與 runtime 用的 shear 精確配對 → det 殘差**同 base 級**(≤1e-4 各檔位、不隨 g 疊大),且
+  base shear 幅度皆 4-dec 精確 → **Super(g=1)逐位元同 base**。全 additive:`amplify_bone_tl(b,g,twist_vol=)`
+  (`coupled`/`twist_vol` 互斥,scale 於 shear 放大**後**逐 index 配對放大後 shear 重算)/`amplify_anim(twist_vol=)`;
+  `build_animations` tier 路由對 `cat=="twist" and twist_volume` 設 `tvol=True`,count-aware 重生成路徑亦帶
+  `twist_vol=twist_volume`(段數變體亦掛補償 scale);`build_spine --tier-variants --twist-volume`(既有 CLI)配
+  `--shear-pivot` 端到端。整合閘 `validate_twist_volume_tier.py`(先驗庫→**真實 build_spine robot 骨架**→
+  build_animations(tier_gains,twist_volume=True))**6 AC 全 PASS**:TVT1 present+backward-compat(每檔位 dual-channel
+  等向、base/Super 逐位元不變)、TVT2 **crux** 每檔位每內部極值 |det−1|≤1e-4(TOL 2e-4)**且**雙軸峰嚴格遞增
+  (Super==base)、TVT3 雙軸反相阻尼簽章逐檔保形 + φ=0.7 逐檔不變、TVT4 identity 介面(shear 首尾 (0,0)、scale 首尾
+  (1,1))、TVT5 **crux 負對照** 逐軸 amplify(twist_vol=False)破守恆 |det−1| 0.11–0.31 vs 重算 ≤8.5e-5(>1000× 鑑別)
+  + `_twist_vol_scale` 單元、TVT6 隔離(twist tier scale 等向、非 twist tier 不冒 scale)+加性(移除 twist 其餘逐位元
+  不變)+**三效正交**(tier_gains × tier_twist_cycles × twist_volume → 段數 4→7 遞增且每檔位仍守恆)+端到端
+  (`--tier-variants --twist-volume --shear-pivot` 每檔位 tier 變體 pivot 殘差 <0.33px vs 負對照 8–74px)。
+  **回歸 24 閘全綠**(23 既有 + 新 twist_volume_tier;`check_readiness.py` 退出 0,0 RED,無 GREEN→RED)。新增 cap
+  `twist_volume_tier` L2 併入 `spine-anim-forge`(**仍 HOLD**)。**關鍵發現**:**帶跨通道守恆約束的檔位軸已在
+  squash(非均勻)/twist(等向)雙機制成立;檔位放大時守恆由「從放大後主通道重算補償」保證** —— twist 系列
+  (生成 shearY → tier 幅度 → count 段數 → vol → vol-tier)至此**四自由度 + 體積守恆 + 檔位(幅度/段數/守恆)三軸
+  全接齊**。**honest boundary(仍在)**:幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。見
+  `knowledge/s1-twist-volume-conserving-tier.md`。
 - **S1 volume-conserving twist:反相雙軸 shear 接體積守恆等向 scale(里程碑,2026-09-27 run 001,candidate G-4''''''-vol)** —
   補 twist 系列(G-4'''''' 生成 → tier → count)一路留到現在的**最後一條 honest boundary**:反相雙軸 shear 的
   Spine local 行列式 `det = cos(shearX − shearY) < 1`(兩基底夾角 90+shearY−shearX,反相被擰緊 → cos<1)→
@@ -754,8 +783,9 @@
 >   等向補償 scale `s=1/√cos(shearX−shearY)` → 全域 `det≡1`(擰而不變面積);shear+scale+rotate 三通道同時 = 塞滿一般仿射四自由度**且守恆**;
 >   crux twist 補償**等向**(vs squash 非均勻)不同源;`gen_twist(vol_conserve=)`/`build_spine --twist-volume`;`validate_twist_volume.py` 6AC PASS。
 >   **一般仿射四自由度 + 體積守恆全數在生成端成立**。**續**(擇一,皆自主):(G-4''''''-vol-tier) vol 接 tier 幅度(隨檔位放大重算補償 scale 維持 det≡1,比照 squash 耦合 amplify);其餘見下。
+> **(G-4''''''-vol-tier) ~~volume-conserving twist 接檔位差異化~~ ✅ 完成(2026-09-28 run 001,candidate G-4''''''-vol-tier,`twist_volume_tier` L2,見上里程碑)** ——
+>   tier 放大 shear 後補償 scale 由 `_twist_vol_scale` 從**放大後 shear** 逐幀重算 `s'=1/√cos(g·(shearX−shearY))` → 每檔位 det≡1(比照 squash 耦合 amplify,但 twist 走等向補償);`validate_twist_volume_tier.py` 6AC PASS。**twist 系列(生成 shearY→tier→count→vol→vol-tier)四自由度+體積守恆+檔位三軸全接齊**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4''''''-vol-tier) volume-conserving twist 接檔位差異化(tier 放大 shear → cos(shearX−shearY) 變 → 補償 s 須非線性重算維持 det≡1;比照 squash G-4''''' 的耦合 amplify,但 twist 走等向補償)**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸;比照 G-4'''/J-2 但簽章在件之間)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到第四個通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。

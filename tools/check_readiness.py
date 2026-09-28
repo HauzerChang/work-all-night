@@ -412,6 +412,16 @@ BLOCKS = [
                      "TV5 端到端三通道 pivot 殘差 <0.016px vs 負對照 8–29px(含補償 scale)/TV6 負對照 無補償縮面積・等向 vs squash 非均勻隔離・twist_volume=False 逐位元同 shear-only+移除 twist 其餘不變)。"
                      "**一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)+ 體積守恆全數在生成端成立;跨通道約束(twist:det≡1)由建構(等向補償)保證**。"
                      "honest:vol 僅作用 base twist(tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1,比照 squash 耦合 amplify,為後續);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_tier", "volume-conserving twist 接檔位差異化(G-4''''''-vol-tier,補償 scale 隨檔位重算維持 det≡1)", "L2",
+                "python3 tools/analyzer/validate_twist_volume_tier.py", "pipeline",
+                note="補 G-4''''''-vol 明列的最後 honest boundary:「vol 僅作用 base twist,tier 變體仍 shear-only —— vol 隨檔位放大需重算補償 scale 維持 det≡1」。"
+                     "tier 放大 shear(兩軸同一 g → 扭角差 g·(shearX−shearY))後,等向補償 scale 由 tier_variants._twist_vol_scale 從**放大後 shear** 逐幀重算 s'=1/√cos(g·(shearX−shearY)) → "
+                     "每檔位 det=s'²·cos(g·(shearX−shearY))≡1(體積守恆在任一檔位保持),而兩軸 shear 峰隨檔位嚴格遞增、φ 比值不變。crux(vs squash 耦合 amplify):twist 補償**等向**(scaleX==scaleY,scale 純補償)、"
+                     "squash **非均勻**(scaleX·scaleY≡1,scale 自己即擠壓)—— 同一守恆目標、不同源。從**實際存下的放大後 shear** 重算(非從舊 scale 反推)→ det 殘差同 base 級(≤1e-4 各檔位、不隨 g 疊大)、Super(g=1)逐位元同 base。"
+                     "amplify_bone_tl(twist_vol=)/amplify_anim(twist_vol=);build_animations(tier_gains=,twist_volume=)/build_spine --tier-variants --twist-volume 端到端,配 --shear-pivot 三通道繞關節 pivot。"
+                     "validate_twist_volume_tier.py 6AC PASS(TVT1 present+backward-compat 每檔位 dual-channel 等向・base/Super 逐位元不變/TVT2 crux 每檔位 |det−1|≤1e-4 且雙軸峰遞增 shearX[16→33.6°] shearY[11.2→23.52°]/"
+                     "TVT3 雙軸反相阻尼+φ=0.7 逐檔不變/TVT4 identity 介面/TVT5 crux 負對照 逐軸 amplify 破守恆 |det−1| 0.11–0.31 vs 重算 ≤8.5e-5(>1000×)+單元/TVT6 隔離+加性+三效正交(段數 4→7×幅度×守恆)+端到端 tier 變體 pivot 殘差 <0.33px vs 負對照 8–74px)。"
+                     "**帶跨通道守恆約束的檔位軸已在 squash(非均勻)/twist(等向)雙機制成立;檔位放大時守恆由『從放大後主通道重算補償』保證**。honest:幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]
