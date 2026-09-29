@@ -10,6 +10,34 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 跨件波相位散佈寬隨檔位遞增:cascade 的第三條檔位軸(純跨件時序散佈,里程碑,2026-09-29 run 003,candidate J-4)** —
+  續 (J)/(J-3):cascade 至此已有**幅度**(J,峰大小)、**波掃道數 nrip**(J-3,峰數/拓樸)兩軸;本次補**第三條=跨件散佈寬 span**
+  (各件峰時刻散得多開;第一件峰在 LEAD、末件在 LEAD+span,單一 sweep 內)隨檔位嚴格遞增(Super0.54→Mega0.58→Omg0.62→Legend0.66)。
+  **crux(cascade 第三條檔位軸=純跨件時序的散佈)**:三軸各自改的東西**互不重疊** —— 幅度改峰大小、nrip 改峰數(拓樸)、
+  **span 只改各件峰的相對時刻**(連續時序參數,gen 時相位);span **不改峰數**(仍每件 pop nrip 次)、**不改峰幅**(仍 role peak)。
+  與 nrip **正交**:同時開兩軸時每道 sweep 的跨件散佈=**span/nrip**,把 per-sweep 散佈**×nrip 即還原 span** → span 軸可在任一 nrip
+  下獨立量得(端到端 build 實測:Super 0.54/1、Mega 0.58/2、Omg 0.62/3、Legend 0.66/4,還原 span 遞增 ≈ 宣告)。生成:
+  `gen_cascade(role,side,radial,phase,nrip=1,span=None)` 用 `c_k=(k+LEAD+phase·span)/nrip`;`span=None`→模組常數 `CASCADE_SPAN`(0.54)
+  **逐位元同基礎 cascade**;**上界 span<0.68** 由窗排 packing(LEAD+span+0.16<1,與 nrip 無關;首點/件內間隙皆與 span 無關,
+  span 只把該件全 sweep 同步平移)→ Legend 0.66 留餘裕。錨定 Super=0.54=CASCADE_SPAN 使 **Super 逐位元==base**。
+  全 additive:新增 `TIER_CASCADE_SPREAD` + `cascade_spread_for`;`build_animations(tier_cascade_spread=)` 走**獨立於 `_count_maps`**
+  的 **`_span_maps`**(span 是連續時序參數非 count/拓樸,不該混路由);`_build_beat` 的 `_PHASE_AWARE` 分支吃 span(kwargs:
+  count→nrip、span→span,任一非 None 則重生成);`build_spine --tier-variants` 透傳 `cascade_spread_for`(與 `cascade_ripples_for`
+  併存 → 端到端直出 spread×nrip 複合)。整合閘 `validate_cascade_spread.py`(先驗庫→**真實 build_spine robot 骨架**→
+  build_animations(tier_gains,tier_cascade_spread[,tier_cascade_ripples]))**5 AC 全 PASS**:SP1 present+backward-compat
+  (每檔位有 bone、base 逐位元不變、**Super 逐位元==base**(span=0.54)、tcs=None 逐位元同 (J) 幅度-only)、SP2 **crux** 跨件散佈
+  [0.54,0.58,0.62,0.66] 嚴格遞增 ≈ 宣告(取樣誤差 ≤2/N 內;span-only 量)、SP3 **crux** 各件峰時刻仍依件序嚴格遞增(散佈變寬
+  仍有序跨件波非切碎)+每件 pop 恆 1(散佈非道數)+首尾 setup identity+特效 alpha 首尾=1+幅度峰仍遞增(與 (J) 疊加不衝突)、
+  SP4 正交三向(a spread+平增益→散佈遞增·峰幅不遞增;b 增益+無 spread→散佈恆=base·峰幅遞增;c **crux** spread×ripples
+  同時開→pop 次數==nrip[1,2,3,4] **且** 還原 span(per-sweep 散佈×nrip)嚴格遞增 ≈ 宣告(容差 2·nrip/N))、SP5 負對照(平散佈
+  全0.54→單調 FALSE、slot_reveal `cascade_spread_for` None 不亂加、span 只作用 cascade 非-cascade 變體逐位元同幅度-only)。
+  端到端 `build_spine --animate --tier-variants` 直出 `cascade__{Super,Mega,Omg,Legend}`(spread×nrip 複合)。**回歸 26 閘全綠**
+  (25 既有 + 新 cascade_tier_spread;`check_readiness.py` 退出 0,0 RED,無 GREEN→RED)。新增 cap `cascade_tier_spread` L2
+  併入 `spine-anim-forge`(**仍 HOLD**)。**關鍵發現**:**cascade 三軸(幅度/波掃道數/散佈寬)全數正交成立**;**跨件時序通道
+  自身已長出「道數(count/拓樸)」與「散佈(連續時序)」兩獨立子軸** —— 首次在同一通道內把「多幾道」與「散多開」分成兩把
+  獨立旋鈕。**連續時序參數須走獨立於 count 的路由(`_span_maps`)**(混進 `_count_maps` 會把離散道數與連續散佈綁成一軸);
+  **複合量測(還原 span=散佈×nrip)的容差要跟著複合因子(2·nrip/N)縮放**,否則高檔位誤判。**honest boundary(仍在)**:散佈寬階梯
+  為 PROPOSAL(手感 A 類;方向遞增=波掃愈闊,反向愈同步為對等替代待拍板);單一真值資產。見 `knowledge/s1-cascade-tier-spread.md`。
 - **S1 cascade 跨件波掃次數隨檔位遞增:第一個「跨件時序」通道的 count-aware(里程碑,2026-09-29 run 002,candidate J-3)** —
   補 (J-3) 的 honest boundary:candidate (J) 讓 cascade 波峰**幅度**隨檔位放大,但各檔位仍是**同一道**跨件波
   ——「掃得多猛」有了、「掃幾道」沒有。本次補上波掃次數 `nrip` 隨檔位嚴格遞增(Super1→Mega2→Omg3→Legend4)。
@@ -815,8 +843,13 @@
 >   cascade 併入 `_count_maps`(留 `_PHASE_AWARE`,非 COUNT_AWARE_CATS)+ `_build_beat` phase-aware 分支吃 count;
 >   `validate_cascade_count.py` 5AC PASS(X2 crux 波掃次數 [1,2,3,4] 遞增;X3 crux **每道 sweep 仍保跨件排序**——跨件 count 比單件 count 多驗這一層)。
 >   **結構(段數)軸已在 combo/wobble/squash/twist 四單件通道 + cascade 跨件通道 成立**。
+> **(J-4) ~~cascade 波速/散佈隨檔位(跨件時序的散佈軸:span 隨檔位,與 nrip 結構軸正交)~~ ✅ 完成(2026-09-29 run 003,candidate J-4,`cascade_tier_spread` L2,見上里程碑)** ——
+>   `TIER_CASCADE_SPREAD`(Super0.54→Legend0.66)+ `gen_cascade(span=)`(c_k=(k+LEAD+phase·span)/nrip,span=None 逐位元同基礎;上界 <0.68)+
+>   `build_animations(tier_cascade_spread=)` 走**獨立於 `_count_maps`** 的 `_span_maps`(連續時序參數不與離散道數混路由)+ `_build_beat` phase-aware 分支吃 span;
+>   `validate_cascade_spread.py` 5AC PASS(SP2 crux 跨件散佈 [0.54..0.66] 遞增;SP4c crux spread×ripples 同時開→pop==nrip 且還原 span=散佈×nrip 遞增,證兩軸正交可疊)。
+>   **cascade 三軸(幅度 J / 波掃道數 J-3 / 散佈寬 J-4)全數正交成立;跨件時序通道自身已長出「道數(count)」與「散佈(連續)」兩獨立子軸**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(J-4) cascade 波速/散佈隨檔位(幅度式的跨件時序軸:CASCADE_SPAN 或窗速隨檔位,與 nrip 的結構軸正交;比照 J 幅度 vs J-2/J-3 結構)**;
+> **(J-5) cascade 波方向/相位映射隨檔位或空間(件序相位改由 bd.x / 徑向決定 → 左→右、中心外擴等波向;或波向隨檔位變),與散佈/道數/幅度正交的「跨件時序第四軸=方向」**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。

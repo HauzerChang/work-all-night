@@ -307,21 +307,25 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         # G-4'''''-c:squash 另依檔位遞增**擠壓段數**(仍走耦合 amplify 保體積守恆);
         # G-4''''''-count:twist 另依檔位遞增**扭轉段數**(兩軸重生成仍 shearY=−φ·shearX 保 φ)。
         # J-3:cascade 另依檔位遞增**跨件波掃次數**(nrip;跨件時序通道的段數,每道 sweep 仍依件序錯開)。
-        # (幅度×段數/波掃次數兩效正交疊加,各類別階梯獨立)。
-        tg = tch = twc = tsc = ttc = tcr = None
+        # J-4:cascade 另依檔位遞增**跨件波相位散佈寬**(span;跨件時序的散佈,與 nrip/幅度三軸正交)。
+        # (幅度×段數/波掃次數/散佈寬多效正交疊加,各類別階梯獨立)。
+        tg = tch = twc = tsc = ttc = tcr = tcs = None
         if tier_variants:
             from tier_variants import (gains_for, combo_hits_for, wobble_cycles_for,
-                                       squash_cycles_for, twist_cycles_for, cascade_ripples_for)
+                                       squash_cycles_for, twist_cycles_for, cascade_ripples_for,
+                                       cascade_spread_for)
             tg = gains_for(genre)
             tch = combo_hits_for(genre)
             twc = wobble_cycles_for(genre)
             tsc = squash_cycles_for(genre)
             ttc = twist_cycles_for(genre)
             tcr = cascade_ripples_for(genre)
+            tcs = cascade_spread_for(genre)
         skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"],
                                                   tier_gains=tg, tier_combo_hits=tch,
                                                   tier_wobble_cycles=twc, tier_squash_cycles=tsc,
                                                   tier_twist_cycles=ttc, tier_cascade_ripples=tcr,
+                                                  tier_cascade_spread=tcs,
                                                   twist_volume=twist_volume)
         if (pivot_rotate or scale_pivot or shear_pivot) and not rig:
             # candidate 0i:件繞**關節 pivot** 轉而非件中心(keyframe 級,不動骨架)。

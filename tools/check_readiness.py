@@ -440,6 +440,22 @@ BLOCKS = [
                      "X4 正交 ripples+平增益→波掃次數遞增·峰幅不遞增,增益+無 ripples→波掃次數恆1·峰幅遞增/X5 負對照 平波掃次數全1→單調 FALSE・slot_reveal cascade_ripples_for None 不亂加·ripple 只作用 cascade 非-cascade 變體逐位元同幅度-only)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist **四個單件通道** + cascade **跨件通道** 成立;跨件 count 的簽章需多驗一層『每道 sweep 仍保跨件排序』(單件 count 無此層)**。"
                      "honest:波掃次數階梯(1–4)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
+            CAP("cascade_tier_spread", "cascade 跨件波相位散佈寬隨檔位遞增(J-4,cascade 的第三條檔位軸 = 純跨件時序散佈)", "L2",
+                "python3 tools/analyzer/validate_cascade_spread.py", "pipeline",
+                note="補 (J-3) 之後 cascade 的下一條軸:candidate (J) 讓 cascade 峰**幅度**隨檔位放大、(J-3) 讓**波掃道數** nrip 隨檔位遞增,"
+                     "本次補上**跨件散佈寬** span(各件峰時刻散得多開=波掃過整體多闊)隨檔位嚴格遞增(Super0.54→Mega0.58→Omg0.62→Legend0.66)。"
+                     "**crux(cascade 第三條檔位軸=純跨件時序的散佈)**:span 只改各件峰的**相對時刻**(第一件峰在 LEAD、最後一件峰在 LEAD+span),**不改峰數**(仍每件 pop nrip 次)、**不改峰幅**(仍 role peak);"
+                     "與 nrip 正交 —— 同時開兩軸時每道 sweep 的跨件散佈=span/nrip,把 per-sweep 散佈×nrip 即**還原 span** → span 軸可在任一 nrip 下獨立量得。"
+                     "span 是**連續時序參數**(非 count/拓樸)→ 走獨立於 _count_maps 的 _span_maps 路由,以該檔位 span **重生成** cascade 檔位變體再套幅度增益 g(散佈×道數×幅度多效正交可疊)。"
+                     "gen_cascade(span=)(None→CASCADE_SPAN 逐位元同基礎 cascade;上界 span<0.68 由窗排 packing 約束);新增 TIER_CASCADE_SPREAD + cascade_spread_for;"
+                     "build_animations(tier_cascade_spread=);_build_beat 的 _PHASE_AWARE 分支吃 span;build_spine --tier-variants 透傳。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,tier_cascade_spread[,tier_cascade_ripples]),validate_cascade_spread.py 5AC PASS"
+                     "(SP1 present+backward-compat 每檔位有 bone・base 逐位元不變・Super 逐位元==base(span=0.54)・tcs=None 逐位元同 (J) 幅度-only/"
+                     "SP2 crux 跨件散佈 [0.54,0.58,0.62,0.66] 嚴格遞增 ≈ 宣告(取樣誤差內)/SP3 crux 各件峰時刻仍依件序嚴格遞增(散佈變寬仍有序非切碎)・每件 pop 恆 1(散佈非道數)・首尾 setup identity・幅度峰仍遞增/"
+                     "SP4 正交(a spread+平增益→散佈遞增·峰幅不遞增,b 增益+無 spread→散佈恆=base·峰幅遞增,c crux spread×ripples 同時開→pop 次數==nrip[1,2,3,4] 且還原 span 遞增≈宣告)/"
+                     "SP5 負對照 平散佈全0.54→單調 FALSE・slot_reveal cascade_spread_for None 不亂加·span 只作用 cascade 非-cascade 變體逐位元同幅度-only)。"
+                     "**cascade 三軸(幅度 J / 波掃道數 J-3 / 散佈寬 J-4)全數正交成立;跨件時序通道自身已有『道數(count)』與『散佈(連續)』兩獨立子軸**。"
+                     "honest:散佈寬階梯(0.54–0.66)為 PROPOSAL(手感 A 類;方向遞增=波掃愈闊,反向愈同步為對等替代待拍板);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
         ],
     },
 ]

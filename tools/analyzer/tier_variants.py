@@ -174,6 +174,26 @@ def cascade_ripples_for(genre):
     return TIER_CASCADE_RIPPLES.get(genre)
 
 
+# candidate J-4 — 檔位 → cascade 跨件波的**相位散佈寬** span(**嚴格遞增**;base=Super=CASCADE_SPAN=0.54
+# → 逐位元同基礎 cascade,Super==base)。這是 cascade 的**第三條**檔位軸,與 nrip(J-3,波掃**道數**=結構)、
+# 幅度增益 g(J,峰**大小**)**三軸正交**:span 只改各件峰的**相對時刻**(跨件時序的**散佈**),不改峰數、不改峰幅。
+# 語意(A 類手感 PROPOSAL):檔位愈高 → 各件峰時刻散得愈開(波掃過整體愈闊/慢,每件有更分明的先後),
+# 讀作「大獎的跨件亮相更鋪張、更有儀式感」。**方向為提案**;反向(span 遞減=波掃愈快/愈同步)為對等替代,留待使用者拍板。
+# 上界:beat_templates.gen_cascade 的窗排 packing 要求 span<0.68(LEAD+span+0.16<1,與 nrip 無關)→ Legend 0.66 仍留餘裕。
+# 錨定 Super=0.54=CASCADE_SPAN 使「Super 逐位元==base」(同 J/J-2/J-3 各軸 base=Super 的向後相容契約)。
+# 與 nrip 正交(crux):同時開兩軸時,每道 sweep 的跨件散佈=span/nrip;把 per-sweep 散佈×nrip 即還原 span
+# → span 軸可在任一 nrip 下獨立量得(見 validate_cascade_spread SP4c)。span 是連續時序參數(非 count/拓樸),
+# 故走獨立於 _count_maps 的 `_span_maps` 路由(build_animations),不與波掃道數混用。
+TIER_CASCADE_SPREAD = {
+    "slot_bigwin": {"Super": 0.54, "Mega": 0.58, "Omg": 0.62, "Legend": 0.66},
+}
+
+
+def cascade_spread_for(genre):
+    """回傳該 genre 的 {tier: span};無宣告的 genre 回 None(→ cascade 檔位變體不變跨件散佈寬)。"""
+    return TIER_CASCADE_SPREAD.get(genre)
+
+
 def _amp_scale(v, g):
     """scale 值幅度增益:僅放大 identity 上方 overshoot;下方(squash/collapse)樓地板不動。"""
     return 1.0 + g * (v - 1.0) if v >= 1.0 else v

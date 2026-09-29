@@ -227,12 +227,15 @@ from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
     VOL_TWIST_CATS as _VOL_TWIST_CATS, amplify_anim as _amplify_anim
 
 
-def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False):
+def _build_beat(beat, cat, bone_of, cx, cy, count=None, span=None, twist_vol=False):
     """把單一 beat 的每件 role 具體化為 anim dict(bones/slots timelines)。
 
     cat 依語意分派運動基元;`count`(J-2 combo 峰數 / G-4''' wobble 振盪段數 / G-4'''''-c squash 擠壓段數 /
-    G-4''''''-count twist 扭轉段數)只對 COUNT_AWARE 類別生效。`count is None` → 呼叫生成器**自身預設**
-    (combo=3 峰、wobble/squash/twist=4 段 → golden byte-identical);給定值 → 帶入生成器決定段數。
+    G-4''''''-count twist 扭轉段數 / J-3 cascade 波掃道數 nrip)只對 COUNT_AWARE 或 _PHASE_AWARE 類別生效。
+    `count is None` → 呼叫生成器**自身預設**(combo=3 峰、wobble/squash/twist=4 段、cascade nrip=1 → golden
+    byte-identical);給定值 → 帶入生成器決定段數/道數。
+    `span`(J-4)只對 cascade(_PHASE_AWARE)生效 = 跨件波的相位散佈寬;`None` → 生成器預設 CASCADE_SPAN
+    (逐位元同基礎 cascade);給定值 → 各件峰時刻散佈寬(與 nrip/幅度三軸正交)。
     `twist_vol`(G-4''''''-vol):True 時只對 twist 掛體積守恆等向補償 scale(shear+scale+rotate 三通道同時且守恆)。
     cascade(_PHASE_AWARE)另依件序帶入相位。"""
     bones_tl, slots_tl = {}, {}
@@ -258,12 +261,15 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False):
         if cat in _PHASE_AWARE:
             # 件序相位:第一件 0、最後一件 1(單件時 0)→ 各件峰時刻依序錯開。
             # candidate J-3:cascade 另吃 `count`=nrip(跨件波掃過整體的次數,檔位相依)。
-            # count is None → 生成器自身預設(nrip=1 → golden 單 sweep byte-identical);給定值 → 帶入決定波掃道數。
+            # candidate J-4:cascade 另吃 `span`=跨件波相位散佈寬(檔位相依,與 nrip 正交)。
+            # 皆 None → 生成器自身預設(nrip=1、span=CASCADE_SPAN → golden byte-identical);給定值 → 帶入。
             phase = 0.0 if nvalid <= 1 else pi / (nvalid - 1)
-            if count is None:
-                b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
-            else:
-                b, sdict = _DISPATCH[cat](role, side_sign, radial, phase, count)
+            kw = {}
+            if count is not None:
+                kw["nrip"] = count
+            if span is not None:
+                kw["span"] = span
+            b, sdict = _DISPATCH[cat](role, side_sign, radial, phase, **kw)
         elif cat in _COUNT_AWARE_CATS:
             # 段數(檔位相依):combo 峰數 / wobble 振盪段數。count is None → 生成器自身預設(golden)。
             # G-4''''''-vol:twist 專屬 vol_conserve(等向補償 scale → 體積守恆);其餘類別不吃此 kwarg。
@@ -288,7 +294,7 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False):
 
 def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
                      tier_wobble_cycles=None, tier_squash_cycles=None, tier_twist_cycles=None,
-                     tier_cascade_ripples=None, twist_volume=False):
+                     tier_cascade_ripples=None, tier_cascade_spread=None, twist_volume=False):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
@@ -311,12 +317,19 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     cascade∈_PHASE_AWARE(非 COUNT_AWARE_CATS/單件段數)——nrip 是**跨件時序**通道的段數(整體 ripple 幾道),
     每件 pop nrip 次、每道 sweep 內各件峰時刻仍依件序遞增(跨件排序在每道波皆保住)。事後幅度 amplify 加不出第二道
     sweep(拓樸=gen 時決定的窗)→ 以該檔位 nrip 重生成再套單一-g 幅度增益(波掃道數×幅度兩效正交可疊)。
-    七者皆 None/False(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、base cascade 恆 1 道波、twist 無 scale)。"""
+    tier_cascade_spread(J-4):`{tier: span}` 時,對 cascade 檔位變體以該檔位 span **重生成**(跨件波的相位**散佈寬**
+    隨檔位遞增);span 是 cascade 的**第三條**檔位軸(跨件時序的散佈),與 nrip(波掃道數)、幅度增益 g(峰大小)
+    **三軸正交**:span 只改各件峰的**相對時刻**,不改峰數、不改峰幅。span 為連續時序參數(非 count/拓樸),走
+    獨立於 _count_maps 的 `_span_maps` 路由;同時開 nrip 與 span 時,每道 sweep 的跨件散佈=span/nrip(兩軸可疊)。
+    八者皆 None/False(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、base cascade 恆 1 道波·span=CASCADE_SPAN、twist 無 scale)。"""
     # COUNT_AWARE(單件段數)+ cascade(跨件波掃次數,_PHASE_AWARE)→ 對應的 {tier: count} 映射
     # (依 cat 路由;None → 該類別 count 不隨檔位變)。cascade 的 count 語意=nrip(波掃道數),非單件段數。
     _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles,
                    "squash": tier_squash_cycles, "twist": tier_twist_cycles,
                    "cascade": tier_cascade_ripples}
+    # (J-4)cascade 專屬**散佈寬**(span)映射,與 _count_maps 分開(span 是連續時序參數,非 count/拓樸)。
+    # None → cascade 散佈寬不隨檔位變(向後相容)。目前僅 cascade 有此軸。
+    _span_maps = {"cascade": tier_cascade_spread}
     # 件名 → bone/slot / setup 位置
     bone_of = {b["name"].removeprefix("b_"): b for b in skeleton["bones"] if b["name"] != "root"}
     # 畫布中心(用於徑向)
@@ -335,6 +348,7 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
             # count 路由涵蓋單件段數(_COUNT_AWARE_CATS)與 cascade 跨件波掃次數(_PHASE_AWARE)。
             # 直接查 _count_maps:未列或對應 tier_*=None 的類別回 None(→ 不隨檔位重生成,向後相容)。
             cmap = _count_maps.get(cat)
+            smap = _span_maps.get(cat)     # (J-4)cascade 散佈寬映射(其餘類別 None → span 不隨檔位變)
             # (G-4''''')squash 等耦合 scale 類別 → amplify 走體積守恆耦合(scaleX·scaleY≡1);其餘逐軸。
             coupled = cat in _COUPLED_SCALE_CATS
             # (G-4''''''-vol-tier)twist 掛體積守恆 scale 時 → amplify 依放大後 shear **重算**等向補償 scale
@@ -343,10 +357,12 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
             tv = twist_volume and (cat in _VOL_TWIST_CATS)
             for tier, g in tier_gains.items():
                 cnt = cmap.get(tier) if cmap else None
-                if cnt is not None:
-                    # J-2/G-4''':段數隨檔位遞增 → 以該檔位段數重生成 beat,再套幅度增益 g(正交可疊)。
+                spn = smap.get(tier) if smap else None
+                if cnt is not None or spn is not None:
+                    # J-2/G-4''':段數(count)隨檔位遞增;J-4:cascade 散佈寬(span)隨檔位遞增。
+                    # 二者任一給定 → 以該檔位參數重生成 beat,再套幅度增益 g(count/span/幅度多效正交可疊)。
                     # twist 另帶 twist_vol → 重生成的變體也掛體積守恆 scale(段數×幅度×守恆三效正交)。
-                    variant = _build_beat(beat, cat, bone_of, cx, cy, count=cnt, twist_vol=twist_volume)
+                    variant = _build_beat(beat, cat, bone_of, cx, cy, count=cnt, span=spn, twist_vol=twist_volume)
                     anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g, coupled=coupled, twist_vol=tv)
                 else:
                     anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g, coupled=coupled, twist_vol=tv)

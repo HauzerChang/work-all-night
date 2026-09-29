@@ -261,10 +261,10 @@ CASCADE_LEAD = 0.16
 CASCADE_SPAN = 0.54
 
 
-def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1):
+def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1, span=None):
     """跨件錯開波中的**單件** pop(依 phase 錯開)。回傳 (bone_timelines, slot_timelines)。
 
-    每件 scale 包絡(絕對 τ,單一 sweep 中心 c=LEAD+phase*SPAN):
+    每件 scale 包絡(絕對 τ,單一 sweep 中心 c=LEAD+phase*span):
       1.0(identity)→ hold 1.0 到輪到它 → 0.94(蓄力)→ peak(pop)→ 0.97→1.005(阻尼回擺)→ 1.0。
     首尾皆 identity;全域峰落在 c → 各件峰時刻隨 phase 錯開 = cascade 跨件簽章。
 
@@ -277,17 +277,26 @@ def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1):
     **crux(與單件 count 的差異)**:combo/wobble/squash/twist 的 count 是**單件內**極值數(同一件連幾下);
     cascade 的 nrip 是**跨件波掃幾道**(段數落在**跨件時序**通道)。故 count 簽章需同時驗:① 每件 pop nrip 次
     (單件峰數);② 每個 sweep 內各件峰時刻仍依件序遞增(跨件排序在每道波皆保住)。事後幅度 amplify 只能同比
-    放大既有 pop、**加不出第二道 sweep**(拓樸=gen 時決定的關鍵幀窗;比照 combo/wobble 的段數重生成)。"""
+    放大既有 pop、**加不出第二道 sweep**(拓樸=gen 時決定的關鍵幀窗;比照 combo/wobble 的段數重生成)。
+
+    `span`(candidate J-4)= **跨件波的相位散佈寬**(τ 窗;第一件峰在 LEAD、最後一件峰在 LEAD+span,單一 sweep 內)。
+    `None`(預設)→ 用模組常數 `CASCADE_SPAN`(=0.54)→ **逐位元同基礎 cascade**(向後相容)。span 愈大 → 各件峰時刻
+    散得愈開(波掃過整體愈「慢/闊」= 每件有更分明的先後時刻)。span 是**跨件時序的散佈軸**,與 nrip(波掃**道數**)、
+    幅度增益 g(峰**大小**)**三軸正交**:span 只改各件峰的**相對時刻**,不改峰數、不改峰幅。
+    **窗排packing 上界 span<0.68**:任一件(相位 p)第 k 道 sweep 尾點 =(k+LEAD+p·span+0.16)/nrip,最壞 p=1、k=nrip−1
+    → (nrip−1+LEAD+span+0.16)/nrip<1 ⇔ LEAD+span+0.16<1 ⇔ span<0.68(與 nrip 無關;LEAD=0.16)。首點
+    (LEAD+p·span−0.09)/nrip>0 恆成立;件內相鄰 sweep 間隙 0.75/nrip>0 與 span 無關(span 只把該件所有 sweep 同步平移)。"""
     T = DUR["cascade"]
     peak = _PEAK.get(role, 1.18)
     p = max(0.0, min(1.0, phase))
     n = max(1, int(nrip))
+    sp = CASCADE_SPAN if span is None else span   # 跨件散佈寬(None → 模組預設 → byte-identical);上界 <0.68
     w = 1.0 / n                                   # 每個 sweep 窗壓縮比(nrip==1 → 1.0 → byte-identical)
-    centers = [(k + CASCADE_LEAD + p * CASCADE_SPAN) / n for k in range(n)]
+    centers = [(k + CASCADE_LEAD + p * sp) / n for k in range(n)]
     b, s = {}, {}
     # scale 包絡:前導 identity + 每個 sweep(蓄力 dip → pop → 阻尼回擺 → identity)+ 結尾 identity。
-    # 窗間隙 (c_{k+1}−0.09w)−(c_k+0.16w)=0.75w>0 → 時間嚴格遞增、sweep 互不重疊;
-    # 首窗 c_0−0.09w=(LEAD−0.09+p*SPAN)/n≥0.07/n>0、末窗 c_last+0.16w=(n−1+LEAD+p*SPAN+0.16)/n≤(n−0.14)/n<1。
+    # 窗間隙 (c_{k+1}−0.09w)−(c_k+0.16w)=0.75w>0 → 時間嚴格遞增、sweep 互不重疊(與 sp 無關,sp 同步平移該件全 sweep);
+    # 首窗 c_0−0.09w=(LEAD−0.09+p*sp)/n>0、末窗 c_last+0.16w=(n−1+LEAD+p*sp+0.16)/n<1 ⇔ sp<0.68(見 docstring 上界)。
     env = [(0.00, 1.000)]
     for c in centers:
         env += [(c - 0.09 * w, 1.000), (c - 0.05 * w, 0.940), (c, peak),
