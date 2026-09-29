@@ -412,6 +412,19 @@ BLOCKS = [
                      "TV5 端到端三通道 pivot 殘差 <0.016px vs 負對照 8–29px(含補償 scale)/TV6 負對照 無補償縮面積・等向 vs squash 非均勻隔離・twist_volume=False 逐位元同 shear-only+移除 twist 其餘不變)。"
                      "**一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)+ 體積守恆全數在生成端成立;跨通道約束(twist:det≡1)由建構(等向補償)保證**。"
                      "honest:vol 僅作用 base twist(tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1,比照 squash 耦合 amplify,為後續);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_tier", "volume-conserving twist 接檔位差異化(G-4''''''-vol-tier,補償 scale 依放大後 shear 非線性重算)", "L2",
+                "python3 tools/analyzer/validate_twist_volume_tier.py", "pipeline",
+                note="補 (G-4''''''-vol) 明列的最後一條 honest boundary:「vol 僅作用 base twist;tier 變體仍 shear-only —— vol 隨檔位放大需**重算補償 scale** 維持 det≡1」。"
+                     "tier 放大把兩軸 shear 同比拉大(shearX'=g·shearX、shearY'=g·shearY → 兩基底夾角偏離 Δ'=(shearX−shearY)·g)→ 真正的守恆補償變成 s'=1/√cos(g·Δ),對 g **非線性**。"
+                     "amplify_bone_tl(twist_vol=True):先放大 shear、再**依放大後 shear 重算**每個 scale 極值等向 s(_recompute_twist_scale_iso)→ 全域 det≡1 於任一檔位保持,補償量隨檔位非線性遞增。"
+                     "新增 VOL_TWIST_CATS={twist};build_animations(twist_volume=True,tier_gains=…) 對 twist 檔位變體路由 twist_vol 重算(段數 tier_twist_cycles 重生成的變體亦掛 vol → 段數×幅度×守恆三效正交)。"
+                     "**crux(與 squash G-4''''' 耦合 amplify 對比):squash 耦合是 sy'=1/sx'(倒數、與 shear 無關);twist 補償是依放大後 shear 重算的等向 s(cos 反推、值來自 shear)—— 同為建構保證跨通道約束但不同源。**"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,tier_twist_cycles,twist_volume),validate_twist_volume_tier.py 6AC PASS(VTT1 present+backward-compat 每檔位 dual-channel 等向・"
+                     "base 逐位元不變・Super(g=1)逐位元==base twist vol/VTT2 crux 每檔位每內部極值 |det−1|≤9.7e-5(TOL 2e-4)且峰補償 scale[1.0603,1.1169,1.2024,1.3572]・峰 shearX[16,21.6,27.2,33.6]° 皆嚴格遞增 Super==base/"
+                     "VTT3 crux 負對照 逐軸線性 amplify Legend |det−1| 0.11–0.31 vs 重算 ≤8.5e-5(>1000× 鑑別)+ 重算單元測/VTT4 兩軸反相阻尼簽章+φ 比值≈0.7 逐檔不變+identity 介面 每檔位保形/"
+                     "VTT5 端到端 build_spine --animate --tier-variants --twist-volume --shear-pivot 每檔位 twist__{tier} pivot 殘差 <0.33px(Legend 最強)vs 負對照 8–74px/VTT6 平增益守衛(隔離幅度軸→補償不遞增且==base vol)・非 twist 主秀變體不生 scale・移除 twist 其餘逐位元不變)。"
+                     "回歸:24 閘全綠(23 + 新 twist_volume_tier)。**一般仿射四自由度 + 體積守恆已在生成端 base 與 tier 全檔位成立;跨通道約束(twist:det≡1)由建構(依放大後 shear 重算等向補償)保證於任一檔位**。"
+                     "honest:幅度階梯為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
         ],
     },
 ]
