@@ -412,6 +412,17 @@ BLOCKS = [
                      "TV5 端到端三通道 pivot 殘差 <0.016px vs 負對照 8–29px(含補償 scale)/TV6 負對照 無補償縮面積・等向 vs squash 非均勻隔離・twist_volume=False 逐位元同 shear-only+移除 twist 其餘不變)。"
                      "**一般仿射四自由度(rotate/非均勻 scale/shearX/shearY)+ 體積守恆全數在生成端成立;跨通道約束(twist:det≡1)由建構(等向補償)保證**。"
                      "honest:vol 僅作用 base twist(tier 變體 vol 隨檔位放大需重算補償 scale 維持 det≡1,比照 squash 耦合 amplify,為後續);幅度為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("twist_volume_tier", "volume-conserving twist 接檔位差異化(G-4''''''-vol-tier,tier 放大 shear → 重算等向補償 scale 維持 det≡1)", "L2",
+                "python3 tools/analyzer/validate_twist_volume_tier.py", "pipeline",
+                note="補 (G-4''''''-vol) 明列的最後一條 honest boundary:「vol 僅作用 base twist;tier 變體仍 shear-only。vol 隨檔位放大需重算補償 scale 以維持 det≡1(tier 放大 shear → cos(shearX−shearY) 變 → 補償 s 須非線性重算,比照 squash 耦合 amplify,但 twist 走等向補償)」。"
+                     "crux(與 squash 耦合 amplify 差異):squash 的守恆是 scale 內部耦合(scaleY=1/scaleX);twist 的守恆是 scale **由 shear 決定**(s=1/√cos(shearX−shearY))。tier 以同一 g 放大兩軸 shear(v'=g·v)→ shearX−shearY 變 g·(shearX−shearY)→ cos 非線性變小 → 補償 s 必須從**放大後**的 shear 重算 s'=1/√cos(g·(shearX−shearY));"
+                     "逐軸線性放大既有 s(_amp_scale)無法維持 det≡1(實測 Legend g=2.1 |det−1|≈0.31)。實作:amplify_bone_tl(twist_vol=True) 先放大 shear、再依放大後兩軸 shear 逐幀重算等向補償 s;build_animations(twist_volume=True) 對 twist tier 變體路由此耦合(base 與 tier 變體皆守恆)。三效正交:段數(重生成)×幅度(兩軸同比 φ 保形)×體積守恆(重算補償)同時成立。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,tier_twist_cycles,twist_volume=True),validate_twist_volume_tier.py 6AC PASS(TVT1 present+backward-compat 每檔位 dual-axis shear+等向 scale・base 逐位元不變・twist_volume=False tier 變體無 scale 零回歸/"
+                     "TVT2 crux 每檔位每內部極值 |det−1|≤9.7e-5 vs 負對照(同一 base vol beat 以 twist_vol=False 逐軸線性放大)Mega/Omg/Legend |det−1| 0.063/0.159/0.311 破守恆 → >3000× 分離,證重算補償必要/"
+                     "TVT3 crux 兩軸峰 shearX[16,21.6,27.2,33.6]°・shearY[11.2,15.12,19.04,23.52]° 皆嚴格遞增(Super==base)且 φ 逐檔≈0.7 不變 → 體積耦合不擾動 twist 檔位簽章/TVT4 兩軸反相阻尼簽章每檔位保形/TVT5 identity 介面(shear 0・scale 1)每檔位/"
+                     "TVT6 端到端 --tier-variants --twist-volume --shear-pivot 三通道補償 pivot 殘差 <0.5px(Legend 最強一般仿射 0.32px)vs 負對照繞件中心 18–74px・twist tier scale 等向 vs squash tier 非均勻隔離)。"
+                     "**體積守恆(det≡1)在幅度×段數×守恆三軸全開下於任一檔位保持;跨通道約束由建構(依放大後 shear 反推補償)保證**。"
+                     "honest:twist 系列 honest boundary 至此清空(生成端一般仿射四自由度 + 體積守恆 + tier 幅度 + tier 段數全通);幅度/φ/段數階梯為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
         ],
     },
 ]

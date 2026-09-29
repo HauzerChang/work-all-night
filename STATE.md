@@ -10,6 +10,31 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 volume-conserving twist 接檔位差異化:tier 放大 shear → 重算等向補償 scale 維持 det≡1(里程碑,2026-09-29 run 001,candidate G-4''''''-vol-tier)** —
+  補 (G-4''''''-vol) 明列的**最後一條** honest boundary:「vol 僅作用 base twist;tier 變體仍 shear-only。vol 隨檔位放大需**重算補償 scale**
+  以維持 det≡1」。tier 以**同一 g** 放大兩軸 shear(`v'=g·v`)→ `shearX−shearY` 變成 `g·(shearX−shearY)` → `cos(shearX−shearY)`
+  **非線性**變小 → 補償 scale 必須從**放大後**的 shear 重算 `s'=1/√cos(g·(shearX−shearY))`。**crux(與 squash 耦合 amplify 差異)**:
+  squash 的守恆是 scale **內部**耦合(scaleY=1/scaleX,放大拉長軸/壓縮軸取倒數);twist 的守恆是 scale **由 shear 決定**
+  (s=1/√cos(shearX−shearY))→ 沿「shear→scale」映射流形放大。**逐軸線性放大既有 s(`_amp_scale`)無法維持 det≡1**
+  (實測 Legend g=2.1 |det−1|≈0.31)。實作全 additive:`tier_variants._twist_vol_scale`(與 `beat_templates._twist_scale_env`
+  同式,對放大後 shear 重算)+ `amplify_bone_tl(…, twist_vol=)`(twist_vol=True 時 scale 延後到 shear 放大後、依放大後兩軸
+  shear 逐幀重算等向 s;與 `coupled`(squash)互斥)+ `amplify_anim` 透傳;`build_animations(twist_volume=True)` 對 twist tier
+  變體計 `tvol=twist_volume and cat=="twist"` 路由(重生成帶 twist_vol、amplify 帶 twist_vol → base 與**每個** tier 變體皆守恆);
+  既有 `build_spine --animate --tier-variants --twist-volume --shear-pivot` 端到端直出(無新 CLI 旗標)。整合閘
+  `validate_twist_volume_tier.py`(先驗庫 → **真實 build_spine robot 骨架** → build_animations(tier_gains,tier_twist_cycles,twist_volume=True))
+  **6 AC 全 PASS**:TVT1 present+backward-compat(每檔位 dual-axis shear + 等向 scale、base 逐位元不變、**twist_volume=False → tier 變體無 scale** 零回歸)、
+  TVT2 **crux per-tier 體積守恆**(每檔位每內部極值 |det−1|≤9.7e-5(TOL 2e-4);**負對照 = 同一 base vol beat 以
+  `amplify_bone_tl(twist_vol=False)` 逐軸線性放大 → Mega/Omg/Legend |det−1| 0.063/0.159/0.311 破守恆 → >3000× 分離**,
+  證重算補償必要、閘測真守恆非「有 scale 即可」)、TVT3 **crux 兩軸峰遞增 + φ 不變**(shearX[16,21.6,27.2,33.6]°、
+  shearY[11.2,15.12,19.04,23.52]° 皆嚴格遞增 Super==base;φ 逐檔≈0.7 不變 → 體積耦合不擾動 twist 檔位簽章)、
+  TVT4 雙軸反相阻尼簽章 per tier、TVT5 identity 介面 per tier(shear 0、scale 1)、TVT6 端到端三通道 pivot 殘差 <0.5px
+  (Legend 最強一般仿射 0.32px)vs 負對照繞件中心 18–74px(≥150×)+ twist tier scale 等向 vs squash tier 非均勻隔離。
+  新增 cap `twist_volume_tier` L2 併入 `spine-anim-forge`(**仍 HOLD**)。**關鍵發現**:**跨通道約束(det≡1)在幅度×段數×守恆
+  三軸全開下於任一檔位保持,靠「依放大後 shear 反推補償 scale」;squash 沿 scale 內部流形、twist 沿 shear→scale 映射流形,
+  守恆恆由建構(反推)保證**。**twist 系列 honest boundary 至此清空**(生成端一般仿射四自由度 + 體積守恆 + tier 幅度 + tier 段數全通)。
+  **honest boundary(仍在)**:幅度/φ/段數階梯為 PROPOSAL(手感 A 類);單一真值資產;端到端 pivot 殘差隨一般仿射強度增大
+  (Legend 0.32px,仍 <TOL_FIX 0.5px,若需更緊可提高 apply_pivots 重取樣密度)。見 `knowledge/s1-twist-volume-tier.md`。
+  ⚠️ **本次另發現 check_readiness 有 2 個 pre-existing RED**(非本 chunk 造成,見下「未解問題」)。
 - **S1 volume-conserving twist:反相雙軸 shear 接體積守恆等向 scale(里程碑,2026-09-27 run 001,candidate G-4''''''-vol)** —
   補 twist 系列(G-4'''''' 生成 → tier → count)一路留到現在的**最後一條 honest boundary**:反相雙軸 shear 的
   Spine local 行列式 `det = cos(shearX − shearY) < 1`(兩基底夾角 90+shearY−shearX,反相被擰緊 → cos<1)→
@@ -754,8 +779,10 @@
 >   等向補償 scale `s=1/√cos(shearX−shearY)` → 全域 `det≡1`(擰而不變面積);shear+scale+rotate 三通道同時 = 塞滿一般仿射四自由度**且守恆**;
 >   crux twist 補償**等向**(vs squash 非均勻)不同源;`gen_twist(vol_conserve=)`/`build_spine --twist-volume`;`validate_twist_volume.py` 6AC PASS。
 >   **一般仿射四自由度 + 體積守恆全數在生成端成立**。**續**(擇一,皆自主):(G-4''''''-vol-tier) vol 接 tier 幅度(隨檔位放大重算補償 scale 維持 det≡1,比照 squash 耦合 amplify);其餘見下。
+> **(G-4''''''-vol-tier) ~~volume-conserving twist 接檔位差異化~~ ✅ 完成(2026-09-29 run 001,candidate G-4''''''-vol-tier,`twist_volume_tier` L2,見上里程碑)** ——
+>   `amplify_bone_tl(twist_vol=)` 依放大後兩軸 shear 逐幀重算等向補償 s'=1/√cos(g·(shearX−shearY))→ base 與每 tier 皆 det≡1;
+>   `validate_twist_volume_tier.py` 6AC PASS(TVT2 負對照逐軸線性放大 Legend |det−1|≈0.31 vs 重算 ≤9.7e-5)。**twist 系列 honest boundary 清空**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(G-4''''''-vol-tier) volume-conserving twist 接檔位差異化(tier 放大 shear → cos(shearX−shearY) 變 → 補償 s 須非線性重算維持 det≡1;比照 squash G-4''''' 的耦合 amplify,但 twist 走等向補償)**;
 > **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸;比照 G-4'''/J-2 但簽章在件之間)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到第四個通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
@@ -769,6 +796,8 @@
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
+- ⚠️ **check_readiness 有 2 個 pre-existing RED**(2026-09-29 發現;**非本次 vol-tier chunk 造成** —— 已於 clean tree(stash 本次改動)驗證committed HEAD 6901f99 同樣 RED):兩者皆同一支 `validate_analyzer_award.py`(在 `spine-asset-forge`/`spine-target-analysis` 兩 block 各出現一次),失敗於 **`4_storyboard_structure`**:該檢查用 `proposed_beats == award_beats`(**嚴格相等**),但先驗庫已成長到提案 11 個 beat(In/Loop/Out + burst/cascade/charge/combo/hit/squash/twist/wobble),而 Award 真值只有 In/Loop/Out → `beats_match=false`。此為**準則漂移**:與專案自身在 `validate_priors` 的處理(多出的 beat 列 `prior_beats_unused` 為誠實 PROPOSAL、仍 PASS、coverage 1.0)**不一致**;`4_storyboard_structure` 的嚴格 `==` 早在先驗庫加入主秀 beat(≥candidate E/G-4',2026-09-08 起)即應為 RED,過往里程碑「0 RED/全綠」聲明未涵蓋此閘(check_readiness 輸出長、且 twist 系列作者聚焦於自己新增的閘)。**建議修法(屬 A 類:改評估器準則需拍板)**:把 `4_storyboard_structure` 由嚴格相等改為「Award 真值 beats ⊆ proposed_beats(覆蓋)+ tier 命中」,或明確分離「結構 clip(In/Loop/Out)」與「主秀運動 beat」兩種 taxonomy 分別驗;**未在本 chunk 內自行修改**(避免自主放寬 AC 可能掩蓋真缺口)。twist/anim-forge 系列及其回歸閘全綠。
+- ❓ **分支協調**:主排程 SCHEDULE.md「① 主研究」指定固定分支 `claude/spine-main`,但本 session 的指派分支為 `claude/focused-dirac-f24xw7`(且它比 `origin/claude/spine-main` **超前 3 個 commit**,含 G-4''''''-tier/count/vol 三個里程碑)。本次依 session 指派 push 到 `claude/focused-dirac-f24xw7`(未經允許不 push 到 spine-main)。**建議使用者**:把 `claude/focused-dirac-f24xw7` 合回 `claude/spine-main`(或把 default branch 對齊),避免主排程固定分支落後。
 - ❓ 排程頻率未定(使用者尚未決定)。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
