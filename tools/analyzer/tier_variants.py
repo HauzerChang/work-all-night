@@ -157,6 +157,23 @@ def twist_cycles_for(genre):
     return TIER_TWIST_CYCLES.get(genre)
 
 
+# candidate J-3 — 檔位 → cascade 跨件波**掃過整體的次數** nrip(**嚴格遞增**;base=Super=1 → 逐位元同基礎單 sweep cascade)。
+# **與 combo/wobble/squash/twist 的段數本質不同**:那些是**單件內**極值數(同一件連幾下);cascade 的 nrip 是
+# **跨件波掃幾道**(段數落在**跨件時序**通道,cascade∈_PHASE_AWARE)。上界 4:cascade T=1.2s 內均分 4 個 sweep 窗,
+# 每窗寬 1/4、窗內包絡壓縮 1/4 → 窗間隙 0.75/4>0(時間嚴格遞增、互不重疊)、末窗峰時 (4−0.14)/4=0.965<1(首尾仍 identity);
+# 每件 pop 4 次、各 pop 峰值同(=role peak≥1.18>IMPACT_PROM)→ impact 峰數==nrip 可辨。與單件段數階梯**正交獨立**
+# (cascade 段數自成一路,build_animations 依 cat 路由 _count_maps)。**crux**:幅度 amplify 加不出第二道 sweep
+# (拓樸=gen 時決定的關鍵幀窗),故對 cascade 檔位變體以該檔位 nrip **重生成**再套幅度增益 g(正交可疊)。
+TIER_CASCADE_RIPPLES = {
+    "slot_bigwin": {"Super": 1, "Mega": 2, "Omg": 3, "Legend": 4},
+}
+
+
+def cascade_ripples_for(genre):
+    """回傳該 genre 的 {tier: nrip};無宣告的 genre 回 None(→ cascade 檔位變體不變波掃次數)。"""
+    return TIER_CASCADE_RIPPLES.get(genre)
+
+
 def _amp_scale(v, g):
     """scale 值幅度增益:僅放大 identity 上方 overshoot;下方(squash/collapse)樓地板不動。"""
     return 1.0 + g * (v - 1.0) if v >= 1.0 else v

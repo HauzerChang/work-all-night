@@ -425,6 +425,21 @@ BLOCKS = [
                      "VTT5 端到端 build_spine --animate --tier-variants --twist-volume --shear-pivot 每檔位 twist__{tier} pivot 殘差 <0.33px(Legend 最強)vs 負對照 8–74px/VTT6 平增益守衛(隔離幅度軸→補償不遞增且==base vol)・非 twist 主秀變體不生 scale・移除 twist 其餘逐位元不變)。"
                      "回歸:24 閘全綠(23 + 新 twist_volume_tier)。**一般仿射四自由度 + 體積守恆已在生成端 base 與 tier 全檔位成立;跨通道約束(twist:det≡1)由建構(依放大後 shear 重算等向補償)保證於任一檔位**。"
                      "honest:幅度階梯為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
+            CAP("cascade_tier_ripple_count", "cascade 跨件波掃次數隨檔位遞增(J-3,第一個**跨件時序**通道的 count-aware)", "L2",
+                "python3 tools/analyzer/validate_cascade_count.py", "pipeline",
+                note="補 (J-3) 的 honest boundary:candidate (J) 讓 cascade 波峰**幅度**隨檔位放大,但各檔位仍是**同一道**跨件波 ——「掃得多猛」有了、「掃幾道」沒有。"
+                     "本次補上波掃次數 nrip 隨檔位嚴格遞增(Super1→Mega2→Omg3→Legend4)。**與單件 count(combo/wobble/squash/twist)本質不同(crux)**:那些 count 是**單件內**極值數"
+                     "(同一件連幾下,段數落在單件曲線);cascade 的 nrip 是**跨件波掃幾道**(段數落在**跨件時序**通道,cascade∈_PHASE_AWARE)——**第一個跨件的 count-aware 通道**。"
+                     "整段 τ 均分 nrip 個窗,第 k 窗是一次壓縮版跨件 sweep(該件中心 c_k=(k+LEAD+p·SPAN)/nrip、包絡寬壓縮 1/nrip → 窗間隙 0.75/nrip>0 互不重疊、首尾仍 identity);"
+                     "每件 pop nrip 次、整體掃 nrip 道有序波。**幅度 amplify 加不出第二道 sweep**(拓樸=gen 時決定的關鍵幀窗)→ 對 cascade 檔位變體以該檔位 nrip **重生成**再套單一-g 幅度增益(正交可疊)。"
+                     "新增 TIER_CASCADE_RIPPLES + cascade_ripples_for;gen_cascade(nrip=)(nrip==1 逐位元同基礎單 sweep cascade);build_animations(tier_cascade_ripples=) 把 cascade 併入 _count_maps、"
+                     "_build_beat 的 _PHASE_AWARE 分支吃 count=nrip;build_spine --tier-variants 透傳。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,tier_cascade_ripples),validate_cascade_count.py 5AC PASS(X1 present+backward-compat 每檔位有 bone・"
+                     "base 恆1道逐位元不變・Super 逐位元==base・tcr=None 逐位元同 (J) 幅度-only/X2 crux 波掃次數[1,2,3,4] 嚴格遞增 且每檔位所有件 pop 次數一致==nrip/"
+                     "X3 crux **每一道 sweep 的各件峰時刻仍依件序嚴格遞增**且散佈≥0.6·SPAN/nrip(每道波皆有序跨件波非切碎)+每檔位首尾 setup identity+幅度峰仍遞增/"
+                     "X4 正交 ripples+平增益→波掃次數遞增·峰幅不遞增,增益+無 ripples→波掃次數恆1·峰幅遞增/X5 負對照 平波掃次數全1→單調 FALSE・slot_reveal cascade_ripples_for None 不亂加·ripple 只作用 cascade 非-cascade 變體逐位元同幅度-only)。"
+                     "**結構(段數)軸已在 combo/wobble/squash/twist **四個單件通道** + cascade **跨件通道** 成立;跨件 count 的簽章需多驗一層『每道 sweep 仍保跨件排序』(單件 count 無此層)**。"
+                     "honest:波掃次數階梯(1–4)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
         ],
     },
 ]

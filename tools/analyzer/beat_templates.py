@@ -261,36 +261,59 @@ CASCADE_LEAD = 0.16
 CASCADE_SPAN = 0.54
 
 
-def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0):
+def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1):
     """跨件錯開波中的**單件** pop(依 phase 錯開)。回傳 (bone_timelines, slot_timelines)。
 
-    每件 scale 包絡(絕對 τ,中心 c=LEAD+phase*SPAN):
+    每件 scale 包絡(絕對 τ,單一 sweep 中心 c=LEAD+phase*SPAN):
       1.0(identity)→ hold 1.0 到輪到它 → 0.94(蓄力)→ peak(pop)→ 0.97→1.005(阻尼回擺)→ 1.0。
-    首尾皆 identity;全域峰落在 c → 各件峰時刻隨 phase 錯開 = cascade 跨件簽章。"""
+    首尾皆 identity;全域峰落在 c → 各件峰時刻隨 phase 錯開 = cascade 跨件簽章。
+
+    `nrip`(candidate J-3)= **跨件波掃過整體的次數**(ripple / sweep 數),隨檔位遞增
+    (Super 1 → Legend 4)。整段 τ 均分為 `nrip` 個窗,第 k 窗(k=0..nrip−1)是一次**壓縮版**跨件 sweep,
+    該件在窗內的中心 `c_k=(k+LEAD+p*SPAN)/nrip`(同一 phase → **每個 sweep 內各件仍依件序錯開**);
+    窗內包絡寬壓縮 1/nrip → nrip 窗時間互不重疊(窗間隙 0.75/nrip>0、首尾仍 identity)。
+    ⇒ 每件 pop **nrip 次**、整體掃 **nrip 道**有序波。**nrip==1 逐位元同基礎單 sweep cascade**(向後相容)。
+
+    **crux(與單件 count 的差異)**:combo/wobble/squash/twist 的 count 是**單件內**極值數(同一件連幾下);
+    cascade 的 nrip 是**跨件波掃幾道**(段數落在**跨件時序**通道)。故 count 簽章需同時驗:① 每件 pop nrip 次
+    (單件峰數);② 每個 sweep 內各件峰時刻仍依件序遞增(跨件排序在每道波皆保住)。事後幅度 amplify 只能同比
+    放大既有 pop、**加不出第二道 sweep**(拓樸=gen 時決定的關鍵幀窗;比照 combo/wobble 的段數重生成)。"""
     T = DUR["cascade"]
     peak = _PEAK.get(role, 1.18)
     p = max(0.0, min(1.0, phase))
-    c = CASCADE_LEAD + p * CASCADE_SPAN
+    n = max(1, int(nrip))
+    w = 1.0 / n                                   # 每個 sweep 窗壓縮比(nrip==1 → 1.0 → byte-identical)
+    centers = [(k + CASCADE_LEAD + p * CASCADE_SPAN) / n for k in range(n)]
     b, s = {}, {}
-    # 絕對 τ 關鍵幀(嚴格遞增;c-0.09≥0.07>0、c+0.16≤0.86<1 於 phase∈[0,1] 皆成立)
-    env = [(0.00, 1.000), (c - 0.09, 1.000),           # 起始 identity + hold 到輪到它
-           (c - 0.05, 0.940),                           # anticipation 蓄力
-           (c, peak),                                    # pop(全域峰 → 峰時刻=c)
-           (c + 0.06, 0.970), (c + 0.11, 1.005),         # 阻尼回擺(settle)
-           (c + 0.16, 1.000), (1.00, 1.000)]             # 回 identity + hold 到結束
+    # scale 包絡:前導 identity + 每個 sweep(蓄力 dip → pop → 阻尼回擺 → identity)+ 結尾 identity。
+    # 窗間隙 (c_{k+1}−0.09w)−(c_k+0.16w)=0.75w>0 → 時間嚴格遞增、sweep 互不重疊;
+    # 首窗 c_0−0.09w=(LEAD−0.09+p*SPAN)/n≥0.07/n>0、末窗 c_last+0.16w=(n−1+LEAD+p*SPAN+0.16)/n≤(n−0.14)/n<1。
+    env = [(0.00, 1.000)]
+    for c in centers:
+        env += [(c - 0.09 * w, 1.000), (c - 0.05 * w, 0.940), (c, peak),
+                (c + 0.06 * w, 0.970), (c + 0.11 * w, 1.005), (c + 0.16 * w, 1.000)]
+    env += [(1.00, 1.000)]
     b["scale"] = _scale_frames(T, env)
 
     if role == "limb":
-        # 末梢隨波甩出(反向蓄力→甩→回),中心對齊 c
-        b["rotate"] = _rot([(0.0, 0.0), ((c - 0.05) * T, -side_sign * 6.0),
-                            (c * T, side_sign * 16.0), ((c + 0.08) * T, -side_sign * 4.0),
-                            ((c + 0.16) * T, 0.0), (T, 0.0)])
+        # 末梢隨每道波甩出(反向蓄力→甩→回),中心對齊各 sweep 的 c
+        rot = [(0.0, 0.0)]
+        for c in centers:
+            rot += [((c - 0.05 * w) * T, -side_sign * 6.0), (c * T, side_sign * 16.0),
+                    ((c + 0.08 * w) * T, -side_sign * 4.0), ((c + 0.16 * w) * T, 0.0)]
+        rot += [(T, 0.0)]
+        b["rotate"] = _rot(rot)
     elif role == "特效":
-        # 每件輪到時亮度閃(蓄暗→亮→回);首尾 alpha=1(可串接),閃在 c
-        s["color"] = _color([(0.0, 1.0), ((c - 0.05) * T, 0.78), (c * T, 1.0),
-                            ((c + 0.08) * T, 0.9), (T, 1.0)])
-        b["rotate"] = _rot([(0.0, 0.0), ((c - 0.05) * T, -8.0), (c * T, 10.0),
-                            ((c + 0.1) * T, -3.0), (T, 0.0)])
+        # 每件每道波輪到時亮度閃(蓄暗→亮→回);首尾 alpha=1(可串接),閃在各 sweep 的 c
+        col = [(0.0, 1.0)]
+        rot = [(0.0, 0.0)]
+        for c in centers:
+            col += [((c - 0.05 * w) * T, 0.78), (c * T, 1.0), ((c + 0.08 * w) * T, 0.9)]
+            rot += [((c - 0.05 * w) * T, -8.0), (c * T, 10.0), ((c + 0.1 * w) * T, -3.0)]
+        col += [(T, 1.0)]
+        rot += [(T, 0.0)]
+        s["color"] = _color(col)
+        b["rotate"] = _rot(rot)
     return b, s
 
 

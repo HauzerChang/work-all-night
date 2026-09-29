@@ -10,6 +10,34 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 跨件波掃次數隨檔位遞增:第一個「跨件時序」通道的 count-aware(里程碑,2026-09-29 run 002,candidate J-3)** —
+  補 (J-3) 的 honest boundary:candidate (J) 讓 cascade 波峰**幅度**隨檔位放大,但各檔位仍是**同一道**跨件波
+  ——「掃得多猛」有了、「掃幾道」沒有。本次補上波掃次數 `nrip` 隨檔位嚴格遞增(Super1→Mega2→Omg3→Legend4)。
+  **crux(與四個單件 count 本質不同)**:combo/wobble/squash/twist 的 count 是**單件內**極值數(同一件連幾下,
+  段數落在單件曲線,∈`COUNT_AWARE_CATS`);cascade 的 nrip 是**跨件波掃幾道**(段數落在**跨件時序**通道,
+  cascade∈`_PHASE_AWARE`)—— **第一個落在跨件通道的 count-aware 軸**。生成:整段 τ 均分 `nrip` 個窗,第 k 窗是
+  壓縮版跨件 sweep(該件中心 `c_k=(k+LEAD+p·SPAN)/nrip`、包絡寬壓縮 `1/nrip` → 窗間隙 `0.75/nrip>0` 互不重疊、
+  首尾仍 identity);每件 pop `nrip` 次、整體掃 `nrip` 道有序波;**nrip==1 逐位元同基礎單 sweep cascade**(向後相容)。
+  **幅度 amplify 加不出第二道 sweep**(拓樸=gen 時決定的關鍵幀窗)→ 對 cascade 檔位變體以該檔位 `nrip` **重生成**
+  再套單一-g 幅度增益(波掃道數×幅度兩效正交可疊,比照 combo/wobble 的段數重生成)。全 additive:新增
+  `TIER_CASCADE_RIPPLES` + `cascade_ripples_for`;`gen_cascade(nrip=)`;`build_animations(tier_cascade_ripples=)`
+  把 cascade 併入 `_count_maps`(cmap 查詢改 `_count_maps.get(cat)`)、`_build_beat` 的 `_PHASE_AWARE` 分支吃
+  `count=nrip`;`build_spine --tier-variants` 透傳。整合閘 `validate_cascade_count.py`(先驗庫→**真實 build_spine
+  robot 骨架**→build_animations(tier_gains,tier_cascade_ripples))**5 AC 全 PASS**:X1 present+backward-compat
+  (每檔位有 bone、base 恆1道逐位元不變、**Super 逐位元==base**、tcr=None 逐位元同 (J) 幅度-only)、X2 **crux**
+  波掃次數 [1,2,3,4] 嚴格遞增且每檔位所有件 pop 次數一致==nrip、X3 **crux 跨件多驗一層** 每檔位**每一道 sweep**
+  的各件第 k 峰時刻依件序嚴格遞增且散佈 ≥0.6·SPAN/nrip(每道波皆有序跨件波非切碎)+每檔位首尾 setup identity
+  +幅度峰仍遞增、X4 正交(ripples+平增益→波掃次數遞增·峰幅不遞增;增益+無 ripples→波掃次數恆1·峰幅遞增)、
+  X5 負對照(平波掃次數全1→單調 FALSE、slot_reveal `cascade_ripples_for` None 不亂加、ripple 只作用 cascade
+  非-cascade 主秀變體逐位元同幅度-only 不外洩)。端到端 `build_spine --animate --tier-variants` 直出
+  `cascade__{Super,Mega,Omg,Legend}`;round-trip `validate_build` overall_pass(premult MAE 0.031)。**回歸 25 閘全綠**
+  (24 既有 + 新 cascade_tier_ripple_count;`check_readiness.py` 退出 0,0 RED,無 GREEN→RED)。新增 cap
+  `cascade_tier_ripple_count` L2 併入 `spine-anim-forge`(**仍 HOLD**)。**關鍵發現**:**結構(段數)軸已在
+  combo/wobble/squash/twist **四個單件通道** + cascade **跨件通道** 成立**;**跨件 count 的簽章需比單件 count
+  多驗一層「每道 sweep 仍保跨件排序」**(單件 count 只驗峰數;跨件 count 若只驗「每件 pop nrip 次」會漏掉
+  「這 nrip 道波是否各自仍有序」→ 可能把一道有序波切碎成雜訊仍過峰數關)—— 呼應「真簽章常需兩獨立條件並立」
+  (cascade 散佈+遞增、squash 守恆+非均勻、twist 反相+雙軸)。**honest boundary(仍在)**:波掃次數階梯 [1,2,3,4]
+  為 PROPOSAL(手感 A 類);單一真值資產。見 `knowledge/s1-cascade-tier-ripple-count.md`。
 - **S1 volume-conserving twist 接檔位差異化:補償 scale 依放大後 shear 非線性重算(里程碑,2026-09-29 run 001,candidate G-4''''''-vol-tier)** —
   補 (G-4''''''-vol) 明列的**最後一條 honest boundary**(「vol 僅作用 base twist;tier 變體仍 shear-only,vol 隨檔位放大需
   **重算補償 scale** 維持 det≡1,比照 squash 耦合 amplify」)。tier 放大把兩軸 shear 同比拉大(`shearX'=g·shearX`、
@@ -782,9 +810,14 @@
 >   **一般仿射四自由度 + 體積守恆全數在生成端成立**。
 > **(G-4''''''-vol-tier) ~~volume-conserving twist 接檔位差異化~~ ✅ 完成(2026-09-29 run 001,candidate G-4''''''-vol-tier,`twist_volume_tier` L2,見上里程碑)** ——
 >   tier 放大把兩軸 shear 同比拉大(Δ'=(shearX−shearY)·g)→ 補償變 `s'=1/√cos(g·Δ)` 對 g 非線性;`amplify_bone_tl(twist_vol=True)` 先放大 shear 再**依放大後 shear 重算**等向補償(`_recompute_twist_scale_iso`)→ det≡1 於任一檔位保持。crux:squash 耦合是倒數 `sy'=1/sx'`(與 shear 無關),twist 是 cos 反推重算(值來自 shear)—— 不同源;逐軸線性追不上非線性 cos(VTT3 負對照 Legend 0.11–0.31 vs 重算 ≤8.5e-5)。`validate_twist_volume_tier.py` 6AC PASS。**一般仿射四自由度 + 體積守恆已在生成端 base 與 tier 全檔位成立;twist 系列生成端能力至此全數接齊**。
+> **(J-3) ~~cascade 波掃次數隨檔位(cascade 的 count-aware:第一個跨件時序通道的段數軸)~~ ✅ 完成(2026-09-29 run 002,candidate J-3,`cascade_tier_ripple_count` L2,見上里程碑)** ——
+>   `TIER_CASCADE_RIPPLES`(Super1→Legend4)+ `gen_cascade(nrip=)`(整段均分 nrip 個壓縮 sweep 窗,nrip==1 逐位元同基礎)+
+>   cascade 併入 `_count_maps`(留 `_PHASE_AWARE`,非 COUNT_AWARE_CATS)+ `_build_beat` phase-aware 分支吃 count;
+>   `validate_cascade_count.py` 5AC PASS(X2 crux 波掃次數 [1,2,3,4] 遞增;X3 crux **每道 sweep 仍保跨件排序**——跨件 count 比單件 count 多驗這一層)。
+>   **結構(段數)軸已在 combo/wobble/squash/twist 四單件通道 + cascade 跨件通道 成立**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(J-3) cascade 波速/散佈/件數隨檔位(cascade 的 count-aware:跨件波的第三種檔位軸;比照 G-4'''/J-2 但簽章在件之間)**;
-> **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到第四個通道)**;
+> **(J-4) cascade 波速/散佈隨檔位(幅度式的跨件時序軸:CASCADE_SPAN 或窗速隨檔位,與 nrip 的結構軸正交;比照 J 幅度 vs J-2/J-3 結構)**;
+> **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
