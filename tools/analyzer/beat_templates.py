@@ -261,7 +261,7 @@ CASCADE_LEAD = 0.16
 CASCADE_SPAN = 0.54
 
 
-def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1):
+def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1, span=None):
     """跨件錯開波中的**單件** pop(依 phase 錯開)。回傳 (bone_timelines, slot_timelines)。
 
     每件 scale 包絡(絕對 τ,單一 sweep 中心 c=LEAD+phase*SPAN):
@@ -274,6 +274,15 @@ def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1):
     窗內包絡寬壓縮 1/nrip → nrip 窗時間互不重疊(窗間隙 0.75/nrip>0、首尾仍 identity)。
     ⇒ 每件 pop **nrip 次**、整體掃 **nrip 道**有序波。**nrip==1 逐位元同基礎單 sweep cascade**(向後相容)。
 
+    `span`(candidate J-4)= 一道 sweep 內**各件峰時刻的散佈幅度**(第一件峰落 LEAD、最後一件峰落 LEAD+span);
+    `None` → `CASCADE_SPAN`(=0.54,base)→ 逐位元同基礎。隨檔位遞增(愈高檔位波掃**愈開**、跨件錯開愈戲劇)。
+    **crux(J-4 的 honest distinction)**:span 語意是「幅度」(magnitude of cross-part staggering,愈大波掃愈開),
+    但**不能用幅度機制**(post-hoc 值增益 `amplify` 的 `v'=g·v`)加大 —— 跨件散佈活在關鍵幀的**時間位置**(峰中心
+    c_k),不在**值**;值增益只放大 pop **深度**(scale 峰值),峰**時刻**不動 → 散佈不變。故 span 必須在 gen 當下
+    **重生成**(比照 count 軸的重生成機制),雖語意屬幅度(magnitude in the **time-position** domain,而非 value domain)。
+    上界 `span<1−LEAD−0.16=0.68`:末件末幀 (LEAD+span+0.16)/n<1(任一 nrip 首尾仍 identity)。與 nrip **正交**
+    (nrip 決定幾道波=拓樸;span 決定一道波多開=散佈),兩者皆重生成、可同時帶入(nrip 道各以 span 散佈)。
+
     **crux(與單件 count 的差異)**:combo/wobble/squash/twist 的 count 是**單件內**極值數(同一件連幾下);
     cascade 的 nrip 是**跨件波掃幾道**(段數落在**跨件時序**通道)。故 count 簽章需同時驗:① 每件 pop nrip 次
     (單件峰數);② 每個 sweep 內各件峰時刻仍依件序遞增(跨件排序在每道波皆保住)。事後幅度 amplify 只能同比
@@ -282,8 +291,9 @@ def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1):
     peak = _PEAK.get(role, 1.18)
     p = max(0.0, min(1.0, phase))
     n = max(1, int(nrip))
+    sp = CASCADE_SPAN if span is None else float(span)   # J-4:跨件散佈幅度(None → base 0.54,byte-identical)
     w = 1.0 / n                                   # 每個 sweep 窗壓縮比(nrip==1 → 1.0 → byte-identical)
-    centers = [(k + CASCADE_LEAD + p * CASCADE_SPAN) / n for k in range(n)]
+    centers = [(k + CASCADE_LEAD + p * sp) / n for k in range(n)]
     b, s = {}, {}
     # scale 包絡:前導 identity + 每個 sweep(蓄力 dip → pop → 阻尼回擺 → identity)+ 結尾 identity。
     # 窗間隙 (c_{k+1}−0.09w)−(c_k+0.16w)=0.75w>0 → 時間嚴格遞增、sweep 互不重疊;

@@ -440,6 +440,21 @@ BLOCKS = [
                      "X4 正交 ripples+平增益→波掃次數遞增·峰幅不遞增,增益+無 ripples→波掃次數恆1·峰幅遞增/X5 負對照 平波掃次數全1→單調 FALSE・slot_reveal cascade_ripples_for None 不亂加·ripple 只作用 cascade 非-cascade 變體逐位元同幅度-only)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist **四個單件通道** + cascade **跨件通道** 成立;跨件 count 的簽章需多驗一層『每道 sweep 仍保跨件排序』(單件 count 無此層)**。"
                      "honest:波掃次數階梯(1–4)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
+            CAP("cascade_tier_span", "cascade 跨件波散佈幅度隨檔位遞增(J-4,跨件時序通道的**幅度式**軸,與 nrip 結構軸正交)", "L2",
+                "python3 tools/analyzer/validate_cascade_span.py", "pipeline",
+                note="補 (J-3) 的另一條正交軸:(J-3) 讓 cascade **波掃次數** nrip 隨檔位遞增(掃幾道波=結構/拓樸軸),本次補上一道 sweep 內"
+                     "**各件峰時刻的散佈幅度** span 隨檔位嚴格遞增(Super0.54→Mega0.58→Omg0.62→Legend0.66)——愈高檔位波掃**愈開**(跨件錯開愈戲劇)。"
+                     "**crux(J-4 的 honest distinction)**:span 語意是「幅度」(愈大波掃愈開),照理應像 (J) 用 post-hoc 值增益 g 加大;**但不能** ——"
+                     "跨件散佈活在關鍵幀的**時間位置**(峰中心 c_k=(LEAD+p·span)/nrip)**不在值**,值增益只放大 pop **深度**(scale 峰值),各件峰**時刻**不動 → 散佈不變。"
+                     "故 span 雖語意屬幅度,機制上必須 gen 當下**重生成**(同 count 軸),是『**time-position 幅度** vs **value 幅度**』的分野。與 nrip **正交**(nrip 幾道波、span 一道多開,兩軸皆重生成、可同時帶入)、與 (J) 值增益**深度**軸正交(三效可疊)。"
+                     "新增 TIER_CASCADE_SPAN + cascade_span_for;gen_cascade(span=)(None → CASCADE_SPAN=0.54 逐位元同基礎);build_animations(tier_cascade_span=) 對 cascade 變體以該檔位 span 重生成;"
+                     "_build_beat 的 _PHASE_AWARE 分支吃 cascade_span;build_spine --tier-variants 透傳。上界 span<0.68(末件末幀 (LEAD+span+0.16)<1)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,tier_cascade_span),validate_cascade_span.py 5AC PASS(Y1 present+backward-compat 每檔位有 bone・base 逐位元不變・Super span-only 逐位元==base・tcs=None 逐位元同 (J) 幅度-only/"
+                     "Y2 crux **隔離量測(nrip 固定=1)** 跨件散佈[0.54,0.58,0.62,0.66] 嚴格遞增且==宣告 span、每檔位仍依件序遞增(散佈變大不打亂波序)/Y3 每檔位仍具 cascade 簽章+首尾 setup identity 可插 Loop/"
+                     "Y4 正交 (a) span+平增益→散佈遞增·深度不遞增 (b) 增益+無 span→散佈恆==base·深度遞增 (c) span⟂nrip pop 次數==nrip 不受 span 干擾·固定 nrip 下 span>base 者每道 sweep 更寬/"
+                     "Y5 負對照 (a) 平 span→單調 FALSE (b) **crux honest-distinction** post-hoc 值增益 amplify(g=2.1)→深度 0.34→0.71 變大但散佈 0.5417==0.5417 **不變** 證 span 軸無法由幅度機制產生·非重生成不可 (c) slot_reveal cascade_span_for None 不亂加·span 只作用 cascade 非-cascade 變體逐位元同幅度-only)。"
+                     "**跨件時序通道至此有兩條正交軸:結構(nrip,J-3)× 幅度(span,J-4);後者揭示『幅度』未必用幅度機制——時間位置的幅度需重生成**。"
+                     "honest:散佈階梯(0.54–0.66)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
         ],
     },
 ]

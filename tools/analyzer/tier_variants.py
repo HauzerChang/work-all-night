@@ -174,6 +174,24 @@ def cascade_ripples_for(genre):
     return TIER_CASCADE_RIPPLES.get(genre)
 
 
+# candidate J-4 — 檔位 → cascade 跨件波**散佈幅度** span(一道 sweep 內各件峰時刻的散佈;**嚴格遞增**;
+# base=Super=CASCADE_SPAN=0.54 → 逐位元同基礎)。**與 J-3 nrip 結構軸正交**:nrip=波掃**幾道**(拓樸,關鍵幀窗數);
+# span=一道波內各件峰時刻**多開**(magnitude of cross-part staggering)。**crux(honest distinction)**:span 語意是
+# 「幅度」(愈高檔位波掃愈開)但**不能用幅度機制**(post-hoc 值增益 g 的 `v'=g·v`)加大 —— 跨件散佈活在關鍵幀的
+# **時間位置**(峰中心 c_k),不在**值**;g 只放大 pop 深度(scale 峰值),峰時刻不動 → 散佈不變。故 span 必須在
+# gen 當下**重生成**(比照 count 軸的重生成機制),雖語意屬幅度(magnitude in the **time-position** domain)。
+# 上界 <0.68:末件末幀 (LEAD+span+0.16)<1 → span<1−0.16−0.16=0.68(任一 nrip 首尾仍 identity)。
+# Legend 0.66<0.68(餘裕 0.02);與 nrip 同時帶入 → nrip 道各以該檔位 span 散佈(兩軸皆重生成、可疊)。
+TIER_CASCADE_SPAN = {
+    "slot_bigwin": {"Super": 0.54, "Mega": 0.58, "Omg": 0.62, "Legend": 0.66},
+}
+
+
+def cascade_span_for(genre):
+    """回傳該 genre 的 {tier: span};無宣告的 genre 回 None(→ cascade 檔位變體不變跨件散佈)。"""
+    return TIER_CASCADE_SPAN.get(genre)
+
+
 def _amp_scale(v, g):
     """scale 值幅度增益:僅放大 identity 上方 overshoot;下方(squash/collapse)樓地板不動。"""
     return 1.0 + g * (v - 1.0) if v >= 1.0 else v

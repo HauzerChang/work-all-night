@@ -10,6 +10,37 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 跨件波散佈幅度隨檔位遞增:跨件時序通道的「幅度式」軸,揭示『幅度』未必用幅度機制(里程碑,2026-09-30 run 001,candidate J-4)** —
+  補 (J-3) 的另一條正交軸:(J-3) 讓 cascade **波掃次數** nrip 隨檔位遞增(掃**幾道**波=跨件時序通道的**結構/拓樸**軸),
+  但一道 sweep 內各件峰時刻的散佈在所有檔位仍固定(base SPAN=0.54)。本次補上**散佈幅度** span 隨檔位嚴格遞增
+  (Super0.54→Mega0.58→Omg0.62→Legend0.66):愈高檔位波掃**愈開**(跨件錯開愈戲劇)。跨件時序通道至此有**兩條正交軸**:
+  結構(nrip,J-3)× 幅度(span,J-4)。**crux(J-4 的核心新意 = honest distinction)**:此前所有「幅度」軸(J 主秀增益、
+  wobble/squash/twist tier 峰增益)都用 **post-hoc 值增益** `g`(`v'=g·v`)實現——放大的是關鍵幀的**值**。span 語意也是
+  「幅度」(愈大波掃愈開),照理應照搬 g;**但不能** —— 跨件散佈活在關鍵幀的**時間位置**(峰中心 `c_k=(LEAD+p·span)/nrip`)
+  **不在值**;值增益只放大每件 pop 的**深度**(scale 峰值 overshoot),各件峰**時刻分毫不動** → 散佈不變。故 span 雖語意
+  屬幅度,機制上必須 gen 當下**重生成**(同 count 軸),是「**time-position domain 幅度** vs **value domain 幅度**」的分野
+  (span 語意像幅度、機制像 count)。全 additive:`gen_cascade(span=None)`(None→`CASCADE_SPAN`=0.54 逐位元同基礎);
+  新增 `TIER_CASCADE_SPAN`+`cascade_span_for`;`build_animations(tier_cascade_span=)` 對 cascade 變體以該檔位 span **重生成**
+  (與 `count=nrip` 並存 → nrip 道各以該檔位 span 散佈,兩軸皆重生成、可同時帶入);`_build_beat` 的 `_PHASE_AWARE` 分支
+  吃 `cascade_span`;`build_spine --tier-variants` 透傳。上界 `span<0.68`(末件末幀 `(LEAD+span+0.16)/nrip<1`,任一 nrip 首尾仍
+  identity),Legend 0.66 餘裕 0.02。整合閘 `validate_cascade_span.py`(先驗庫→**真實 build_spine robot 骨架**→
+  build_animations(tier_gains,tier_cascade_span))**5 AC 全 PASS**:Y1 present+backward-compat(base 逐位元不變、Super
+  span-only 逐位元==base、tcs=None 逐位元同 (J) 幅度-only)、Y2 **crux 隔離量測(nrip 固定=1)** 跨件散佈
+  [0.5417,0.5833,0.6208,0.6625] 嚴格遞增且==宣告 span(誤差≤2/240)・每檔位仍依件序遞增(散佈變大不打亂波序)、
+  Y3 每檔位仍具 cascade 簽章(遞增+散佈≥0.30)+首尾 setup identity 可插 Loop、Y4 正交(a span+平增益→散佈遞增·深度
+  **不**遞增(恆 0.3363)、b 增益+無 span→散佈**恆==base**(0.5417×4)·深度遞增、c span⟂nrip pop 次數==nrip 不受 span 干擾·
+  固定 nrip 下 span>base 者每道 sweep 更寬)、Y5 負對照(a 平 span→單調 FALSE、**b crux honest-distinction** post-hoc 值增益
+  amplify(g=2.1)→深度 0.34→0.71 變大**但散佈 0.5417==0.5417 不變** 證 span 軸無法由幅度機制產生·非重生成不可、
+  c slot_reveal `cascade_span_for` None 不亂加·span 只作用 cascade 非-cascade 變體逐位元同幅度-only)。端到端
+  `build_spine --animate --tier-variants` 直出 `cascade__{Super,Mega,Omg,Legend}`(散佈隨檔位漸開)。**回歸:24 個動畫/功能閘
+  全綠 + 新 cascade_tier_span**(`check_readiness.py` 新增 cap;⚠️ **另有 2 個 PSD analyzer `gen` 閘 RED,但為
+  pre-existing 環境漂移**——`validate_analyzer_award.py` 的 `4_storyboard_structure.beats_match` 因累積先驗提出 8 個主秀 beat
+  vs Award 只有 In/Loop/Out 而 False,**已確認在 clean J-3 tree(59cf2b2)同樣 RED,與 J-4 無關**;見未解問題)。新增 cap
+  `cascade_tier_span` L2 併入 `spine-anim-forge`(**仍 HOLD**)。**關鍵發現**:①跨件時序通道有兩條正交軸(結構 nrip × 幅度 span);
+  ②**「幅度」未必用幅度機制**——當一個「幅度式」量活在關鍵幀的**時間位置**而非**值**時,post-hoc 值增益加不出來,必須
+  **重生成**(value domain 幅度 vs time-position domain 幅度的機制分野);Y5(b)乾淨證此(同一 amplify 對深度有效、對散佈無效)。
+  **honest boundary(仍在)**:散佈階梯(0.54–0.66)為 PROPOSAL(手感 A 類);span 上界 0.68;單一真值資產。
+  見 `knowledge/s1-cascade-tier-span.md`。
 - **S1 cascade 跨件波掃次數隨檔位遞增:第一個「跨件時序」通道的 count-aware(里程碑,2026-09-29 run 002,candidate J-3)** —
   補 (J-3) 的 honest boundary:candidate (J) 讓 cascade 波峰**幅度**隨檔位放大,但各檔位仍是**同一道**跨件波
   ——「掃得多猛」有了、「掃幾道」沒有。本次補上波掃次數 `nrip` 隨檔位嚴格遞增(Super1→Mega2→Omg3→Legend4)。
@@ -815,10 +846,15 @@
 >   cascade 併入 `_count_maps`(留 `_PHASE_AWARE`,非 COUNT_AWARE_CATS)+ `_build_beat` phase-aware 分支吃 count;
 >   `validate_cascade_count.py` 5AC PASS(X2 crux 波掃次數 [1,2,3,4] 遞增;X3 crux **每道 sweep 仍保跨件排序**——跨件 count 比單件 count 多驗這一層)。
 >   **結構(段數)軸已在 combo/wobble/squash/twist 四單件通道 + cascade 跨件通道 成立**。
+> **(J-4) ~~cascade 波速/散佈隨檔位~~ ✅ 完成(2026-09-30 run 001,candidate J-4,`cascade_tier_span` L2,見上里程碑)** ——
+>   `TIER_CASCADE_SPAN`(Super0.54→Legend0.66)+ `gen_cascade(span=)` + `build_animations(tier_cascade_span=)` 重生成;
+>   `validate_cascade_span.py` 5AC PASS(Y2 crux 隔離 nrip=1 散佈 [0.54..0.66] 遞增;Y5b crux 值增益 amplify 加不出散佈→證 span 需重生成)。
+>   **揭示:「幅度」未必用幅度機制——時間位置的幅度(span)需重生成,不同於值幅度(post-hoc g)。**
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(J-4) cascade 波速/散佈隨檔位(幅度式的跨件時序軸:CASCADE_SPAN 或窗速隨檔位,與 nrip 的結構軸正交;比照 J 幅度 vs J-2/J-3 結構)**;
+> **(J-5) cascade 波方向由空間位置決定(左→右 / 中心外擴;件序相位改由 bd.x / 徑向而非件序 pi/(n−1);比照現有 phase threading,改相位來源)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
+> ⚠️ **(ENV) pre-existing RED:PSD analyzer 閘**(`validate_analyzer_award.py` 4_storyboard_structure.beats_match)——見未解問題,可獨立一個 bounded chunk 修(放寬 beats_match 為 subset,或誠實標記累積先驗為 PROPOSAL)。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
@@ -829,6 +865,14 @@
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
+- ⚠️ **pre-existing RED(env 漂移,非 J-4 造成)**:`tools/analyzer/validate_analyzer_award.py` 的 `4_storyboard_structure`
+  AC 失敗(`overall_pass=False`,exit 1)—— `beats_match=False`,因累積先驗 `genre_priors.slot_bigwin` 現提出 8 個主秀 beat
+  (burst/cascade/charge/combo/hit/squash/twist/wobble)vs Award 真值 `award_beats=[In,Loop,Out]`。**已用 `git stash` 確認在
+  clean J-3 tree(59cf2b2)同樣 RED**,故與 candidate J-4 無關(J-4 純加性、不新增 beat)。`check_readiness.py` 不呼叫 `sys.exit`
+  故總是 exit 0,**不能用 exit code 判 RED**;須看各閘 `閘:GREEN/RED`。修法(未做,可獨立 bounded chunk):把 `beats_match`
+  由 exact-equal 放寬為 **award ⊆ proposed**(誠實反映「先驗提出的主秀 beat 於 Award 無命名 = prior_beats_unused PROPOSAL」,
+  同 validate_priors 的 coverage 處理),或在閘內明列這些為 PROPOSAL-only 不參與 match。**注意**:STATE 舊里程碑「N 閘全綠」
+  應理解為**動畫/功能閘全綠**,不含此 PSD analyzer gen 閘的環境相依狀態。
 - ❓ 排程頻率未定(使用者尚未決定)。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
