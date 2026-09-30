@@ -259,35 +259,55 @@ DUR.setdefault("cascade", 1.2)
 # cascade 波的相位窗:第一件峰落在 LEAD、最後一件峰落在 LEAD+SPAN(皆 τ∈[0,1])。
 CASCADE_LEAD = 0.16
 CASCADE_SPAN = 0.54
+# candidate J-4 — 跨件散佈(span)上界:span 只移動各件的**峰時刻**(第一件恆落 LEAD、最後一件落 LEAD+span),
+# 拓樸(關鍵幀數)不變。要保住「首尾 setup identity 介面」須讓最後一件的尾幀仍在窗內:
+# 末窗 c_last+0.16w=(n−1+LEAD+p*span+0.16)/n≤1(p≤1)⇒ LEAD+span+0.16≤1 ⇒ span≤1−0.16−0.16=0.68。
+# (首件不受 span 影響:p=0 → c=LEAD/n,首幀 c−0.09w=(LEAD−0.09)/n=0.07/n>0 恆成立。)
+CASCADE_SPAN_MAX = 0.68
 
 
-def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1):
+def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1, span=None):
     """跨件錯開波中的**單件** pop(依 phase 錯開)。回傳 (bone_timelines, slot_timelines)。
 
-    每件 scale 包絡(絕對 τ,單一 sweep 中心 c=LEAD+phase*SPAN):
+    每件 scale 包絡(絕對 τ,單一 sweep 中心 c=LEAD+phase*span):
       1.0(identity)→ hold 1.0 到輪到它 → 0.94(蓄力)→ peak(pop)→ 0.97→1.005(阻尼回擺)→ 1.0。
     首尾皆 identity;全域峰落在 c → 各件峰時刻隨 phase 錯開 = cascade 跨件簽章。
 
     `nrip`(candidate J-3)= **跨件波掃過整體的次數**(ripple / sweep 數),隨檔位遞增
     (Super 1 → Legend 4)。整段 τ 均分為 `nrip` 個窗,第 k 窗(k=0..nrip−1)是一次**壓縮版**跨件 sweep,
-    該件在窗內的中心 `c_k=(k+LEAD+p*SPAN)/nrip`(同一 phase → **每個 sweep 內各件仍依件序錯開**);
+    該件在窗內的中心 `c_k=(k+LEAD+p*span)/nrip`(同一 phase → **每個 sweep 內各件仍依件序錯開**);
     窗內包絡寬壓縮 1/nrip → nrip 窗時間互不重疊(窗間隙 0.75/nrip>0、首尾仍 identity)。
     ⇒ 每件 pop **nrip 次**、整體掃 **nrip 道**有序波。**nrip==1 逐位元同基礎單 sweep cascade**(向後相容)。
 
+    `span`(candidate J-4)= **跨件散佈**(cross-part spread):第一件峰落 LEAD、最後一件峰落 LEAD+span,
+    故整體波的**峰時刻散佈**=span(每道 sweep 內壓縮成 span/nrip)。隨檔位遞增(Super 0.54→Legend 0.66,
+    愈高檔位波掃愈開、各件錯開愈明顯)。`span is None` → 用 `CASCADE_SPAN`(0.54)→ **逐位元同基礎 cascade**
+    (向後相容)。clamp 至 [0, CASCADE_SPAN_MAX] 保住首尾 identity 介面。
+
+    **crux(J-4 span 與 J-3 nrip / J 幅度 三軸正交,但 span 為何仍須「重生成」)**:
+      - nrip(J-3)= 跨件時序的**結構(拓樸)**軸(sweep 道數 = 關鍵幀窗數)。
+      - span(J-4)= 跨件時序的**連續(散佈)**軸:只改各件峰**時刻**,關鍵幀數不變。
+      - g(J 幅度)= 值空間連續軸:只改峰**高度**。
+    三者互相正交可疊(nrip×span×g 獨立)。**但 span 雖是連續軸(像 g),卻仍不能事後 amplify** ——
+    因 `amplify_bone_tl` 只放大**值**欄位(angle/x/y/scale),**從不動 time 欄位**;span 活在**時間軸**,
+    故即使是「幅度式」連續軸,也必須在 gen 時決定、走**重生成**(與 nrip 同路由,但原因不同:nrip 是改拓樸,
+    span 是改 time 欄位)。這修正了「連續軸=可事後 amplify」的直覺:amplify 是**值空間專屬**,任何**時間軸**軸
+    (不論結構 nrip 或連續 span)都要重生成。
+
     **crux(與單件 count 的差異)**:combo/wobble/squash/twist 的 count 是**單件內**極值數(同一件連幾下);
-    cascade 的 nrip 是**跨件波掃幾道**(段數落在**跨件時序**通道)。故 count 簽章需同時驗:① 每件 pop nrip 次
-    (單件峰數);② 每個 sweep 內各件峰時刻仍依件序遞增(跨件排序在每道波皆保住)。事後幅度 amplify 只能同比
-    放大既有 pop、**加不出第二道 sweep**(拓樸=gen 時決定的關鍵幀窗;比照 combo/wobble 的段數重生成)。"""
+    cascade 的 nrip/span 皆落在**跨件時序**通道。故簽章需驗:① 每件 pop nrip 次(單件峰數);
+    ② 每個 sweep 內各件峰時刻仍依件序遞增且散佈≈span/nrip(跨件排序在每道波皆保住)。"""
     T = DUR["cascade"]
     peak = _PEAK.get(role, 1.18)
     p = max(0.0, min(1.0, phase))
     n = max(1, int(nrip))
+    sp = CASCADE_SPAN if span is None else max(0.0, min(CASCADE_SPAN_MAX, float(span)))
     w = 1.0 / n                                   # 每個 sweep 窗壓縮比(nrip==1 → 1.0 → byte-identical)
-    centers = [(k + CASCADE_LEAD + p * CASCADE_SPAN) / n for k in range(n)]
+    centers = [(k + CASCADE_LEAD + p * sp) / n for k in range(n)]
     b, s = {}, {}
     # scale 包絡:前導 identity + 每個 sweep(蓄力 dip → pop → 阻尼回擺 → identity)+ 結尾 identity。
     # 窗間隙 (c_{k+1}−0.09w)−(c_k+0.16w)=0.75w>0 → 時間嚴格遞增、sweep 互不重疊;
-    # 首窗 c_0−0.09w=(LEAD−0.09+p*SPAN)/n≥0.07/n>0、末窗 c_last+0.16w=(n−1+LEAD+p*SPAN+0.16)/n≤(n−0.14)/n<1。
+    # 首窗 c_0−0.09w=(LEAD−0.09+p*sp)/n≥0.07/n>0(sp≥0)、末窗 c_last+0.16w=(n−1+LEAD+sp+0.16)/n≤(n−0.16)/n<1(sp≤0.68)。
     env = [(0.00, 1.000)]
     for c in centers:
         env += [(c - 0.09 * w, 1.000), (c - 0.05 * w, 0.940), (c, peak),

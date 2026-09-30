@@ -440,6 +440,22 @@ BLOCKS = [
                      "X4 正交 ripples+平增益→波掃次數遞增·峰幅不遞增,增益+無 ripples→波掃次數恆1·峰幅遞增/X5 負對照 平波掃次數全1→單調 FALSE・slot_reveal cascade_ripples_for None 不亂加·ripple 只作用 cascade 非-cascade 變體逐位元同幅度-only)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist **四個單件通道** + cascade **跨件通道** 成立;跨件 count 的簽章需多驗一層『每道 sweep 仍保跨件排序』(單件 count 無此層)**。"
                      "honest:波掃次數階梯(1–4)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
+            CAP("cascade_tier_span_spread", "cascade 跨件散佈隨檔位遞增(J-4,跨件時序通道的**連續**軸,補證 amplify 是值空間專屬)", "L2",
+                "python3 tools/analyzer/validate_cascade_span.py", "pipeline",
+                note="補 (J-4):candidate (J) 讓 cascade 波峰**幅度**隨檔位放大、(J-3) 讓波**掃過整體的次數** nrip 隨檔位遞增(結構/拓樸軸)。"
+                     "本次補上**跨件散佈** span 隨檔位嚴格遞增(Super0.54→Mega0.58→Omg0.62→Legend0.66,愈高檔位波掃愈開、各件錯開愈明顯)。"
+                     "**crux(修正「連續軸=可事後 amplify」直覺)**:span 只改各件峰**時刻**(第一件恆 LEAD、最後一件 LEAD+span)、拓樸不變 → 看似像幅度 g 是連續軸;"
+                     "**但 `amplify_bone_tl` 只放大值欄位(angle/x/y/scale)、從不動 time 欄位**,而 span 活在**時間軸** → 仍**必須 gen 時重生成**(與 nrip 同路由,原因不同:nrip 改拓樸、span 改 time)。"
+                     "⇒ **amplify 是值空間專屬**;任何時間軸軸(結構 nrip 或連續 span)都要重生成。三軸(nrip 結構×span 連續×g 值幅度)正交可疊。"
+                     "新增 TIER_CASCADE_SPAN + cascade_spans_for;gen_cascade(span=)(span==None→CASCADE_SPAN 逐位元同基礎;clamp≤CASCADE_SPAN_MAX=0.68 保首尾 identity);"
+                     "build_animations(tier_cascade_spans=) 加 _span_maps、重生成條件改『cnt 或 spn 非 None』;_build_beat(span=) 傳入 _PHASE_AWARE 分支;build_spine --tier-variants 透傳。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,tier_cascade_spans[,tier_cascade_ripples]),validate_cascade_span.py 5AC PASS"
+                     "(Y1 present+backward-compat 每檔位有 bone・base 逐位元不變・Super 逐位元==base・tcs=None 逐位元同 (J) 幅度-only・Super span 鎖定==CASCADE_SPAN/"
+                     "Y2 crux 散佈[0.54,0.58,0.62,0.66] 嚴格遞增且測得≈宣告 span/Y3 各件峰時刻依件序嚴格遞增+散佈≥0.6·CASCADE_SPAN+首尾 identity/"
+                     "Y4 三軸正交 (a)spans+平增益+無ripple→散佈遞增·峰幅不遞增·波掃恆1 (b)spans+固定ripple2→波掃恆2·每道 sweep 散佈仍遞增(span⊥nrip crux) (c)僅增益→散佈恆 CASCADE_SPAN·峰幅遞增/"
+                     "Y5 負對照 平散佈→單調 FALSE・slot_reveal cascade_spans_for None 不亂加·span 只作用 cascade 非-cascade 變體逐位元同幅度-only)。"
+                     "**跨件時序通道至此有結構(nrip)+連續(span)兩軸,與值空間幅度(g)三軸正交;關鍵新發現:amplify 為值空間專屬,時間軸軸一律重生成**。"
+                     "honest:散佈階梯(0.54–0.66)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
         ],
     },
 ]
