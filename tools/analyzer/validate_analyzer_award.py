@@ -6,12 +6,22 @@ Award 是 robot_parts 的真實成品(機器人拆件 5 slot / 綁 5 骨 / 12 �
   ① 可動件召回:反推件 vs Award 機器人拆件 slot(名稱對應)。
   ② 特效分類:光暈 應判為特效;其餘結構。
   ③ mesh/region 建議 vs Award 實際 attachment type。
-  ④ 分鏡結構:提案 In/Loop/Out(+檔位) vs Award 動畫命名結構。
+  ④ 分鏡結構:提案分鏡須 **涵蓋(recall/subset)** Award 動畫命名的每個相位(In/Loop/Out);
+     額外提出的主秀 beat(來自累積先驗庫)於 Award 無命名 = PROPOSAL(prior_beats_unused,誠實揭示)。
   ⑤ 露出項合理性:各 reveal 的 mover 骨在 Award 是否真的有足量運動(位移/旋轉)。
 """
 import argparse, json, os, sys, re
 sys.path.insert(0, os.path.dirname(__file__))
 from analyze_target import analyze
+
+def beats_cover(award_beats, proposed_beats):
+    """分鏡結構閘的核心判準:分析器提案是否**涵蓋**Award 真值的每個相位(recall/subset)。
+
+    True ⟺ award_beats ⊆ proposed_beats。額外提案的主秀 beat 不算錯(屬 PROPOSAL);
+    但漏掉任一 Award 相位即 False(負對照方向仍在,閘不因放寬而失效)。
+    """
+    return set(award_beats) <= set(proposed_beats)
+
 
 ROBOT_PREFIX = "機器人拆件"
 # 真值:Award attachment type(見 knowledge/s4-psd-to-spine-real.md)
@@ -81,7 +91,15 @@ def validate(psd_path, award_path):
             tiers.add(t.group(1))
     proposed_beats = {b["beat"] for b in spec["3_motion_storyboard"]["beats"]}
     proposed_tiers = set(spec["3_motion_storyboard"]["tier_variants"] or [])
-    beats_ok = proposed_beats == beat_kinds
+    # 分鏡結構閘語意 = 對 Award 真值相位結構的 **recall(subset)**,非逐字相等。
+    # 分析器提出的分鏡須「涵蓋」Award 實際使用的每個相位(In/Loop/Out);額外提出的主秀
+    # beat(burst/cascade/combo/... 來自累積先驗庫 genre_priors.slot_bigwin)於 Award 並無
+    # 命名 → 屬 PROPOSAL(更豐富的分鏡提案,非錯誤),明列於 prior_beats_unused 誠實揭示。
+    # 舊版用 `==`(逐字相等):先驗庫一長就永久 RED,誤把「提得更多」當「提錯」。
+    # 負對照方向仍在:分析器若漏掉任一 Award 相位 → beat_kinds ⊄ proposed_beats → False
+    # (見 --selftest 的 dropped-phase 負對照,證閘非因放寬而失效)。
+    beats_ok = beats_cover(beat_kinds, proposed_beats)   # award ⊆ proposed
+    prior_beats_unused = sorted(proposed_beats - beat_kinds)
     tiers_hit = proposed_tiers & tiers
 
     # ⑤ 露出項合理性:露出需「遮擋者移開」或「被遮件自己移出」二者之一有足量運動
@@ -111,7 +129,10 @@ def validate(psd_path, award_path):
         "3_geometry_vs_award": {"per_part": geo_eval,
                                 "pass": all(v["verdict"] != "mismatch" for v in geo_eval.values())},
         "4_storyboard_structure": {"proposed_beats": sorted(proposed_beats),
-                                    "award_beats": sorted(beat_kinds), "beats_match": beats_ok,
+                                    "award_beats": sorted(beat_kinds),
+                                    "award_beats_covered": beats_ok,
+                                    "beats_match": beats_ok,  # 語意=recall(subset),見 beats_cover
+                                    "prior_beats_unused": prior_beats_unused,  # PROPOSAL 邊界(誠實揭示)
                                     "award_tiers": sorted(tiers), "tiers_hit": sorted(tiers_hit),
                                     "pass": beats_ok and len(tiers_hit) >= 1},
         "5_reveal_motion_check": {"checks": reveal_checks,
@@ -122,11 +143,41 @@ def validate(psd_path, award_path):
     return report
 
 
+def selftest():
+    """④ 分鏡結構閘的正/負對照 —— 證放寬為 subset 後閘仍非 vacuous。
+
+    正對照:分析器提案為 Award 相位的超集(涵蓋 In/Loop/Out + 額外主秀 beat)→ True。
+    負對照:分析器漏掉任一 Award 相位(如缺 Loop)→ 必須 False(否則閘失效)。
+    邊界:提案==Award(無額外提案)→ True;空提案 → False。
+    """
+    award = {"In", "Loop", "Out"}
+    rich = {"In", "Loop", "Out", "burst", "cascade", "combo", "hit"}
+    cases = [
+        ("正對照:超集涵蓋全相位", beats_cover(award, rich), True),
+        ("邊界:恰等(無額外提案)", beats_cover(award, award), True),
+        ("負對照:漏掉 Loop", beats_cover(award, rich - {"Loop"}), False),
+        ("負對照:漏掉 In+Out", beats_cover(award, {"Loop", "burst"}), False),
+        ("負對照:空提案", beats_cover(award, set()), False),
+        ("負對照:提案完全不含相位(只有主秀 beat)", beats_cover(award, {"burst", "hit"}), False),
+    ]
+    ok = True
+    for name, got, want in cases:
+        good = (got == want)
+        ok = ok and good
+        print(f"  [{'PASS' if good else 'FAIL'}] {name}: beats_cover={got} (want {want})")
+    print(f"selftest {'PASS' if ok else 'FAIL'}")
+    return ok
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--psd", default="assets/robot_parts.psd")
     ap.add_argument("--award", default="assets/Award.json")
+    ap.add_argument("--selftest", action="store_true",
+                    help="只跑 ④ 分鏡結構閘的正/負對照(不需資產),證閘非 vacuous")
     a = ap.parse_args()
+    if a.selftest:
+        raise SystemExit(0 if selftest() else 1)
     rep = validate(a.psd, a.award)
     print(json.dumps(rep, ensure_ascii=False, indent=2))
     raise SystemExit(0 if rep["overall_pass"] else 1)

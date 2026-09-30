@@ -10,6 +10,13 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **[評估器修復] S1 分鏡結構閘從「逐字相等」修正為「對 Award 相位的 recall(subset)」(2026-09-30 run 002)** —
+  修 `validate_analyzer_award.py` 的 `④ 4_storyboard_structure` 這條 **pre-existing false-RED** 閘(非新增生成能力,屬評估器可信度修復)。
+  舊版逐字相等 `proposed_beats == beat_kinds`:`beat_kinds`(Award 相位)={In,Loop,Out},`proposed_beats`(分析器分鏡)隨累積先驗
+  長成 {In,Loop,Out,+8 主秀 beat} → 因分析器提得更多(超集)`==` 永久 False → 閘永久 RED、拖累 `analyze_target`(核心 gen L2)在**兩區塊**假失敗。
+  修法(objective):分鏡結構閘語意 = 對 Award 相位的 **recall(subset)** `beats_cover=award⊆proposed`;額外主秀 beat 屬 **PROPOSAL**,
+  新增 `prior_beats_unused` 誠實揭示。`--selftest` 正/負對照 6 例全 PASS(漏相位即 False,閘非因放寬而失效)。**全 readiness 回歸 0 RED / 38 GREEN**
+  (`analyze_target` 兩 cap RED→GREEN,無其他 GREEN→RED)。**評估器可信度已恢復**(readiness 儀表板不再有假 RED)。見 `knowledge/s1-storyboard-gate-recall.md`。
 - **S1 cascade 跨件波散佈幅度隨檔位遞增:跨件時序通道的「幅度式」軸,揭示『幅度』未必用幅度機制(里程碑,2026-09-30 run 001,candidate J-4)** —
   補 (J-3) 的另一條正交軸:(J-3) 讓 cascade **波掃次數** nrip 隨檔位遞增(掃**幾道**波=跨件時序通道的**結構/拓樸**軸),
   但一道 sweep 內各件峰時刻的散佈在所有檔位仍固定(base SPAN=0.54)。本次補上**散佈幅度** span 隨檔位嚴格遞增
@@ -854,7 +861,8 @@
 > **(J-5) cascade 波方向由空間位置決定(左→右 / 中心外擴;件序相位改由 bd.x / 徑向而非件序 pi/(n−1);比照現有 phase threading,改相位來源)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
-> ⚠️ **(ENV) pre-existing RED:PSD analyzer 閘**(`validate_analyzer_award.py` 4_storyboard_structure.beats_match)——見未解問題,可獨立一個 bounded chunk 修(放寬 beats_match 為 subset,或誠實標記累積先驗為 PROPOSAL)。
+> ✅ **(ENV) ~~pre-existing RED:PSD analyzer 閘~~ 已修(2026-09-30 run 002)**:`validate_analyzer_award.py` 4_storyboard_structure
+>   改為 subset(recall)語意 + `prior_beats_unused` 誠實揭示 + `--selftest` 負對照;全 readiness **0 RED / 38 GREEN**。見上「[評估器修復]」里程碑。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
@@ -865,14 +873,13 @@
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
-- ⚠️ **pre-existing RED(env 漂移,非 J-4 造成)**:`tools/analyzer/validate_analyzer_award.py` 的 `4_storyboard_structure`
-  AC 失敗(`overall_pass=False`,exit 1)—— `beats_match=False`,因累積先驗 `genre_priors.slot_bigwin` 現提出 8 個主秀 beat
-  (burst/cascade/charge/combo/hit/squash/twist/wobble)vs Award 真值 `award_beats=[In,Loop,Out]`。**已用 `git stash` 確認在
-  clean J-3 tree(59cf2b2)同樣 RED**,故與 candidate J-4 無關(J-4 純加性、不新增 beat)。`check_readiness.py` 不呼叫 `sys.exit`
-  故總是 exit 0,**不能用 exit code 判 RED**;須看各閘 `閘:GREEN/RED`。修法(未做,可獨立 bounded chunk):把 `beats_match`
-  由 exact-equal 放寬為 **award ⊆ proposed**(誠實反映「先驗提出的主秀 beat 於 Award 無命名 = prior_beats_unused PROPOSAL」,
-  同 validate_priors 的 coverage 處理),或在閘內明列這些為 PROPOSAL-only 不參與 match。**注意**:STATE 舊里程碑「N 閘全綠」
-  應理解為**動畫/功能閘全綠**,不含此 PSD analyzer gen 閘的環境相依狀態。
+- ✅ **[已修 2026-09-30 run 002]** ~~pre-existing RED:`validate_analyzer_award.py` 的 `4_storyboard_structure`~~ ——
+  舊版用**逐字相等** `proposed_beats == beat_kinds`;因累積先驗 `genre_priors.slot_bigwin` 現提出 8 個主秀 beat
+  (burst/cascade/charge/combo/hit/squash/twist/wobble)為 Award `award_beats=[In,Loop,Out]` 的**超集** → `==` 永久 False。
+  **修法(objective evaluator fix)**:分鏡結構閘語意改為**對 Award 相位的 recall(subset)** `beats_cover(award,proposed)=award⊆proposed`;
+  額外主秀 beat 屬 PROPOSAL,新增 `prior_beats_unused` 誠實揭示。`--selftest` 6 例正/負對照全 PASS(漏相位即 False,閘非 vacuous)。
+  全 readiness 回歸 **0 RED / 38 GREEN**,`analyze_target` 兩 cap RED→GREEN、無其他 GREEN→RED。見 `knowledge/s1-storyboard-gate-recall.md`。
+  **注意(仍成立)**:`check_readiness.py` 不呼叫 `sys.exit` 故總是 exit 0,**不能用 exit code 判 RED**;須看各閘 `閘:GREEN/RED`。
 - ❓ 排程頻率未定(使用者尚未決定)。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
