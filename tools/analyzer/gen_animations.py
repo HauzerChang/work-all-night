@@ -221,13 +221,47 @@ except ImportError:
 # 只有這類別要吃 phase,故集中列名,build_animations 依此決定是否帶入(其餘類別簽章不變)。
 _PHASE_AWARE = {"cascade"}
 
+# candidate J-5 — cascade 波**方向**由什麼決定各件相位次序(phase∈[0,1] 的排名鍵):
+#   "order" :件序(storyboard 件在 parts 中的位置)—— 舊行為,逐位元相容(預設)。
+#   "x"     :件中心 bd.x 升序(**左→右**波;x 小者先亮)。
+#   "radial":件中心到畫布中心距離升序(**中心外擴**波;近者先亮)。
+# 相位仍用**排名**(rank/(n−1))映到 [0,1] 均勻散佈 → span(J-4)/nrip(J-3)語意不變、正交。
+# 平手以件序打破(stable)→ 完全確定性。**這是「相位來源」軸,與幅度/段數/波掃次數/散佈皆正交。**
+CASCADE_PHASE_MODES = ("order", "x", "radial")
+
+
+def _phase_ranks(valid, bone_of, cx, cy, mode):
+    """回傳與 `valid`(有效件,同序)對齊的 rank 列(值 0..n−1),決定各件在 cascade 波中的相位次序。
+
+    mode='order' → rank==件序(逐位元同舊行為);'x' → 依 bd.x 升序排名(左→右);
+    'radial' → 依件中心到畫布中心距離升序排名(中心外擴)。平手(同鍵)以**件序**打破 → 確定性穩定排序。
+    rank 之後於呼叫端映為 phase=rank/(n−1) ∈[0,1](均勻散佈,與 span/nrip 正交)。"""
+    n = len(valid)
+    if mode not in CASCADE_PHASE_MODES:
+        raise ValueError("cascade_phase 需為 {}, 收到 {!r}".format(CASCADE_PHASE_MODES, mode))
+    if mode == "order" or n <= 1:
+        return list(range(n))
+
+    def _key(i):
+        bd = bone_of.get(safe(valid[i]["part"])) or {}
+        x = bd.get("x", cx)
+        y = bd.get("y", cy)
+        return x if mode == "x" else math.hypot(x - cx, y - cy)
+
+    order_idx = sorted(range(n), key=lambda i: (_key(i), i))   # 平手 → 件序(stable、確定性)
+    rank = [0] * n
+    for r, i in enumerate(order_idx):
+        rank[i] = r
+    return rank
+
 # candidate J — 檔位(tier)幅度差異化(主秀 beat 依檔位增益放大;純函式,無 import 迴圈)。
 from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
     COUNT_AWARE_CATS as _COUNT_AWARE_CATS, COUPLED_SCALE_CATS as _COUPLED_SCALE_CATS, \
     VOL_TWIST_CATS as _VOL_TWIST_CATS, amplify_anim as _amplify_anim
 
 
-def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade_span=None):
+def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade_span=None,
+                cascade_phase="order"):
     """把單一 beat 的每件 role 具體化為 anim dict(bones/slots timelines)。
 
     cat 依語意分派運動基元;`count`(J-2 combo 峰數 / G-4''' wobble 振盪段數 / G-4'''''-c squash 擠壓段數 /
@@ -237,12 +271,15 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade
     `twist_vol`(G-4''''''-vol):True 時只對 twist 掛體積守恆等向補償 scale(shear+scale+rotate 三通道同時且守恆)。
     `cascade_span`(J-4):只對 cascade(_PHASE_AWARE)生效 = 一道 sweep 內各件峰時刻的**散佈幅度**;None → 生成器
     預設 CASCADE_SPAN(0.54,byte-identical)。與 nrip **正交**(nrip 幾道波、span 一道多開),皆於 gen 當下重生成。
-    cascade(_PHASE_AWARE)另依件序帶入相位。"""
+    `cascade_phase`(J-5):只對 cascade(_PHASE_AWARE)生效 = 波**方向**的相位來源("order"=件序/預設、"x"=左→右、
+    "radial"=中心外擴);排名映 phase=rank/(n−1),與 span/nrip **正交**。cascade(_PHASE_AWARE)另依此相位帶入。"""
     bones_tl, slots_tl = {}, {}
     limb_seen = 0
     # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
     valid = [pe for pe in beat["parts"] if bone_of.get(safe(pe["part"])) is not None]
     nvalid = len(valid)
+    # candidate J-5:相位**排名**(件序 / bd.x 左→右 / 徑向中心外擴)。"order" → rank==件序(逐位元相容)。
+    phase_rank = _phase_ranks(valid, bone_of, cx, cy, cascade_phase) if cat in _PHASE_AWARE else None
     for pi, pe in enumerate(valid):
         part = pe["part"]; role = pe["role"]
         sname = safe(part)
@@ -263,7 +300,9 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade
             # candidate J-3:cascade 另吃 `count`=nrip(跨件波掃過整體的次數,檔位相依)。
             # candidate J-4:cascade 另吃 `cascade_span`=一道 sweep 內各件峰時刻的散佈幅度(檔位相依)。
             # 兩者皆 None → 生成器自身預設(nrip=1、span=CASCADE_SPAN → golden 單 sweep byte-identical)。
-            phase = 0.0 if nvalid <= 1 else pi / (nvalid - 1)
+            # candidate J-5:相位次序改由 rank 決定(order=件序 / x=左→右 / radial=中心外擴);
+            # rank/(n−1) 均勻映到 [0,1] → span/nrip 語意不變。"order" 時 rank==pi → 逐位元相容。
+            phase = 0.0 if nvalid <= 1 else phase_rank[pi] / (nvalid - 1)
             if count is None and cascade_span is None:
                 b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)
             else:
@@ -293,7 +332,8 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade
 
 def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
                      tier_wobble_cycles=None, tier_squash_cycles=None, tier_twist_cycles=None,
-                     tier_cascade_ripples=None, tier_cascade_span=None, twist_volume=False):
+                     tier_cascade_ripples=None, tier_cascade_span=None, twist_volume=False,
+                     cascade_phase="order"):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
@@ -320,7 +360,11 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     **散佈幅度**隨檔位遞增,愈高檔位波掃愈開)。**crux**:span 語意屬「幅度」但因散佈活在關鍵幀**時間位置**(峰中心)非**值**,
     post-hoc 值增益 g 加不出來(g 只放大 pop 深度、峰時刻不動)→ 須重生成,與 nrip **正交**(nrip 幾道波、span 一道多開,
     兩軸皆重生成、可同時帶入 → nrip 道各以該檔位 span 散佈),再套單一-g 幅度增益(三效正交可疊)。
-    八者皆 None/False(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、base cascade 恆 1 道波 span=0.54、twist 無 scale)。"""
+    cascade_phase(J-5):cascade 波**方向**的相位來源 —— "order"(件序,預設)/ "x"(件中心 bd.x 升序=左→右波)/
+    "radial"(件中心到畫布中心距離升序=中心外擴波)。相位改由該鍵的**排名** rank/(n−1) 決定(均勻映 [0,1]),與 span(J-4)、
+    nrip(J-3)、幅度(J)**皆正交**;"order" → rank==件序 → 逐位元同舊行為。此軸對 cascade base 與所有檔位變體**一致**
+    套用(波方向不隨檔位變),非-cascade beat 不受影響。
+    九者皆 None/False/"order"(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、base cascade 恆 1 道波 span=0.54 件序相位、twist 無 scale)。"""
     # COUNT_AWARE(單件段數)+ cascade(跨件波掃次數,_PHASE_AWARE)→ 對應的 {tier: count} 映射
     # (依 cat 路由;None → 該類別 count 不隨檔位變)。cascade 的 count 語意=nrip(波掃道數),非單件段數。
     _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles,
@@ -339,7 +383,8 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     for beat in storyboard["beats"]:
         name = beat["beat"]
         cat = beat_category(name)
-        anim = _build_beat(beat, cat, bone_of, cx, cy, twist_vol=twist_volume)
+        anim = _build_beat(beat, cat, bone_of, cx, cy, twist_vol=twist_volume,
+                           cascade_phase=cascade_phase)
         anims[name] = anim
         # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
         if tier_gains and cat in _MAIN_SHOW_CATS:
@@ -362,7 +407,8 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
                     # J-3/J-4:cascade 以該檔位 nrip(波掃道數)/ span(跨件散佈)重生成(兩軸皆重生成、正交可疊)。
                     # twist 另帶 twist_vol → 重生成的變體也掛體積守恆 scale(段數×幅度×守恆三效正交)。
                     variant = _build_beat(beat, cat, bone_of, cx, cy, count=cnt,
-                                          twist_vol=twist_volume, cascade_span=csp)
+                                          twist_vol=twist_volume, cascade_span=csp,
+                                          cascade_phase=cascade_phase)
                     anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g, coupled=coupled, twist_vol=tv)
                 else:
                     anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g, coupled=coupled, twist_vol=tv)

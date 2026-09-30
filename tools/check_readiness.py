@@ -455,6 +455,20 @@ BLOCKS = [
                      "Y5 負對照 (a) 平 span→單調 FALSE (b) **crux honest-distinction** post-hoc 值增益 amplify(g=2.1)→深度 0.34→0.71 變大但散佈 0.5417==0.5417 **不變** 證 span 軸無法由幅度機制產生·非重生成不可 (c) slot_reveal cascade_span_for None 不亂加·span 只作用 cascade 非-cascade 變體逐位元同幅度-only)。"
                      "**跨件時序通道至此有兩條正交軸:結構(nrip,J-3)× 幅度(span,J-4);後者揭示『幅度』未必用幅度機制——時間位置的幅度需重生成**。"
                      "honest:散佈階梯(0.54–0.66)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
+            CAP("cascade_phase_source", "cascade 波方向由空間位置決定(J-5,相位來源軸:order 件序 / x 左→右 / radial 中心外擴)", "L2",
+                "python3 tools/analyzer/validate_cascade_phase.py", "pipeline",
+                note="繼結構(nrip,J-3)、幅度(span,J-4)之後,cascade 跨件時序通道的**第三條正交軸 = 方向(相位來源)**。"
+                     "至今各件相位一律由**件序**決定(phase=pi/(n−1));本次讓相位來源改由**空間位置排名**決定波方向:"
+                     "order(件序,預設,逐位元相容)/ x(bd.x 升序=左→右波)/ radial(件中心到畫布中心距離升序=中心外擴波)。"
+                     "相位仍用**排名** rank/(n−1) 均勻映 [0,1] → span/nrip/幅度語意不變。**crux(honest distinction)**:相位來源只是"
+                     "**排名的重新指派**(permutation),改的是『哪件何時 pop』,不動『幾道波/一道多開/多深』;故峰時刻**多重集合**"
+                     "三模式相同(P4a)、真實 robot 骨架上件序 [光暈,右手,…] 與 x 序不同(右手 x=320.5<光暈 359 → x 模式**右手先 pop**、who-first 互換,P2)。"
+                     "新增 CASCADE_PHASE_MODES + _phase_ranks(平手以件序打破);_build_beat/build_animations 吃 cascade_phase;build_spine --cascade-phase 透傳。"
+                     "validate_cascade_phase.py 5AC PASS(P1 present+backward-compat:order 逐位元同無參數・非-cascade 三模式不變/"
+                     "P2 crux 真實 x 序遞增+who-first 互換・radial 序遞增・合成 3-排列 fixture 每模式只在自己鍵序遞增/P3 三模式仍合法 cascade 簽章+首尾 setup identity/"
+                     "P4 正交 (a) 峰時刻多重集合三模式相同 (b) x+span 散佈==宣告 (c) x+nrip pop 次數==nrip (d) x+gains 深度遞增/"
+                     "P5 負對照 (a) x 模式峰在件序下**不**遞增(真跟著 x) (b) 合成每模式在另兩鍵下不遞增(鍵隔離) (c) 退化同x→x 逐位元==order (d) 非法 mode→ValueError)。"
+                     "honest:方向選擇(order/x/radial)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
         ],
     },
 ]

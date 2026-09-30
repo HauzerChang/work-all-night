@@ -10,6 +10,37 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 波方向由空間位置決定:跨件時序通道的「方向(相位來源)」軸(里程碑,2026-09-30 run 002,candidate J-5)** —
+  cascade 跨件時序通道此前已有兩條軸:**結構**(nrip,J-3:掃幾道波)× **幅度**(span,J-4:一道多開)。但各件的**相位**
+  (phase∈[0,1],決定誰先誰後)一律由**件序**(storyboard `parts` 位置)決定:`phase=pi/(n−1)`——波方向永遠 = 件在規格清單的排列,
+  與件在畫面上的**空間位置**無關。本次補上**第三條正交軸 = 方向(相位來源)**:相位改由**空間位置排名**決定波方向 ——
+  `order`(件序,預設,逐位元相容)/ `x`(件中心 `bd.x` 升序=**左→右**波,x 小者先亮)/ `radial`(件中心到畫布中心距離升序=
+  **中心外擴**波,近者先亮)。相位仍以**排名** `rank/(n−1)` 均勻映到 [0,1] → span(散佈)/nrip(波掃次數)/幅度(深度)語意
+  **全部不變**;平手以件序打破(確定性穩定排序)。**crux(J-5 的 honest distinction)**:相位來源既不重生成關鍵幀窗(不像
+  nrip/span)也不做值增益(不像 J 深度)——它只是把**同一組峰時刻重新指派**給不同的件(a permutation of who-peaks-when)。
+  由此兩個強斷言:①**峰時刻多重集合三模式相同**(真實骨架 {0.158,0.296,0.429,0.567,0.70},只是指派給不同件)→ 證與
+  span/nrip/深度**正交**(動不了「幾道波/一道多開/多深」,只動「哪件在哪個時刻」);②**真實 robot 骨架上件序 ≠ x 序 → 方向真的改變**:
+  cascade 件序 `[光暈,右手,頭,身體,左手]` 但 `右手 x=320.5 < 光暈 x=359.0` → **x 模式下右手與光暈 who-peaks-first 互換**
+  (order 光暈先 pop τ=0.158、x 右手先 pop τ=0.158),同一骨架只換相位來源 → 觀察得到方向改變。(真實 radial 序恰==件序
+  因該清單本就依徑向排好 → radial 模式在此骨架逐位元同 order,是個乾淨 backward-compat 錨點;要證 radial 真跟徑向用合成 fixture。)
+  全 additive:新增 `CASCADE_PHASE_MODES=("order","x","radial")`+`_phase_ranks`(gen_animations,平手以件序打破);
+  `_build_beat(...,cascade_phase="order")`/`build_animations(...,cascade_phase="order")`/`build_spine --cascade-phase {order,x,radial}`
+  透傳;**對 cascade base 與所有檔位變體一致套用**(方向不隨檔位變);`order`(預設)→ rank==pi → 逐位元同無參數呼叫。
+  整合閘 `validate_cascade_phase.py`(先驗庫→**真實 build_spine robot 骨架**→build_animations + **合成 3-排列 fixture**
+  件序/x序/徑向序兩兩皆異)**5 AC 全 PASS**:P1 present+backward-compat(order 對 base 與所有檔位變體逐位元同無參數呼叫、
+  非-cascade 主秀 beat 三模式逐位元不變=相位來源不外洩)、P2 **crux** 真實 x 模式峰在 bd.x 升序下嚴格遞增+右手/光暈 who-first
+  **互換**・radial 模式峰在徑向升序下嚴格遞增・合成 fixture 每模式峰只在**自己的鍵序**下嚴格遞增、P3 三模式仍合法 cascade 簽章
+  (自己鍵序下跨件峰遞增+散佈≥0.30)+每件首尾 setup identity+特效 slot alpha 首尾=1、P4 正交(a 峰時刻**多重集合**三模式相同=
+  permutation・b x+span 各檔位散佈==宣告 span・c x+nrip 每件 pop 次數==nrip・d x+gains 峰深度隨檔位遞增)、P5 負對照
+  (a 真實 x 模式峰在**件序**下**不**遞增=真跟著 x 非恆真・b 合成每模式在**另兩鍵**序下**不**遞增=鍵隔離・c 退化所有件同 x→x 模式
+  平手以件序打破→逐位元==order・d 非法 mode→ValueError)。端到端 `build_spine --animate --tier-variants --cascade-phase x` 直出。
+  **回歸:動畫/功能閘全綠 + 新 cascade_phase_source GREEN**(`check_readiness.py` 僅既有 2 個 PSD analyzer `gen` 閘 RED,
+  為 pre-existing 環境漂移,與 J-5 無關,見未解問題;J-5 純加性、order 預設逐位元相容故零回歸)。新增 cap `cascade_phase_source`
+  L2 併入 `spine-anim-forge`(**仍 HOLD**)。**關鍵發現**:①**跨件時序通道至此有三條正交軸:結構(nrip)× 幅度(span)× 方向
+  (相位來源)**,三者機制各異(nrip/span 重生成關鍵幀窗、深度用值增益、**方向只是排名的重新指派 permutation**);
+  ②**permutation 軸的簽章 =「時刻集合不變、指派改變」**(P4a 峰時刻多重集合三模式相同)—— 比「某量遞增」更結構化的正交性斷言。
+  **honest boundary(仍在)**:方向選擇(order/x/radial)為 PROPOSAL(手感 A 類);相位用**排名**(非原始座標值,按實際間距
+  拉開波為後續 `phase_metric="rank"|"value"` 變體);單一真值資產。見 `knowledge/s1-cascade-phase-source.md`。
 - **S1 cascade 跨件波散佈幅度隨檔位遞增:跨件時序通道的「幅度式」軸,揭示『幅度』未必用幅度機制(里程碑,2026-09-30 run 001,candidate J-4)** —
   補 (J-3) 的另一條正交軸:(J-3) 讓 cascade **波掃次數** nrip 隨檔位遞增(掃**幾道**波=跨件時序通道的**結構/拓樸**軸),
   但一道 sweep 內各件峰時刻的散佈在所有檔位仍固定(base SPAN=0.54)。本次補上**散佈幅度** span 隨檔位嚴格遞增
@@ -850,8 +881,15 @@
 >   `TIER_CASCADE_SPAN`(Super0.54→Legend0.66)+ `gen_cascade(span=)` + `build_animations(tier_cascade_span=)` 重生成;
 >   `validate_cascade_span.py` 5AC PASS(Y2 crux 隔離 nrip=1 散佈 [0.54..0.66] 遞增;Y5b crux 值增益 amplify 加不出散佈→證 span 需重生成)。
 >   **揭示:「幅度」未必用幅度機制——時間位置的幅度(span)需重生成,不同於值幅度(post-hoc g)。**
+> **(J-5) ~~cascade 波方向由空間位置決定~~ ✅ 完成(2026-09-30 run 002,candidate J-5,`cascade_phase_source` L2,見上里程碑)** ——
+>   相位來源改由**空間位置排名**決定波方向:`order`(件序,預設)/ `x`(bd.x 升序=左→右)/ `radial`(徑向升序=中心外擴);
+>   相位仍用**排名** rank/(n−1) 均勻映 [0,1] → span/nrip/幅度語意不變。新增 `CASCADE_PHASE_MODES`+`_phase_ranks`;
+>   `_build_beat`/`build_animations` 吃 `cascade_phase`;`build_spine --cascade-phase`。`validate_cascade_phase.py` 5AC PASS
+>   (P2 crux 真實 x 序遞增+右手/光暈 who-first 互換・合成 3-排列 fixture 每模式只在自己鍵序遞增;P4a 峰時刻**多重集合**三模式相同=證方向是 permutation 軸;
+>   P5b 鍵隔離・P5c 退化同x→逐位元==order・P5d 非法 mode→ValueError)。**跨件時序通道至此三條正交軸:結構(nrip)× 幅度(span)× 方向(相位來源)**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(J-5) cascade 波方向由空間位置決定(左→右 / 中心外擴;件序相位改由 bd.x / 徑向而非件序 pi/(n−1);比照現有 phase threading,改相位來源)**;
+> **(J-6) cascade 相位**度量**由排名→原始座標值**(`phase_metric="rank"|"value"`:按實際件距拉開波,近的擠、遠的散;現為 rank 均勻散佈,value 讓散佈反映真實空間間距);
+> **或 cascade 波沿任意向量方向 / 右→左 / 外→內**(現 x=左→右、radial=中心外擴;加反向與任意單位向量投影排名,同 `_phase_ranks` 加 mode);
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
 > ⚠️ **(ENV) pre-existing RED:PSD analyzer 閘**(`validate_analyzer_award.py` 4_storyboard_structure.beats_match)——見未解問題,可獨立一個 bounded chunk 修(放寬 beats_match 為 subset,或誠實標記累積先驗為 PROPOSAL)。
@@ -880,6 +918,20 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-09-30 run 002:**S1 cascade 波方向由空間位置決定:跨件時序通道的「方向(相位來源)」軸(里程碑,candidate J-5)** —
+  cascade 跨件時序通道已有結構(nrip,J-3)× 幅度(span,J-4)兩軸,但各件**相位**一律由件序決定(`phase=pi/(n−1)`)。
+  本次補**第三條正交軸 = 方向(相位來源)**:相位改由空間位置排名決定 —— `order`(件序,預設)/ `x`(bd.x 升序=左→右)/
+  `radial`(徑向升序=中心外擴);相位仍用排名 `rank/(n−1)` 均勻映 [0,1] → span/nrip/幅度語意不變。**crux**:相位來源既不重生成
+  關鍵幀窗也不做值增益,只是把同一組峰時刻**重新指派**給不同件(permutation)→ 峰時刻**多重集合三模式相同**、真實 robot
+  件序≠x序(右手 x=320.5<光暈 359 → x 模式右手/光暈 who-first 互換)。全 additive:`CASCADE_PHASE_MODES`+`_phase_ranks`
+  (平手以件序打破);`_build_beat`/`build_animations` 吃 `cascade_phase`;`build_spine --cascade-phase`。`validate_cascade_phase.py`
+  (真實 robot 骨架 + 合成 3-排列 fixture)**5 AC 全 PASS**(P1 order 逐位元同無參數+非-cascade 不外洩/P2 crux 真實 x 序遞增+
+  who-first 互換+合成每模式只在自己鍵序遞增/P3 三模式仍合法 cascade 簽章/P4 正交:峰時刻多重集合三模式相同・x+span 散佈==宣告・
+  x+nrip pop==nrip・x+gains 深度遞增/P5 負對照:x 模式峰在件序下不遞增・鍵隔離・退化同x==order・非法 mode→ValueError)。
+  **動畫/功能閘全綠 + 新 cascade_phase_source GREEN**(check_readiness 僅既有 2 個 PSD analyzer gen 閘 RED=pre-existing 環境漂移,
+  與 J-5 無關;order 預設逐位元相容故零回歸)。cap `cascade_phase_source` L2;anim-forge 仍 HOLD。**關鍵:跨件時序通道三條正交軸
+  (結構 nrip × 幅度 span × 方向 相位來源),permutation 軸的簽章=「時刻集合不變、指派改變」**。honest:方向選擇為 PROPOSAL
+  (手感 A 類)、相位用排名(value-metric 為後續)、單一真值資產。見 `knowledge/s1-cascade-phase-source.md`。
 - 2026-09-21:**S1 squash 接檔位差異化:體積守恆耦合 amplify(里程碑,candidate G-4''''')** — 補 G-4''''
   的 honest boundary(squash 未接 tier 幅度,逐軸 `_amp_scale` 破守恆)。`_amp_scale_coupled`(拉長軸 overshoot
   放大、壓縮軸=倒數)使 `scaleX·scaleY≡1` 由建構保證在任一檔位保持,擠壓非均勻度與同源 shear 峰皆隨檔位嚴格遞增
