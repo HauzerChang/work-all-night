@@ -19,6 +19,15 @@ AWARD_TYPE = {"光暈": "mesh", "右手": "region", "頭": "region", "身體": "
 AWARD_EFFECT = {"光暈"}  # 語意上的特效件(發光背景)
 
 
+def beats_coverage(award_beats, proposed_beats):
+    """AC4 對齊判準:Award 動畫命名只曝露相位級節拍(In/Loop/Out),先驗除相位外另
+    提出 motion-primitive 主秀節拍(PROPOSAL,Award 未於動畫層級命名)。正確判準是
+    「涵蓋」(award ⊆ proposed),非 exact-equal(跨分類法誤比,且先驗累積後永遠 False)。
+    退化守衛:Award 未命名任何節拍(空集)時不得視為通過(空集是任意集合子集)。"""
+    award, proposed = set(award_beats), set(proposed_beats)
+    return len(award) > 0 and award.issubset(proposed)
+
+
 def award_slots(sk):
     return [s for s in sk["slots"] if s["name"].startswith(ROBOT_PREFIX)]
 
@@ -81,7 +90,15 @@ def validate(psd_path, award_path):
             tiers.add(t.group(1))
     proposed_beats = {b["beat"] for b in spec["3_motion_storyboard"]["beats"]}
     proposed_tiers = set(spec["3_motion_storyboard"]["tier_variants"] or [])
-    beats_ok = proposed_beats == beat_kinds
+    # Award 的動畫命名只曝露「相位級」節拍(In/Loop/Out);分鏡先驗除這三個相位外,
+    # 另提出 motion-primitive 主秀節拍(burst/hit/combo/charge/cascade/wobble/squash/twist),
+    # 這些是 Award 於動畫層級未命名的 PROPOSAL(落在 In/Loop/Out 時間軸內的內容細化)。
+    # 故正確的對齊判準是「涵蓋」(Award 命名的節拍都被先驗提出 = award ⊆ proposed),
+    # 而非 exact-equal —— exact-equal 會因先驗持續累積 motion-primitive 而永遠 False,
+    # 是跨分類法(相位 vs 運動基元)的誤比。`len(beat_kinds) > 0` 守住退化情形
+    # (Award 未命名任何節拍時空集為任意集合子集 → 不得視為通過)。見 STATE 未解問題。
+    beats_covered = beats_coverage(beat_kinds, proposed_beats)
+    proposed_only = sorted(proposed_beats - beat_kinds)   # PROPOSAL:Award 未命名的主秀節拍
     tiers_hit = proposed_tiers & tiers
 
     # ⑤ 露出項合理性:露出需「遮擋者移開」或「被遮件自己移出」二者之一有足量運動
@@ -111,9 +128,11 @@ def validate(psd_path, award_path):
         "3_geometry_vs_award": {"per_part": geo_eval,
                                 "pass": all(v["verdict"] != "mismatch" for v in geo_eval.values())},
         "4_storyboard_structure": {"proposed_beats": sorted(proposed_beats),
-                                    "award_beats": sorted(beat_kinds), "beats_match": beats_ok,
+                                    "award_beats": sorted(beat_kinds), "beats_match": beats_covered,
+                                    "match_mode": "coverage(award ⊆ proposed)",
+                                    "proposed_only_proposal": proposed_only,
                                     "award_tiers": sorted(tiers), "tiers_hit": sorted(tiers_hit),
-                                    "pass": beats_ok and len(tiers_hit) >= 1},
+                                    "pass": beats_covered and len(tiers_hit) >= 1},
         "5_reveal_motion_check": {"checks": reveal_checks,
                                   "mover_move_rate": round(reveal_move_rate, 3),
                                   "pass": reveal_move_rate >= 0.9},

@@ -10,6 +10,31 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **修 pre-existing RED:分析器 AC4 分鏡對齊 exact-equal → coverage(2026-10-01 run 001,candidate ENV-1)** —
+  修 STATE 長期掛在「未解問題」的 analyzer gen 閘 pre-existing RED(`validate_analyzer_award.py`
+  `4_storyboard_structure`),此前使 readiness 兩個 analyzer 條目(`spine-asset-forge` /
+  `spine-target-analysis`)同步 RED。**根因=跨分類法 exact-equal 誤比**:AC4 原 `proposed_beats == beat_kinds`,
+  但 `beat_kinds` 從 Award 動畫名只抽出**相位**節拍 `{In,Loop,Out}`,而 `proposed_beats` 是先驗
+  `genre_priors.slot_bigwin` 提出的 beat —— 隨研究累積,先驗除相位外另含 8 個 **motion-primitive** 主秀節拍
+  (burst/hit/combo/charge/cascade/wobble/squash/twist,Award 於動畫層級未命名=PROPOSAL)。兩者是不同語意軸
+  (相位 vs 運動基元),且先驗單調增長 → `proposed==award` **結構性永遠 False**(非分析器變差,是判準錯軸;
+  已確認 J-4 無關、clean J-3 tree 同樣 RED)。**修法**:新增 module-level `beats_coverage(award,proposed)=
+  `len(award)>0 and award.issubset(proposed)`(涵蓋 award ⊆ proposed + 空集退化守衛),AC4 改用之;report 加
+  `match_mode="coverage(award ⊆ proposed)"` + `proposed_only_proposal`(多出的 8 運動基元誠實列為 PROPOSAL,
+  不刪不藏),`beats_match` 語意改為涵蓋。與 `build_storyboard` 既有 `status=PROPOSAL`、`validate_priors` 的
+  coverage/`prior_beats_unused` 處理一致。**誠實守衛閘** `validate_analyzer_beats_coverage.py`(gate=eval,
+  證放寬非「為轉綠而弱化」)**5 AC 全 PASS**:C1 涵蓋+嚴格超集(proposed_only 恰 8)、**C2 負對照** 逐一拔掉
+  In/Loop/Out 任一 → coverage False(漏 Award 命名節拍抓得到)、**C3 負對照** Award 空集 → False(空集守衛)、
+  C4 端到端真值(robot_parts.psd⇄Award.json overall_pass、award_beats=={In,Loop,Out})、**C5 向後相容**
+  exact-equal 舊通過者(proposed==award)新判準仍過(放寬=相等的真超集,不破壞既有語意)。
+  `check_readiness.py` 新增 cap `analyzer_beats_coverage`(eval,L2)併入 `spine-target-analysis`。
+  **回歸**:`check_readiness.py` **0 RED**(修前 2 RED)、無 GREEN→RED。**關鍵發現**:①「閘永遠 RED」先查判準是否
+  **跨分類法誤比**,其中一軸單調增長時 exact-equal 必然恆假;②**放寬判準必配負對照**(C2/C3)證「涵蓋」仍能抓
+  漏與退化、C5 證向後相容;③誠實不靠隱藏(多出節拍明列 PROPOSAL,判準只要求涵蓋 Award 真正命名的部分)。
+  區塊仍 HOLD(分析器生成策略不變)。見 `knowledge/s1-analyzer-beats-coverage.md`。
+  ⚠️ **分支備註**:本 routine 由排程在 `claude/focused-dirac-ndxqa9` 啟動(啟動時 == `claude/spine-main` @a6ad9ef),
+  依本 session 硬性分支要求本次 push 於 `claude/focused-dirac-ndxqa9`;**建議使用者併回 `claude/spine-main`**
+  以免分支增生(SCHEDULE.md 固定分支策略)。
 - **S1 cascade 跨件波散佈幅度隨檔位遞增:跨件時序通道的「幅度式」軸,揭示『幅度』未必用幅度機制(里程碑,2026-09-30 run 001,candidate J-4)** —
   補 (J-3) 的另一條正交軸:(J-3) 讓 cascade **波掃次數** nrip 隨檔位遞增(掃**幾道**波=跨件時序通道的**結構/拓樸**軸),
   但一道 sweep 內各件峰時刻的散佈在所有檔位仍固定(base SPAN=0.54)。本次補上**散佈幅度** span 隨檔位嚴格遞增
@@ -854,7 +879,8 @@
 > **(J-5) cascade 波方向由空間位置決定(左→右 / 中心外擴;件序相位改由 bd.x / 徑向而非件序 pi/(n−1);比照現有 phase threading,改相位來源)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
-> ⚠️ **(ENV) pre-existing RED:PSD analyzer 閘**(`validate_analyzer_award.py` 4_storyboard_structure.beats_match)——見未解問題,可獨立一個 bounded chunk 修(放寬 beats_match 為 subset,或誠實標記累積先驗為 PROPOSAL)。
+> ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-1):`validate_analyzer_award.py` AC4
+>   由 exact-equal 放寬為 coverage(award ⊆ proposed)+ 誠實守衛閘 `validate_analyzer_beats_coverage.py`;check_readiness **0 RED**。見上方里程碑。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
@@ -865,14 +891,14 @@
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
-- ⚠️ **pre-existing RED(env 漂移,非 J-4 造成)**:`tools/analyzer/validate_analyzer_award.py` 的 `4_storyboard_structure`
-  AC 失敗(`overall_pass=False`,exit 1)—— `beats_match=False`,因累積先驗 `genre_priors.slot_bigwin` 現提出 8 個主秀 beat
-  (burst/cascade/charge/combo/hit/squash/twist/wobble)vs Award 真值 `award_beats=[In,Loop,Out]`。**已用 `git stash` 確認在
-  clean J-3 tree(59cf2b2)同樣 RED**,故與 candidate J-4 無關(J-4 純加性、不新增 beat)。`check_readiness.py` 不呼叫 `sys.exit`
-  故總是 exit 0,**不能用 exit code 判 RED**;須看各閘 `閘:GREEN/RED`。修法(未做,可獨立 bounded chunk):把 `beats_match`
-  由 exact-equal 放寬為 **award ⊆ proposed**(誠實反映「先驗提出的主秀 beat 於 Award 無命名 = prior_beats_unused PROPOSAL」,
-  同 validate_priors 的 coverage 處理),或在閘內明列這些為 PROPOSAL-only 不參與 match。**注意**:STATE 舊里程碑「N 閘全綠」
-  應理解為**動畫/功能閘全綠**,不含此 PSD analyzer gen 閘的環境相依狀態。
+- ✅ **已解(2026-10-01 run 001,candidate ENV-1)**:`tools/analyzer/validate_analyzer_award.py`
+  `4_storyboard_structure` 的 pre-existing RED。根因=AC4 用 exact-equal 跨分類法誤比(Award 動畫只命名**相位**
+  `{In,Loop,Out}`、先驗累積另含 8 個 **motion-primitive** PROPOSAL 主秀 beat),先驗單調增長使 `proposed==award`
+  永遠 False。已改為 **coverage(award ⊆ proposed)+ 空集退化守衛**,多出節拍以 `proposed_only_proposal` 誠實列為
+  PROPOSAL;新增誠實守衛閘 `validate_analyzer_beats_coverage.py`(5 AC:C2 漏節拍/C3 空集皆 False、C5 exact-equal 向後相容)。
+  `check_readiness.py` **0 RED**(修前 2 RED)。詳見上方里程碑 ENV-1 與 `knowledge/s1-analyzer-beats-coverage.md`。
+  ⚠️ 仍注意:`check_readiness.py` 不呼叫 `sys.exit` 故總是 exit 0,**不能用 exit code 判 RED**;須看各閘 `閘:GREEN/RED`。
+  (歷史註:STATE 舊里程碑「N 閘全綠」指**動畫/功能閘**;此 analyzer gen 閘現亦 GREEN。)
 - ❓ 排程頻率未定(使用者尚未決定)。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。

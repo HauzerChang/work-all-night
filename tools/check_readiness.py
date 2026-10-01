@@ -86,6 +86,9 @@ BLOCKS = [
         "caps": [
             CAP("analyze_target", "分層 PSD → 規格(件/特效/分鏡/拆圖/補圖)", "L2",
                 "python3 tools/analyzer/validate_analyzer_award.py", "gen"),
+            CAP("analyzer_beats_coverage", "AC4 分鏡對齊=coverage(award⊆proposed)誠實守衛", "L2",
+                "python3 tools/analyzer/validate_analyzer_beats_coverage.py", "eval",
+                note="負對照:漏 Award 命名節拍/Award 空集皆 False;向後相容 exact-equal 仍過"),
             CAP("genre_priors", "分鏡先驗庫(2 類型已驗/2 未驗)", "L2",
                 "python3 tools/analyzer/validate_priors.py", "gen",
                 note="覆蓋率 1.0 但僅 2 類型有真值"),
