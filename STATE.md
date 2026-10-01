@@ -10,6 +10,21 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **分析器真值閘 ④ 分鏡結構判準:嚴格相等 → 召回(修 pre-existing RED;里程碑,2026-10-01 run 001,candidate ENV-fix)** —
+  修掉累積數個 session 的 pre-existing RED:`tools/analyzer/validate_analyzer_award.py` 的 `4_storyboard_structure` 閘。
+  **根因**:主秀 beat 生成系列(E/H/I/J…G-4'''''')一路把 **8 個節拍**(burst/cascade/charge/combo/hit/squash/twist/wobble)
+  併進 `genre_priors.slot_bigwin` → `proposed_beats` 現 11 個;但 Award 動畫只命名結構 beat `{In,Loop,Out}`(命名 `Award_<tier>_In/Loop/Out`),
+  那 8 個主秀 beat 在 Award **無對應命名動畫** → 原判準 `beats_ok = proposed_beats == beat_kinds`(**嚴格集合相等**)永遠 False → 閘 RED。
+  **非回歸**(已於上個 session 用 `git stash` 在 clean J-3 tree 59cf2b2 確認同樣 RED;J-4 純加性)。此閘被 `check_readiness.py` 兩個 skill 區塊引用(line 58、88)→ 顯示為 **2 個 RED**。
+  **修法 = 召回(recall),非嚴格相等**:正確語意是「Award 命名的每個結構 beat 都被提出(`award ⊆ proposed`)」,分析器額外提出、Award 未命名的主秀 beat 是 **PROPOSAL**,
+  誠實列出但不算 match 失敗 —— **完全比照 `validate_priors.py` 既有的 `prior_beats_unused` + coverage 門檻**(那裡早已非 exact-equal)。抽出純函數
+  `beat_structure(proposed,award,proposed_tiers,award_tiers)`,回報 `beats_covered`(=`award⊆proposed`,**真正判準**)、`beats_match`(=嚴格相等,**仍一併回報作透明佐證**,現 False)、
+  `beats_proposal_only`(=那 8 個主秀 PROPOSAL,誠實攤開)、`pass=beats_covered and tiers_hit≥1`。docstring ④ 同步改「是否**涵蓋** Award 命名結構(召回)」。
+  **閘仍可信(負對照固化成 `--selftest`,純邏輯不讀資產,9 斷言全 PASS)**:POS 涵蓋→pass 且 beats_match=False 且 proposal_only 恰 8;NEG 漏 `In`(Award 有的)→`beats_covered`=False→fail(**真漏召回時閘仍 fail**);
+  NEG 漏 Loop/Out→fail;NEG 0 檔位→fail(保留 tier 條件);EXACT 提案==Award→pass 且 beats_match=True(證放寬只「加容忍 PROPOSAL extras」,未改嚴格情形行為)。
+  **結果**:`validate_analyzer_award.py` overall_pass=True/exit 0/`4_storyboard_structure.pass`=True;`check_readiness.py` **2 個 analyzer `gen` 閘 RED→GREEN**,其餘動畫/功能閘全綠不動(**0 RED / 48 GREEN,0 GREEN→RED**)。
+  **自此 repo 真正全綠**,不再需要每個里程碑附「另有 2 個 analyzer 閘 RED」的 caveat。**關鍵發現**:①一個隨「累積先驗」逐步偏離初衷的**過嚴判準**會悄悄變成長期 RED —— 真值閘對「PROPOSAL 多於真值命名」應走**召回 + 誠實列未對上項**(同 `validate_priors`),不是 exact-equal;
+  ②放寬判準必附**負對照**證「仍能抓真漏召回」,否則等於拆閘。**honest boundary**:這是**閘語意修正、非新能力**(分析器件召回/特效/幾何/露出判準全未動;主秀 beat 仍先驗手感 PROPOSAL);`spine-anim-forge` 仍 HOLD,成熟度不變。見 `knowledge/s1-analyzer-storyboard-recall-gate.md`。
 - **S1 cascade 跨件波散佈幅度隨檔位遞增:跨件時序通道的「幅度式」軸,揭示『幅度』未必用幅度機制(里程碑,2026-09-30 run 001,candidate J-4)** —
   補 (J-3) 的另一條正交軸:(J-3) 讓 cascade **波掃次數** nrip 隨檔位遞增(掃**幾道**波=跨件時序通道的**結構/拓樸**軸),
   但一道 sweep 內各件峰時刻的散佈在所有檔位仍固定(base SPAN=0.54)。本次補上**散佈幅度** span 隨檔位嚴格遞增
@@ -854,7 +869,7 @@
 > **(J-5) cascade 波方向由空間位置決定(左→右 / 中心外擴;件序相位改由 bd.x / 徑向而非件序 pi/(n−1);比照現有 phase threading,改相位來源)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
-> ⚠️ **(ENV) pre-existing RED:PSD analyzer 閘**(`validate_analyzer_award.py` 4_storyboard_structure.beats_match)——見未解問題,可獨立一個 bounded chunk 修(放寬 beats_match 為 subset,或誠實標記累積先驗為 PROPOSAL)。
+> ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 48 GREEN**。見上里程碑。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
@@ -865,14 +880,12 @@
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
-- ⚠️ **pre-existing RED(env 漂移,非 J-4 造成)**:`tools/analyzer/validate_analyzer_award.py` 的 `4_storyboard_structure`
-  AC 失敗(`overall_pass=False`,exit 1)—— `beats_match=False`,因累積先驗 `genre_priors.slot_bigwin` 現提出 8 個主秀 beat
-  (burst/cascade/charge/combo/hit/squash/twist/wobble)vs Award 真值 `award_beats=[In,Loop,Out]`。**已用 `git stash` 確認在
-  clean J-3 tree(59cf2b2)同樣 RED**,故與 candidate J-4 無關(J-4 純加性、不新增 beat)。`check_readiness.py` 不呼叫 `sys.exit`
-  故總是 exit 0,**不能用 exit code 判 RED**;須看各閘 `閘:GREEN/RED`。修法(未做,可獨立 bounded chunk):把 `beats_match`
-  由 exact-equal 放寬為 **award ⊆ proposed**(誠實反映「先驗提出的主秀 beat 於 Award 無命名 = prior_beats_unused PROPOSAL」,
-  同 validate_priors 的 coverage 處理),或在閘內明列這些為 PROPOSAL-only 不參與 match。**注意**:STATE 舊里程碑「N 閘全綠」
-  應理解為**動畫/功能閘全綠**,不含此 PSD analyzer gen 閘的環境相依狀態。
+- ✅ **[已修 2026-10-01 run 001] pre-existing RED**:`tools/analyzer/validate_analyzer_award.py` 的 `4_storyboard_structure`
+  原 `beats_match`(嚴格相等)因累積先驗提出 8 個主秀 beat vs Award `[In,Loop,Out]` 而永遠 False → RED。**已修**:改**召回**
+  判準(`award ⊆ proposed`),主秀 beat 誠實列為 `beats_proposal_only`(同 validate_priors 的 prior_beats_unused 處理),
+  並固化 `--selftest` 負對照證閘仍有鑑別力。`check_readiness.py` 現 **0 RED / 48 GREEN**(2 個 analyzer gen 閘 RED→GREEN)。
+  見上里程碑 candidate ENV-fix + `knowledge/s1-analyzer-storyboard-recall-gate.md`。**提醒仍成立**:`check_readiness.py` 不呼叫
+  `sys.exit` 故總是 exit 0,判 RED 須看各閘 `閘:GREEN/RED`,不能用 exit code。
 - ❓ 排程頻率未定(使用者尚未決定)。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
