@@ -30,7 +30,7 @@ python3 tools/analyzer/validate_analyzer_award.py       # 對 Award 真值,5 項
 | ① 可動件召回 | **1.0**(5/5 對上 Award `機器人拆件/*` slot) |
 | ② 特效分類 | **5/5**(光暈→特效;頭/身體/雙手→結構) |
 | ③ mesh/region 建議 vs Award 實際 | 無 mismatch:光暈/身體 mesh=match;右手/頭 region=對;左手(Award mesh)判 partial |
-| ④ 分鏡結構 | In/Loop/Out 全中;4 檔位(Legend/Mega/Omg/Super)全中 |
+| ④ 分鏡結構 | Award 命名的結構相位 In/Loop/Out **⊆ 提案**;4 檔位(Legend/Mega/Omg/Super)全中。提案另含累積主秀運動先驗(burst/cascade/charge/combo/hit/squash/twist/wobble)→ 於 Award 無命名,誠實列為 `prior_beats_unused`(見下「⑥ beats_match 的誠實界定」) |
 | ⑤ 露出項合理性 | **4/4**:每筆露出,遮擋者或被遮件在 Award 真有足量骨運動 |
 
 視覺證據:`knowledge/figures/s1_robot_analysis.png`(綠=結構/橙=特效/洋紅=露出區)。
@@ -56,6 +56,25 @@ Award 真值證明此先驗對這類主角**結構正確**(beats + tiers 全中)
 robot_parts 全圖層 blend=NORMAL(光暈沒用 additive)→ **混合模式不可靠**。
 有效訊號組合:命名關鍵字(光暈/glow/粒子…)最強,佐以羽化帶比例、佔畫布比、是否包覆其他件、內部細節密度、z 極端。
 光暈得分 0.999(遠超 0.45 閾值),結構件全 <0.14 → 分離度高。
+
+### 6. ⑥ beats_match 的誠實界定:結構相位 vs 運動詞彙是兩套 taxonomy(2026-10-01 修)
+`validate_analyzer_award.py` 的 `4_storyboard_structure.beats_match` 原用 **exact-equal**
+(`proposed_beats == award_beats`)。隨主秀先驗累積(E/H/I/J…把 burst/cascade/hit/combo/charge/
+squash/twist/wobble 併進 `genre_priors.slot_bigwin`),提案 beat 集合變成
+`{In,Loop,Out} ∪ {8 個主秀運動 beat}`,而 Award 動畫命名**只有結構相位** `{In,Loop,Out}`
+→ exact-equal 永遠 False(**pre-existing RED,環境漂移非任一 candidate 造成**;曾用
+`git stash` 確認在 clean tree 同樣 RED)。
+- **根因是 category error**:`award_beats`(In/Loop/Out)是**結構相位**;`proposed_beats` 多出的
+  是**運動詞彙**(主秀怎麼動)。Award 不以 beat 命名運動(靠 timeline 內容表現),故這些主秀
+  beat 在 Award 真值裡「無命名」是**誠實的 PROPOSAL-only,不是 mismatch**。
+- **修法(比照 `validate_priors.py` 的 coverage/`prior_beats_unused`)**:`beats_match` 改判
+  **`award ⊆ proposed`**(Award 命名的結構相位全被提案覆蓋),並新增 `prior_beats_unused`
+  = `proposed − award` 誠實列出提案多出、Award 無命名的主秀 beat。
+- **閘不因此變 vacuous(負對照已驗)**:若分析器**漏掉** Award 有命名的結構相位(如提案少了
+  Loop/Out),`award ⊆ proposed` 仍為 False → gate FAIL。即「只罰缺漏 Award 命名的相位,不罰
+  誠實多提的 PROPOSAL」。
+- 影響:`check_readiness.py` 的 `analyze_target` cap(在 `spine-asset-forge`/`spine-target-analysis`
+  兩區塊)由 false-RED 回正 GREEN。區塊 HOLD/READY 判定不受此修改變(各自另有門檻)。
 
 ## 下一步候選
 

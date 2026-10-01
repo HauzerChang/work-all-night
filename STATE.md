@@ -10,6 +10,20 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **修 pre-existing RED 閘 + 恢復全綠基線:`validate_analyzer_award.py` `beats_match` 由 exact-equal 放寬為 `award ⊆ proposed`(2026-10-01 run)** —
+  一直存在的 false-RED(環境漂移非任一 candidate 造成):`beats_match` 原用 exact-equal 比 `proposed_beats`(結構相位
+  In/Loop/Out **＋** 累積主秀運動先驗 burst/cascade/charge/combo/hit/squash/twist/wobble)== `award_beats`(Award 動畫命名**只有
+  結構相位** In/Loop/Out)。**根因=category error**:兩者是不同 taxonomy——`award_beats` 是**結構相位**、提案多出的是
+  **運動詞彙**;Award 不以 beat 命名運動(靠 timeline 內容表現),故主秀 beat 於真值「無命名」是**誠實的 PROPOSAL-only,非 mismatch**。
+  **修法(比照 `validate_priors.py` 的 coverage/`prior_beats_unused` 慣例)**:`beats_match` 改判 **`award ⊆ proposed`**(Award 命名的
+  結構相位全被提案覆蓋),新增 `prior_beats_unused=sorted(proposed−award)` 誠實列出提案多出、Award 無命名的主秀 beat;docstring ④ 同步更新。
+  **AC 全過**:① gate `4_storyboard_structure.pass`+`overall_pass`=True exit 0;② 語意誠實(subset + prior_beats_unused);
+  ③ **負對照不 vacuous**(模擬分析器漏掉 Award 命名的 Loop/Out → `award⊆proposed` 仍 False → gate FAIL,證只罰缺漏不罰誠實多提);
+  ④ 回歸 `check_readiness.py` **48 GREEN / 0 RED,無 GREEN→RED**,`analyze_target` cap 兩區塊回正 GREEN。
+  **副作用=新 C 類里程碑**:`spine-asset-forge` 區塊因 `analyze_target` 回正 GREEN **跨過 skill 化門檻 HOLD→READY**(crossing
+  一直潛在、僅被 false-RED 擋住;build_spine round-trip L3 + analyze_target/psd_slice/generate_mesh_v2 L2 本就全過)。依 RULES **C 類**:
+  是否打包 `skills/spine-asset-forge/` 並 sync **待使用者拍板**,本 run 不自動打包、僅更新 READINESS.md 快照。
+  見 `knowledge/s1-target-image-analyzer.md`(§6)、`skills/READINESS.md`(2026-10-01 preamble)。
 - **S1 cascade 跨件波散佈幅度隨檔位遞增:跨件時序通道的「幅度式」軸,揭示『幅度』未必用幅度機制(里程碑,2026-09-30 run 001,candidate J-4)** —
   補 (J-3) 的另一條正交軸:(J-3) 讓 cascade **波掃次數** nrip 隨檔位遞增(掃**幾道**波=跨件時序通道的**結構/拓樸**軸),
   但一道 sweep 內各件峰時刻的散佈在所有檔位仍固定(base SPAN=0.54)。本次補上**散佈幅度** span 隨檔位嚴格遞增
@@ -850,11 +864,19 @@
 >   `TIER_CASCADE_SPAN`(Super0.54→Legend0.66)+ `gen_cascade(span=)` + `build_animations(tier_cascade_span=)` 重生成;
 >   `validate_cascade_span.py` 5AC PASS(Y2 crux 隔離 nrip=1 散佈 [0.54..0.66] 遞增;Y5b crux 值增益 amplify 加不出散佈→證 span 需重生成)。
 >   **揭示:「幅度」未必用幅度機制——時間位置的幅度(span)需重生成,不同於值幅度(post-hoc g)。**
+ **(ANALYZER-GATE) ~~修 pre-existing RED:`validate_analyzer_award.py` beats_match~~ ✅ 完成(2026-10-01 run)** ——
+>   `beats_match` 由 exact-equal 改 **`award ⊆ proposed`** + 新增 `prior_beats_unused`(比照 `validate_priors`);
+>   負對照驗不 vacuous(漏 Award 命名相位仍 FAIL)。gate exit 0、`analyze_target` cap 回正 GREEN、**48 GREEN/0 RED**。
+>   見 `knowledge/s1-target-image-analyzer.md`(§6)、READINESS.md 2026-10-01 preamble。
+> **⚠️ 新 C 類里程碑(待使用者拍板,勿自動打包)**:此修使 **`spine-asset-forge` 區塊 HOLD→READY**
+>   (reverse-analyze PSD→可載入靜態 Spine 素材:`analyze_target`+`psd_slice`+`generate_mesh_v2` 皆 L2 GREEN、
+>   `build_spine` round-trip L3 GREEN;crossing 一直潛在,僅被 false-RED 擋住)。依 RULES **C 類**:是否
+>   產出 `skills/spine-asset-forge/` 套件並 sync,**需使用者拍板**(本 run 僅更新 READINESS.md 快照,未打包)。
+>   建議:可與 `spine-weighted-forge`(已 READY)一併打包為同一 forge skill 家族(weighted 素材產線是其子模組)。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
 > **(J-5) cascade 波方向由空間位置決定(左→右 / 中心外擴;件序相位改由 bd.x / 徑向而非件序 pi/(n−1);比照現有 phase threading,改相位來源)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
-> ⚠️ **(ENV) pre-existing RED:PSD analyzer 閘**(`validate_analyzer_award.py` 4_storyboard_structure.beats_match)——見未解問題,可獨立一個 bounded chunk 修(放寬 beats_match 為 subset,或誠實標記累積先驗為 PROPOSAL)。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
@@ -865,14 +887,16 @@
 
 ## 未解問題 / 阻塞 (open questions / blockers)
 
-- ⚠️ **pre-existing RED(env 漂移,非 J-4 造成)**:`tools/analyzer/validate_analyzer_award.py` 的 `4_storyboard_structure`
-  AC 失敗(`overall_pass=False`,exit 1)—— `beats_match=False`,因累積先驗 `genre_priors.slot_bigwin` 現提出 8 個主秀 beat
-  (burst/cascade/charge/combo/hit/squash/twist/wobble)vs Award 真值 `award_beats=[In,Loop,Out]`。**已用 `git stash` 確認在
-  clean J-3 tree(59cf2b2)同樣 RED**,故與 candidate J-4 無關(J-4 純加性、不新增 beat)。`check_readiness.py` 不呼叫 `sys.exit`
-  故總是 exit 0,**不能用 exit code 判 RED**;須看各閘 `閘:GREEN/RED`。修法(未做,可獨立 bounded chunk):把 `beats_match`
-  由 exact-equal 放寬為 **award ⊆ proposed**(誠實反映「先驗提出的主秀 beat 於 Award 無命名 = prior_beats_unused PROPOSAL」,
-  同 validate_priors 的 coverage 處理),或在閘內明列這些為 PROPOSAL-only 不參與 match。**注意**:STATE 舊里程碑「N 閘全綠」
-  應理解為**動畫/功能閘全綠**,不含此 PSD analyzer gen 閘的環境相依狀態。
+- ✅ **已修(2026-10-01 run):pre-existing RED `validate_analyzer_award.py` `4_storyboard_structure.beats_match`**
+  —— 根因是 **category error**:`beats_match` 原用 exact-equal 比 `proposed_beats`(結構相位 In/Loop/Out **＋**
+  累積主秀運動先驗 burst/cascade/charge/combo/hit/squash/twist/wobble)== `award_beats`(Award 動畫命名**只有結構相位**
+  In/Loop/Out)。兩者是不同 taxonomy(運動詞彙 vs 結構相位),Award 不以 beat 命名運動 → 主秀 beat 於真值「無命名」是
+  **誠實 PROPOSAL-only,非 mismatch**。**修法(比照 `validate_priors.py` 的 coverage/`prior_beats_unused`)**:`beats_match`
+  改判 **`award ⊆ proposed`**,新增 `prior_beats_unused=proposed−award`。負對照已驗不 vacuous(提案若漏 Award 命名的相位
+  仍 FAIL)。**gate 現 `overall_pass=True` exit 0**;`check_readiness.py` 的 `analyze_target` cap(兩區塊)回正 GREEN,
+  **48 GREEN / 0 RED**。見 `knowledge/s1-target-image-analyzer.md`(§6)。
+  ⚠️ **副作用(新 C 類里程碑,見下「下一步動作」)**:`spine-asset-forge` 區塊因此跨過 skill 化門檻 **HOLD→READY**。
+  (歷史註記:`check_readiness.py` 不呼叫 `sys.exit` 故總是 exit 0,**判 RED 須看各閘 `閘:GREEN/RED`**,不能用 exit code。)
 - ❓ 排程頻率未定(使用者尚未決定)。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
