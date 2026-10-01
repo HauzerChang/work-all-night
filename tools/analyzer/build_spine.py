@@ -190,7 +190,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
 
 def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False,
           deform=False, pivot_rotate=False, scale_pivot=False, shear_pivot=False, tier_variants=False,
-          twist_volume=False,
+          twist_volume=False, cascade_dir=None,
           deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
@@ -321,11 +321,17 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
             ttc = twist_cycles_for(genre)
             tcr = cascade_ripples_for(genre)
             tcs = cascade_span_for(genre)
+        # J-5:cascade 波方向(相位來源)。"auto" → 查 genre 建議(cascade_dir_for);None → 件序(byte-identical)。
+        cdir = cascade_dir
+        if cdir == "auto":
+            from tier_variants import cascade_dir_for
+            cdir = cascade_dir_for(genre)
         skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"],
                                                   tier_gains=tg, tier_combo_hits=tch,
                                                   tier_wobble_cycles=twc, tier_squash_cycles=tsc,
                                                   tier_twist_cycles=ttc, tier_cascade_ripples=tcr,
-                                                  tier_cascade_span=tcs, twist_volume=twist_volume)
+                                                  tier_cascade_span=tcs, twist_volume=twist_volume,
+                                                  cascade_dir=cdir)
         if (pivot_rotate or scale_pivot or shear_pivot) and not rig:
             # candidate 0i:件繞**關節 pivot** 轉而非件中心(keyframe 級,不動骨架)。
             # 延伸 G-3:`--scale-pivot` 再把 `scale` 也補償(M=R·S)→ 件繞關節 pivot **旋轉+縮放**。
@@ -387,11 +393,15 @@ def main():
                     help="candidate J:主秀 beat 依 genre 宣告檔位產幅度差異化變體 {beat}__{tier}(需 --animate)")
     ap.add_argument("--twist-volume", dest="twist_volume", action="store_true",
                     help="G-4''''''-vol:twist 掛體積守恆等向補償 scale(擰而不變面積;配 --shear-pivot 端到端;需 --animate)")
+    ap.add_argument("--cascade-dir", dest="cascade_dir", default=None,
+                    choices=["lr", "rl", "co", "oc", "auto"],
+                    help="J-5:cascade 跨件波方向由空間位置決定(lr 左→右/rl 右→左/co 中心外擴/oc 外向內/auto 查 genre 建議;"
+                         "預設件序 byte-identical;需 --animate)")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
     s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,
               pivot_rotate=a.pivot_rotate, scale_pivot=a.scale_pivot, shear_pivot=a.shear_pivot,
-              tier_variants=a.tier_variants, twist_volume=a.twist_volume)
+              tier_variants=a.tier_variants, twist_volume=a.twist_volume, cascade_dir=a.cascade_dir)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

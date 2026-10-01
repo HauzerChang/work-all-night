@@ -192,6 +192,20 @@ def cascade_span_for(genre):
     return TIER_CASCADE_SPAN.get(genre)
 
 
+# candidate J-5 — genre → cascade 跨件波的**建議相位來源**(波方向)。與 nrip(J-3)/span(J-4)/深度(J)三軸**正交**:
+# 方向只決定「哪件何時 pop」(相位來源:空間位置 vs 件序),不決定「幾道波/一道多開/多深」。
+# "co"(中心外擴)最貼 slot 大獎的「從中心爆開」體感;**仍為 opt-in**——build_animations 預設 cascade_dir=None(件序,
+# byte-identical),只有 build_spine --cascade-dir(或此表被顯式查用)才改相位來源,確保對既有 golden 零回歸。
+TIER_CASCADE_DIR = {
+    "slot_bigwin": "co",
+}
+
+
+def cascade_dir_for(genre):
+    """回傳該 genre 的**建議** cascade 波方向字串("lr"/"rl"/"co"/"oc");無宣告的 genre 回 None(→ 件序,byte-identical)。"""
+    return TIER_CASCADE_DIR.get(genre)
+
+
 def _amp_scale(v, g):
     """scale 值幅度增益:僅放大 identity 上方 overshoot;下方(squash/collapse)樓地板不動。"""
     return 1.0 + g * (v - 1.0) if v >= 1.0 else v

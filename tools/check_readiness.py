@@ -455,6 +455,20 @@ BLOCKS = [
                      "Y5 負對照 (a) 平 span→單調 FALSE (b) **crux honest-distinction** post-hoc 值增益 amplify(g=2.1)→深度 0.34→0.71 變大但散佈 0.5417==0.5417 **不變** 證 span 軸無法由幅度機制產生·非重生成不可 (c) slot_reveal cascade_span_for None 不亂加·span 只作用 cascade 非-cascade 變體逐位元同幅度-only)。"
                      "**跨件時序通道至此有兩條正交軸:結構(nrip,J-3)× 幅度(span,J-4);後者揭示『幅度』未必用幅度機制——時間位置的幅度需重生成**。"
                      "honest:散佈階梯(0.54–0.66)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
+            CAP("cascade_dir_spatial", "cascade 跨件波方向由空間位置決定(J-5,第四條正交軸——相位來源:空間 vs 件序)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir.py", "pipeline",
+                note="補 (J-4) 的 honest boundary:至 (J-4) 為止,cascade 各件相位恆為**件序** pi/(nvalid−1) ——波方向等於作者把件寫進 storyboard 的"
+                     "**列表順序**,是任意/排版決定的,無物理意義。本次把相位的**排序鍵**換成**空間座標**:lr 左→右(bd.x 升序)/rl 右→左/"
+                     "co 中心外擴(距畫布中心升序)/oc 外向內 —— 波方向變成幾何。相位值仍 rank/(nvalid−1)∈[0,1],**波形(SPAN/nrip/深度)分毫不動** → 只重排「哪件何時 pop」。"
+                     "**crux(J-5 的 honest distinction)**:這不是新的幅度/段數軸,而是**同一道波的方向來源**從件序換成幾何;要證「真由空間決定」,必須在 **件序 ≠ 空間序** 的真實資產上證峰序**跟空間走不跟件序走**。"
+                     "robot fixture 件序 [光暈,右手,頭,身體,左手](x=359,320,361,394,558)**非** x 排序(x 最小的右手排件序第 2)→ lr 下右手(件序 index 1)比光暈(件序 index 0)更早 pop,件序相位下不可能。"
+                     "新增 _cascade_phase_of(依方向空間鍵給 rank,tie-break 件序 index)+ build_animations(cascade_dir=)/build_spine --cascade-dir{lr,rl,co,oc,auto};cascade_dir=None/\"po\" 逐位元同件序(向後相容)。tier_variants.cascade_dir_for 回 genre 建議(slot_bigwin→co,opt-in)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(cascade_dir),validate_cascade_dir.py 5AC PASS(Z1 present+backward-compat 每方向有 bone・po 逐位元==None・非 cascade beat 不受影響/"
+                     "Z2 **crux spatial ordering** 每方向峰時刻依該方向空間鍵嚴格遞增(lr→x 升・rl→x 降・co→徑向升・oc→徑向降)/Z3 每方向仍一道有序跨件波(散佈≥0.30)+首尾 setup identity 可插 Loop/"
+                     "Z4 正交 (a) dir⟂深度:同件峰 overshoot 跨方向相同(HIRES 取樣消混疊,殘差 3e-4<<1e-3)(b) dir⟂nrip:帶 ripples 各件 pop 次數==nrip (c) dir⟂span:帶 span 跨件散佈跨方向恆==span(相位集合只被排列→min/max 不變)/"
+                     "Z5 負對照 (a) po 逐位元==None (b) **crux discriminator** lr 峰序==x 排序 且 ≠件序(x 最小件非件序第一件卻最先 pop)證相位來源是空間非件序 (c) 方向只作用 cascade 非-cascade 逐位元同 None (d) 未知方向字串→ValueError 輸入守衛)。"
+                     "**跨件時序通道至此三條正交軸:結構(nrip,J-3)× 幅度(span,J-4)× 方向/相位來源(J-5);J-5 揭示波方向本是作者排版順序的隱含假設,改由幾何決定使波有物理意義**。"
+                     "honest:方向選擇(co)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
         ],
     },
 ]
