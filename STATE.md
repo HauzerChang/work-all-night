@@ -10,6 +10,37 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 波方向由件幾何自動導出:把 J-6 方向軸的「取值來源」由手感常數下推成幾何導出(里程碑,2026-10-02 run 002,candidate J-7)** —
+  承 (J-5)/(J-6):同一條方向軸的三次精煉,逐步把「用哪個方向」從人手移開。J-5 把相位來源從件序換成**空間**(4 具名
+  `lr`/`rl`/`co`/`oc`)、J-6 把其值**連續化**(任意角/向量),**但「用哪個方向」仍是 per-genre 手感常數**
+  (`tier_variants.TIER_CASCADE_DIR`,如 `slot_bigwin→"co"`)。本次新增 sentinel `cascade_dir="geo"`:方向**向量由件實際
+  幾何導出**(`derive_cascade_dir`:件質心 → 距質心**最遠件**的單位向量;確定性、無 PCA ±符號歧義),隨資產自適應、不再寫死。
+  **crux(J-7 的 honest distinction,勿誇大)**:J-7 **不是**新正交軸 —— 導出的方向向量**導出後仍走 J-6 的投影排序(同機制:
+  既有相位的重新指派)**;J-7 只把方向軸的**取值來源(provenance)從「人手給」換成「幾何導出」**(J-5 空間化→J-6 連續化→
+  J-7 自動化,逐步移除人手指定)。跨件時序通道仍是三條正交軸(結構 nrip × 幅度 span × 方向 dir)。全 additive:新增
+  `derive_cascade_dir(centers, source="centroid_farthest")`(退化幾何/空件/未知 source→`ValueError`)+ `_normalize_cascade_dir`
+  認 `"geo"`/`("geo",source)` marker(置於通用 length-2 向量分支**前**,否則 `("geo",src)` 被誤當 `(ux,uy)` 而 `float("geo")` 爆錯)
+  + `_cascade_phase_of` 的 `kind=="geo"` 用**當前 beat 有效件中心**導出向量再落 J-6 投影路徑;`build_spine --cascade-dir geo`(或 `geo:SOURCE`,
+  `_parse_cascade_dir`)。`None`/`"po"`/具名/角度/向量路徑逐位元不變。整合閘 `validate_cascade_dir_geo.py`(先驗庫→**真實 build_spine
+  robot 骨架**→build_animations(cascade_dir="geo");geo 向量**由閘自行獨立重算**保持獨立驗證)**5 AC 全 PASS**:W1 present+
+  backward-compat(geo 產每 cascade beat 有 bone/finite・非 cascade 主秀 beat 逐位元同 base・po==None)、W2 **crux derived projection
+  ordering**(峰時刻依閘獨立導出的質心→最遠件投影鍵嚴格遞增:robot 導出 vec≈`(0.974,0.228)`(13.2°,指向最遠件左手)、波序
+  `[右手,光暈,身體,頭,左手]` 時刻 0.158→0.70、**最遠件左手最後 pop**)、W3 geo 仍一道有序跨件波(散佈≥0.30)+首尾 setup identity
+  +特效 slot alpha=1、W4 正交(新方向下仍保 (a) dir⟂深度:geo 峰 overshoot==base,HIRES 量 (b) dir⟂nrip:帶 ripples 各件 pop 次數==nrip
+  (c) dir⟂span:帶 span 跨件散佈==宣告 span)、W5 負對照(a **crux data-derived discriminator**:同一 `cascade_dir="geo"` 套在**兩個
+  不同幾何**——真實 robot(vA≈13°)vs 把「頭」沿 +y 推遠 1200 成最遠件的變體(vB≈92°)——**導出向量不同**且**波序不同**,各自
+  **吻合自身幾何**的質心→最遠件投影序 → 證方向**由資料導出、非常數** b 導出向量/波序==閘獨立重算(robot)且最遠件最後 pop
+  c geo 波序 ≠ 手感常數 `"co"`(現 `cascade_dir_for(slot_bigwin)`)/≠oc/≠件序 po/≠lr/≠rl → J-7 與所有 J-5 具名 + 現行手感預設皆不同
+  d 輸入守衛 未知 geo source/空件/退化幾何(件重合→零方向)→ValueError)。端到端 `build_spine --animate --cascade-dir geo` 直出
+  由幾何導向的掃波。**回歸:check_readiness 全綠 0 RED**(新增 cap `cascade_dir_geo` L2 併入 `spine-anim-forge`,仍 HOLD;J-6
+  `cascade_dir_vector` 等既有閘逐一 GREEN 證零回歸)。**關鍵發現**:①**「離散→連續」(J-6)之後的下一個通用槓桿是「人手給→資料
+  導出」**——凡「某軸的值由人手常數提供」都可問「能否由資產本身的幾何/統計量導出?」,把人手從迴圈再拿掉一層;②**要證「值是
+  資料導出、非常數」必須在兩個不同輸入上證輸出跟著變**——單一資產上「導出值==某幾何量」只是巧合對上,真正鑑別是**換一個幾何**看
+  導出方向是否跟著轉(W5a);③**幾何導出要挑「無符號歧義」的量**(質心→最遠件天然有向;PCA 主軸只給一條線、正負須另定,反而
+  把移除的人手又加回來);④**踩雷:質心反射+重新導出=不變**——反射後導出方向也翻號 → 投影鍵 `k'=k−const`(減常數不改排序)→
+  波序**不變**,兩翻號相消、鑑別力為零;改用「只改資料不自我抵消」的變換(把某件搬到新位置成最遠件,方向大幅轉向而非翻號)。
+  **honest boundary(仍在)**:J-7 **不是新軸**,是方向軸取值來源的自動化;`source` 選擇(目前只 `centroid_farthest`)與**最終
+  手感微調**仍 PROPOSAL(A 類);單一真值資產(robot)。見 `knowledge/s1-cascade-dir-geo.md`。
 - **S1 cascade 波方向一般化為任意角投影:把 J-5 的方向軸由 4 向離散補成連續(里程碑,2026-10-02 run 001,candidate J-6)** —
   承 (J-5):J-5 把 cascade 跨件波的**相位來源**從件序換成空間,給方向軸 4 個**具名**取值(基數軸 `lr`/`rl` + radial `co`/`oc`)。
   本次把這**同一條方向軸由離散補成連續**:方向可給**角度(度)或向量 `(ux, uy)`**,相位依件中心在該單位向量上的**投影**

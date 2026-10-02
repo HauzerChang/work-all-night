@@ -242,6 +242,48 @@ from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
 #   「既有相位的重新指派(排列)」—— 只是**排序鍵**從 {基數軸, radial} 擴成 {任意投影角, radial}。
 _CASCADE_DIRS = {"lr", "rl", "co", "oc", "po"}
 
+# candidate J-7:把 cascade 方向軸的**取值來源**由「手感指定」下推一層成「由資產幾何導出」。
+# J-5 把方向立為相位來源(4 具名)、J-6 把其值連續化(角 / 向量),但「用哪個方向」仍是 per-genre 手感常數
+# (`tier_variants.TIER_CASCADE_DIR`,如 slot_bigwin→"co")。J-7 新增 sentinel `cascade_dir="geo"`:方向**向量**
+# 由件實際幾何導出(質心→最遠件),隨資產自適應,不再寫死。導出後仍走 **J-6 的投影排序(同機制)**,故 J-7
+# **不是新正交軸**,是**方向軸取值的來源**(provenance):J-5 空間化→J-6 連續化→J-7 自動化,三者逐步移除人手指定。
+_CASCADE_GEO_SOURCES = {"centroid_farthest"}
+_CASCADE_GEO_DEFAULT = "centroid_farthest"
+
+
+def derive_cascade_dir(centers, source="centroid_farthest"):
+    """J-7:由件幾何**導出** cascade 投影方向單位向量 `(ux, uy)`,取代手感指定的具名 / 角度 / 向量。
+
+    `source`:
+      "centroid_farthest"(預設):件質心 → 距質心**最遠件**的單位向量。**確定性、無 PCA ±符號歧義**
+        (PCA 主軸只給一條線、方向正負須另定;最遠件天然定出一個明確指向)。語意 = 波沿「叢集中心 →
+        最外側肢體」軸掃(投影最大的最遠件最後 pop)。
+
+    `centers`:list of `(x, y)` 件中心(呼叫端給**當前 beat 的有效件**→ 方向隨實際參與件自適應)。
+    回傳**正規化**單位向量。輸入守衛:未知 source、無件、退化幾何(所有件重合 → 零方向)→ `ValueError`。
+
+    crux(為何導出的是**投影向量**而非 radial):最遠件定出一條**有向軸**,相位沿該軸投影排序 → 落在
+    J-6 的 `("proj", vec)` 機制,`_cascade_phase_of` 無須任何新排序邏輯;radial(co/oc)是另一族,J-7 不碰。"""
+    if source not in _CASCADE_GEO_SOURCES:
+        raise ValueError("unknown cascade geo source: {!r} (allowed {})".format(
+            source, sorted(_CASCADE_GEO_SOURCES)))
+    n = len(centers)
+    if n == 0:
+        raise ValueError("derive_cascade_dir: no part centers")
+    mx = sum(c[0] for c in centers) / n
+    my = sum(c[1] for c in centers) / n
+    # 最遠件:距質心平方距離最大;相等時 tie-break 用件序 index(確定性,與 _cascade_phase_of 一致)
+    best_i, best_d2 = 0, -1.0
+    for i, (x, y) in enumerate(centers):
+        d2 = (x - mx) ** 2 + (y - my) ** 2
+        if d2 > best_d2:
+            best_d2, best_i = d2, i
+    dx, dy = centers[best_i][0] - mx, centers[best_i][1] - my
+    L = math.hypot(dx, dy)
+    if L < 1e-9:
+        raise ValueError("derive_cascade_dir: degenerate geometry (parts coincide → zero direction)")
+    return (dx / L, dy / L)
+
 
 def _normalize_cascade_dir(cascade_dir):
     """把方向規格正規化為 `(kind, payload)`,供 `_cascade_phase_of` 統一取排序鍵。
@@ -261,6 +303,17 @@ def _normalize_cascade_dir(cascade_dir):
     # bool 是 int 子類,排除以免 True/False 被誤當角度
     if isinstance(cascade_dir, bool):
         raise ValueError("cascade_dir may not be bool: {!r}".format(cascade_dir))
+    # J-7:geo sentinel —— 方向向量由幾何導出,此處只確認 source、回 marker,實際向量留到
+    # `_cascade_phase_of` 用當前 beat 的件中心算(須先置於下方通用 length-2 tuple 向量分支前,
+    # 否則 ("geo", src) 會被誤當 (ux,uy) 向量而 float("geo") 爆 ValueError)。
+    if cascade_dir == "geo":
+        return ("geo", _CASCADE_GEO_DEFAULT)
+    if isinstance(cascade_dir, (tuple, list)) and len(cascade_dir) == 2 and cascade_dir[0] == "geo":
+        src = cascade_dir[1]
+        if src not in _CASCADE_GEO_SOURCES:
+            raise ValueError("unknown cascade geo source: {!r} (allowed {})".format(
+                src, sorted(_CASCADE_GEO_SOURCES)))
+        return ("geo", src)
     if isinstance(cascade_dir, (int, float)):
         th = math.radians(float(cascade_dir))
         return ("proj", (math.cos(th), math.sin(th)))
@@ -294,6 +347,15 @@ def _cascade_phase_of(valid, bone_of, cx, cy, cascade_dir):
     kind, vec = _normalize_cascade_dir(cascade_dir)
     if kind == "po":
         return [i / (nvalid - 1) for i in range(nvalid)]
+    if kind == "geo":
+        # J-7:由**當前 beat 的有效件中心**導出投影向量(方向隨實際參與件自適應),再走 J-6 投影排序。
+        # `vec` 此處承載 source 字串(見 _normalize_cascade_dir 的 geo marker)。
+        centers = []
+        for pe in valid:
+            bd = bone_of.get(safe(pe["part"])) or {}
+            centers.append((bd.get("x", cx), bd.get("y", cy)))
+        vec = derive_cascade_dir(centers, source=vec)
+        kind = "proj"
     keys = []
     for i, pe in enumerate(valid):
         bd = bone_of.get(safe(pe["part"])) or {}

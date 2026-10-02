@@ -485,6 +485,20 @@ BLOCKS = [
                      "V5 負對照 (a)**crux discriminator** 垂直90°峰序[3,0,4,1,2]・對角45°[3,0,1,2,4] ∉ 全部 J-5 件序集合{po,lr,rl,co,oc} 證任意角投影是真新方向非換名 "
                      "(b)連續性/端點 0°==lr・180°==rl・90° 兩者皆非(lr/rl 為投影族端點,內部為新)(c)投影≠radial:crux 峰序≠co/oc (d)輸入守衛零向量/長度≠2/bool/未知字串→ValueError)。"
                      "**方向軸至此連續化;honest:方向選擇仍 PROPOSAL(手感 A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
+            CAP("cascade_dir_geo", "cascade 波方向由件幾何自動導出(J-7,把 J-6 方向軸的取值來源由手感常數下推成幾何導出:質心→最遠件)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_geo.py", "pipeline",
+                note="承 (J-5)/(J-6):J-5 把方向立為相位來源(4 具名)、J-6 把其值連續化(角/向量),但「用哪個方向」仍是 per-genre **手感常數**"
+                     "(tier_variants.TIER_CASCADE_DIR,如 slot_bigwin→co)。J-7 新增 sentinel cascade_dir=\"geo\":方向**向量由件幾何導出**"
+                     "(質心→距質心最遠件的單位向量),隨資產自適應,不再寫死。**honest distinction(勿誇大)**:J-7 **不是**新正交軸,"
+                     "導出後**仍走 J-6 的投影排序(同機制)**;只是把方向軸的**取值來源(provenance)從人手給換成幾何導出**(J-5 空間化→J-6 連續化→J-7 自動化,逐步移除人手指定)。"
+                     "新增 derive_cascade_dir(centers,source)(centroid_farthest:確定性、無 PCA ±符號歧義)+ _normalize_cascade_dir/_cascade_phase_of 的 geo 解析(用當前 beat 有效件中心導出);build_spine --cascade-dir geo(或 geo:SOURCE)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(cascade_dir=\"geo\"),validate_cascade_dir_geo.py 5AC PASS"
+                     "(W1 present+backward-compat geo 產每 cascade beat 有 bone・非 cascade 逐位元同 base・po==None/"
+                     "W2 **crux derived projection ordering** 峰時刻依閘獨立導出的質心→最遠件投影鍵嚴格遞增(最遠件左手最後 pop)/W3 geo 仍一道有序跨件波(散佈≥0.30)+首尾 setup identity/"
+                     "W4 正交 (a)dir⟂深度(geo 峰 overshoot==base,HIRES)(b)dir⟂nrip(c)dir⟂span(散佈==宣告 span)/"
+                     "W5 負對照 (a)**crux data-derived discriminator** 同 cascade_dir=\"geo\" 套兩個不同幾何(robot vA≈13° vs 把頭移遠成最遠件 vB≈90°)→ 導出向量不同且波序不同,各自吻合自身幾何的質心→最遠件投影序 證方向由資料導出非常數 "
+                     "(b)導出向量/波序==閘獨立重算(robot)且最遠件最後 pop (c)geo 波序≠手感常數 co(cascade_dir_for)/≠oc/≠件序 po/≠lr/≠rl (d)輸入守衛未知 source/空件/退化幾何→ValueError)。"
+                     "**方向軸取值來源至此自動化;honest:source 選擇與最終手感微調仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
         ],
     },
 ]
