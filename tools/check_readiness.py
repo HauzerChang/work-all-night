@@ -469,6 +469,20 @@ BLOCKS = [
                      "Z5 負對照 (a) po 逐位元==None (b) **crux discriminator** lr 峰序==x 排序 且 ≠件序(x 最小件非件序第一件卻最先 pop)證相位來源是空間非件序 (c) 方向只作用 cascade 非-cascade 逐位元同 None (d) 未知方向字串→ValueError 輸入守衛)。"
                      "**跨件時序通道至此三條正交軸:結構(nrip,J-3)× 幅度(span,J-4)× 方向/相位來源(J-5);J-5 揭示波方向本是作者排版順序的隱含假設,改由幾何決定使波有物理意義**。"
                      "honest:方向選擇(co)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
+            CAP("cascade_dir_vector", "cascade 跨件波方向推廣成任意投影方向(J-6,角度/向量;lr/rl 為 0°/180° 特例,對角為新方向)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_vec.py", "pipeline",
+                note="推廣 (J-5) 的 4 個離散空間鍵(lr/rl/co/oc)成**任意投影方向**:cascade_dir 另接數值**角度**(度)或 2-**向量** (ux,uy),"
+                     "件依其中心對畫布中心的位移在該單位向量上的**投影** k=(x−cx)·ux+(y−cy)·uy 升序給 rank(投影最小者先 pop,波朝該方向掃)。"
+                     "相位值仍 rank/(nvalid−1)∈[0,1],**波形(SPAN/nrip/深度)分毫不動** → 同 J-5 機制(相位重新指派/排列)。"
+                     "**crux(J-6 的 honest distinction)**:投影是**線性**方向,lr=(1,0)=0°、rl=(−1,0)=180° 為其特例(投影加常數位移 −cx 不改排序 → 逐位元同 J-5 字串);"
+                     "但**對角**(如 (1,1))是 4 離散鍵**產不出**的新方向。robot fixture 對角 (1,1) 投影 (x−cx)+(y−cy)=[−2.5,52.5,101.5,−82,263] → **身體**(y 最低→投影最負)**最先** pop,既非 lr(右手先)也非件序(光暈先)。"
+                     "新增 _resolve_cascade_vec(角度→(cosθ,sinθ)/向量→正規化,零向量/長度≠2→ValueError)+ _cascade_phase_of 投影分支;build_spine --cascade-dir 接 '45'(角度)/'1,1'(向量)/既有字串。cascade_dir=None/字串特例 逐位元向後相容。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(cascade_dir=角度/向量),validate_cascade_dir_vec.py 5AC PASS(V1 present+backward-compat 向量(1,0)==lr・(−1,0)==rl・角度0==lr・180==rl・非 cascade beat 不受影響/"
+                     "V2 **crux projection monotone** 每投影方向(角度0/45/90/135・向量(1,1)/(1,−1))峰時刻依投影鍵嚴格遞增/V3 每方向仍一道有序跨件波(散佈≥0.30)+首尾 setup identity/"
+                     "V4 正交 (a) dir⟂深度(HIRES 消混疊)(b) dir⟂nrip (c) dir⟂span(相位集合只被排列→散佈恆==span)/"
+                     "V5 負對照 (a) **crux discriminator** 對角 (1,1) 峰序==投影序 且 ≠lr序 且 ≠件序(身體最先 pop:4 離散鍵產不出的新方向)(b) 角度≡向量等價(45==(1,1))+正規化不變((3,3)==(1,1))+角度0==向量(1,0)==字串 lr (c) 輸入守衛 零向量/長度≠2/未知字串→ValueError)。"
+                     "**跨件時序通道的『方向』軸從 4 離散鍵連續化成任意投影方向;揭示離散方向只是投影家族的特例,對角等方向需真正推廣**。"
+                     "honest:方向選擇仍 PROPOSAL(手感 A 類);co/oc 徑向距離非單一投影故仍為專屬字串;單一真值資產(防固化)。與 anim-forge 同 HOLD"),
         ],
     },
 ]

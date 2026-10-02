@@ -28,6 +28,32 @@ def safe(name):
     return name.replace("/", "_").replace("\\", "_").replace(" ", "_")
 
 
+_CASCADE_DIR_STRINGS = ("lr", "rl", "co", "oc", "po", "auto")
+
+
+def _parse_cascade_dir_cli(s):
+    """argparse type for --cascade-dir(J-5 字串 / J-6 角度或向量)。
+
+    既有字串(lr/rl/co/oc/po/auto)原樣回傳;"a,b" → 投影向量 (float,float);純數值 → 角度(度,float)。
+    其餘拋 ArgumentTypeError。角度/向量交由 gen_animations._cascade_phase_of 做投影(見 J-6)。"""
+    if s in _CASCADE_DIR_STRINGS:
+        return s
+    if "," in s:
+        parts = s.split(",")
+        if len(parts) != 2:
+            raise argparse.ArgumentTypeError("cascade-dir vector must be 'ux,uy': {!r}".format(s))
+        try:
+            return (float(parts[0]), float(parts[1]))
+        except ValueError:
+            raise argparse.ArgumentTypeError("cascade-dir vector components must be numbers: {!r}".format(s))
+    try:
+        return float(s)                    # 角度(度)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            "cascade-dir must be one of {} or an angle (e.g. 45) or vector (e.g. 1,1): {!r}".format(
+                list(_CASCADE_DIR_STRINGS), s))
+
+
 def _boundary_world(part_png, ox, oy, H, approx_frac=0.012):
     """由件 alpha 取外輪廓 → 簡化多邊形 → 轉 Spine 世界座標(y 上翻)。回傳 Nx2。"""
     img = cv2.imread(part_png, cv2.IMREAD_UNCHANGED)
@@ -393,10 +419,10 @@ def main():
                     help="candidate J:主秀 beat 依 genre 宣告檔位產幅度差異化變體 {beat}__{tier}(需 --animate)")
     ap.add_argument("--twist-volume", dest="twist_volume", action="store_true",
                     help="G-4''''''-vol:twist 掛體積守恆等向補償 scale(擰而不變面積;配 --shear-pivot 端到端;需 --animate)")
-    ap.add_argument("--cascade-dir", dest="cascade_dir", default=None,
-                    choices=["lr", "rl", "co", "oc", "auto"],
-                    help="J-5:cascade 跨件波方向由空間位置決定(lr 左→右/rl 右→左/co 中心外擴/oc 外向內/auto 查 genre 建議;"
-                         "預設件序 byte-identical;需 --animate)")
+    ap.add_argument("--cascade-dir", dest="cascade_dir", default=None, type=_parse_cascade_dir_cli,
+                    metavar="DIR",
+                    help="J-5/J-6:cascade 跨件波方向(lr/rl/co/oc/auto;或 J-6 任意投影方向:角度度數如 45、"
+                         "或向量如 1,1)。預設件序 byte-identical;需 --animate")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
     s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,
