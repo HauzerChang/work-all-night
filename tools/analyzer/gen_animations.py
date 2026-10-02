@@ -232,31 +232,76 @@ from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
 #   "lr" 左→右(bd.x 升序,最左件先 pop)、"rl" 右→左、"co" 中心外擴(距畫布中心升序,最內件先)、
 #   "oc" 外向內、"po" 件序(顯式控制組,逐位元同 None)。相位值仍 rank/(nvalid−1)∈[0,1],只是 rank 的**排序鍵**改變;
 # 波形(SPAN/nrip/深度)完全不動 → 與 J/J-3/J-4 三軸正交(方向只決定「哪件何時 pop」,不決定「多開/幾道/多深」)。
+#
+# candidate J-6:把**方向軸**從 J-5 的 4 個具名(基數軸 lr/rl + radial co/oc)**一般化為連續**:
+#   - 角度(數字,度):相位依件中心在單位向量 `(cosθ, sinθ)` 上的**投影** `x·cosθ + y·sinθ` 排序。
+#   - 向量 `(ux, uy)`:同上,投影到該(正規化)向量;零向量 → ValueError。
+#   lr == θ=0°(投影到 +x 軸,`k=x`)、rl == θ=180°(`k=−x`)→ 投影族的**基數軸特例**,逐位元相容。
+#   co/oc 是 **radial**(距中心,非線性),**不是**投影,保留為各自特例(投影無法表達徑向序)。
+#   J-6 不是「第四條正交軸」,而是把 J-5 的**方向軸由離散(4 向)補成連續(任意角 + 向量)**;機制仍是
+#   「既有相位的重新指派(排列)」—— 只是**排序鍵**從 {基數軸, radial} 擴成 {任意投影角, radial}。
 _CASCADE_DIRS = {"lr", "rl", "co", "oc", "po"}
+
+
+def _normalize_cascade_dir(cascade_dir):
+    """把方向規格正規化為 `(kind, payload)`,供 `_cascade_phase_of` 統一取排序鍵。
+
+    - `None` / `"po"`           → `("po", None)`     件序(byte-identical)
+    - `"lr"`                     → `("proj", (1.0, 0.0))`   基數軸特例(投影,`k=x`)
+    - `"rl"`                     → `("proj", (-1.0, 0.0))`  基數軸特例(投影,`k=−x`)
+    - `"co"` / `"oc"`           → `("co"/"oc", None)`  radial(非投影)
+    - 數字(角度,度)            → `("proj", (cosθ, sinθ))`  投影到任意角
+    - 2-元素序列 `(ux, uy)`      → `("proj", 正規化單位向量)`  投影到任意向量
+    - 其餘字串 / 型別 / 零向量    → `ValueError`(輸入守衛)
+
+    crux:`"lr"`/`"rl"` 經投影路徑算出的 `k` 分別為 `x·1+y·0=x`、`x·(−1)+y·0=−x`,與 J-5 直接取 `k=±x`
+    **逐位元相等**(排序→rank→相位值皆同)→ J-6 對 J-5 既有具名方向零回歸。"""
+    if cascade_dir is None or cascade_dir == "po":
+        return ("po", None)
+    # bool 是 int 子類,排除以免 True/False 被誤當角度
+    if isinstance(cascade_dir, bool):
+        raise ValueError("cascade_dir may not be bool: {!r}".format(cascade_dir))
+    if isinstance(cascade_dir, (int, float)):
+        th = math.radians(float(cascade_dir))
+        return ("proj", (math.cos(th), math.sin(th)))
+    if isinstance(cascade_dir, (tuple, list)):
+        if len(cascade_dir) != 2:
+            raise ValueError("cascade_dir vector must have length 2: {!r}".format(cascade_dir))
+        ux, uy = float(cascade_dir[0]), float(cascade_dir[1])
+        n = math.hypot(ux, uy)
+        if n < 1e-12:
+            raise ValueError("cascade_dir vector is (near-)zero: {!r}".format(cascade_dir))
+        return ("proj", (ux / n, uy / n))
+    if cascade_dir == "lr":
+        return ("proj", (1.0, 0.0))
+    if cascade_dir == "rl":
+        return ("proj", (-1.0, 0.0))
+    if cascade_dir in ("co", "oc"):
+        return (cascade_dir, None)
+    raise ValueError("unknown cascade_dir: {!r} (allowed {} | angle-deg number | (ux,uy) vector)".format(
+        cascade_dir, sorted(_CASCADE_DIRS)))
 
 
 def _cascade_phase_of(valid, bone_of, cx, cy, cascade_dir):
     """回傳每個 valid 件的相位 ∈[0,1](list,index 對齊 valid)。
 
     `cascade_dir is None` → 件序 `pi/(nvalid−1)`(第一件 0、最後一件 1 → 逐位元同 J-4 之前行為)。
-    否則依**空間排序鍵**給 rank,相位 = `rank/(nvalid−1)`。排序鍵 tie-break 用件序 index(確定性)。"""
+    否則依**空間排序鍵**給 rank,相位 = `rank/(nvalid−1)`。排序鍵 tie-break 用件序 index(確定性)。
+    J-6:排序鍵由 `cascade_dir` 決定 —— 投影(任意角/向量,含 lr/rl 基數軸特例)或 radial(co/oc)。"""
     nvalid = len(valid)
     if nvalid <= 1:
         return [0.0] * nvalid
-    if cascade_dir is None or cascade_dir == "po":
+    kind, vec = _normalize_cascade_dir(cascade_dir)
+    if kind == "po":
         return [i / (nvalid - 1) for i in range(nvalid)]
-    if cascade_dir not in _CASCADE_DIRS:
-        raise ValueError("unknown cascade_dir: {!r} (allowed {})".format(cascade_dir, sorted(_CASCADE_DIRS)))
     keys = []
     for i, pe in enumerate(valid):
         bd = bone_of.get(safe(pe["part"])) or {}
         x, y = bd.get("x", cx), bd.get("y", cy)
-        if cascade_dir == "lr":
-            k = x
-        elif cascade_dir == "rl":
-            k = -x
-        elif cascade_dir == "co":
-            k = math.hypot(x - cx, y - cy)
+        if kind == "proj":
+            k = x * vec[0] + y * vec[1]            # 投影到單位向量(lr/rl/任意角/向量)
+        elif kind == "co":
+            k = math.hypot(x - cx, y - cy)         # radial 中心外擴(非投影)
         else:  # "oc"
             k = -math.hypot(x - cx, y - cy)
         keys.append((k, i))                       # (空間鍵, 件序) → tie-break 用件序,確定性
@@ -277,9 +322,10 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade
     `twist_vol`(G-4''''''-vol):True 時只對 twist 掛體積守恆等向補償 scale(shear+scale+rotate 三通道同時且守恆)。
     `cascade_span`(J-4):只對 cascade(_PHASE_AWARE)生效 = 一道 sweep 內各件峰時刻的**散佈幅度**;None → 生成器
     預設 CASCADE_SPAN(0.54,byte-identical)。與 nrip **正交**(nrip 幾道波、span 一道多開),皆於 gen 當下重生成。
-    `cascade_dir`(J-5):只對 cascade(_PHASE_AWARE)生效 = 跨件波的**相位來源**;None → 件序(byte-identical);
-    "lr"/"rl"/"co"/"oc" → 相位由**空間位置**決定(波方向變成幾何)。與 count/span/深度三軸正交(只重排哪件何時 pop)。
-    cascade(_PHASE_AWARE)另依件序帶入相位。"""
+    `cascade_dir`(J-5 / J-6):只對 cascade(_PHASE_AWARE)生效 = 跨件波的**相位來源**;None → 件序(byte-identical);
+    "lr"/"rl"/"co"/"oc"(J-5)→ 相位由**空間位置**決定(波方向變成幾何);**角度(度)或向量 (ux,uy)**(J-6)→
+    相位由件中心在該方向的**投影**排序(lr/rl 為 θ=0°/180° 投影特例)。與 count/span/深度三軸正交(只重排哪件何時 pop)。
+    cascade(_PHASE_AWARE)另依相位來源帶入相位。"""
     bones_tl, slots_tl = {}, {}
     limb_seen = 0
     # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
@@ -365,9 +411,10 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     **散佈幅度**隨檔位遞增,愈高檔位波掃愈開)。**crux**:span 語意屬「幅度」但因散佈活在關鍵幀**時間位置**(峰中心)非**值**,
     post-hoc 值增益 g 加不出來(g 只放大 pop 深度、峰時刻不動)→ 須重生成,與 nrip **正交**(nrip 幾道波、span 一道多開,
     兩軸皆重生成、可同時帶入 → nrip 道各以該檔位 span 散佈),再套單一-g 幅度增益(三效正交可疊)。
-    cascade_dir(J-5):cascade 跨件波的**相位來源**。None(預設)= 件序(byte-identical);"lr"/"rl"/"co"/"oc" =
-    由**空間位置**決定波方向(最左/最右/中心/最外件先 pop)。只重排「哪件何時 pop」,不動波形 → 與 count/span/深度正交,
-    對所有 cascade clip(base 與檔位變體)一致套用;非 cascade 類別不受影響。
+    cascade_dir(J-5 / J-6):cascade 跨件波的**相位來源**。None(預設)= 件序(byte-identical);"lr"/"rl"/"co"/"oc"(J-5)=
+    由**空間位置**決定波方向(最左/最右/中心/最外件先 pop);**角度(度)或向量 (ux,uy)**(J-6)= 相位依件中心在該方向的
+    **投影**排序(方向軸由 J-5 的 4 向離散補成連續;lr/rl 為 θ=0°/180° 投影特例,逐位元相容)。只重排「哪件何時 pop」,
+    不動波形 → 與 count/span/深度正交,對所有 cascade clip(base 與檔位變體)一致套用;非 cascade 類別不受影響。
 
     九者皆 None/False(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、base cascade 恆 1 道波 span=0.54 相位件序、twist 無 scale)。"""
     # COUNT_AWARE(單件段數)+ cascade(跨件波掃次數,_PHASE_AWARE)→ 對應的 {tier: count} 映射

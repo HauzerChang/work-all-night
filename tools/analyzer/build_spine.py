@@ -374,6 +374,31 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
     return summary
 
 
+def _parse_cascade_dir(s):
+    """CLI 值 → `build_animations(cascade_dir=...)` 可吃的型別(J-5 具名 + J-6 角度/向量)。
+
+    - `None`/具名 lr/rl/co/oc/po/auto → 原字串(auto 於 build() 內解析成 genre 建議)。
+    - 純數字字串(如 "90"、"-45.5")→ `float` 角度(度)。
+    - "ux,uy"(如 "1,1"、"0,-1")→ `(float, float)` 投影向量。
+    - 其餘 → argparse 錯誤。
+    """
+    if s is None or s in ("lr", "rl", "co", "oc", "po", "auto"):
+        return s
+    try:
+        return float(s)                                   # 角度(度)
+    except ValueError:
+        pass
+    if "," in s:
+        parts = s.split(",")
+        if len(parts) == 2:
+            try:
+                return (float(parts[0]), float(parts[1]))  # 投影向量
+            except ValueError:
+                pass
+    raise argparse.ArgumentTypeError(
+        "cascade-dir 需為 lr/rl/co/oc/po/auto、角度(度,如 90)或向量 'ux,uy'(如 '1,1'):得到 {!r}".format(s))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("psd")
@@ -393,10 +418,11 @@ def main():
                     help="candidate J:主秀 beat 依 genre 宣告檔位產幅度差異化變體 {beat}__{tier}(需 --animate)")
     ap.add_argument("--twist-volume", dest="twist_volume", action="store_true",
                     help="G-4''''''-vol:twist 掛體積守恆等向補償 scale(擰而不變面積;配 --shear-pivot 端到端;需 --animate)")
-    ap.add_argument("--cascade-dir", dest="cascade_dir", default=None,
-                    choices=["lr", "rl", "co", "oc", "auto"],
-                    help="J-5:cascade 跨件波方向由空間位置決定(lr 左→右/rl 右→左/co 中心外擴/oc 外向內/auto 查 genre 建議;"
-                         "預設件序 byte-identical;需 --animate)")
+    ap.add_argument("--cascade-dir", dest="cascade_dir", default=None, type=_parse_cascade_dir,
+                    metavar="{lr,rl,co,oc,po,auto|ANGLE_DEG|ux,uy}",
+                    help="J-5/J-6:cascade 跨件波方向由空間位置決定。具名:lr 左→右/rl 右→左/co 中心外擴/oc 外向內/"
+                         "po 件序/auto 查 genre 建議。J-6 一般化:給**角度(度,如 90)**或**向量 'ux,uy'(如 '1,1')**→ "
+                         "相位依件中心在該方向投影排序(lr/rl 即 0°/180° 特例)。預設件序 byte-identical;需 --animate")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
     s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,

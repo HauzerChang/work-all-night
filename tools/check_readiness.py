@@ -469,6 +469,22 @@ BLOCKS = [
                      "Z5 負對照 (a) po 逐位元==None (b) **crux discriminator** lr 峰序==x 排序 且 ≠件序(x 最小件非件序第一件卻最先 pop)證相位來源是空間非件序 (c) 方向只作用 cascade 非-cascade 逐位元同 None (d) 未知方向字串→ValueError 輸入守衛)。"
                      "**跨件時序通道至此三條正交軸:結構(nrip,J-3)× 幅度(span,J-4)× 方向/相位來源(J-5);J-5 揭示波方向本是作者排版順序的隱含假設,改由幾何決定使波有物理意義**。"
                      "honest:方向選擇(co)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
+            CAP("cascade_dir_vector", "cascade 波方向一般化為任意角投影(J-6,把 J-5 的方向軸由 4 向離散補成連續:角度/向量)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_vector.py", "pipeline",
+                note="承 (J-5):J-5 給方向軸 4 個**具名**取值(基數軸 lr/rl + radial co/oc)。J-6 把這**同一條方向軸由離散補成連續** —— "
+                     "方向可給**角度(度)或向量 (ux,uy)**,相位依件中心在該單位向量上的**投影** x·ux+y·uy 排序。**honest distinction(勿誇大)**:"
+                     "J-6 **不是**第四條正交軸(方向軸 J-5 已立);只是把其取值由「4 具名」擴成「連續角+任意向量」,機制仍是 J-5 的相位重新指派(排列),"
+                     "只是**排序鍵**從 {基數軸 ±x, radial} 擴成 {任意投影角, radial}。價值=對角/垂直/任意角波,J-5 的 4 向表達不了。"
+                     "lr==θ0°(k=x)/rl==θ180°(k=−x)→ 投影族的基數軸特例,逐位元相容;co/oc(radial,非線性)非投影,保留各自特例。"
+                     "新增 _normalize_cascade_dir(方向規格→(kind,payload):po/proj/co/oc,角度→(cos,sin)、向量→正規化,零向量/長度≠2/bool/未知字串→ValueError)"
+                     "+ _cascade_phase_of 改走統一排序鍵;build_spine --cascade-dir 吃角度/'ux,uy'(_parse_cascade_dir)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(cascade_dir=角度/向量),validate_cascade_dir_vector.py 5AC PASS"
+                     "(V1 present+backward-compat 每新方向有 bone・**投影族含具名** 0°/180°/向量(±1,0) 逐位元==lr/rl・po==None・非 cascade 不受影響/"
+                     "V2 **crux projection ordering** 每新方向峰時刻依投影鍵 x·ux+y·uy 嚴格遞增/V3 每新方向仍一道有序跨件波(散佈≥0.30)+首尾 setup identity/"
+                     "V4 正交 (a)dir⟂深度(HIRES 量峰 overshoot 跨方向相同)(b)dir⟂nrip(c)dir⟂span(散佈==span)——新角/向量皆保/"
+                     "V5 負對照 (a)**crux discriminator** 垂直90°峰序[3,0,4,1,2]・對角45°[3,0,1,2,4] ∉ 全部 J-5 件序集合{po,lr,rl,co,oc} 證任意角投影是真新方向非換名 "
+                     "(b)連續性/端點 0°==lr・180°==rl・90° 兩者皆非(lr/rl 為投影族端點,內部為新)(c)投影≠radial:crux 峰序≠co/oc (d)輸入守衛零向量/長度≠2/bool/未知字串→ValueError)。"
+                     "**方向軸至此連續化;honest:方向選擇仍 PROPOSAL(手感 A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
         ],
     },
 ]

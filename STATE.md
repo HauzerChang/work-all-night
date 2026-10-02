@@ -10,6 +10,35 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 波方向一般化為任意角投影:把 J-5 的方向軸由 4 向離散補成連續(里程碑,2026-10-02 run 001,candidate J-6)** —
+  承 (J-5):J-5 把 cascade 跨件波的**相位來源**從件序換成空間,給方向軸 4 個**具名**取值(基數軸 `lr`/`rl` + radial `co`/`oc`)。
+  本次把這**同一條方向軸由離散補成連續**:方向可給**角度(度)或向量 `(ux, uy)`**,相位依件中心在該單位向量上的**投影**
+  `k = x·ux + y·uy` 排序(相位值仍 `rank/(nvalid−1)∈[0,1]`,只是 rank 的排序鍵換成任意方向投影)。
+  **crux(J-6 的 honest distinction,勿誇大)**:J-6 **不是**第四條正交軸 —— J-5 已把「方向/相位來源」立為第三軸
+  (結構 nrip × 幅度 span × 方向),J-6 只把這**同一條方向軸**的**取值**由「4 具名」擴成「連續角 + 任意向量」;機制仍是
+  J-5 的「既有相位的重新指派(排列)」,只是**排序鍵**從 `{基數軸 ±x, radial}` 擴成 `{任意投影角, radial}`。價值 =
+  對角/垂直/任意角的波,J-5 的 4 向**表達不了**(垂直 90°=`k=y` 在 robot 產波序件序 index `[3,0,4,1,2]`,4 向皆做不出)。
+  一般化務必分清**含與不含**:投影族**含** `lr`/`rl`(基數軸=θ=0°/180° 特例,逐位元相容)但**不含** `co`/`oc`(radial 是 2D
+  非線性,任何單一投影都無法重現徑向序,保留為各自特例)。全 additive:新增 `_normalize_cascade_dir`(方向規格→`(kind,
+  payload)`:po/proj/co/oc,角度→`(cosθ,sinθ)`、向量→正規化單位向量,零向量/長度≠2/bool/未知字串→`ValueError`)+
+  `_cascade_phase_of` 改走統一排序鍵;`build_spine --cascade-dir` 吃角度(如 `90`)/向量(如 `"1,1"`)(`_parse_cascade_dir`);
+  具名 lr/rl/co/oc/po/auto 不變。整合閘 `validate_cascade_dir_vector.py`(先驗庫→**真實 build_spine robot 骨架**→
+  build_animations(cascade_dir=角度/向量))**5 AC 全 PASS**:V1 present+backward-compat(每新方向 90°/270°/45°/135°/向量皆有
+  bone・**投影族含具名**:角度 0°/180° 與向量 (±1,0) 逐位元==`lr`/`rl`・po==None・非 cascade beat 不受影響)、V2 **crux
+  projection ordering**(每新方向峰時刻依投影鍵 `x·ux+y·uy` 嚴格遞增=任意角波序=投影序)、V3 每新方向仍一道有序跨件波
+  (沿投影序散佈≥0.30)+首尾 setup identity+特效 slot alpha=1、V4 正交(新角/向量下仍保 (a) dir⟂深度:HIRES 量峰 overshoot
+  跨方向相同 (b) dir⟂nrip:帶 ripples 各件 pop 次數==nrip (c) dir⟂span:帶 span 跨件散佈==span)、V5 負對照(a **crux
+  discriminator** 垂直90° 實測峰序 `[3,0,4,1,2]`・對角45° `[3,0,1,2,4]` ∉ 全部 J-5 件序集合 `{po,lr,rl,co,oc}` 證任意角投影
+  是**真新方向非換名** b 連續性/端點 0°==lr・180°==rl・90° 兩者皆非(lr/rl 為投影族端點,內部為新)c 投影≠radial:crux 峰序
+  ≠co/oc d 輸入守衛 零向量/長度≠2/bool/未知字串→ValueError)。端到端 `build_spine --animate --cascade-dir 90` 直出垂直掃波;
+  `validate_build` round-trip overall_pass。**回歸:check_readiness 全綠 0 RED**(新增 cap `cascade_dir_vector` L2 併入
+  `spine-anim-forge`,仍 HOLD;J-5 `cascade_dir_spatial` 等既有閘逐一 GREEN 證 lr/rl/co/oc 零回歸)。**關鍵發現**:①**離散→
+  連續本身是通用槓桿**——凡是「挑了幾個具名值」的軸,問「這些具名是不是某連續參數的取樣?」往往能一般化(lr/rl 正是連續角
+  θ=0°/180° 的取樣);②**一般化時務必分清「含」與「不含」**——誠實的一般化要說清楚哪些舊值被收編成特例(lr/rl)、哪些是
+  另一族保留(co/oc radial);③**零回歸的來源是「特例逐位元相等」而非「預設不變」**——lr 的投影 `k=x·1+y·0` 在浮點下 `y·0=0`、
+  `x·1=x` 精確 `=x`,與 J-5 直接 `k=x` 逐位元相等 → 想宣稱向後相容要證舊值在新路徑下**逐位元**重現,不能只證預設沒變。
+  **honest boundary(仍在)**:J-6 **不是新正交軸**,是方向軸的連續化(取值擴充),跨件時序通道仍是三條正交軸;方向選擇
+  (具體用哪角/向量)為 PROPOSAL(手感 A 類);單一真值資產(robot)。見 `knowledge/s1-cascade-dir-vector.md`。
 - **S1 cascade 跨件波方向由空間位置決定:跨件時序通道第四條正交軸——相位來源(里程碑,2026-10-01 run 002,candidate J-5)** —
   補 (J-4) 的 honest boundary:至 (J-4) 為止 cascade 各件相位恆為**件序** `pi/(nvalid−1)`,波的**方向** = 作者把件寫進
   storyboard 的**列表順序**(任意/排版,**無物理意義**)。本次把相位的**排序鍵**換成**空間座標**:`lr` 左→右(bd.x 升序)/
@@ -898,8 +927,13 @@
 >   `_cascade_phase_of` + `build_animations(cascade_dir=)` + `build_spine --cascade-dir`;`None`/`po` 逐位元同件序(零回歸)。
 >   `validate_cascade_dir.py` 5AC PASS(Z2 crux 峰序依空間鍵遞增;Z5b crux lr 峰序==x 排序≠件序;Z4 三軸正交,量深度用 HIRES 消混疊)。
 >   **跨件時序通道至此三條正交軸:結構(nrip)× 幅度(span)× 方向(dir);揭示波方向本是作者排版順序的隱含假設**。
+> **(J-6) ~~cascade 波方向一般化為任意角投影~~ ✅ 完成(2026-10-02 run 001,candidate J-6,`cascade_dir_vector` L2,見上里程碑)** ——
+>   把 J-5 的方向軸由 4 向離散補成連續:`cascade_dir` 吃**角度(度)或向量 (ux,uy)**,相位依件中心投影 `x·ux+y·uy` 排序;
+>   lr/rl == θ=0°/180° 投影特例(逐位元相容),co/oc radial 保留。`_normalize_cascade_dir` + `build_spine --cascade-dir 90|"1,1"`;
+>   `validate_cascade_dir_vector.py` 5AC PASS(V2 crux 投影序遞增;V5a crux 垂直90°[3,0,4,1,2]・對角45°[3,0,1,2,4] ∉ 全部 J-5 序)。
+>   **honest:J-6 不是新正交軸,是方向軸由離散補成連續(取值擴充);跨件時序通道仍三條正交軸**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(J-6) cascade 波方向擴充(對角 / 任意自訂向量投影:件序相位改由件中心在某方向單位向量上的投影排序,lr/co 為其特例;需定方向向量來源)**;
+> **(J-7) cascade 方向取 genre/幾何自動來源(如主秀爆點方向、質心→最遠件向量)當 cascade_dir 向量,把「用哪方向」從手感 PROPOSAL 推一層成可由幾何導出(仍留最終手感微調給 A 類)**;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
 > ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 48 GREEN**。見上里程碑。
