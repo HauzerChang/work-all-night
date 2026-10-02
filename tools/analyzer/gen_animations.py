@@ -234,24 +234,80 @@ from tier_variants import MAIN_SHOW_CATS as _MAIN_SHOW_CATS, \
 # 波形(SPAN/nrip/深度)完全不動 → 與 J/J-3/J-4 三軸正交(方向只決定「哪件何時 pop」,不決定「多開/幾道/多深」)。
 _CASCADE_DIRS = {"lr", "rl", "co", "oc", "po"}
 
+# candidate J-6:把方向從 4 個離散名鍵**推廣成任意直線方向向量**。cascade_dir 另可為 2-向量 `(ux, uy)`
+# → 排序鍵 = 件中心沿該單位向量的**投影** `(x−cx)·ux + (y−cy)·uy`。這把「哪件何時 pop」沿**任一角度**
+# (對角、垂直……)線性鋪開。**honest distinction**:投影族只推廣**直線/軸向**方向——lr≡(1,0)、rl≡(−1,0) 是其特例
+# (軸向投影),對角(如 45°)/垂直(90°)是 J-5 四名鍵**到不了**的新方向;但 co/oc 是**徑向**(距中心的非線性
+# 距離),**不是**任何單一投影 → 仍屬**另一族**,不被投影涵蓋(於閘 V 誠實列出此邊界)。方向與 span/nrip/深度
+# 三軸仍正交(只重排相位指派)。
+
+
+def _dir_vector(cascade_dir):
+    """把 cascade_dir 轉成正規化方向單位向量 `(ux, uy)`;若非向量(named 字串 / None)回 None。
+    J-6:接受 `(ux, uy)` tuple/list(任意直線方向,對角 / 垂直皆可)。零向量 → ValueError。"""
+    if isinstance(cascade_dir, (tuple, list)) and len(cascade_dir) == 2:
+        ux, uy = float(cascade_dir[0]), float(cascade_dir[1])
+        n = math.hypot(ux, uy)
+        if n == 0.0:
+            raise ValueError("cascade_dir vector must be non-zero")
+        return (ux / n, uy / n)
+    return None
+
+
+def parse_cascade_dir(spec):
+    """把 CLI / 字串形式的 cascade_dir 轉成 `build_animations` 接受的值(純函式,無副作用)。
+      None / "" → None;named(lr/rl/co/oc/po/auto)→ 原樣字串(交由下游處理);
+      已是 2-向量 tuple/list → 原樣回(直接投影);
+      "v<ux>,<uy>" → 方向向量(下游正規化);
+      "a<deg>" 或純數字(如 "45"/"-30.5")→ 角度(度,自 +x 軸逆時針,Spine y-up)→ 單位向量 `(cos,sin)`
+        (故 a0≡lr、a180≡rl、a90=由下而上;對角 a45 為 J-5 名鍵到不了的新方向)。
+    其餘無法解析 → ValueError(輸入守衛)。"""
+    if spec is None:
+        return None
+    if isinstance(spec, (tuple, list)):
+        return tuple(spec)
+    s = str(spec).strip()
+    if s == "":
+        return None
+    if s in _CASCADE_DIRS or s == "auto":
+        return s
+    if s.startswith("v"):
+        parts = s[1:].split(",")
+        if len(parts) != 2:
+            raise ValueError("vector cascade_dir must be 'v<ux>,<uy>': {!r}".format(spec))
+        return (float(parts[0]), float(parts[1]))
+    body = s[1:] if s.startswith("a") else s     # "a45" 或純數字皆視為角度(度)
+    try:
+        deg = float(body)
+    except ValueError:
+        raise ValueError("unknown cascade_dir spec: {!r} (named {} / 'a<deg>' / 'v<ux>,<uy>')".format(
+            spec, sorted(_CASCADE_DIRS)))
+    rad = math.radians(deg)
+    return (math.cos(rad), math.sin(rad))
+
 
 def _cascade_phase_of(valid, bone_of, cx, cy, cascade_dir):
     """回傳每個 valid 件的相位 ∈[0,1](list,index 對齊 valid)。
 
     `cascade_dir is None` → 件序 `pi/(nvalid−1)`(第一件 0、最後一件 1 → 逐位元同 J-4 之前行為)。
-    否則依**空間排序鍵**給 rank,相位 = `rank/(nvalid−1)`。排序鍵 tie-break 用件序 index(確定性)。"""
+    否則依**空間排序鍵**給 rank,相位 = `rank/(nvalid−1)`。排序鍵 tie-break 用件序 index(確定性)。
+    J-6:`cascade_dir` 若為 `(ux, uy)` 向量 → 排序鍵 = 件中心沿該向量的**投影**(任意直線方向)。"""
     nvalid = len(valid)
     if nvalid <= 1:
         return [0.0] * nvalid
     if cascade_dir is None or cascade_dir == "po":
         return [i / (nvalid - 1) for i in range(nvalid)]
-    if cascade_dir not in _CASCADE_DIRS:
-        raise ValueError("unknown cascade_dir: {!r} (allowed {})".format(cascade_dir, sorted(_CASCADE_DIRS)))
+    vec = _dir_vector(cascade_dir)                 # J-6:向量→單位方向;named 字串→None(走下方名鍵分支)
+    if vec is None and cascade_dir not in _CASCADE_DIRS:
+        raise ValueError("unknown cascade_dir: {!r} (allowed {} or a 2-vector (ux,uy))".format(
+            cascade_dir, sorted(_CASCADE_DIRS)))
     keys = []
     for i, pe in enumerate(valid):
         bd = bone_of.get(safe(pe["part"])) or {}
         x, y = bd.get("x", cx), bd.get("y", cy)
-        if cascade_dir == "lr":
+        if vec is not None:
+            k = (x - cx) * vec[0] + (y - cy) * vec[1]   # J-6:沿任意方向投影(減中心僅平移,不改排序)
+        elif cascade_dir == "lr":
             k = x
         elif cascade_dir == "rl":
             k = -x

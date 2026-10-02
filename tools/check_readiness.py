@@ -469,6 +469,18 @@ BLOCKS = [
                      "Z5 負對照 (a) po 逐位元==None (b) **crux discriminator** lr 峰序==x 排序 且 ≠件序(x 最小件非件序第一件卻最先 pop)證相位來源是空間非件序 (c) 方向只作用 cascade 非-cascade 逐位元同 None (d) 未知方向字串→ValueError 輸入守衛)。"
                      "**跨件時序通道至此三條正交軸:結構(nrip,J-3)× 幅度(span,J-4)× 方向/相位來源(J-5);J-5 揭示波方向本是作者排版順序的隱含假設,改由幾何決定使波有物理意義**。"
                      "honest:方向選擇(co)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
+            CAP("cascade_dir_vector", "cascade 跨件波方向推廣成任意直線方向向量投影(J-6,對角/垂直;lr/rl 為投影特例,co/oc 徑向仍另一族)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_vector.py", "pipeline",
+                note="補 (J-5) 的推廣:(J-5) 只有 4 個離散名鍵(lr/rl 軸向 + co/oc 徑向)。本次把相位排序鍵改由件中心沿**任意單位向量 (ux,uy) 的投影** "
+                     "(x−cx)·ux+(y−cy)·uy 決定 → 波方向可沿**任一角度**(對角、垂直……)線性鋪開;波形(SPAN/nrip/深度)不動,只重排哪件何時 pop。"
+                     "**crux(J-6 的 honest distinction)**:投影族只推廣**直線/軸向**方向——① lr≡(1,0)、rl≡(−1,0) 是投影**特例**(V1 證 (1,0) 逐位元==lr、(−1,0)==rl);"
+                     "② **對角(45°)/垂直(90°)是 J-5 四名鍵到不了的新方向**(V3 證 45° 對角峰序 [身體,光暈,右手,頭,左手] 與 lr/rl/co/oc 四者皆異 且 ≠件序);"
+                     "③ 但 **co/oc 徑向(距中心非線性距離)不是任何單一投影** → V3 密格掃 360° 投影排序集合(20 個相異序),co/oc/件序**皆不在**其中,對角**在**且 ≠ 兩軸向序 —— 徑向仍屬另一族,誠實標出投影族邊界(非涵蓋一切方向)。"
+                     "全 additive:新增 _dir_vector(正規化)+ parse_cascade_dir(CLI 'a<deg>' 角度 / 'v<ux>,<uy>' 向量 / named 原樣);_cascade_phase_of 多一條向量投影分支(named 分支不動 → 零回歸);build_spine --cascade-dir 去掉 choices 改經 parse。"
+                     "validate_cascade_dir_vector.py 6AC PASS(複用 J-5 閘 helper 同源):V1 present+軸向特例(8 角度有 bone・(±1,0)==lr/rl・非 cascade 不受影響)/V2 crux 每角度峰時刻依投影嚴格遞增/"
+                     "V3 crux 對角新方向+徑向邊界(45° 峰序四名鍵皆異且≠件序;360° 投影集 co/oc/件序不在、對角在且≠軸向)/V4 每方向仍一道有序跨件波(散佈≥0.30)+首尾 setup identity/"
+                     "V5 正交(a dir⟂深度 overshoot 跨向量==base HIRES、b dir⟂span 散佈==span、c dir⟂nrip pop 次數==nrip)/V6 負對照(a **crux 反向** θ 峰序==θ+180° 逆序、b 零向量 (0,0)→ValueError、c parse 守衛亂字串/殘缺向量'v1'→ValueError・a0 解為軸向、d 向量方向只作用 cascade)。"
+                     "**跨件時序通道的方向軸至此由 4 離散名鍵推廣成連續角度(投影族);honest boundary:徑向(co/oc)非投影族、方向選擇為 PROPOSAL(手感 A 類)、單一真值資產(防固化)。與 anim-forge 同 HOLD**"),
         ],
     },
 ]

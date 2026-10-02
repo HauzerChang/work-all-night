@@ -321,8 +321,10 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
             ttc = twist_cycles_for(genre)
             tcr = cascade_ripples_for(genre)
             tcs = cascade_span_for(genre)
-        # J-5:cascade 波方向(相位來源)。"auto" → 查 genre 建議(cascade_dir_for);None → 件序(byte-identical)。
-        cdir = cascade_dir
+        # J-5/J-6:cascade 波方向(相位來源)。先經 parse_cascade_dir 解析(named / "a<deg>" 角度 / "v<ux>,<uy>" 向量);
+        # "auto" → 查 genre 建議(cascade_dir_for);None → 件序(byte-identical)。
+        from gen_animations import parse_cascade_dir
+        cdir = parse_cascade_dir(cascade_dir)
         if cdir == "auto":
             from tier_variants import cascade_dir_for
             cdir = cascade_dir_for(genre)
@@ -394,9 +396,9 @@ def main():
     ap.add_argument("--twist-volume", dest="twist_volume", action="store_true",
                     help="G-4''''''-vol:twist 掛體積守恆等向補償 scale(擰而不變面積;配 --shear-pivot 端到端;需 --animate)")
     ap.add_argument("--cascade-dir", dest="cascade_dir", default=None,
-                    choices=["lr", "rl", "co", "oc", "auto"],
-                    help="J-5:cascade 跨件波方向由空間位置決定(lr 左→右/rl 右→左/co 中心外擴/oc 外向內/auto 查 genre 建議;"
-                         "預設件序 byte-identical;需 --animate)")
+                    help="J-5/J-6:cascade 跨件波方向由空間位置決定。named:lr 左→右/rl 右→左/co 中心外擴/oc 外向內/"
+                         "auto 查 genre 建議;J-6 任意直線方向:'a<deg>' 角度(度,自 +x 逆時針,a0≡lr/a90 由下而上/a45 對角)"
+                         "或 'v<ux>,<uy>' 向量(對角/垂直,J-5 四名鍵到不了的方向)。預設件序 byte-identical;需 --animate")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
     s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,

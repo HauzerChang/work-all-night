@@ -10,6 +10,32 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 跨件波方向推廣成任意直線方向向量投影:對角/垂直(投影族),徑向仍另一族(里程碑,2026-10-02 run 001,candidate J-6)** —
+  補 (J-5) 的推廣:(J-5) 只給 **4 個離散名鍵**(`lr`/`rl` 軸向 + `co`/`oc` 徑向),**對角/垂直/任意斜角到不了**。本次把相位的
+  **排序鍵**改由件中心沿**任意單位向量 `(ux,uy)` 的投影** `k=(x−cx)·ux+(y−cy)·uy` 決定 → 波方向可沿**任一角度**連續鋪開;
+  波形(SPAN/nrip/深度)分毫不動,只重排哪件何時 pop(同 J-5 的相位重排機制,第三種最輕量機制)。
+  **crux(J-6 的 honest distinction)= 精確標出投影族的邊界**,不是「現在什麼方向都能到」:①**`lr`≡投影到 `(1,0)`、`rl`≡`(−1,0)`
+  是投影族特例**(V1 證 `cascade_dir=(1,0)` 輸出**逐位元==**`"lr"`、`(−1,0)`==`"rl"`;投影鍵 `x−cx` 對 x 單調 → 排序全同 → anim 全同);
+  ②**對角(45°)/垂直(90°)是 J-5 四名鍵到不了的新方向**(V3 證 robot 上 45° 對角峰序 `[身體,光暈,右手,頭,左手]`(投影 ∝ x+y)
+  與 `lr`/`rl`/`co`/`oc` 四者皆異 且 ≠件序);③但 **`co`/`oc` 徑向(距中心 `hypot` 非線性距離,等值線是圓)不是任何單一投影**
+  (投影等值線是直線)→ V3(b) 密格掃 360° 得 **20 個相異投影排序**,`co`/`oc`/件序**皆不在**其中、對角**在**且 ≠ 兩軸向序 →
+  徑向仍屬**另一族**,誠實否證「投影涵蓋一切方向」。全 additive:新增 `_dir_vector`(正規化;零向量→`ValueError`)+
+  `parse_cascade_dir`(CLI `"a<deg>"` 角度(自 +x 逆時針,a0≡lr/a90 由下而上/a45 對角)/ `"v<ux>,<uy>"` 向量 / named 原樣)+
+  `_cascade_phase_of` 多一條向量投影分支(**named 分支完全不動 → 零回歸**);`build_spine --cascade-dir` 去掉 `choices` 改經 `parse`
+  (可傳 `a45`/`v1,1`)。整合閘 `validate_cascade_dir_vector.py`(複用 J-5 閘 helper 保同源可信;先驗庫→**真實 build_spine robot
+  骨架**→build_animations(cascade_dir=(ux,uy)))**6 AC 全 PASS**:V1 present+**軸向特例**(8 角度有 bone・`(±1,0)`逐位元==lr/rl・
+  非 cascade 不受影響)、V2 **crux** 每角度峰時刻依投影嚴格遞增、V3 **crux 對角新方向+徑向邊界**(45° 峰序四名鍵皆異且≠件序;
+  360° 投影集 co/oc/件序不在、對角在且≠軸向)、V4 每方向仍一道有序跨件波(散佈≥0.30)+首尾 setup identity 可插 Loop、
+  V5 正交(a dir⟂深度:同件 overshoot 跨向量==base,HIRES 消混疊;b dir⟂span:散佈==span;c dir⟂nrip:pop 次數==nrip)、
+  V6 負對照(a **crux 反向** θ 峰序==θ+180° 逆序;b 零向量 `(0,0)`→`ValueError`;c parse 守衛亂字串/殘缺向量`'v1'`→`ValueError`、
+  `a0` 解為軸向;d 向量方向只作用 cascade)。端到端 `build_spine --animate --cascade-dir a45`(或 `v1,1`)直出對角波。
+  **回歸:check_readiness 全綠 50 GREEN / 0 RED**(新增 cap `cascade_dir_vector` L2 併入 `spine-anim-forge`,仍 HOLD)。
+  **關鍵發現**:①把「離散選項」推廣成「連續參數族」時,誠實的工作是把『族邊界』變成**可機讀的否證**(投影族=所有**直線**方向、
+  軸向是特例、不含徑向;V3(b) 用「徑向序不在 360° 投影集合裡」否證「涵蓋一切方向」);②**特例要用逐位元等價去證**(V1 證
+  `(1,0)` byte-identical 於 `"lr"` 才算「lr 是投影特例」,同時保證零回歸);③**線性(投影)vs 非線性(徑向)的可達性差異是幾何
+  事實**(等值線:直線 vs 圓),非實作選擇 —— 點集沿圓的排序一般不是任何直線掃出的排序。**honest boundary(仍在)**:
+  角度/方向選擇為 PROPOSAL(手感 A 類);徑向刻意不併入投影族(幾何上不同族,未來「任意徑向中心」另開一條);單一真值資產。
+  見 `knowledge/s1-cascade-dir-vector.md`。
 - **S1 cascade 跨件波方向由空間位置決定:跨件時序通道第四條正交軸——相位來源(里程碑,2026-10-01 run 002,candidate J-5)** —
   補 (J-4) 的 honest boundary:至 (J-4) 為止 cascade 各件相位恆為**件序** `pi/(nvalid−1)`,波的**方向** = 作者把件寫進
   storyboard 的**列表順序**(任意/排版,**無物理意義**)。本次把相位的**排序鍵**換成**空間座標**:`lr` 左→右(bd.x 升序)/
@@ -898,8 +924,11 @@
 >   `_cascade_phase_of` + `build_animations(cascade_dir=)` + `build_spine --cascade-dir`;`None`/`po` 逐位元同件序(零回歸)。
 >   `validate_cascade_dir.py` 5AC PASS(Z2 crux 峰序依空間鍵遞增;Z5b crux lr 峰序==x 排序≠件序;Z4 三軸正交,量深度用 HIRES 消混疊)。
 >   **跨件時序通道至此三條正交軸:結構(nrip)× 幅度(span)× 方向(dir);揭示波方向本是作者排版順序的隱含假設**。
+> **(J-6) ~~cascade 波方向擴充(對角 / 任意自訂向量投影)~~ ✅ 完成(2026-10-02 run 001,candidate J-6,`cascade_dir_vector` L2,見上里程碑)** ——
+>   相位排序鍵改由件中心沿**任意單位向量 (ux,uy) 的投影**決定(`_dir_vector`+`parse_cascade_dir`+`_cascade_phase_of` 向量分支;`build_spine --cascade-dir a45`/`v1,1`);
+>   lr/rl 是投影特例(V1 逐位元==)、對角/垂直是新方向(V3),徑向 co/oc 非投影族(V3(b) 360° 投影集否證);`validate_cascade_dir_vector.py` 6AC PASS。50 GREEN/0 RED。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(J-6) cascade 波方向擴充(對角 / 任意自訂向量投影:件序相位改由件中心在某方向單位向量上的投影排序,lr/co 為其特例;需定方向向量來源)**;
+> **(J-7) 方向軸接 tier 差異化或接進 genre 先驗庫**:(a) 各檔位用**不同**波方向(如 Super→lr、Legend→對角,類比 J/J-3/J-4 的 tier 差異化,`TIER_CASCADE_DIR`+`cascade_dir_for` 已備 opt-in);或 (b) 把某個對角/向量方向併入 `genre_priors.slot_bigwin` 直出(比照 (I) cascade 接先驗庫),附覆蓋率仍 1.0 + 方向端到端存活閘;
 > **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
 > ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 48 GREEN**。見上里程碑。
