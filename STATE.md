@@ -10,6 +10,34 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1×S5 整合閘:主秀節拍下 limb 繞關節 pivot 旋轉+縮放(里程碑,2026-10-03 run 002,candidate G-2)** —
+  刻意選**整合驗證閘**而非再加一條參數軸(近期 J~J-7/charge count 連續多是「單一 robot 資產加一軸」):把 **S5 的
+  關節 pivot**(`infer_pivots` 接觸縫)與 **S1 genre 先驗庫直出的主秀節拍**(hit/combo/charge/burst/cascade)在
+  **真實產線接點**上釘回歸閘(呼應 RULES「每能力必配評估器」)。**補的缺口**:0i/G-3 的繞關節 pivot 能力
+  (`--pivot-rotate`/`--scale-pivot`)端到端 AC(`validate_pivot_rotation` AC6 / `validate_scale_pivot` AC7)都只在
+  **合成 skeleton + 合成單一 beat**(Loop/Win pulse)上驗機制;而 `build_spine` 的 `apply_pivots` 迴圈
+  (build_spine.py:351)**逐一掃過所有 animations** → 主秀 beat 的 limb rotate/scale **其實早已**被轉成繞關節版,
+  **但從未有 AC 驗過**「真實產線產的主秀節拍下 limb 真的繞關節而非件中心動」。**全 additive**(無改生成/產線碼):
+  新增 `validate_pivot_main_show.py`(5 AC)—— 從 genre 先驗庫 → **真實 `build_spine --animate --scale-pivot`
+  robot 骨架**(apply_pivots 在 build 內實跑)產 comp 版 + **`--animate` 無 pivot 旗標** raw 版(繞件中心負對照);
+  世界變換 `world=(O+T)+R(θ)·diag(sx,sy)·local`;範圍 `cat∈MAIN_SHOW_CATS−SHEAR_CATS`=hit/combo/charge/burst/cascade
+  (shear 節拍 wobble/squash/twist 需 `--shear-pivot`,已由 `validate_{twist,squash}_*` 端到端 pivot 殘差 AC 覆蓋,
+  本閘不重複)× 有關節 limb/head(右手/頭/左手)。**5 AC 全 PASS(15 組 pair)**:M1 present+routing+零回歸
+  (summary 具 pivot_centers/joints、每主秀節拍有補償 limb、非關節件光暈/身體不在 joints、結構節拍 finite)、
+  **M2 crux 繞關節不動點**(最差殘差 **0.39px**<0.5 且件最遠點位移≥**40.79px** 真在動)、**M3 負對照繞件中心**
+  (逐 pair 比值 **≥147×** 主判準,補償砍關節運動≥20× 處處成立;最大位移 **161px** 量級明顯)、**M4 保設定姿勢**
+  (27 個靜止端點補償後 Δ=**0**;**burst 首刻意塌陷登場非 setup→不要求 identity**,其關節仍由 M2 保證不動)、
+  M5 isolation+正確轉換集合(非關節件 comp/raw 逐位元同、有差異 bone 集合==恰好有關節 limb 集合,無漏轉/多轉)。
+  **迭代踩雷(預算內自修)**:①M4 初版對首尾都要求 identity→**burst 假失敗**(reveal/登場式刻意首幀塌陷 rot25°/scale0.02)
+  →改依「不補償版該端點是否本就靜止」決定是否要求 identity;②M3 初版用絕對位移 floor→低幅度 pair(頭)neg=9px 假失敗
+  →主判準改**逐 pair 比值**(實測 min 147×),絕對量級只檢最差 pair。**回歸:check_readiness 全綠 0 RED / 53 GREEN**
+  (新增 cap `pivot_main_show_integration` L2 併入 `spine-anim-forge`,仍 HOLD;其餘 52 閘逐一 GREEN 證零回歸)。
+  **關鍵發現**:①**「apply_pivots 已掃過所有 beat」≠「主秀 beat 下 limb 真的繞關節」有 AC** —— 整合點最該放
+  回歸閘(再現「X 就緒≠有 AC 驗 X 在真實產線成立」通則:同 (E) 模板就緒≠產線會用、(0i) 幾何就緒≠生成器接上);
+  ②**不是所有主秀節拍都「首尾 setup identity」** —— burst 刻意塌陷登場,identity-介面 AC 必須依「該端點是否本就靜止」
+  判定,正確不變量=補償**不在節拍本就靜止處**引入不連續;③**負對照主判準是「逐 pair 比值」非「絕對位移量」**
+  (低幅度 pair 絕對位移小但比值仍 147×)。**honest boundary(仍在)**:單一 rig 真值、只非 rig 下套用、shear
+  主秀節拍另由他閘覆蓋;主秀手感為美術(A 類)。見 `knowledge/s1-pivot-main-show-integration.md`。
 - **S1 charge 蓄力充能階段數隨檔位遞增:count-aware 補齊全部單件主秀 beat(里程碑,2026-10-03 run 001,candidate G-4'''''-charge)** —
   candidate (J) 已讓 charge(anticipate_hold,蓄力充能)的 release 峰**幅度**隨檔位遞增,但各檔位仍**同樣 1 階**單發蓄力
   (有「多爆」沒「蓄幾段」)。本次補上充能-釋放**階段數** `ncharge` 隨檔位嚴格遞增(Super1→Mega2→Omg3→Legend4):

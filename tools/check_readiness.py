@@ -216,6 +216,22 @@ BLOCKS = [
                      "(證 M=R·S 組合)、AC7 端到端經 build_animations pulse(limb scale+rotate 無 translate)pivot 不動 0.014px vs 負對照 22.14px。"
                      "回歸:0i validate_pivot_rotation(逐 AC PASS,路徑不變)、validate_anim(+selftest)、round-trip 對 --scale-pivot build 全綠。"
                      "honest boundary:pivot 真值仍 S5 接觸縫草案、單一 rig、只非 rig 下套用;縮放幅度手感留使用者(A類)。與 anim-forge 同 HOLD"),
+            CAP("pivot_main_show_integration", "主秀節拍下 limb 繞關節 pivot 旋轉+縮放(G-2,整合閘:真實產線主秀 beat × 真實推得關節)", "L2",
+                "python3 tools/analyzer/validate_pivot_main_show.py", "pipeline",
+                note="把兩條既有能力接起來驗:0i/G-3 的繞關節 pivot(--pivot-rotate/--scale-pivot)與 genre 先驗庫直出的主秀 beat。"
+                     "0i(validate_pivot_rotation AC6)/G-3(validate_scale_pivot AC7)的端到端 AC 都只在**合成 skeleton+合成單一 beat**"
+                     "(Loop/Win pulse)上驗機制;另一邊主秀 beat(hit/combo/charge/burst/cascade)早由 build_spine --animate 直出,且 "
+                     "build_spine 的 apply_pivots 迴圈**逐一掃過所有 animations**(主秀 limb rotate/scale 其實已被轉成繞關節版)——但"
+                     "**從未有 AC 驗過『真實產線產的主秀節拍下 limb 真的繞關節而非件中心動』**。本閘補上:從 genre 先驗庫→**真實 "
+                     "build_spine --animate --scale-pivot robot 骨架**(apply_pivots 在 build 內實跑)→對**每個**旋轉/縮放主秀節拍"
+                     "(cat∈MAIN_SHOW_CATS−SHEAR_CATS=hit/combo/charge/burst/cascade;shear 節拍 wobble/squash/twist 需 --shear-pivot,"
+                     "其繞關節性質已由 validate_{twist,squash}_* 端到端 pivot 殘差 AC 覆蓋)×**每個**有關節 limb/head bone(右手/頭/左手)量測。"
+                     "5AC PASS(15 組 pair=5 主秀節拍×3 有關節 limb):M1 present+routing(summary 具 pivot_centers/joints、每主秀節拍有補償 limb、"
+                     "非關節件光暈/身體不在 joints、結構節拍 finite)、M2 crux 繞關節不動點 最差殘差 0.39px(<0.5)且件最遠點位移≥40.79px(真在動)、"
+                     "M3 負對照繞件中心 逐 pair 比值≥147×(主判準:補償砍關節運動≥20×)且最大位移 161px(量級明顯)、M4 保設定姿勢(27 個靜止端點補償後 Δ=0;"
+                     "**burst 首刻意塌陷登場非 setup → 不要求 identity,其關節仍由 M2 保證不動**)、M5 isolation+正確轉換集合(非關節件 comp/raw 逐位元同、"
+                     "有差異 bone 集合==恰好有關節 limb 集合,無漏轉/多轉)。真值=關節幾何不動點(客觀,S5 接觸縫推得);限主秀運動手感為美術(A 類)。"
+                     "honest boundary:單一 rig 真值、只非 rig 下套用、shear 節拍另由他閘覆蓋。與 anim-forge 同 HOLD"),
             CAP("combo_charge_priors_integration", "combo/charge 接進 genre 先驗庫(H,build --animate 直出連擊/蓄力)", "L2",
                 "python3 tools/analyzer/validate_priors_combo_charge.py", "pipeline",
                 note="續 (E) 對 hit/reveal 所做,把 0g 的 combo(連擊)/charge(蓄力充能)節拍併入 genre_priors:slot_bigwin 加 "
