@@ -531,6 +531,18 @@ BLOCKS = [
                      "W5 負對照 (a)**crux data-derived discriminator** 同 cascade_dir=\"geo\" 套兩個不同幾何(robot vA≈13° vs 把頭移遠成最遠件 vB≈90°)→ 導出向量不同且波序不同,各自吻合自身幾何的質心→最遠件投影序 證方向由資料導出非常數 "
                      "(b)導出向量/波序==閘獨立重算(robot)且最遠件最後 pop (c)geo 波序≠手感常數 co(cascade_dir_for)/≠oc/≠件序 po/≠lr/≠rl (d)輸入守衛未知 source/空件/退化幾何→ValueError)。"
                      "**方向軸取值來源至此自動化;honest:source 選擇與最終手感微調仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
+            CAP("cross_asset_generalization", "主秀 beat 生成器跨資產泛化(XA,把『單一真值資產』由只在 robot 驗過升級為 2 個獨立真實資產驗過)", "L2",
+                "python3 tools/analyzer/validate_cross_asset_generalization.py", "pipeline", heavy=True,
+                note="**攻擊重複 ~24 次的 honest boundary**:anim-forge 每條 cap 結語都寫「單一真值資產(robot),與 anim-forge 同 HOLD」——整個生成能力一直只在 **一個** 資產驗過。"
+                     "但生成器本質 role-based(gen_loop(role,…) 依 body/head/limb/特效 路由),理應與資產無關。本閘把「只在 robot 驗過」的結構簽章**實測**到第二個獨立真實資產 "
+                     "**Symbol_Ww.psd**(DJ 角色符號,18 件 / 180×180 畫布 vs robot 5 件 / 713×693,全然不同件集),復用既有閘**同一度量**證泛化。"
+                     "**honest(勿誇大):本閘 PASS 不代表 anim-forge 可出貨**(出貨=C 類使用者拍板 + 運動手感 A 類);只把『單一真值資產』boundary 由『只在 robot 驗過』升級為『2 個獨立真實資產驗過』——離開 HOLD 的**必要非充分**條件。"
+                     "validate_cross_asset_generalization.py 5AC PASS(XA1 第二資產端到端 build + 8 beat 家族×4 檔位 present/finite/有 bone + 結構確不同於 robot/"
+                     "XA2 **復用 validate_tier_variants.run()** 在第二資產 J2 介面 identity・J3 crux 幅度單調・J4 結構簽章・J5 負對照全 PASS/"
+                     "XA3 **復用 6 條 count 閘**(combo/wobble/squash/twist/charge/cascade count)在第二資產皆 OVERALL_PASS/"
+                     "XA4 **crux asset-dependent** cascade 跨件相位 threading 隨幾何改變:第二資產穿 18 件(robot 5 件)皆依件序嚴格遞增+散佈≥0.30,threading 件數==資產件數,兩資產波序成員/長度不同→證波讀資產幾何非寫死 robot 樣式/"
+                     "XA5 **anchor**:同一 tier_variants 在 robot 亦 PASS(證度量重現既有 per-cap 結果,第二資產 PASS 是真泛化)+**neg**:第二資產平增益階梯→幅度單調 FALSE(新資產上仍保鑑別力))。"
+                     "**關鍵發現:『單一真值資產』對結構簽章層是過度保守的 honest boundary——生成器既是 role-based,其結構不變量本與資產無關,實測第二真實資產即證之;唯一與資產相關的 cascade threading 正確隨新資產幾何自適應(5→18 件)。honest:美感/出貨仍 A/C 類;僅 2 資產(更多真實資產仍可加);與 anim-forge 同 HOLD(本閘為離開 HOLD 的必要條件之一,非充分)**"),
         ],
     },
 ]

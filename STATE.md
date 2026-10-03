@@ -10,6 +10,31 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 主秀 beat 生成器跨資產泛化(里程碑,2026-10-03 run 003,candidate XA)** —
+  **不選又一條參數軸,改攻重複 ~24 次卻從未實測的 honest boundary**。`check_readiness` 全綠下,`spine-anim-forge`
+  **每一條** cap 結語都寫同一句「**單一真值資產(robot),與 anim-forge 同 HOLD**」——整個生成能力一直只在**一個**
+  資產驗過,這是它離不開 HOLD 的主因之一。但看 `gen_animations.py`:所有基元都 **role-based**(`gen_loop(role,…)` 等依
+  `body/head/limb/特效` 路由,**不綁件名**)→ 理應與資產無關,這條 boundary 對**結構簽章層**其實**過度保守**、只是沒被實測推翻。
+  **全 additive(零改生成/產線碼)**:新增 `validate_cross_asset_generalization.py`(5 AC),把「只在 robot 驗過」的
+  結構簽章**實測**到 repo 既有的**第二個獨立真實資產** `assets/Symbol_Ww.psd`(DJ 角色符號,**18 件** / 180×180 畫布
+  vs robot 5 件 / 713×693,件集/件數/尺度全然不同)。**關鍵設計:不重寫簽章數學,而復用既有 per-cap 閘的 `run()`**
+  (monkeypatch `PSD`)→ 度量與 robot 逐條一致、零判準漂移。**5 AC 全 PASS**:**XA1** 第二資產端到端 build 產 43 anim、
+  8 beat 家族(burst/hit/combo/charge/cascade/wobble/squash/twist)×4 檔位皆 present/finite/有 bone、結構確不同於 robot;
+  **XA2** 復用 `validate_tier_variants.run()` 在第二資產 J2 介面 identity・J3 crux 幅度單調・J4 結構簽章・J5 負對照全 PASS;
+  **XA3** 復用 6 條 count 閘(combo/wobble/squash/twist/charge/cascade count)在第二資產皆 `OVERALL_PASS`;
+  **XA4 crux(asset-dependent)** cascade 跨件相位 threading **隨幾何改變**:第二資產穿 **18 件**(robot 5 件)皆依件序
+  嚴格遞增+散佈≥0.30、threading 件數==資產件數、兩資產波序成員/長度不同 → 證波真讀資產幾何非寫死 robot 樣式;
+  **XA5 anchor+neg**:同一 tier_variants 在 robot 亦 PASS(度量重現既有結果 → 第二資產 PASS 是真泛化非放寬判準)+
+  第二資產平增益階梯→幅度單調 FALSE(新資產仍保鑑別力)。**量化**:幅度/段數簽章是生成器**常數**(兩資產數值逐檔相同,
+  如 hit scale_overshoot=[0.3484,0.4704,0.5924,0.7318] 兩資產一致);唯一讀資產的 cascade threading 正確自適應(5→18 件)。
+  **回歸:check_readiness 0 RED / 54 GREEN**(新 cap `cross_asset_generalization` L2 併入 `spine-anim-forge`,仍 HOLD;
+  其餘 53 閘逐一 GREEN 證零回歸)。**關鍵發現**:①**「單一真值資產」對結構簽章層是過度保守的 boundary**——生成器既
+  role-based,其結構不變量本與資產無關,實測第二真實資產即證之(又一「機制就緒≠有 AC 驗」實例,同 E/0i/G-2);
+  ②**泛化要同時驗「不變的」與「該變的」**——只驗「換資產簽章不變」會漏「生成器是否真讀資產」;cascade threading 必須
+  驗它隨幾何正確改變(5→18、波序成員不同),否則「永遠輸出固定 robot 波」的壞生成器也能騙過前者;③**復用既有閘
+  `run()` 當度量=最可信泛化閘**(零數學漂移,anchor 保證度量未被悄悄放寬)。**honest boundary(仍在)**:本閘 PASS
+  **≠ anim-forge 可出貨**(出貨=C 類使用者拍板、運動手感=A 類主觀);只把「單一真值資產」升級為「2 個獨立真實資產」=
+  離開 HOLD 的**必要非充分**條件;仍只 2 資產(更多可續自主加,閘已參數化)。見 `knowledge/s1-cross-asset-generalization.md`。
 - **S1×S5 整合閘:主秀節拍下 limb 繞關節 pivot 旋轉+縮放(里程碑,2026-10-03 run 002,candidate G-2)** —
   刻意選**整合驗證閘**而非再加一條參數軸(近期 J~J-7/charge count 連續多是「單一 robot 資產加一軸」):把 **S5 的
   關節 pivot**(`infer_pivots` 接觸縫)與 **S1 genre 先驗庫直出的主秀節拍**(hit/combo/charge/burst/cascade)在
@@ -1030,9 +1055,15 @@
 >   `validate_charge_count.py` 5AC PASS(CC2 crux 階數 [1,2,3,4] 嚴格遞增;CC5b **crux combo 判別子** combo 每階 hold 佔比 <0.60 → 證「每階持續 hold」是與 combo count 的鑑別子)。
 >   **count-aware(段數軸)至此補齊全部單件主秀 beat:combo/wobble/squash/twist/charge 五通道 + cascade 跨件通道**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
+> **(XA-N) 把跨資產泛化閘擴成 N 資產參數化矩陣**(再加合成資產 / `main_draw` 可拆件 → ≥3 資產;閘已把 `SECOND`/`ANCHOR`
+>   + 復用既有 `run()` 參數化,加資產成本低)—— **最接續 XA、最直攻 HOLD 的自主路**;
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
-> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
+> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**(註:XA 探查發現 robot 上 effect 件 pivot==件中心 → 補償為 no-op,此軸對本資產實際改變甚微,價值偏低)。
+> ⚠️ **里程碑級策略提醒(C 類,待使用者)**:單一資產的參數軸已鋪滿(一般仿射四自由度+體積守恆+五單件 count+跨件 count+方向自動化皆成立),
+>   **單資產剩餘加軸槓桿遞減**;XA 已把 anim-forge 的「單一真值資產」boundary 由「只 robot」升級為「2 真實資產」(離開 HOLD 的**必要非充分**條件)。
+>   真正解 HOLD 的兩條路偏**資源/拍板類**:(a) 更多真實資產(本 run 已開第二個 + 參數化,可續自主加到 ≥3);(b) S5 **多 rig 藝術家真值**(D,使用者提供)
+>   + **運動手感出貨拍板**(A/C)。**建議使用者**:提供第 2~3 個素材 / rig 真值,或對現有生成結果做一次手感驗收,好讓 anim-forge 真正離開 HOLD。
 > ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 52 GREEN**。見上里程碑。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
@@ -1057,6 +1088,17 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-10-03 run 003:**S1 主秀 beat 生成器跨資產泛化(里程碑,candidate XA)** — 不選又一條參數軸,改攻重複 ~24 次
+  卻從未實測的 honest boundary「單一真值資產(robot)」。生成器本質 role-based(`gen_loop(role,…)` 依 body/head/limb/特效
+  路由,不綁件名)→ 理應與資產無關。新增 `validate_cross_asset_generalization.py`(5 AC),把「只在 robot 驗過」的結構簽章
+  **實測**到第二個獨立真實資產 `Symbol_Ww.psd`(18 件 / 180² 畫布 vs robot 5 件 / 713×693),**復用既有 per-cap 閘的
+  `run()`**(monkeypatch PSD,零判準漂移)。5 AC 全 PASS:XA1 第二資產端到端 build + 8 beat 家族×4 檔位齊全且結構確不同於
+  robot / XA2 復用 `validate_tier_variants` J2-J5 全 PASS / XA3 復用 6 條 count 閘皆 `OVERALL_PASS` / **XA4 crux** cascade
+  threading 隨幾何自適應(穿 18 件 vs robot 5 件、波序成員/長度不同)→ 證波讀資產非寫死 / XA5 anchor(同閘 robot 仍 PASS)
+  + neg(第二資產平增益→單調 FALSE)。check_readiness 0 RED / 54 GREEN(新 cap `cross_asset_generalization`)。
+  **關鍵:結構不變量是生成器常數(換資產不變)、唯一讀資產的 cascade threading 正確隨件數 5→18 改變 → 泛化需同時驗
+  「不變的」與「該變的」**。honest:美感 A 類 / 出貨 C 類不變,本閘只把 boundary 升級為 2 資產=離開 HOLD 的必要非充分條件;
+  anim-forge 仍 HOLD。見 `knowledge/s1-cross-asset-generalization.md`。
 - 2026-10-03:**S1 charge 蓄力充能階段數隨檔位遞增:count-aware 補齊全部單件主秀 beat(里程碑,candidate G-4'''''-charge)** —
   補最後一個尚未接 count-aware 的單件主秀通道 charge。`gen_anticipate_hold(ncharge=)`(ncharge==1 逐位元同手調單發 golden)、
   `TIER_CHARGE_CYCLES`(Super1→Legend4)、charge∈`COUNT_AWARE_CATS`、`build_animations(tier_charge_cycles=)` 依 cat 路由重生成再疊幅度增益。
