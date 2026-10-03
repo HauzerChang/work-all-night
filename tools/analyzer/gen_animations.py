@@ -445,8 +445,8 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade
 
 def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
                      tier_wobble_cycles=None, tier_squash_cycles=None, tier_twist_cycles=None,
-                     tier_cascade_ripples=None, tier_cascade_span=None, twist_volume=False,
-                     cascade_dir=None):
+                     tier_cascade_ripples=None, tier_cascade_span=None, tier_charge_stages=None,
+                     twist_volume=False, cascade_dir=None):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
@@ -478,11 +478,18 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     **投影**排序(方向軸由 J-5 的 4 向離散補成連續;lr/rl 為 θ=0°/180° 投影特例,逐位元相容)。只重排「哪件何時 pop」,
     不動波形 → 與 count/span/深度正交,對所有 cascade clip(base 與檔位變體)一致套用;非 cascade 類別不受影響。
 
-    九者皆 None/False(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、base cascade 恆 1 道波 span=0.54 相位件序、twist 無 scale)。"""
+    tier_charge_stages(G-4'''''-charge):`{tier: nstage}` 時,對 charge 檔位變體以該檔位 nstage **重生成**(充能階梯數隨檔位遞增);
+    charge∈COUNT_AWARE_CATS(單件時序段數軸,同 combo/wobble/squash/twist 路由),但段數是 pre-peak **充能台數**(各為局部極小、
+    逐段更深),非 impact 峰數。新增充能台全在 identity 下方 → 不增 impact 峰(保 charge≠combo),重生成後走一般逐軸 amplify
+    (樓地板不動 → hold 佔比/squash-floor/階數不隨 g 變)→ 段數×幅度正交可疊。
+
+    十者皆 None/False(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、base charge 恆 1 段、base cascade 恆 1 道波 span=0.54 相位件序、twist 無 scale)。"""
     # COUNT_AWARE(單件段數)+ cascade(跨件波掃次數,_PHASE_AWARE)→ 對應的 {tier: count} 映射
     # (依 cat 路由;None → 該類別 count 不隨檔位變)。cascade 的 count 語意=nrip(波掃道數),非單件段數。
+    # (G-4'''''-charge)charge 加入:nstage=充能階梯數(單件時序段數軸,同 combo/wobble/squash/twist 路由)。
     _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles,
                    "squash": tier_squash_cycles, "twist": tier_twist_cycles,
+                   "charge": tier_charge_stages,
                    "cascade": tier_cascade_ripples}
     # J-4:cascade 跨件散佈幅度 {tier: span}(僅 cascade;_PHASE_AWARE,與 nrip 正交,可同時重生成)。
     _span_map = tier_cascade_span

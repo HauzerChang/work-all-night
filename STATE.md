@@ -10,6 +10,34 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 charge 蓄力段數隨檔位遞增:結構(段數)軸的第五個單件通道——段數落在 identity 下方(里程碑,2026-10-03,candidate G-4'''''-charge)** —
+  補 (J) 對 charge 的 honest boundary:(J) 讓 charge **釋放幅度**隨檔位放大,但各檔位仍**同樣單段長蓄力**(有「多爆」沒「充幾段」)。
+  本次補上充能**階梯數** `nstage` 隨檔位嚴格遞增(Super1→Mega2→Omg3→Legend4)—— 結構(段數)軸的**第五個單件通道**
+  (前四:combo J-2 / wobble G-4''' / squash G-4'''''-c / twist G-4''''''-count,外加 cascade 跨件 J-3)。
+  **charge 段數獨有 crux(與 combo 的本質差異,勿誇大)**:combo 段數 = **遞增 impact 峰數**(各 ≥IMPACT_PROM,在 identity **上方**);
+  charge 段數 = **pre-peak 充能台數**(各為局部極小、逐段更深、**全在 identity 下方** <1.0 <1.10)。故 charge 階梯數增多
+  **不造出第二道 impact 峰**(唯一 impact 仍是釋放)→ 段數後仍 `has_charge_signature` 且**非 combo**(兩互斥簽章不因段數變化混淆);
+  這是本閘相對 (J-2) combo count **多驗的一層**。**幅度增益加不出充能台**(`_amp_scale` 只脹 identity 上方釋放 overshoot、
+  下方充能樓地板 0.82–0.93 不動)→ 對 charge 檔位變體以該檔位 nstage **重生成**再疊單一-g(段數×幅度正交;因台全在下方 →
+  幅度天然不動它們 → 這通道是「段數×幅度最乾淨正交」,不像 squash/twist 需耦合/重算補償)。全 additive:`gen_anticipate_hold(nstage=1)`
+  (nstage==1 逐位元同 0g 單段 golden;`_charge_env` 產逐段更深充能台,台間 re-grip 0.93 **<HOLD_LEVEL 0.97** 保 charge≠combo:
+  combo 擊間回 0.985>0.97)+ `TIER_CHARGE_STAGES`/`charge_stages_for` + charge∈`COUNT_AWARE_CATS` + `build_animations(tier_charge_stages=)`
+  依 cat 路由 `_count_maps` + `build_spine --tier-variants` 透傳(零回歸:count is None 時 `gen_anticipate_hold` nstage 預設 1=golden)。
+  整合閘 `validate_charge_count.py`(先驗庫→**真實 build_spine robot 骨架**→build_animations)**5 AC 全 PASS**:CH1 present+backward-compat
+  (base 恆1段逐位元不變・tcstg=None 逐位元同 (J) 幅度-only)、CH2 **crux** 充能台數 [1,2,3,4] 嚴格遞增且每件一致==nstage
+  (台底↔re-grip 以 **prominence≥0.015** 計)、CH3 每檔位首尾 identity+仍 has_charge_signature(hold≥0.35+squash-floor)+settle 變號≥3
+  +**仍非 combo**+**唯一 impact 峰**(充能台不計 impact)+幅度釋放 overshoot 仍遞增、CH4 正交((a) 段數+平增益→台數遞增
+  (b) 增益+無段數→台數恆1·幅度遞增=crux 幅度加不出充能台)、CH5 負對照((a) 平段數全1→單調 FALSE (b) slot_reveal
+  charge_stages_for None 不亂加 (c) 只帶 tier_charge_stages 時非-charge 的 count-aware 主秀 beat 變體逐位元同幅度-only,不外洩)。
+  端到端 `build_spine --animate --tier-variants` 直出 `charge__{Super,Mega,Omg,Legend}`、`validate_build` round-trip overall_pass。
+  **回歸:check_readiness 全綠 52 閘 0 RED**(新增 cap `charge_tier_stage_count` L2 併入 `spine-anim-forge`,仍 HOLD)。
+  **實作踩雷(重要)**:count 量測**不可用「逐樣本差」偵測谷**——re-grip/釋放的慢回升每樣本斜率 <任何固定 eps,逐樣本差會把
+  慢坡誤判成平段而漏數(初版得 [1,1,2,4]);**改用 prominence(值域落差)計極值個數**(值域量、與斜率/樣本數無關)—— 量化閘通則。
+  **關鍵發現**:①**同一「段數軸」在不同通道落在曲線的不同側**(combo 的段數是 identity 上方 impact 峰、charge 的段數是下方充能台)
+  → **帶『與他類別簽章互斥』的 count-aware 要多驗一層那條互斥性在段數增多後仍守住**(對照 twist/squash 多驗的是『跨通道約束
+  φ/體積段數後仍成立』——兩者都是「段數不破壞某既有不變量」);②充能台全在 identity 下方 → 幅度 `_amp_scale` 天然不動它們 →
+  段數×幅度正交**由機制保證**(charge 是最乾淨正交的通道)。**honest boundary(仍在)**:充能階梯(1–4)/幅度/各台深度為
+  PROPOSAL(手感 A 類);單一真值資產(robot)。見 `knowledge/s1-charge-count-generation.md`。
 - **S1 cascade 波方向由件幾何自動導出:把 J-6 方向軸的「取值來源」由手感常數下推成幾何導出(里程碑,2026-10-02 run 002,candidate J-7)** —
   承 (J-5)/(J-6):同一條方向軸的三次精煉,逐步把「用哪個方向」從人手移開。J-5 把相位來源從件序換成**空間**(4 具名
   `lr`/`rl`/`co`/`oc`)、J-6 把其值**連續化**(任意角/向量),**但「用哪個方向」仍是 per-genre 手感常數**
@@ -963,10 +991,14 @@
 >   lr/rl == θ=0°/180° 投影特例(逐位元相容),co/oc radial 保留。`_normalize_cascade_dir` + `build_spine --cascade-dir 90|"1,1"`;
 >   `validate_cascade_dir_vector.py` 5AC PASS(V2 crux 投影序遞增;V5a crux 垂直90°[3,0,4,1,2]・對角45°[3,0,1,2,4] ∉ 全部 J-5 序)。
 >   **honest:J-6 不是新正交軸,是方向軸由離散補成連續(取值擴充);跨件時序通道仍三條正交軸**。
+> ✅ **(J-7) cascade 方向由件幾何自動導出** 已完成(2026-10-02 run 002,candidate J-7,`cascade_dir_geo` L2,見上里程碑)。
+> ✅ **(G-4'''''-charge) charge 蓄力段數隨檔位遞增** 已完成(2026-10-03,candidate G-4'''''-charge,`charge_tier_stage_count` L2,見上里程碑)——
+>   結構(段數)軸的**第五個單件通道**;段數落在 identity **下方**(充能台),與 combo 的 identity 上方 impact 峰互補,
+>   多驗「段數增多仍非 combo + 唯一 impact 峰」。單件時序段數軸(combo/wobble/squash/twist/charge)至此**五通道**齊,加 cascade 跨件通道。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(J-7) cascade 方向取 genre/幾何自動來源(如主秀爆點方向、質心→最遠件向量)當 cascade_dir 向量,把「用哪方向」從手感 PROPOSAL 推一層成可由幾何導出(仍留最終手感微調給 A 類)**;
-> **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
-> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
+> **(G-4'''''-charge') charge 各充能台深度/release 其他 count-aware 變體,或把 count-aware 推到剩餘尚未接的主秀節拍(burst/anticipate_hold 之外的單件節拍檢視是否仍有未接 count 的)**;
+> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**(現以 `not rig` 全域關掉,可細到 per-bone:effect 件在 rig 下掛 root/body 仍可受惠 pivot-rotate);
+> **(G-2) 主秀 beat(hit/combo/cascade/charge)下 limb 繞關節 pivot 的 AC**(現各 beat 都被 apply_pivots 掃到,可加 AC 驗主秀節拍下 limb 也繞關節非繞件中心)。
 > ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 48 GREEN**。見上里程碑。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 

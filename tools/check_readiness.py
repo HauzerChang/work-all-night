@@ -400,6 +400,21 @@ BLOCKS = [
                      "端到端 build_spine --animate --tier-variants --shear-pivot 直出 twist__{Super,Mega,Omg,Legend}(兩軸峰隨檔位遞增 shearX16→33.6°、φ 逐檔=0.7000)。"
                      "**結構(段數)軸已在 combo/wobble/squash/twist 四通道成立;帶跨通道關係約束的類別 count-aware 要多驗一層約束(squash:體積守恆;twist:φ 比值)**。honest:volume-conserving twist(反相雙軸接體積守恆耦合 scale)為後續;"
                      "幅度/φ 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("charge_tier_stage_count", "charge 蓄力段數隨檔位遞增(G-4'''''-charge,單件時序段數軸,段數=pre-peak 充能台數非 impact 峰)", "L2",
+                "python3 tools/analyzer/validate_charge_count.py", "pipeline",
+                note="補 (J) 對 charge 的 honest boundary:candidate (J) 讓 charge 釋放**幅度**隨檔位放大,但各檔位仍是**同樣單段長蓄力** ——「多爆」有了、「充幾段」沒有。"
+                     "本次補上充能**階梯數** nstage 隨檔位嚴格遞增(Super1→Mega2→Omg3→Legend4)。此模式同 (G-4'')wobble/(J-2)combo/(G-4'''''-c)squash/(G-4''''''-count)twist 的單件時序段數軸,惟各類別段數階梯獨立。"
+                     "**charge 段數獨有 crux(與 combo 段數的本質差異)**:combo 的段數 = **遞增 impact 峰數**(各 ≥IMPACT_PROM);charge 的段數 = **pre-peak 充能台數**(各為局部極小、逐段更深、**全在 identity 下方** <1.0 <IMPACT_PROM)。"
+                     "故 charge 階梯數增多**不造出第二道 impact 峰**(唯一 impact 仍是釋放)→ 段數增多後仍 has_charge_signature 且**非 combo**(兩互斥簽章不因段數變化而混淆)——本閘相對 (J-2)combo count 多驗這一層。"
+                     "**幅度增益加不出充能台**(台=關鍵幀拓樸,gen 時決定;事後 _amp_scale 只脹 identity 上方釋放 overshoot、下方充能樓地板不動)→ 對 charge 檔位變體以該檔位 nstage **重生成**再疊單一-g 幅度增益(段數×幅度正交可疊)。"
+                     "新增 TIER_CHARGE_STAGES + charge_stages_for;gen_anticipate_hold(nstage=)(nstage=1 逐位元同 0g 單段 golden);charge∈COUNT_AWARE_CATS;build_animations(tier_charge_stages=) 依 cat 路由 _count_maps;build_spine --tier-variants 透傳。上界 4(充能窗 τ[0.15,0.48] 均分 nstage 台 + re-grip 時間嚴格遞增、各台 4 位小數可辨、末台 0.82>SQUASH_FLOOR)。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(tier_gains,tier_charge_stages),validate_charge_count.py 5AC PASS(CH1 present+backward-compat 每檔位有 bone・base 恆1段逐位元不變・tcstg=None 逐位元同 (J) 幅度-only/"
+                     "CH2 crux 充能台數[1,2,3,4] 嚴格遞增 且每檔位每件台數一致==nstage(台底↔re-grip 以 prominence≥0.015 計,對 N=240 慢坡/捨入穩健)/"
+                     "CH3 每檔位首尾 setup identity+仍 has_charge_signature(hold 佔比≥0.35+squash-floor)+settle 變號≥3+**仍非 combo**+**唯一 impact 峰**(充能台不計 impact)+幅度釋放 overshoot 仍遞增/"
+                     "CH4 正交 (a) 段數+平增益→台數遞增(結構獨立幅度)(b) 增益+無段數→台數恆1·幅度遞增(crux:幅度加不出第二道充能台)/"
+                     "CH5 負對照 (a) 平段數全1→單調 FALSE (b) slot_reveal charge_stages_for None 不亂加 (c) 只帶 tier_charge_stages 時非-charge 的 count-aware 主秀 beat(combo/wobble/squash/twist)tier 變體逐位元同幅度-only,charge 段數圖不外洩)。"
+                     "**結構(段數)軸已在 combo/wobble/squash/twist/charge **五個單件通道** + cascade 跨件通道 成立;charge 的 count 簽章要多驗一層『充能台全在 identity 下方 → 不混入 combo impact 峰』(combo 無此層)**。"
+                     "honest:充能階梯(1–4)為 PROPOSAL(手感 A 類);單一真值資產(防固化)。與 anim-forge 同 HOLD"),
             CAP("twist_volume_conserving", "volume-conserving twist(G-4''''''-vol,反相雙軸 shear 接體積守恆等向 scale)", "L2",
                 "python3 tools/analyzer/validate_twist_volume.py", "pipeline",
                 note="補 twist 系列一路留到現在的最後一條 honest boundary:「反相雙軸未接體積守恆耦合 scale(det=cos(shearY−shearX)≠1 → 擰轉變面積,volume-conserving twist 為後續)」。"

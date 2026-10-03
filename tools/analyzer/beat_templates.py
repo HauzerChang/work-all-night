@@ -217,29 +217,105 @@ def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0), nhits=3):
     return b, s
 
 
-def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0)):
-    """Anticipate-hold(蓄力充能):長時間 squash 蓄力 hold → 單發大釋放 overshoot → 阻尼回擺。首尾 identity。
+# candidate G-4'''''-charge — 蓄力「段數」隨檔位遞增:charge 的**充能階梯數** = nstage(可變)。
+# base(Super)nstage=1 → 逐位元同 0g 手調單段長蓄力(向後相容);高檔位 nstage>1 由通用階梯生成器
+# `_charge_env` 產出 nstage 道**逐段更深**的充能平台(每台=一個 pre-peak 局部極小),台間以小幅
+# re-grip(0.93,**仍 <HOLD_LEVEL 0.97** → 全程算「充能中」,保 charge≠combo:combo 擊間回 0.985 >0.97)
+# 分隔,最後一台最深 → 單發釋放 overshoot → 阻尼回擺。首尾 identity。
+# **crux(與單件 count 軸的共通 + charge 獨有約束)**:nstage 是**結構**軸(gen 時決定幾段充能),與 tier
+# 幅度增益 g(事後放大釋放 overshoot、下方充能樓地板不動 → 階數/hold 佔比/squash-floor 皆不變)**正交**。
+# charge 獨有:新增的充能台**全在 identity 下方**(0.82–0.93 <1.0 <IMPACT_PROM)→ 不產生額外 impact 峰
+#   (唯一 impact 峰仍是釋放)→ 段數增多**不破** charge≠combo 的互斥簽章(對照 combo 段數=遞增 impact 峰數)。
+CHARGE_RELEASE_TAU = 0.58    # 釋放 overshoot 峰時刻(τ);其前皆充能區
+CHARGE_FLOOR_HI = 0.90       # 第一台(最淺)充能樓地板
+CHARGE_FLOOR_LO = 0.82       # 末台(最深)充能樓地板(>SQUASH_FLOOR 0.50 → 屬 squash 蓄力非 collapse)
+CHARGE_REGRIP = 0.93         # 台間 re-grip(<HOLD_LEVEL 0.97 → 仍算充能,保 charge≠combo)
+CHARGE_STAGE_FIRST = 0.15    # 第一台中心 τ
+CHARGE_STAGE_LAST = 0.48     # 末台中心 τ(其後接 CHARGE_RELEASE_TAU=0.58 釋放)
 
-    scale:1.0 →(快速下蹲)0.85 →(**長 hold** 充能,佔比 ≥0.35)0.85 → peak(釋放)→ 回擺 → 1.0。
-    簽章 = **峰前持續低於 0.97 的時間佔比 ≥0.35**(長蓄力)—— hit 的蓄力僅短暫 dip(佔比小)→ 負對照分離。"""
+
+def _charge_env(peak, nstage):
+    """通用 nstage 充能階梯 scale 包絡 → ([(τ∈[0,1], scale)], [stage_tau...])。
+
+    nstage 道**逐段更深**的充能平台(樓地板 CHARGE_FLOOR_HI→CHARGE_FLOOR_LO 線性遞減,各為一個
+    pre-peak 局部極小),台間 re-grip 到 CHARGE_REGRIP(<0.97)→ 全程 <0.97(充能佔比 ≥0.35)。
+    末台後單發釋放 peak → 固定阻尼回擺尾(0.955→1.020→0.995→1.0,峰 <IMPACT_PROM → 不算第二 impact)。
+    回傳同時給出各台中心 τ,供 role 通道(limb/特效)對齊逐段加深的 anti-prep/壓暗。"""
+    env = [(0.00, 1.000)]
+    stage_taus = []
+    for i in range(nstage):
+        f = i / (nstage - 1) if nstage > 1 else 0.0
+        tau_c = CHARGE_STAGE_FIRST + (CHARGE_STAGE_LAST - CHARGE_STAGE_FIRST) * f
+        floor = CHARGE_FLOOR_HI - (CHARGE_FLOOR_HI - CHARGE_FLOOR_LO) * f
+        env.append((round(tau_c, 4), round(floor, 4)))          # 充能台(逐段更深 → 遞增段數簽章)
+        if i < nstage - 1:
+            tau_next = CHARGE_STAGE_FIRST + (CHARGE_STAGE_LAST - CHARGE_STAGE_FIRST) * ((i + 1) / (nstage - 1))
+            env.append((round((tau_c + tau_next) / 2.0, 4), CHARGE_REGRIP))  # 台間 re-grip(<0.97)
+        stage_taus.append(tau_c)
+    env.append((CHARGE_RELEASE_TAU, round(peak, 4)))            # 釋放 overshoot(唯一 impact 峰)
+    env += [(0.70, 0.955), (0.82, 1.020), (0.92, 0.995), (1.00, 1.000)]  # 阻尼回擺(<IMPACT_PROM)
+    return env, stage_taus
+
+
+def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0), nstage=1):
+    """Anticipate-hold(蓄力充能):**nstage** 道逐段更深的 squash 充能台 → 單發大釋放 overshoot → 阻尼回擺。首尾 identity。
+
+    scale:1.0 →(下蹲)充能台(逐段更深,全 <0.97)→ peak(釋放)→ 回擺 → 1.0。
+    簽章 = **峰前持續低於 0.97 的時間佔比 ≥0.35**(長蓄力)—— hit 的蓄力僅短暫 dip(佔比小)→ 負對照分離。
+    `nstage`(candidate G-4'''''-charge)隨檔位遞增(Super 1 → Legend 4);**nstage=1 逐位元同 0g 手調**(向後相容)。
+    段數簽章 = **峰前充能台數**(各為局部極小,逐段更深)= nstage;全在 identity 下方 → 不增 impact 峰(保 charge≠combo)。"""
     T = DUR["anticipate_hold"]
     peak = _PEAK.get(role, 1.18)
     b, s = {}, {}
-    env = [(0.00, 1.000), (0.08, 0.900), (0.15, 0.850), (0.45, 0.850),  # 長蓄力 hold(τ0.15–0.45)
-           (0.58, peak),                                                  # 釋放 overshoot
-           (0.70, 0.955), (0.82, 1.020), (0.92, 0.995), (1.00, 1.000)]   # 阻尼回擺
+    if nstage == 1:
+        # 0g 手調 golden 單段長蓄力(保留原關鍵幀 → byte-identical 向後相容)
+        env = [(0.00, 1.000), (0.08, 0.900), (0.15, 0.850), (0.45, 0.850),  # 長蓄力 hold(τ0.15–0.45)
+               (0.58, peak),                                                  # 釋放 overshoot
+               (0.70, 0.955), (0.82, 1.020), (0.92, 0.995), (1.00, 1.000)]   # 阻尼回擺
+        b["scale"] = _scale_frames(T, env)
+        if role == "limb":
+            # 反向蓄力拉滿並 hold → 爆甩 → 回正
+            b["rotate"] = _rot([(0.00 * T, 0.0), (0.15 * T, -side_sign * 10.0), (0.45 * T, -side_sign * 10.0),
+                                (0.58 * T, side_sign * 16.0), (0.75 * T, -side_sign * 4.0), (1.00 * T, 0.0)])
+        elif role == "特效":
+            # 蓄力期壓暗並 hold → 釋放瞬亮 → 回穩;旋轉蓄力拉滿再甩
+            s["color"] = _color([(0.00 * T, 1.0), (0.15 * T, 0.55), (0.45 * T, 0.55),
+                                 (0.58 * T, 1.0), (1.00 * T, 1.0)])
+            b["rotate"] = _rot([(0.00 * T, 0.0), (0.15 * T, -18.0), (0.45 * T, -18.0),
+                                (0.58 * T, 8.0), (0.78 * T, -3.0), (1.00 * T, 0.0)])
+        return b, s
+
+    # 通用 nstage(candidate G-4'''''-charge):nstage 道逐段更深充能台;rotate/color 逐段加深,首尾歸零/歸一。
+    env, stage_taus = _charge_env(peak, nstage)
     b["scale"] = _scale_frames(T, env)
+    n = nstage
+
+    def _f(i):
+        return i / (n - 1) if n > 1 else 0.0
 
     if role == "limb":
-        # 反向蓄力拉滿並 hold → 爆甩 → 回正
-        b["rotate"] = _rot([(0.00 * T, 0.0), (0.15 * T, -side_sign * 10.0), (0.45 * T, -side_sign * 10.0),
-                            (0.58 * T, side_sign * 16.0), (0.75 * T, -side_sign * 4.0), (1.00 * T, 0.0)])
+        # 逐段加深的反向蓄力 → 末台最滿 → 爆甩 → 阻尼回正(首尾 0)
+        fr = [(0.00 * T, 0.0)]
+        for i, tau in enumerate(stage_taus):
+            fr.append((tau * T, -side_sign * (10.0 + 6.0 * _f(i))))        # anti-prep(逐段更滿 −10..−16)
+        fr.append((CHARGE_RELEASE_TAU * T, side_sign * 16.0))              # 釋放爆甩
+        fr.append((0.75 * T, -side_sign * 4.0))
+        fr.append((1.00 * T, 0.0))
+        b["rotate"] = _rot(fr)
     elif role == "特效":
-        # 蓄力期壓暗並 hold → 釋放瞬亮 → 回穩;旋轉蓄力拉滿再甩
-        s["color"] = _color([(0.00 * T, 1.0), (0.15 * T, 0.55), (0.45 * T, 0.55),
-                             (0.58 * T, 1.0), (1.00 * T, 1.0)])
-        b["rotate"] = _rot([(0.00 * T, 0.0), (0.15 * T, -18.0), (0.45 * T, -18.0),
-                            (0.58 * T, 8.0), (0.78 * T, -3.0), (1.00 * T, 0.0)])
+        # 逐段壓暗(充能愈深愈暗)→ 釋放瞬亮 → 回穩;旋轉逐段拉滿再甩
+        cf = [(0.00 * T, 1.0)]
+        rf = [(0.00 * T, 0.0)]
+        for i, tau in enumerate(stage_taus):
+            cf.append((tau * T, round(0.70 - 0.15 * _f(i), 4)))           # 壓暗(逐段更暗 0.70..0.55)
+            rf.append((tau * T, -(14.0 + 6.0 * _f(i))))                   # 旋轉蓄力(逐段更滿 −14..−20)
+        cf.append((CHARGE_RELEASE_TAU * T, 1.0))                          # 釋放瞬亮
+        cf.append((1.00 * T, 1.0))
+        rf.append((CHARGE_RELEASE_TAU * T, 8.0))                          # 釋放甩
+        rf.append((0.78 * T, -3.0))
+        rf.append((1.00 * T, 0.0))
+        s["color"] = _color(cf)
+        b["rotate"] = _rot(rf)
     return b, s
 
 

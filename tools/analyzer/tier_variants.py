@@ -54,7 +54,13 @@ MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobbl
 # 段數重生成後兩軸各多長 nosc 個阻尼極值,每個新極值仍由 `_twist_env` 建構 shearY=−TWIST_PHI·shearX
 # → **φ 比值由建構保證,與段數無關**;再套幅度增益(單一 g 對兩軸同比)→ 段數×幅度×φ 保形三效正交可疊
 # (每檔位不論扭幾段,兩軸同比 φ 恆定、反相不變)。這是 twist count 獨有的 crux(比照 squash count 的體積守恆)。
-COUNT_AWARE_CATS = {"combo", "wobble", "squash", "twist"}
+# (G-4'''''-charge)charge 加入:蓄力**充能階梯數** nstage 隨檔位遞增(Super 1 → Legend 4;base=1 逐位元同 0g 單段)。
+# charge 的段數是**單件內**的 pre-peak 充能台數(各為局部極小、逐段更深),與 combo/wobble/squash/twist 的段數同屬
+# 單件時序段數軸(cascade 的 nrip 才是跨件)。**charge 獨有 crux**:新增充能台**全在 identity 下方**(0.82–0.93 <1.0)
+# → 不產生額外 impact 峰(唯一 impact 仍是釋放)→ 段數增多**不破** charge≠combo 互斥簽章(combo 段數=遞增 impact 峰數,
+# charge 段數=pre-peak 充能台數);且 charge∉COUPLED_SCALE_CATS/SHEAR_CATS,段數重生成後走一般逐軸 amplify(樓地板不動
+# → hold 佔比/squash-floor/階數皆不隨 g 變 → 段數×幅度正交可疊)。
+COUNT_AWARE_CATS = {"combo", "wobble", "squash", "twist", "charge"}
 
 # candidate G-4'''' — 產出 `shear` 通道的節拍類別(shear-emitting)。原僅 wobble(純 shearX);
 # squash 加入後(shear + 耦合非均勻 scale 的體積守恆擠壓)成為第二個 shear 產出者;
@@ -155,6 +161,24 @@ TIER_TWIST_CYCLES = {
 def twist_cycles_for(genre):
     """回傳該 genre 的 {tier: nosc};無宣告的 genre 回 None(→ twist 檔位變體不變扭轉段數)。"""
     return TIER_TWIST_CYCLES.get(genre)
+
+
+# candidate G-4'''''-charge — 檔位 → charge 充能階梯數 nstage(**嚴格遞增**;base=Super=1 → 逐位元同 0g 手調單段長蓄力)。
+# **與 combo/wobble/squash/twist 的段數同屬單件時序段數軸**,但 charge 段數是 pre-peak **充能台數**(各為局部極小、逐段更深),
+# 非 impact 峰數(combo)/振盪極值數(wobble/squash/twist)。上界 4:charge T=0.8s,充能窗 [CHARGE_STAGE_FIRST=0.15,
+# CHARGE_STAGE_LAST=0.48] 內均分 nstage 台 + (nstage−1) 道 re-grip;nstage=4 時台心間距 (0.48−0.15)/3=0.11、re-grip 居中
+# → 時間嚴格遞增且各台(0.90/0.867/0.833/0.82)與台間 re-grip(0.93)於 4 位小數可辨(局部極小簽章不塌陷,見 _charge_env);
+# 末台 0.82 >SQUASH_FLOOR 0.50(仍屬 squash 蓄力)、釋放 0.58<1(首尾 identity)。與其餘單件段數階梯**正交獨立**
+# (各類別自有段數,build_animations 依 cat 路由 _count_maps)。**crux**:幅度 amplify 只脹 identity 上方釋放 overshoot、
+# 下方充能樓地板不動 → 加不出一道充能台(拓樸=gen 時決定)→ 以該檔位 nstage **重生成**再套幅度增益 g(段數×幅度正交可疊)。
+TIER_CHARGE_STAGES = {
+    "slot_bigwin": {"Super": 1, "Mega": 2, "Omg": 3, "Legend": 4},
+}
+
+
+def charge_stages_for(genre):
+    """回傳該 genre 的 {tier: nstage};無宣告的 genre 回 None(→ charge 檔位變體不變充能階梯數)。"""
+    return TIER_CHARGE_STAGES.get(genre)
 
 
 # candidate J-3 — 檔位 → cascade 跨件波**掃過整體的次數** nrip(**嚴格遞增**;base=Super=1 → 逐位元同基礎單 sweep cascade)。
