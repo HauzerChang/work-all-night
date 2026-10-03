@@ -54,7 +54,12 @@ MAIN_SHOW_CATS = {"hit", "reveal", "burst", "combo", "charge", "cascade", "wobbl
 # 段數重生成後兩軸各多長 nosc 個阻尼極值,每個新極值仍由 `_twist_env` 建構 shearY=−TWIST_PHI·shearX
 # → **φ 比值由建構保證,與段數無關**;再套幅度增益(單一 g 對兩軸同比)→ 段數×幅度×φ 保形三效正交可疊
 # (每檔位不論扭幾段,兩軸同比 φ 恆定、反相不變)。這是 twist count 獨有的 crux(比照 squash count 的體積守恆)。
-COUNT_AWARE_CATS = {"combo", "wobble", "squash", "twist"}
+# (G-4'''''-charge)charge 加入:它是**單發蓄力充能**節拍(∈MAIN_SHOW_CATS、純 scale,非 SHEAR/COUPLED),
+# 充能-釋放**階段數** ncharge 隨檔位遞增(每階一段持續 hold + 遞增 release)。幅度 amplify 加不出第二階
+# (階數=關鍵幀拓樸,gen 時決定),故對 charge 檔位變體以該檔位 ncharge **重生成**再套幅度增益(正交可疊)。
+# **crux(與 combo count 的差異)**:兩者都是「N 個遞增 scale 峰」,但 combo 峰間是**短** dip(擊間微回 >0.97),
+# charge 每階是**持續**低 hold(sustained run <0.97)—— 計數簽章須多驗「每階一段持續 hold」才與 combo 鑑別。
+COUNT_AWARE_CATS = {"combo", "wobble", "squash", "twist", "charge"}
 
 # candidate G-4'''' — 產出 `shear` 通道的節拍類別(shear-emitting)。原僅 wobble(純 shearX);
 # squash 加入後(shear + 耦合非均勻 scale 的體積守恆擠壓)成為第二個 shear 產出者;
@@ -155,6 +160,23 @@ TIER_TWIST_CYCLES = {
 def twist_cycles_for(genre):
     """回傳該 genre 的 {tier: nosc};無宣告的 genre 回 None(→ twist 檔位變體不變扭轉段數)。"""
     return TIER_TWIST_CYCLES.get(genre)
+
+
+# candidate G-4'''''-charge — 檔位 → charge 蓄力充能**階段數** ncharge(**嚴格遞增**;base=Super=1 → 逐位元同手調單發)。
+# 上界 4:charge T=0.8s,各階均分 CHARGE_FINALE(0.72)/ncharge,ncharge=4 → 每階寬 0.18,階內 dip/hold/release
+# 時間嚴格遞增、各階 release τ 嚴格遞增(0.144/0.324/0.504/0.684<settle 0.82)、每階 hold(0.42w≈0.076τ≈18 樣本
+# @N=240)仍遠長於 combo 短 dip(≈5–6 樣本)→ 計數鑑別不塌陷。與 combo/wobble/squash/twist 的段數階梯**正交獨立**
+# (各類別自有段數,build_animations 依 cat 路由 _count_maps)。**crux**:幅度 amplify 加不出第二階(階數=gen 時
+# 決定的關鍵幀拓樸)→ 以該檔位 ncharge **重生成**再套幅度增益 g(階數×幅度兩效正交可疊);與 combo 不同之處在
+# 每階須保「持續 hold」(sustained run <0.97)—— 這是 charge count 簽章與 combo count 的鑑別子(見 validate_charge_count.py)。
+TIER_CHARGE_CYCLES = {
+    "slot_bigwin": {"Super": 1, "Mega": 2, "Omg": 3, "Legend": 4},
+}
+
+
+def charge_cycles_for(genre):
+    """回傳該 genre 的 {tier: ncharge};無宣告的 genre 回 None(→ charge 檔位變體不變蓄力階段數)。"""
+    return TIER_CHARGE_CYCLES.get(genre)
 
 
 # candidate J-3 — 檔位 → cascade 跨件波**掃過整體的次數** nrip(**嚴格遞增**;base=Super=1 → 逐位元同基礎單 sweep cascade)。

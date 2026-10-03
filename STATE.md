@@ -10,6 +10,38 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 charge 蓄力充能階段數隨檔位遞增:count-aware 補齊全部單件主秀 beat(里程碑,2026-10-03 run 001,candidate G-4'''''-charge)** —
+  candidate (J) 已讓 charge(anticipate_hold,蓄力充能)的 release 峰**幅度**隨檔位遞增,但各檔位仍**同樣 1 階**單發蓄力
+  (有「多爆」沒「蓄幾段」)。本次補上充能-釋放**階段數** `ncharge` 隨檔位嚴格遞增(Super1→Mega2→Omg3→Legend4):
+  愈高檔位愈多階蓄力,每階 = 快速下蹲 → **長 hold** 充能 → release overshoot(遞增)→ 微回,末階 release = role peak。
+  **關鍵:幅度增益加不出蓄力階段** —— 階數是關鍵幀**拓樸**(dip→hold→release 窗數),須在 `gen_anticipate_hold` 生成當下決定;
+  事後 amplify 只能同比放大既有 overshoot。故對 charge 檔位變體以該檔位 ncharge **重生成**,再疊 (J) 幅度增益 g(階數×幅度兩效正交可疊)。
+  **charge 獨有 crux(與 combo count 的鑑別 —— 計數簽章須多驗一層)**:combo 與 charge count 的**外形相同**(都是「N 個遞增 scale 峰」),
+  **光數 impact 峰無法鑑別**;差別在**峰間**——combo 峰間只有**短** dip(擊間微回 >HOLD_LEVEL 0.97,hold 佔比小),charge 每階在
+  release 前有一段**持續**低 hold(sustained,佔該階大半)。故 charge count 簽章在「階數==ncharge」之外**多驗一層**:
+  **每一階都是真蓄力階**(該階區間內 scale<0.97 的 hold 佔比 ≥ 門檻)。以此對 combo 做負對照 → combo 每階 hold 佔比 ≤0.34 < 門檻 0.60
+  → **FAIL charge-count 簽章**,證「數峰 + 每階持續 hold」兩條件並立才是 charge count(呼應 J-3「真簽章常需兩獨立條件並立」)。
+  全 additive:`gen_anticipate_hold(role,side_sign,radial,ncharge=1)`(`ncharge==1` 走手調 golden 分支逐位元向後相容,
+  `ncharge>1` 走 `_charge_env` 通用多階包絡,首階 release 夾 ≥IMPACT_PROM、階間微回 0.975>HOLD_LEVEL 不併入下一階 hold、末階後
+  settle 尾峰 <IMPACT_PROM)+ `charge`∈`COUNT_AWARE_CATS`(純 scale,非 SHEAR/COUPLED → 逐軸 amplify)+ `TIER_CHARGE_CYCLES`
+  {slot_bigwin:{Super1,Mega2,Omg3,Legend4}}+`charge_cycles_for`+`build_animations(tier_charge_cycles=)` 的 `_count_maps` 加 `"charge"` 鍵依 cat 路由
+  + `build_spine --tier-variants` 透傳。整合閘 `validate_charge_count.py`(先驗庫→**真實 build_spine robot 骨架**→
+  build_animations(tier_gains,tier_charge_cycles))**5 AC 全 PASS**:CC1 present+backward-compat(每檔位 `charge__{tier}` 有 bone/finite・
+  base charge 恆 1 階逐位元同無檔位・`charge__Super`(ncharge=1,g=1)逐位元==base・tcc=None 逐位元同 (J) 幅度-only)、
+  CC2 **crux stage count monotone**(階數[= impact release 峰數]==宣告 [1,2,3,4] 嚴格遞增、Super==base 1)、CC3 每檔位仍
+  (a) 首尾 setup identity 可插 Loop (b) 具 charge 簽章(峰前長蓄力佔比≥0.35 且峰前非塌陷 >SQUASH_FLOOR 非 reveal)
+  (c) **每一階 hold 佔比 ≥0.60**(crux 多驗層,實測每階 min 0.707)(d) 階內 release 峰嚴格遞增(末階=role peak)**且**峰幅仍隨檔位遞增、
+  CC4 正交(a 階數+平增益→階數遞增·峰幅**不**遞增 b 增益+無階數→階數恆1·峰幅遞增)、CC5 負對照(a 平階數全1→單調 FALSE
+  b **crux combo 判別子** combo 變體(同為 N 遞增峰)每階 hold 佔比 0.31–0.34 < 0.60 → FAIL charge-count 簽章,且 combo 確有 ≥3 遞增峰
+  → 證「每階持續 hold」是鑑別子非「combo 沒峰」 c 階數只作用 charge:非-charge 主秀變體逐位元同幅度-only・slot_reveal `charge_cycles_for` None 不亂加)。
+  端到端 `build_spine --animate --tier-variants` 直出 `charge__{Super1,Mega2,Omg3,Legend4}`。**回歸:check_readiness 全綠 0 RED / 52 GREEN**
+  (新增 cap `charge_tier_count_aware` L2 併入 `spine-anim-forge`,仍 HOLD;其餘 51 閘逐一 GREEN 證零回歸)。**關鍵發現**:
+  ①**count-aware(段數軸)至此補齊全部單件主秀 beat**:combo(連擊數)/wobble(振盪段)/squash(擠壓段)/twist(扭轉段)/
+  **charge(蓄力階)** 五通道 + cascade 跨件波掃次數(J-3);②**外形相同的兩種 count 必須靠「峰間行為」鑑別**——combo 與 charge count
+  都是「N 遞增 scale 峰」,只數峰會混為一談,真鑑別在峰間(combo 短 dip vs charge 持續 hold),計數簽章要多驗「每階是否保有該 beat
+  的本質簽章」(否則加階會悄悄把 charge 退化成 combo);③向後相容錨點選 base 自然值(charge golden 單發 → Super=1,同 cascade nrip)。
+  **honest boundary(仍在)**:階數階梯 [1,2,3,4] 為 PROPOSAL(手感 A 類);上界 4(charge T=0.8s 窗容量);單一真值資產。
+  見 `knowledge/s1-charge-tier-count.md`。
 - **S1 cascade 波方向由件幾何自動導出:把 J-6 方向軸的「取值來源」由手感常數下推成幾何導出(里程碑,2026-10-02 run 002,candidate J-7)** —
   承 (J-5)/(J-6):同一條方向軸的三次精煉,逐步把「用哪個方向」從人手移開。J-5 把相位來源從件序換成**空間**(4 具名
   `lr`/`rl`/`co`/`oc`)、J-6 把其值**連續化**(任意角/向量),**但「用哪個方向」仍是 per-genre 手感常數**
@@ -963,11 +995,17 @@
 >   lr/rl == θ=0°/180° 投影特例(逐位元相容),co/oc radial 保留。`_normalize_cascade_dir` + `build_spine --cascade-dir 90|"1,1"`;
 >   `validate_cascade_dir_vector.py` 5AC PASS(V2 crux 投影序遞增;V5a crux 垂直90°[3,0,4,1,2]・對角45°[3,0,1,2,4] ∉ 全部 J-5 序)。
 >   **honest:J-6 不是新正交軸,是方向軸由離散補成連續(取值擴充);跨件時序通道仍三條正交軸**。
+> **(J-7) ~~cascade 方向取幾何自動來源~~ ✅ 完成(2026-10-02 run 002,candidate J-7,`cascade_dir_geo` L2,見上里程碑)** ——
+>   sentinel `cascade_dir="geo"`:方向向量由件質心→最遠件導出(`derive_cascade_dir`),把方向軸取值來源由手感常數下推成幾何導出。
+> **(G-4'''''-charge) ~~charge 蓄力階段數 count-aware~~ ✅ 完成(2026-10-03 run 001,candidate G-4'''''-charge,`charge_tier_count_aware` L2,見上里程碑)** ——
+>   `gen_anticipate_hold(ncharge=)`(ncharge==1 逐位元同手調單發)+ charge∈`COUNT_AWARE_CATS` + `TIER_CHARGE_CYCLES`(Super1→Legend4)依 cat 路由重生成;
+>   `validate_charge_count.py` 5AC PASS(CC2 crux 階數 [1,2,3,4] 嚴格遞增;CC5b **crux combo 判別子** combo 每階 hold 佔比 <0.60 → 證「每階持續 hold」是與 combo count 的鑑別子)。
+>   **count-aware(段數軸)至此補齊全部單件主秀 beat:combo/wobble/squash/twist/charge 五通道 + cascade 跨件通道**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(J-7) cascade 方向取 genre/幾何自動來源(如主秀爆點方向、質心→最遠件向量)當 cascade_dir 向量,把「用哪方向」從手感 PROPOSAL 推一層成可由幾何導出(仍留最終手感微調給 A 類)**;
-> **(G-4'''''-charge) charge 蓄力段數 / 其他 count-aware 節拍(把 count-aware 推到 charge 通道)**;
+> **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
+> **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
-> ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 48 GREEN**。見上里程碑。
+> ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 52 GREEN**。見上里程碑。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
@@ -991,6 +1029,12 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-10-03:**S1 charge 蓄力充能階段數隨檔位遞增:count-aware 補齊全部單件主秀 beat(里程碑,candidate G-4'''''-charge)** —
+  補最後一個尚未接 count-aware 的單件主秀通道 charge。`gen_anticipate_hold(ncharge=)`(ncharge==1 逐位元同手調單發 golden)、
+  `TIER_CHARGE_CYCLES`(Super1→Legend4)、charge∈`COUNT_AWARE_CATS`、`build_animations(tier_charge_cycles=)` 依 cat 路由重生成再疊幅度增益。
+  **crux(與 combo count 的鑑別)**:combo 與 charge count 外形相同(N 遞增 scale 峰),計數簽章須多驗一層「每階 hold 佔比 ≥0.60」
+  (combo 每階 0.31–0.34 → FAIL)。`validate_charge_count.py` 5AC PASS;check_readiness 0 RED / 52 GREEN(新 cap `charge_tier_count_aware`)。
+  **count-aware 至此補齊 combo/wobble/squash/twist/charge 五單件通道 + cascade 跨件通道**。見 `knowledge/s1-charge-tier-count.md`。
 - 2026-09-21:**S1 squash 接檔位差異化:體積守恆耦合 amplify(里程碑,candidate G-4''''')** — 補 G-4''''
   的 honest boundary(squash 未接 tier 幅度,逐軸 `_amp_scale` 破守恆)。`_amp_scale_coupled`(拉長軸 overshoot
   放大、壓縮軸=倒數)使 `scaleX·scaleY≡1` 由建構保證在任一檔位保持,擠壓非均勻度與同源 shear 峰皆隨檔位嚴格遞增

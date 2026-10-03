@@ -445,8 +445,8 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade
 
 def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
                      tier_wobble_cycles=None, tier_squash_cycles=None, tier_twist_cycles=None,
-                     tier_cascade_ripples=None, tier_cascade_span=None, twist_volume=False,
-                     cascade_dir=None):
+                     tier_charge_cycles=None, tier_cascade_ripples=None, tier_cascade_span=None,
+                     twist_volume=False, cascade_dir=None):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
@@ -458,6 +458,9 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     tier_twist_cycles(G-4''''''-count):`{tier: nosc}` 時,對 twist 檔位變體以該檔位 nosc **重生成**(扭轉段數隨檔位遞增);
     twist∈SHEAR_CATS(兩條 shear 軸,非 COUPLED_SCALE_CATS),重生成後每個新極值仍 shearY=−TWIST_PHI·shearX(φ 由建構保證),
     再走單一-g 幅度增益(兩軸同比)→ 段數×幅度×φ 保形三效正交可疊(每檔位不論扭幾段,φ 恆定、反相不變)。
+    tier_charge_cycles(G-4'''''-charge):`{tier: ncharge}` 時,對 charge 檔位變體以該檔位 ncharge **重生成**
+    (蓄力充能階段數隨檔位遞增);charge∈COUNT_AWARE_CATS(純 scale,非 SHEAR/COUPLED),重生成後走逐軸 amplify。
+    每階一段持續 hold(sustained run <0.97)+ 遞增 release → 與 combo 的「短 dip N 峰」鑑別(見 validate_charge_count.py)。
     段數(結構)先重生成、再套幅度增益 g —— 幅度與段數兩效**正交可疊**(各類別段數階梯獨立)。
     twist_volume(G-4''''''-vol / -vol-tier):True → twist 掛體積守恆等向補償 scale(擰而不變面積,
     shear+scale+rotate 三通道同時且 det≡1);False(預設)→ twist 逐位元同 shear-only(向後相容)。
@@ -478,12 +481,12 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     **投影**排序(方向軸由 J-5 的 4 向離散補成連續;lr/rl 為 θ=0°/180° 投影特例,逐位元相容)。只重排「哪件何時 pop」,
     不動波形 → 與 count/span/深度正交,對所有 cascade clip(base 與檔位變體)一致套用;非 cascade 類別不受影響。
 
-    九者皆 None/False(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、base cascade 恆 1 道波 span=0.54 相位件序、twist 無 scale)。"""
+    皆 None/False(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、base charge 恆 1 階、base cascade 恆 1 道波 span=0.54 相位件序、twist 無 scale)。"""
     # COUNT_AWARE(單件段數)+ cascade(跨件波掃次數,_PHASE_AWARE)→ 對應的 {tier: count} 映射
     # (依 cat 路由;None → 該類別 count 不隨檔位變)。cascade 的 count 語意=nrip(波掃道數),非單件段數。
     _count_maps = {"combo": tier_combo_hits, "wobble": tier_wobble_cycles,
                    "squash": tier_squash_cycles, "twist": tier_twist_cycles,
-                   "cascade": tier_cascade_ripples}
+                   "charge": tier_charge_cycles, "cascade": tier_cascade_ripples}
     # J-4:cascade 跨件散佈幅度 {tier: span}(僅 cascade;_PHASE_AWARE,與 nrip 正交,可同時重生成)。
     _span_map = tier_cascade_span
     # 件名 → bone/slot / setup 位置

@@ -357,6 +357,22 @@ BLOCKS = [
                      "slot_reveal squash_cycles_for None 不亂加・段數只作用 squash 不外洩 wobble 仍4段)。端到端 build_spine --animate --tier-variants --shear-pivot 直出 "
                      "squash__{Super4,Mega5,Omg6,Legend7},validate_build round-trip overall_pass(premult MAE 0.031)。回歸:19 閘全綠(18 + 新 squash_count)。"
                      "honest:段數階梯 PROPOSAL(手感 A 類);shearY≡0;幅度階梯 PROPOSAL;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("charge_tier_count_aware", "charge 蓄力階段數隨檔位遞增(G-4'''''-charge,階數×幅度兩效正交;count-aware 補齊全部單件主秀 beat)", "L2",
+                "python3 tools/analyzer/validate_charge_count.py", "pipeline",
+                note="把 count-aware(結構/段數軸)推到最後一個尚未接的單件主秀通道 charge(anticipate_hold,蓄力充能)。candidate (J) 已讓 charge 的 release 峰**幅度**"
+                     "隨檔位遞增,但各檔位仍**同樣 1 階**單發蓄力(有『多爆』沒『蓄幾段』)。本 cap 補上充能-釋放**階段數** ncharge 隨檔位嚴格遞增(Super1→Mega2→Omg3→Legend4):"
+                     "愈高檔位愈多階蓄力(每階一段長 hold + 遞增 release,末階=role peak)。**關鍵:幅度增益加不出蓄力階段** —— 階數是關鍵幀**拓樸**(dip→hold→release 窗數),"
+                     "須在 gen_anticipate_hold 生成當下決定;故對 charge 檔位變體以該檔位 ncharge **重生成**,再疊 (J) 幅度增益 g(階數×幅度兩效正交可疊)。新增 TIER_CHARGE_CYCLES + "
+                     "charge∈COUNT_AWARE_CATS(純 scale,非 SHEAR/COUPLED,走逐軸 amplify);build_animations 依 cat 路由 _count_maps。此模式同 combo/wobble/squash/twist,惟階數階梯各類別獨立。"
+                     "**charge 獨有 crux(與 combo count 的差異 —— 計數簽章須多驗一層)**:combo 與 charge count **外形相同**(都是『N 個遞增 scale 峰』),光數 impact 峰無法鑑別;"
+                     "差別在**峰間**:combo 峰間只有**短** dip(擊間微回 >HOLD_LEVEL),charge 每階 release 前有一段**持續**低 hold。故 charge count 簽章在『階數==ncharge』之外**多驗**"
+                     "『每階 hold 佔比 ≥ 門檻』(每階皆真蓄力階),以此對 combo 做負對照(combo 每階 hold 佔比 <0.35 < 門檻 0.60 → FAIL)—— 呼應 (J-3)『真簽章常需兩獨立條件並立』。"
+                     "validate_charge_count.py 5AC PASS(CC1 present+backward-compat 每檔位有 bone・base 恆 1 階逐位元不變・charge__Super 逐位元==base・tcc=None 逐位元同 (J) 幅度-only/"
+                     "CC2 crux 階數 [1,2,3,4]==宣告嚴格遞增 Super==base/CC3 每檔位仍首尾 setup identity+具 charge 簽章(峰前長蓄力佔比≥0.35 非塌陷)+每階 hold 佔比≥0.60+階內 release 峰遞增,"
+                     "且峰幅仍隨檔位遞增/CC4 正交 階數+平增益→階數遞增·峰幅不遞增,增益+無階數→階數恆1·峰幅遞增/CC5 負對照 平階數全1→單調 FALSE・**crux combo 判別子**(combo 每階 hold 佔比"
+                     "0.31–0.34 < 0.60 → FAIL charge-count 簽章,且 combo 確有≥3 遞增峰 → 證『每階持續 hold』是鑑別子非『combo 沒峰』)・階數只作用 charge 非-charge 主秀變體逐位元同幅度-only・"
+                     "slot_reveal charge_cycles_for None 不亂加)。**count-aware(段數軸)至此補齊全部單件主秀 beat:combo/wobble/squash/twist/charge 五通道 + cascade 跨件通道**。"
+                     "honest:階數階梯 [1,2,3,4] 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

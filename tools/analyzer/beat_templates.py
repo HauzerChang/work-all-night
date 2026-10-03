@@ -217,29 +217,108 @@ def gen_combo(role, side_sign=1.0, radial=(0.0, 0.0), nhits=3):
     return b, s
 
 
-def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0)):
-    """Anticipate-hold(蓄力充能):長時間 squash 蓄力 hold → 單發大釋放 overshoot → 阻尼回擺。首尾 identity。
+# candidate G-4'''''-charge — 蓄力「段數」隨檔位遞增:charge 的充能-釋放**階段數** = ncharge(可變)。
+# base(Super)ncharge=1 → 逐位元同手調單發蓄力充能(向後相容);高檔位 ncharge>1 由通用生成器
+# 產**遞增 release 峰的多階蓄力**(每階:快速下蹲 → **持續低 hold** → 釋放 overshoot → 微回),末階=role peak。
+# 與 tier 幅度增益(candidate J)正交:ncharge 決定「蓄幾段」(結構,gen 時決定)、gain 決定「多爆」(幅度,
+# 事後 amplify)—— 兩者可疊。**crux(與 combo count 的差異)**:combo 的 N 峰間只有**短**蓄力 dip
+# (擊間微回 >0.97,hold 佔比小);charge 的 N 階每階都有**持續**低 hold(sustained run < HOLD_LEVEL)——
+# 這正是計數簽章需多驗一層的鑑別子(見 validate_charge_count.py):光數 impact 峰 combo 也有 N 個,
+# 須再驗「每階一段持續 hold」才證是蓄力階段而非連擊。
+CHARGE_FLOOR = 0.85       # 蓄力 hold 的 scale 樓地板(squash,> SQUASH_FLOOR → 非 collapse/reveal)
+CHARGE_FINALE = 0.72      # 末階 release τ 窗(其後接 settle 尾)
+CHARGE_DIP = 0.90         # 進入每階的快速下蹲值
+
+
+def _charge_env(peak, ncharge):
+    """通用 ncharge 多階蓄力 scale 包絡 → ([(τ∈[0,1], scale)], peak_taus)。首尾 identity、末階=role peak。
+
+    第 i 階(0-based,f=i/(ncharge−1)):快速下蹲(CHARGE_DIP)→ **持續低 hold**(CHARGE_FLOOR,佔該階一段
+    連續 τ → sustained run <HOLD_LEVEL,這是與 combo 的鑑別子)→ release 峰 p=1+q(0.55+0.45f)(遞增,
+    末階=role peak)→ 階間微回 0.975(>HOLD_LEVEL 0.97 → 不併入下一階 hold)。末階後接固定 settle 尾
+    (0.955→1.015→0.995→1.0,峰 <IMPACT_PROM,g≤2.1 放大後仍 <IMPACT_PROM 不被誤計為 release)。
+    各階 release 時刻嚴格遞增、首尾 identity 可插 Loop。"""
+    q = peak - 1.0
+    w = CHARGE_FINALE / ncharge
+    env = [(0.00, 1.000)]
+    peak_taus = []
+    for i in range(ncharge):
+        f = i / (ncharge - 1) if ncharge > 1 else 0.0
+        s0 = i * w
+        p = 1.0 + q * (0.55 + 0.45 * f)
+        if i == 0:
+            p = max(IMPACT_PROM + 0.02, p)          # 首階 release 夾 ≥IMPACT_PROM 確保計入
+        env.append((round(s0 + w * 0.10, 4), CHARGE_DIP))       # 快速下蹲
+        env.append((round(s0 + w * 0.20, 4), CHARGE_FLOOR))     # 持續 hold 起
+        env.append((round(s0 + w * 0.62, 4), CHARGE_FLOOR))     # 持續 hold 迄(flat → sustained run)
+        rel = s0 + w * 0.80
+        env.append((round(rel, 4), round(p, 4)))                # release overshoot(遞增)
+        if i < ncharge - 1:
+            env.append((round(s0 + w * 0.92, 4), 0.975))        # 階間微回(>0.97,不併 hold)
+        peak_taus.append(rel)
+    env += [(0.82, 0.955), (0.90, 1.015), (0.96, 0.995), (1.00, 1.000)]  # 阻尼回擺(<IMPACT_PROM)
+    return env, peak_taus
+
+
+def gen_anticipate_hold(role, side_sign=1.0, radial=(0.0, 0.0), ncharge=1):
+    """Anticipate-hold(蓄力充能):**ncharge** 階充能-釋放,每階長 hold + 遞增 release,末段阻尼回穩。首尾 identity。
 
     scale:1.0 →(快速下蹲)0.85 →(**長 hold** 充能,佔比 ≥0.35)0.85 → peak(釋放)→ 回擺 → 1.0。
-    簽章 = **峰前持續低於 0.97 的時間佔比 ≥0.35**(長蓄力)—— hit 的蓄力僅短暫 dip(佔比小)→ 負對照分離。"""
+    簽章 = **峰前持續低於 0.97 的時間佔比 ≥0.35**(長蓄力)—— hit 的蓄力僅短暫 dip(佔比小)→ 負對照分離。
+    `ncharge`(candidate G-4'''''-charge)隨檔位遞增(Super 1 → Legend 4);**ncharge==1 逐位元同手調單發**
+    (向後相容)。多階時每階一段持續 hold(sustained run <0.97)→ 與 combo 的「短 dip N 峰」鑑別(見模組頭註)。"""
     T = DUR["anticipate_hold"]
     peak = _PEAK.get(role, 1.18)
     b, s = {}, {}
-    env = [(0.00, 1.000), (0.08, 0.900), (0.15, 0.850), (0.45, 0.850),  # 長蓄力 hold(τ0.15–0.45)
-           (0.58, peak),                                                  # 釋放 overshoot
-           (0.70, 0.955), (0.82, 1.020), (0.92, 0.995), (1.00, 1.000)]   # 阻尼回擺
+    if ncharge == 1:
+        # 手調 golden 單發蓄力充能(保留原關鍵幀 → byte-identical 向後相容)
+        env = [(0.00, 1.000), (0.08, 0.900), (0.15, 0.850), (0.45, 0.850),  # 長蓄力 hold(τ0.15–0.45)
+               (0.58, peak),                                                  # 釋放 overshoot
+               (0.70, 0.955), (0.82, 1.020), (0.92, 0.995), (1.00, 1.000)]   # 阻尼回擺
+        b["scale"] = _scale_frames(T, env)
+
+        if role == "limb":
+            # 反向蓄力拉滿並 hold → 爆甩 → 回正
+            b["rotate"] = _rot([(0.00 * T, 0.0), (0.15 * T, -side_sign * 10.0), (0.45 * T, -side_sign * 10.0),
+                                (0.58 * T, side_sign * 16.0), (0.75 * T, -side_sign * 4.0), (1.00 * T, 0.0)])
+        elif role == "特效":
+            # 蓄力期壓暗並 hold → 釋放瞬亮 → 回穩;旋轉蓄力拉滿再甩
+            s["color"] = _color([(0.00 * T, 1.0), (0.15 * T, 0.55), (0.45 * T, 0.55),
+                                 (0.58 * T, 1.0), (1.00 * T, 1.0)])
+            b["rotate"] = _rot([(0.00 * T, 0.0), (0.15 * T, -18.0), (0.45 * T, -18.0),
+                                (0.58 * T, 8.0), (0.78 * T, -3.0), (1.00 * T, 0.0)])
+        return b, s
+
+    # 通用 ncharge(candidate G-4'''''-charge):遞增 release 多階蓄力;rotate/color 對齊各階、幅度隨階遞增,首尾歸零/歸一。
+    env, peak_taus = _charge_env(peak, ncharge)
     b["scale"] = _scale_frames(T, env)
+    n = ncharge
+    w = CHARGE_FINALE / n
+
+    def _mag(i, base, span):
+        return base + span * (i / (n - 1) if n > 1 else 0.0)
 
     if role == "limb":
-        # 反向蓄力拉滿並 hold → 爆甩 → 回正
-        b["rotate"] = _rot([(0.00 * T, 0.0), (0.15 * T, -side_sign * 10.0), (0.45 * T, -side_sign * 10.0),
-                            (0.58 * T, side_sign * 16.0), (0.75 * T, -side_sign * 4.0), (1.00 * T, 0.0)])
+        fr = [(0.00 * T, 0.0)]
+        for i, tau in enumerate(peak_taus):
+            hold_mid = (i * w + w * 0.40) * T
+            fr.append((hold_mid, -side_sign * _mag(i, 8.0, 6.0)))   # 反向蓄力 hold
+            fr.append((tau * T, side_sign * _mag(i, 12.0, 8.0)))    # 釋放爆甩(遞增)
+        fr.append((1.00 * T, 0.0))
+        b["rotate"] = _rot(fr)
     elif role == "特效":
-        # 蓄力期壓暗並 hold → 釋放瞬亮 → 回穩;旋轉蓄力拉滿再甩
-        s["color"] = _color([(0.00 * T, 1.0), (0.15 * T, 0.55), (0.45 * T, 0.55),
-                             (0.58 * T, 1.0), (1.00 * T, 1.0)])
-        b["rotate"] = _rot([(0.00 * T, 0.0), (0.15 * T, -18.0), (0.45 * T, -18.0),
-                            (0.58 * T, 8.0), (0.78 * T, -3.0), (1.00 * T, 0.0)])
+        cf = [(0.00 * T, 1.0)]
+        rf = [(0.00 * T, 0.0)]
+        for i, tau in enumerate(peak_taus):
+            hold_mid = (i * w + w * 0.40) * T
+            cf.append((hold_mid, round(0.55 + 0.10 * (i / (n - 1) if n > 1 else 0.0), 4)))  # 蓄力壓暗(遞淺)
+            cf.append((tau * T, 1.0))                                # 釋放瞬亮
+            rf.append((hold_mid, -_mag(i, 14.0, 4.0)))              # 旋轉蓄力拉滿
+            rf.append((tau * T, side_sign * _mag(i, 8.0, 6.0)))     # 釋放甩(遞增)
+        cf.append((1.00 * T, 1.0))
+        rf.append((1.00 * T, 0.0))
+        s["color"] = _color(cf)
+        b["rotate"] = _rot(rf)
     return b, s
 
 

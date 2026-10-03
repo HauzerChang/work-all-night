@@ -306,19 +306,21 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         # candidate J-2:combo 另依檔位遞增**連擊數**;G-4''':wobble 另依檔位遞增**振盪段數**;
         # G-4'''''-c:squash 另依檔位遞增**擠壓段數**(仍走耦合 amplify 保體積守恆);
         # G-4''''''-count:twist 另依檔位遞增**扭轉段數**(兩軸重生成仍 shearY=−φ·shearX 保 φ)。
+        # G-4'''''-charge:charge 另依檔位遞增**蓄力階段數**(ncharge;每階一段持續 hold + 遞增 release,與 combo 短 dip 鑑別)。
         # J-3:cascade 另依檔位遞增**跨件波掃次數**(nrip;跨件時序通道的段數,每道 sweep 仍依件序錯開)。
         # J-4:cascade 另依檔位遞增**跨件散佈幅度**(span;一道 sweep 內各件峰時刻多開,與 nrip 正交)。
         # (幅度×段數/波掃次數/散佈三效正交疊加,各類別階梯獨立)。
-        tg = tch = twc = tsc = ttc = tcr = tcs = None
+        tg = tch = twc = tsc = ttc = tchg = tcr = tcs = None
         if tier_variants:
             from tier_variants import (gains_for, combo_hits_for, wobble_cycles_for,
-                                       squash_cycles_for, twist_cycles_for, cascade_ripples_for,
-                                       cascade_span_for)
+                                       squash_cycles_for, twist_cycles_for, charge_cycles_for,
+                                       cascade_ripples_for, cascade_span_for)
             tg = gains_for(genre)
             tch = combo_hits_for(genre)
             twc = wobble_cycles_for(genre)
             tsc = squash_cycles_for(genre)
             ttc = twist_cycles_for(genre)
+            tchg = charge_cycles_for(genre)
             tcr = cascade_ripples_for(genre)
             tcs = cascade_span_for(genre)
         # J-5:cascade 波方向(相位來源)。"auto" → 查 genre 建議(cascade_dir_for);None → 件序(byte-identical)。
@@ -329,7 +331,8 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         skeleton["animations"] = build_animations(skeleton, spec["3_motion_storyboard"],
                                                   tier_gains=tg, tier_combo_hits=tch,
                                                   tier_wobble_cycles=twc, tier_squash_cycles=tsc,
-                                                  tier_twist_cycles=ttc, tier_cascade_ripples=tcr,
+                                                  tier_twist_cycles=ttc, tier_charge_cycles=tchg,
+                                                  tier_cascade_ripples=tcr,
                                                   tier_cascade_span=tcs, twist_volume=twist_volume,
                                                   cascade_dir=cdir)
         if (pivot_rotate or scale_pivot or shear_pivot) and not rig:
