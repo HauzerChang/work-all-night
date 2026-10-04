@@ -389,6 +389,23 @@ BLOCKS = [
                      "0.31–0.34 < 0.60 → FAIL charge-count 簽章,且 combo 確有≥3 遞增峰 → 證『每階持續 hold』是鑑別子非『combo 沒峰』)・階數只作用 charge 非-charge 主秀變體逐位元同幅度-only・"
                      "slot_reveal charge_cycles_for None 不亂加)。**count-aware(段數軸)至此補齊全部單件主秀 beat:combo/wobble/squash/twist/charge 五通道 + cascade 跨件通道**。"
                      "honest:階數階梯 [1,2,3,4] 為 PROPOSAL(手感 A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_composition", "大獎序列組合:把各 beat clip 串接成單一可播放序列(L,整合/組合閘)", "L2",
+                "python3 tools/analyzer/validate_sequence_compose.py", "pipeline",
+                note="補的缺口(能力早在、AC 從缺,同 G-2 整合閘精神):build_animations 產出的是**各自獨立**的 beat clip(In/Loop/Out + 主秀 beat + {beat}__{tier}),"
+                     "每支首尾皆 setup identity,**設計上**可在 runtime 依序播放成無縫大獎序列,但**從未有閘**驗過把它們真的串接成單一 timeline 時『接點無縫 / "
+                     "各 beat 簽章在序列脈絡中仍成立 / 串接不扭曲任何值』。新增 gen_animations.compose_sequence(純時間平移 + 接點去重,additive)把跨 beat 串接**顯式做出來**"
+                     "(In→hit→combo→charge→cascade→Loop→Out),直指 north star『產出可播放的大獎動畫』。選題理由:近期多是『單一 robot 加一軸』,本 run 刻意選**組合閘**抓回歸而非再加手感軸。"
+                     "**踩雷(預算內自修):接點去重若丟『後者首幀』會連帶丟掉它的 outgoing 緩動 curve(Spine 緩動掛在起點幀)→ 後段首段內插用錯緩動,L3 回切殘差 7.09(非無損);"
+                     "改丟『前者尾幀』(其 outgoing curve 屬 clip 之末無意義)、保留後者首幀 → 回切殘差 0.00 逐幀還原**。validate_sequence_compose.py 5AC PASS:"
+                     "L1 well-formed+present(合法 Spine timeline 時間嚴格遞增・總時長==Σ段時長・segments 覆蓋序列・用到 bone 皆現身)/L2 crux 接點無縫(正向序列每內部接點"
+                     "跨通道殘差 0.0 < 1e-3,皆 identity==identity)/L3 faithful concat(回切每段逐幀還原孤立 clip,殘差 0.00 < 1e-4 → 純平移無值扭曲)/L4 in-context 簽章"
+                     "(從 composed 回切主秀段量測:combo 遞增 impact 峰≥3・cascade 跨件散佈≥0.30・charge 峰前長蓄力,且 == 孤立 clip 量值)/L5 負對照"
+                     "(a crux burst collapse-起手插中段→其前接點殘差 30.0 >>1e-3 → 正確判非無縫,肇因接點確為 *->burst,證 L2 有鑑別力;b Out collapse-收尾插中段→其後接點殘差大→同;"
+                     "c composability 發現:主秀 beat(皆 identity 介面)彼此對調→所有內部接點仍 0.0 無縫且各段簽章仍成立→證 identity-介面 beat 可自由排序,In 必首/Out 必尾/"
+                     "burst 僅可起手為位置約束,由 a/b 界定)。**關鍵發現:①『各 beat 首尾 identity』≠『串起來真的無縫可播放』需 AC 驗(再現 X 就緒≠產線成立);"
+                     "②接點去重的無損性取決於保留帶『正確 outgoing curve』的幀——緩動掛在起點幀,去重方向錯會悄悄換掉後段緩動;③identity-介面構成一個可自由排序的 beat 集合,"
+                     "進出場(In/Out/burst 的 collapse 端)是唯一位置約束**。honest:beat 排序為 PROPOSAL(手感 A 類);shear beat(wobble/squash/twist)之 shear 通道不被 sample() 覆蓋,"
+                     "正向序列採無 shear 的 hit/combo/charge/cascade;單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

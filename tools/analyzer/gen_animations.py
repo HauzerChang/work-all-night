@@ -530,6 +530,83 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     return anims
 
 
+def _clip_duration(clip):
+    """單一 beat clip 的時長 = 所有 timeline 最後一幀時間的最大值(同 spine_anim.duration)。"""
+    d = 0.0
+    for chans in clip.get("bones", {}).values():
+        for tl in chans.values():
+            if tl:
+                d = max(d, tl[-1]["time"])
+    for chans in clip.get("slots", {}).values():
+        for tl in chans.values():
+            if tl:
+                d = max(d, tl[-1]["time"])
+    return d
+
+
+def _shift_frames(frames, dt):
+    """把一條 timeline 的每一幀時間平移 dt(值不動;確定性,round 到 6 位對齊既有產檔精度)。"""
+    out = []
+    for f in frames:
+        g = dict(f)
+        g["time"] = round(g.get("time", 0.0) + dt, 6)
+        out.append(g)
+    return out
+
+
+def compose_sequence(anims, order, gap=0.0, merge_tol=1e-6):
+    """candidate (L) — 把多個 beat clip 依 `order` 串接成**單一**可載入 animation(確定性,純時間平移)。
+
+    `build_animations` 產出的是**各自獨立**的 beat clip(In/Loop/Out + 主秀 beat + `{beat}__{tier}`),
+    每支 timeline 時間都由 0 起;遊戲端靠「各 beat 首尾皆 setup identity」在 runtime 依序播放達成無縫。
+    本函式把這個**跨 beat 串接**顯式做出來:第 i 個 beat 的所有關鍵幀時間平移
+    `offset_i = Σ_{j<i}(dur_j + gap)`,合併成一支連續 timeline,得到一段真正可播放的大獎序列
+    (In → 主秀節拍… → Loop → Out)。
+
+    介面契約(genre_priors):hit/combo/charge/cascade/wobble/squash/twist/Loop 首尾皆 setup identity,
+    In 為 collapsed→identity、burst 為 collapsed→identity、Out 為 identity→collapsed。故**相鄰 beat 在接點**
+    (前一 beat 尾幀 == 後一 beat 首幀)值相等時為 **C0 無縫**;此時接點時間重合,本函式**去重**接點幀
+    (保留前者)以維持 Spine「同通道時間嚴格遞增」要求 —— 對無縫序列為**無損**(值相等)。
+    接點**不相等**(如把 burst 放序列中段:identity→collapsed)則為真不連續,應由上游排序避免;本函式不做
+    值檢查(排序正確性由 `validate_sequence_compose` 的接點殘差閘把關),純做時間平移與重合去重。
+
+    純平移 + 接點去重 **不改任何 beat 的值** → 回切任一段(時間減去該段 offset)逐幀還原原 clip
+    (見閘 L3 faithfulness)。`gap>0` 時接點間留空窗(不去重),用於顯式製造不連續的負對照。
+
+    回傳 `(composed, segments)`:
+      composed = {"bones":{...},"slots":{...}} 可直接塞進 skeleton["animations"][序列名]。
+      segments = [{"beat":name,"start":offset,"dur":dur}, ...] 供回切各段做 in-context 量測。
+    """
+    composed = {"bones": {}, "slots": {}}
+    segments = []
+    offset = 0.0
+    for name in order:
+        if name not in anims:
+            raise KeyError("compose_sequence: beat '{}' 不在 anims(可用:{})".format(
+                name, sorted(anims.keys())))
+        clip = anims[name]
+        dur = _clip_duration(clip)
+        for group in ("bones", "slots"):
+            for part, chans in clip.get(group, {}).items():
+                dst = composed[group].setdefault(part, {})
+                for ch, frames in chans.items():
+                    sh = _shift_frames(frames, offset)
+                    cur = dst.setdefault(ch, [])
+                    # 接點時間重合 → 去重:**丟前者尾幀、保留後者首幀**。兩幀值相等(無縫序列),但
+                    # 後者首幀帶的是**往下一幀的緩動 curve**(Spine 緩動掛在「起點幀」),是進入後段
+                    # 該有的曲線;若反而留前者尾幀,其 curve 屬前段、會讓後段首段內插用錯緩動 → 非無損。
+                    # 前段尾幀的 outgoing curve 無意義(clip 之末,無後續內插),故丟之無損。
+                    if cur and sh and gap == 0.0 and abs(cur[-1]["time"] - sh[0]["time"]) <= merge_tol:
+                        cur.pop()
+                    cur.extend(sh)
+        segments.append({"beat": name, "start": round(offset, 6), "dur": round(dur, 6)})
+        offset += dur + gap
+    for group in ("bones", "slots"):
+        if not composed[group]:
+            composed.pop(group)
+    return composed, segments
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("skeleton_json", help="build_spine 產出的 skeleton.json")

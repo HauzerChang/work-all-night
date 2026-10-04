@@ -10,6 +10,33 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 大獎序列組合:把各 beat clip 串接成單一可播放序列(里程碑,2026-10-04 run 001,candidate L)** —
+  承 G-2 的選題精神,**刻意選整合/組合閘**而非再加參數軸(近期多是「單一 robot 加一軸」):`build_animations`
+  產出的是**各自獨立**的 beat clip(In/Loop/Out + 主秀 beat + `{beat}__{tier}`),每支首尾 setup identity,
+  **設計上**可 runtime 依序播放成無縫大獎序列,**但從未有閘**驗過「真串接成單一 timeline 時:接點無縫 /
+  回切逐幀還原 / 各 beat 簽章在序列脈絡中仍成立」——「X 就緒 ≠ 產線成立」通則在**組合層**的實例。
+  **全 additive**:`gen_animations.compose_sequence(anims, order)`(純時間平移 `offset_i=Σ_{j<i}dur_j` + 接點
+  去重,維持 Spine 時間嚴格遞增)把跨 beat 串接**顯式做出來**,回 `(composed, segments)`;直指 north star
+  「產出可播放大獎動畫」。正向序列 `In→hit→combo→charge→cascade→Loop→Out`(排序 PROPOSAL;內部接點全
+  identity==identity)。整合閘 `validate_sequence_compose.py`(從先驗庫 → **真實 build_spine robot 骨架** →
+  build_animations → compose_sequence)**5 AC 全 PASS**:**L1** well-formed+present(合法 Spine timeline 每通道時間
+  嚴格遞增/finite・總時長==Σ段時長・segments 覆蓋序列・用到 bone 皆現身)、**L2 crux 接點無縫**(每內部接點
+  跨通道狀態殘差 **0.0**<1e-3)、**L3 faithful concat**(回切每段逐幀還原孤立 clip,殘差 **0.00**<1e-4,純平移
+  無值扭曲)、**L4 in-context 簽章**(從 composed 回切主秀段:combo 遞增 impact 峰≥3・cascade 跨件散佈≥0.30・
+  charge 峰前長蓄力,且==孤立 clip 量值)、**L5 負對照**(a **crux** burst collapse-起手插中段→其前接點
+  `hit->burst` 殘差 **30.0**>>1e-3 → 正確判非無縫、肇因接點確為 `*->burst`;b Out collapse-收尾插中段→其後
+  接點殘差大;c **composability 發現** 主秀 beat 彼此對調→仍無縫 0.0 且各段簽章仍成立→證 identity-介面 beat
+  **可自由排序**)。**迭代踩雷(預算內自修)**:接點去重初版**丟後者首幀**→ **L3 回切殘差 7.09**(非無損)——
+  Spine 緩動 curve **掛在起點幀**,丟後者首幀會連帶丟掉它進入後段的 outgoing curve → 後段首段內插用錯緩動
+  (端點值對、中段偏);改**丟前者尾幀**(其 outgoing curve 屬 clip 之末、無意義)、保留後者首幀連其 curve →
+  回切 0.00 逐幀還原。**回歸:check_readiness 全綠 0 RED / 54 GREEN**(新增 cap `sequence_composition` L2
+  併入 `spine-anim-forge`,仍 HOLD;其餘 53 閘逐一 GREEN 證零回歸)。**關鍵發現**:①**「各 beat 首尾 identity」
+  ≠「串起來真的無縫可播放」有 AC** —— 組合層最該放整合閘;②**接點去重的無損性取決於保留帶「正確 outgoing
+  curve」的幀**(緩動掛起點幀,去重方向錯會悄悄換掉後段緩動;端點相等會掩蓋 → 必須以回切逐幀還原驗);
+  ③**identity-介面構成一個可自由排序的 beat 集合**,進出場(In/Out/burst 的 collapse 端)是唯一位置約束
+  (一張 beat 可組性拓樸:自由層 identity↔identity + 起手/收尾層 collapse 端)。**honest boundary(仍在)**:
+  beat 排序為 PROPOSAL(手感 A 類);shear beat(wobble/squash/twist)之 shear 通道不被 `sample()` 覆蓋(正向
+  序列採無 shear 的 hit/combo/charge/cascade);單一真值資產。見 `knowledge/s1-sequence-composition.md`。
 - **S1×S5 整合閘:主秀節拍下 limb 繞關節 pivot 旋轉+縮放(里程碑,2026-10-03 run 002,candidate G-2)** —
   刻意選**整合驗證閘**而非再加一條參數軸(近期 J~J-7/charge count 連續多是「單一 robot 資產加一軸」):把 **S5 的
   關節 pivot**(`infer_pivots` 接觸縫)與 **S1 genre 先驗庫直出的主秀節拍**(hit/combo/charge/burst/cascade)在
@@ -1057,6 +1084,17 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-10-04:**S1 大獎序列組合:把各 beat clip 串接成單一可播放序列(里程碑,candidate L)** — 承 G-2 選題精神,
+  刻意選**整合/組合閘**而非再加參數軸。`build_animations` 產的是各自獨立 clip(首尾 setup identity),**從未有閘**驗過
+  真串接成單一 timeline 時「接點無縫 / 回切逐幀還原 / 簽章在序列脈絡中仍成立」。全 additive:`gen_animations.compose_sequence`
+  (純時間平移 + 接點去重)把跨 beat 串接顯式做出(`In→hit→combo→charge→cascade→Loop→Out`),直指 north star「產出大獎動畫」。
+  `validate_sequence_compose.py` 5AC PASS:L1 well-formed+present、L2 crux 接點無縫(殘差 0.0<1e-3)、L3 faithful concat
+  (回切逐幀還原 0.00<1e-4)、L4 in-context 簽章(combo/cascade/charge 在序列中仍成立且==孤立 clip)、L5 負對照
+  (a crux burst collapse-起手插中段→接點 30.0 判非無縫;b Out 插中段;c composability 發現:主秀 beat 可自由排序)。
+  **踩雷:接點去重丟後者首幀會連帶丟 outgoing 緩動 curve(緩動掛起點幀)→ L3 殘差 7.09;改丟前者尾幀 → 0.00 還原。**
+  check_readiness 0 RED / 54 GREEN(新 cap `sequence_composition`)。**關鍵:①各 beat 首尾 identity ≠ 串起來無縫可播放有 AC;
+  ②去重無損性取決於保留帶正確 outgoing curve 的幀;③identity-介面構成可自由排序 beat 集合,進出場 collapse 端是唯一位置約束。**
+  honest:排序 PROPOSAL、shear 通道未覆蓋、單一真值資產;anim-forge 仍 HOLD。見 `knowledge/s1-sequence-composition.md`。
 - 2026-10-03:**S1 charge 蓄力充能階段數隨檔位遞增:count-aware 補齊全部單件主秀 beat(里程碑,candidate G-4'''''-charge)** —
   補最後一個尚未接 count-aware 的單件主秀通道 charge。`gen_anticipate_hold(ncharge=)`(ncharge==1 逐位元同手調單發 golden)、
   `TIER_CHARGE_CYCLES`(Super1→Legend4)、charge∈`COUNT_AWARE_CATS`、`build_animations(tier_charge_cycles=)` 依 cat 路由重生成再疊幅度增益。
