@@ -89,12 +89,21 @@ def _alpha_of(hexstr):
 
 def sample(anim, time, bones=None, slots=None):
     """在時間 time 取樣一支 animation。
-    回傳 {"bones":{bone:{rotate,x,y,scaleX,scaleY}}, "slots":{slot:{alpha}}}。
-    未在該 timeline 出現的通道 → setup 預設(rotate/x/y=0, scale=1, alpha=1)。"""
+    回傳 {"bones":{bone:{rotate,x,y,scaleX,scaleY,shearX,shearY}}, "slots":{slot:{alpha}}}。
+    未在該 timeline 出現的通道 → setup 預設(rotate/x/y/shear=0, scale=1, alpha=1)。
+
+    **shear 通道(candidate L-2 補)**:Spine 3.8 bone 的第四通道 `shear`(散鍵 {time,x,y},
+    度)—— wobble/squash/twist 這三支 beat 的運動基元就活在 shear 上。此前 `sample()` 只覆蓋
+    rotate/translate/scale,shear 對取樣器**不可見**,故序列組合閘(candidate L)的接點無縫檢查
+    無法看見 shear 通道的接點殘差(正向序列遂刻意不含 shear beat)。本函式把 shear 一併取樣出來
+    (setup 預設 (0,0)),讓接點/回切殘差可把 shear 也納入。
+    **向後相容**:新增 `shearX`/`shearY` 兩鍵,既有呼叫端一律以固定鍵集(IDENT 五鍵)存取,
+    不會迭代全鍵 → 既有行為逐位元不變(無 shear 通道的 bone 回 (0,0),與不取樣時一致)。"""
     res_b, res_s = {}, {}
     bts = anim.get("bones", {})
     for bone, chans in bts.items():
-        d = {"rotate": 0.0, "x": 0.0, "y": 0.0, "scaleX": 1.0, "scaleY": 1.0}
+        d = {"rotate": 0.0, "x": 0.0, "y": 0.0, "scaleX": 1.0, "scaleY": 1.0,
+             "shearX": 0.0, "shearY": 0.0}
         if "rotate" in chans:
             d["rotate"] = _interp(chans["rotate"], time, ["angle"])["angle"]
         if "translate" in chans:
@@ -103,6 +112,9 @@ def sample(anim, time, bones=None, slots=None):
         if "scale" in chans:
             sc = _interp(chans["scale"], time, ["x", "y"])
             d["scaleX"], d["scaleY"] = sc["x"], sc["y"]
+        if "shear" in chans:
+            sh = _interp(chans["shear"], time, ["x", "y"])
+            d["shearX"], d["shearY"] = sh["x"], sh["y"]
         res_b[bone] = d
     sts = anim.get("slots", {})
     for slot, chans in sts.items():

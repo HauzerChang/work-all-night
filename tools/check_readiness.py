@@ -406,6 +406,19 @@ BLOCKS = [
                      "②接點去重的無損性取決於保留帶『正確 outgoing curve』的幀——緩動掛在起點幀,去重方向錯會悄悄換掉後段緩動;③identity-介面構成一個可自由排序的 beat 集合,"
                      "進出場(In/Out/burst 的 collapse 端)是唯一位置約束**。honest:beat 排序為 PROPOSAL(手感 A 類);shear beat(wobble/squash/twist)之 shear 通道不被 sample() 覆蓋,"
                      "正向序列採無 shear 的 hit/combo/charge/cascade;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_composition_shear", "大獎序列組合的 shear 通道無縫(L-2,補 L 的 shear honest boundary)", "L2",
+                "python3 tools/analyzer/validate_sequence_compose_shear.py", "pipeline",
+                note="補 candidate L 明列的 honest boundary:L 的序列組合閘用 spine_anim.sample() 量接點殘差,但 sample() 當時只覆蓋 rotate/translate/scale(+slot alpha)——"
+                     "**shear 通道對取樣器不可見**。wobble/squash/twist 的運動基元正活在 shear 上,故 L 正向序列**刻意不含 shear beat**(不是不能組,是當時『組不組得起來』驗不了)。"
+                     "L-2:①spine_anim.sample() 補 shear 取樣(additive,setup 預設 (0,0);既有呼叫端一律固定鍵集 IDENT 五鍵存取,不迭代全鍵 → 逐位元向後相容);"
+                     "②把 wobble/squash/twist 真的放進序列(In→hit→wobble→squash→twist→combo→Loop→Out),以 shear-inclusive 接點殘差驗三支 shear beat 也能無縫組合。"
+                     "validate_sequence_compose_shear.py 5AC PASS:LS1 present+well-formed(含 shear beat 序列合法・shear 通道確實被帶進 composed)/LS2 crux shear-aware seam"
+                     "(每內部接點 shear-inclusive 殘差 0.0 < 1e-3)/LS3 shear endpoints identity(每支 shear beat 每個 bone shear 首/末幀 (0,0),=無縫的結構原因)/"
+                     "LS4 faithful concat(回切每支 shear beat 段逐幀還原孤立 clip 含 shear,殘差 < 1e-4)/**LS5 crux 負對照**:造端點 shear≠0(注入 15°)的壞 wobble 放中段 →"
+                     "shear-aware 接點閘抓到(wobble_bad->squash 殘差 15 >> tol 且正確指認肇因)、**同一接點** shear-blind 殘差 0 < tol(舊閘判無縫)→ 證『補 shear 覆蓋』是"
+                     "抓這類非無縫的**必要條件**(舊閘對 shear 盲),非冗餘。**關鍵發現:①取樣器的通道覆蓋缺口會讓接點閘對該通道『盲判無縫』——補通道的價值用"
+                     "『舊閘漏判、新閘抓到同一注入』乾淨證明;②三支 shear beat 端點本就 identity → 其實一直可無縫組合,L 的排除是量測限制非能力限制**。"
+                     "honest:beat 排序仍 PROPOSAL(手感 A 類);shear beat 之 shear 幅度為手感;單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

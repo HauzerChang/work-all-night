@@ -10,6 +10,28 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 大獎序列組合的 shear 通道無縫(里程碑,2026-10-04 run 002,candidate L-2)** —
+  補 candidate L **明列的 honest boundary**:L 的序列組合閘用 `spine_anim.sample()` 量接點殘差,但 `sample()`
+  當時只覆蓋 rotate/translate/scale(+slot alpha)——**shear 通道對取樣器不可見**。wobble/squash/twist 的
+  運動基元正活在 shear 上,故 L 正向序列**刻意不含 shear beat**:不是不能組,而是當時「組不組得起來」**驗不了**
+  (量測限制偽裝成能力限制)。**全 additive**:①`spine_anim.sample()` 補 shear 取樣(bone dict 新增
+  `shearX`/`shearY` 兩鍵,setup 預設 (0,0);**逐位元向後相容**——全 repo 的 `sample()` 呼叫端一律以固定鍵集
+  `for k in IDENT` 五鍵存取,無人迭代 bone-dict 全鍵 → 新增鍵對既有閘不可見,以全閘回歸固化);②
+  `validate_sequence_compose_shear.py`(新,5 AC)把 wobble/squash/twist **真的放進序列**
+  `In→hit→wobble→squash→twist→combo→Loop→Out`,以 **shear-inclusive**(七鍵)接點殘差驗。**5 AC 全 PASS**
+  (真實 robot 骨架):**LS1** present+well-formed(含 shear beat 序列合法・shear 通道確實被帶進 composed)、
+  **LS2 crux shear-aware seam**(每內部接點 shear-inclusive 殘差 **0.0**<1e-3)、**LS3 shear endpoints identity**
+  (每支 shear beat 每個 bone shear 首/末幀 **(0,0)**,=無縫的結構原因;直接讀原始幀獨立於 sample)、
+  **LS4 faithful concat**(回切每支 shear beat 段逐幀還原孤立 clip 含 shear,殘差<1e-4)、**LS5 crux 負對照**
+  (造端點 shear≠0 注入 15° 的壞 wobble 放中段 → **shear-aware 閘抓到** `wobble_bad->squash` 殘差 **15**>>tol
+  且正確指認肇因、**同一接點** shear-blind 殘差 **0**<tol 舊閘判無縫 → 證「補 shear 覆蓋」是抓這類非無縫的
+  **必要條件**非冗餘)。**回歸:check_readiness exit 0 / 0 RED / 55 GREEN**(新增 cap `sequence_composition_shear`
+  L2 併入 `spine-anim-forge`,仍 HOLD;54→55,其餘 54 閘逐一 GREEN 證零回歸)。**關鍵發現**:①**取樣器的通道覆蓋缺口會讓
+  接點閘對該通道「盲判無縫」**——補通道的價值用「舊閘漏判、新閘抓到**同一注入**」乾淨證明(同一接點
+  aware=15 / blind=0);②**三支 shear beat 端點本就 identity → 其實一直可無縫組合**,L 的排除是量測限制非
+  能力限制;③**「向後相容」的正確證法是「既有呼叫端的存取模式不觸及新鍵」**(全 repo 固定鍵集存取 → 新增鍵
+  天然不可見 → 全閘回歸固化)。**honest boundary(仍在)**:beat 排序/shear 幅度仍 PROPOSAL(手感 A 類);
+  單一真值資產。見 `knowledge/s1-sequence-composition-shear.md`。
 - **S1 大獎序列組合:把各 beat clip 串接成單一可播放序列(里程碑,2026-10-04 run 001,candidate L)** —
   承 G-2 的選題精神,**刻意選整合/組合閘**而非再加參數軸(近期多是「單一 robot 加一軸」):`build_animations`
   產出的是**各自獨立**的 beat clip(In/Loop/Out + 主秀 beat + `{beat}__{tier}`),每支首尾 setup identity,
@@ -1057,6 +1079,8 @@
 >   `validate_charge_count.py` 5AC PASS(CC2 crux 階數 [1,2,3,4] 嚴格遞增;CC5b **crux combo 判別子** combo 每階 hold 佔比 <0.60 → 證「每階持續 hold」是與 combo count 的鑑別子)。
 >   **count-aware(段數軸)至此補齊全部單件主秀 beat:combo/wobble/squash/twist/charge 五通道 + cascade 跨件通道**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
+> **(L-3) `compose_sequence` 接進 `build_spine`(`--sequence` 旗標直出一支組好的大獎序列 animation,讓產線直接吐可播放序列而非只吐零件 —— 直指 north star)**;
+> ✅ **(L-2) 大獎序列組合的 shear 通道無縫已完成**(2026-10-04 run 002,`sequence_composition_shear` L2,見上里程碑)—— `sample()` 補 shear 取樣 + `validate_sequence_compose_shear.py` 5AC(LS5 crux:舊 shear-blind 閘漏判、新 shear-aware 閘抓到同一注入 15°)。
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
