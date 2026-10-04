@@ -232,6 +232,18 @@ BLOCKS = [
                      "**burst 首刻意塌陷登場非 setup → 不要求 identity,其關節仍由 M2 保證不動**)、M5 isolation+正確轉換集合(非關節件 comp/raw 逐位元同、"
                      "有差異 bone 集合==恰好有關節 limb 集合,無漏轉/多轉)。真值=關節幾何不動點(客觀,S5 接觸縫推得);限主秀運動手感為美術(A 類)。"
                      "honest boundary:單一 rig 真值、只非 rig 下套用、shear 節拍另由他閘覆蓋。與 anim-forge 同 HOLD"),
+            CAP("rig_pivot_compose", "rig × keyframe-pivot 組合正確性(G-1,整合閘:兩繞關節機制等價、不可疊加、非關節件一致)", "L2",
+                "python3 tools/analyzer/validate_rig_pivot_compose.py", "pipeline",
+                note="把 S5 --rig(結構搬骨:關節 limb bone 原點搬到接觸縫、父子樹帶動)與 S1 keyframe-pivot(--pivot-rotate/"
+                     "--scale-pivot:bone 留件中心、逐幀補償 Δ=(M−I)(O−P))兩條『件繞關節』機制的**組合正確性**釘成回歸閘。"
+                     "build_spine 以 (pivot_rotate or ...) and not rig 全域守衛擇一(rig 時跳過 keyframe 補償),因兩者達同一幾何目標、疊加會雙重補償。"
+                     "STATE (G-1) 原想的『per-bone 語意去重(effect 在 rig 受惠 pivot)』經查為**非議題**:effect 件(光暈)無接觸縫→joint==False→"
+                     "不在任一機制的關節集合→兩機制都不對它做 pivot 補償(恆繞件中心),無 per-bone 路由可做;(G-1) 真正內容=把組合正確性釘成閘。"
+                     "產三版真實 build(RIG=--rig / PIVOT=--scale-pivot / NAIVE 無旗標)。4AC PASS:R1 present+joint-set 一致(rig_joints 鍵==pivot_joints "
+                     "鍵且座標≤0.2px、非關節件光暈/身體不在任一集合、每主秀節拍兩版皆動 limb)、R2 crux 機制等價(rig 側 parent==body/世界 bone 原點==關節/"
+                     "無 translate 通道=結構繞關節;pivot 側重算補償後繞關節殘差 0.39px<0.5)、R3 crux 負對照疊加雙重補償(真實 rig 無 translate 證守衛成立;"
+                     "對 rig 副本跑 apply_pivots 注入假 translate max 161px≥8→證疊加破壞不動點、守衛必要)、R4 isolation 非關節件兩機制皆不做 pivot 補償"
+                     "(honest 證 effect 無關節 pivot 可繞)。真值=關節幾何(客觀,S5 接觸縫推得);honest boundary:單一 rig 真值、shear 機制另由他閘。與 anim-forge 同 HOLD"),
             CAP("combo_charge_priors_integration", "combo/charge 接進 genre 先驗庫(H,build --animate 直出連擊/蓄力)", "L2",
                 "python3 tools/analyzer/validate_priors_combo_charge.py", "pipeline",
                 note="續 (E) 對 hit/reveal 所做,把 0g 的 combo(連擊)/charge(蓄力充能)節拍併入 genre_priors:slot_bigwin 加 "

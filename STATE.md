@@ -10,6 +10,33 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1×S5 整合閘:rig × keyframe-pivot 組合正確性(里程碑,2026-10-04 run 001,candidate G-1)** —
+  推進 STATE 長期掛著的 **(G-1)**(`--rig` × `--pivot-rotate`/`--scale-pivot` 語意去重),但查證後**重新界定**:
+  原想的「per-bone 語意去重(effect 件在 rig 下受惠 pivot-rotate)」經實查**為非議題**;(G-1) 真正可做且有價值
+  的 = 把 `--rig`(S5)與 keyframe-pivot(S1)兩條「件繞關節 pivot」機制的**組合正確性**釘成整合閘(延續 (G-2)
+  取向,不再加參數軸)。**兩機制**:`--rig`(S5)把關節 limb 的 **bone 原點搬到接觸縫(關節)**、父子樹(limb
+  掛 b_身體)帶動 → bone 自身 rotate/scale 本就繞原點 ⇒ **結構性繞關節**(無 translate);keyframe-pivot(S1)
+  bone 留件中心、逐幀補償 `Δ=(M−I)(O−P)` 把不動點移到關節 ⇒ **keyframe 繞關節**(有補償 translate)。兩者
+  **冗餘**(同目標、不同機制),故 `build_spine` 以 `(pivot_rotate or ...) and not rig` 全域守衛**擇一**。
+  **誠實解答 (G-1) 原議題**:effect 件(光暈)無接觸縫 → `joint==False` → 不在 `pivot_of`(keyframe)**也不在**
+  `rig_joints`(rig)的關節集合 → `apply_pivots` 只補償 `bone in pivot_of` 者 → effect 件在**兩機制下皆不被
+  pivot 補償**(恆繞件中心)→ **無 per-bone 路由可做**;故轉成閘而非硬做無效果的路由。全 additive(無改生成/
+  產線碼):新增 `validate_rig_pivot_compose.py`(4 AC),產三版真實 build(RIG=`--rig` / PIVOT=`--scale-pivot`
+  (=(G-2) comp)/ NAIVE 無旗標)。**4 AC 全 PASS**:**R1 present+joint-set 一致**(RIG `rig_joints` 鍵 == PIVOT
+  `pivot_joints` 鍵=右手/頭/左手 且座標 ≤0.2px、非關節件光暈/身體不在任一集合、每主秀節拍兩版皆動 ≥1 關節
+  limb)、**R2 crux 機制等價**(rig 側每關節 limb `parent=="b_身體"`/世界 bone 原點(父鏈)==關節(≤0.2px)/
+  **無 translate 通道** = 結構繞關節;pivot 側重算補償後繞關節殘差 **0.3928px<0.5**;兩機制皆把 limb 旋轉中心
+  落在關節)、**R3 crux 負對照疊加雙重補償**(真實 RIG 關節 limb **無** translate 證守衛成立;對 RIG 副本跑
+  `apply_pivots` 餵件中心 O + 關節 P → 注入**假** translate **max 161.2px**(≥8)→ 證疊加破壞不動點、`not rig`
+  守衛**必要**)、**R4 isolation**(非關節件在 RIG `build_meta.joint==False`、在 PIVOT 不在 `pivot_joints` → 兩
+  機制皆不做 pivot 補償,honest 證 effect 無關節 pivot 可繞)。**回歸:check_readiness exit 0 / 0 RED**
+  (新增 cap `rig_pivot_compose` L2 併入 `spine-anim-forge`,仍 HOLD;其餘閘逐一 GREEN 證零回歸)。**關鍵發現**:
+  ①**同一幾何目標的兩機制須證「等價(可擇一)+ 不可疊加(必須擇一)」才算組合正確** —— 守衛 `... and not rig`
+  是防雙重補償的正確性防線,非程式風格;②**rig 的繞關節是結構事實不需密集取樣**(bone 原點==關節 + 無
+  translate 即證,對比 pivot 側須量補償殘差);③**一個掛多 session 的「待辦」可能是非議題** —— (G-1) 原想的
+  per-bone effect 受惠經查不成立,自主研究要有「查證後誠實重新界定待辦」的能力而非硬做無效果實作。
+  **honest boundary(仍在)**:單一 rig 真值;本閘驗旋轉/縮放主秀節拍,shear 機制同守衛涵蓋(R3 已含
+  include_scale);手感為美術(A 類)。見 `knowledge/s1-rig-pivot-compose.md`。
 - **S1×S5 整合閘:主秀節拍下 limb 繞關節 pivot 旋轉+縮放(里程碑,2026-10-03 run 002,candidate G-2)** —
   刻意選**整合驗證閘**而非再加一條參數軸(近期 J~J-7/charge count 連續多是「單一 robot 資產加一軸」):把 **S5 的
   關節 pivot**(`infer_pivots` 接觸縫)與 **S1 genre 先驗庫直出的主秀節拍**(hit/combo/charge/burst/cascade)在
@@ -1032,8 +1059,12 @@
 > **建議下一個 bounded chunk(擇一,皆純自主):**
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
-> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
-> ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 52 GREEN**。見上里程碑。
+> **(G-1) ~~`--rig`×pivot per-bone 語意去重~~ ✅ 完成(2026-10-04 run 001,`rig_pivot_compose` L2,見上里程碑)** ——
+>   查證後**重新界定**:原想的 per-bone effect 受惠為**非議題**(effect 無接觸縫→無關節 pivot 可繞,兩機制皆然);
+>   真正內容=把 `--rig`(結構搬骨)× keyframe-pivot(逐幀補償)兩繞關節機制的**組合正確性**釘成整合閘
+>   (`validate_rig_pivot_compose.py` 4AC:等價 R2 / 不可疊加 R3(疊加注入假 translate 161px)/ 非關節件一致 R4);
+>   **(G-2) ~~主秀 beat 下 limb 繞關節 AC~~ ✅ 完成(2026-10-03 run 002,見上里程碑)**。
+> ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 54 GREEN**(含 G-2 + 本次 G-1)。見上里程碑。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
 ## 環境前置(已驗證可用)
