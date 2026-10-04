@@ -10,6 +10,40 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 序列組合 shear 通道覆蓋:把 L 的接點/回切/簽章閘補到 shear 兩軸(里程碑,2026-10-04 run 002,candidate L-2)** —
+  延續 L / G-2 的整合閘選題,**刻意不加任何生成軸**,只關掉 candidate L 誠實列出的 honest boundary:L 的序列
+  組合閘 `validate_sequence_compose` 用 `spine_anim.sample()` 做接點(前 beat 尾幀 vs 後 beat 首幀)與回切
+  (composed vs 孤立 clip)比對,但 **`sample()` 原本只取 rotate/translate/scale/alpha,不取 shear** —— 自 G-4'
+  起 wobble/squash/twist 三斜拉節拍會產 `shear` timeline(shearX/shearY),L 的正向序列**刻意只用無 shear 的
+  hit/combo/charge/cascade** 繞過這個盲點。**做了什麼(全 additive)**:①`sample()` 納入 shear(per-bone 新增
+  `shearX`/`shearY`,預設 0=setup identity;shear timeline 存法同 translate/scale 的 x/y 鍵,以同一 `_interp`
+  內插;**加性零回歸** —— 既有索引既有鍵 `["rotate"]`/`["scaleX"]`… 的呼叫端逐位元不變,L 的 `_state_diff`
+  迭代其**本地** IDENT 5 鍵亦不受影響,無 shear beat 兩端 shear 皆 0 diff 不變);②新閘
+  `validate_sequence_compose_shear.py`(L-2,5 AC)以**含 shear 的序列** `In→wobble→squash→twist→Loop→Out`
+  (三斜拉節拍全帶 shear、皆 identity 介面)從**先驗庫 → 真實 build_spine robot 骨架 → build_animations** 端到端
+  (與 L/J/charge 同一 fixture)。**5 AC 全 PASS**:**LS1** present+shear 真被驅動(composed 保有 shear timeline・
+  `sample()` 現輸出 shearX/shearY 鍵・≥1 shear 段回切後 |shearX| 峰≥5° 實測 15.27°,確認測真 shear 非空驗)、
+  **LS2 crux 接點無縫含 shear**(含 shear 序列每內部接點 shear-aware 殘差 **0.0**<1e-3)、**LS3 faithful concat
+  含 shear**(回切每段逐幀 shear-aware 還原孤立 clip 含 shearX/shearY 殘差 **0.0**<1e-4 → 證 compose 的時間平移+
+  接點去重對 **shear 通道**亦**無損**;compose 本就通道無關,此首次在 shear 上釘住)、**LS4 in-context shear 簽章**
+  (回切 wobble/twist 段:shearX **阻尼振盪**繞 0 變號≥3+相繼極值遞減,且 twist **兩軸反相** shearX·shearY<0 在
+  序列脈絡仍成立,且 in-context shearX==孤立 clip 純平移無扭曲)、**LS5 crux 盲點負對照(本 run 核心)**:構造
+  「**5 非 shear 通道全無縫、只 shear 通道不連續**」接點(wobble 尾 shearX=0 其餘 identity → 合成 `held` clip 首
+  shearX=12° 其餘 identity)——(a) **shear-aware** diff=**12.0**>10×SEAM_TOL 正確判非無縫+肇因接點指認
+  `wobble->__held`;(b) **crux** 模擬擴充前盲點的 **non-shear** diff=**0.0**<SEAM_TOL(擴充前**會誤判無縫**)→
+  證 shear 覆蓋補掉一個**真實**接點盲點(非冗餘);(c) 守衛 純 identity(零 shear)接點 shear-aware diff 仍 **0**。
+  **迭代踩雷(預算內自修)**:LS4 初版把 N=48 **稠密取樣**的 shearX 序列直接丟 `_extrema_mags_decreasing`
+  (validate_shear_gen 的 helper,原設計吃**關鍵幀**極值序列)→ `damped` 恆 False(稠密序列每峰附近多個相近樣本
+  非嚴格遞減);修法新增 `_signed_extrema` 先從稠密序列抽**帶號局部極值**再套變號/遞減判準,等同 validate_shear_gen
+  對關鍵幀所做。**回歸:check_readiness 全綠 0 RED**(新增 cap `sequence_composition_shear` L2 併入
+  `spine-anim-forge`,仍 HOLD;L 等既有閘逐一 GREEN 證 `sample()` 擴充零回歸)。**關鍵發現**:①**一個驗證器的
+  「取樣器覆蓋通道數」決定它能看見哪些不連續** —— `sample()` 漏 shear 使**所有以它為基石**的閘(接點無縫/回切
+  還原/in-context 簽章)對 shear **一律盲**;補一條通道=補所有下游閘對該通道的鑑別力(盲點不在各閘邏輯、在共用
+  量測基石);②**要證「擴充補掉真盲點」須在同一接點上同時跑擴充前(non-shear)與後(shear-aware)兩種 diff**,
+  證前者誤判無縫、後者正確判不連續(只證後者會響不足)—— 鑑別的對象是**驗證器自己擴充前後的能力差**;
+  ③**稠密取樣序列套結構簽章判準前先確認量測粒度相容**(抽局部極值,勿把稠密序列當極值序列)。**honest boundary**:
+  這是**驗證器覆蓋修正、非新生成能力**(無改任何 beat 生成/產線值,`compose_sequence` 本就 iterate 所有 chans 含
+  shear);beat 排序仍 PROPOSAL(A 類);單一真值資產。見 `knowledge/s1-sequence-compose-shear.md`。
 - **S1 大獎序列組合:把各 beat clip 串接成單一可播放序列(里程碑,2026-10-04 run 001,candidate L)** —
   承 G-2 的選題精神,**刻意選整合/組合閘**而非再加參數軸(近期多是「單一 robot 加一軸」):`build_animations`
   產出的是**各自獨立**的 beat clip(In/Loop/Out + 主秀 beat + `{beat}__{tier}`),每支首尾 setup identity,
@@ -1056,10 +1090,15 @@
 >   `gen_anticipate_hold(ncharge=)`(ncharge==1 逐位元同手調單發)+ charge∈`COUNT_AWARE_CATS` + `TIER_CHARGE_CYCLES`(Super1→Legend4)依 cat 路由重生成;
 >   `validate_charge_count.py` 5AC PASS(CC2 crux 階數 [1,2,3,4] 嚴格遞增;CC5b **crux combo 判別子** combo 每階 hold 佔比 <0.60 → 證「每階持續 hold」是與 combo count 的鑑別子)。
 >   **count-aware(段數軸)至此補齊全部單件主秀 beat:combo/wobble/squash/twist/charge 五通道 + cascade 跨件通道**。
+> **(L-2) ~~序列組合 shear 通道覆蓋~~ ✅ 完成(2026-10-04 run 002,candidate L-2,`sequence_composition_shear` L2,見上里程碑)** ——
+>   補 L 的 honest boundary:把 shear 納入 `spine_anim.sample()`(加性 shearX/shearY)+ `validate_sequence_compose_shear.py`
+>   以含 shear 序列 In→wobble→squash→twist→Loop→Out 把接點無縫/回切還原/簽章在 shear 兩軸釘回歸閘;LS5 crux 盲點負對照
+>   (只 shear 不連續接點 shear-aware diff=12.0 判非無縫、non-shear diff=0.0 擴充前誤判無縫→證補掉真實盲點)。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
+> **(L-3) 把 L 的回切/簽章閘擴成「跨 beat 混場(crossfade / mix)」或「序列內 Loop 重複 N 次」的接點閘**(序列組合的下一個組合層軸,仍整合閘精神);
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
-> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**;**(G-2) 主秀 beat 下 limb 繞關節 AC**。
+> **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。
 > ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 52 GREEN**。見上里程碑。
 > S5→L3 仍待 **(D) 多 rig 真值**(C/資源類,使用者提供)。
 
@@ -1084,6 +1123,18 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-10-04 run 002:**S1 序列組合 shear 通道覆蓋(里程碑,candidate L-2)** — 補 candidate L 誠實列出的 honest
+  boundary:L 的序列組合閘用 `spine_anim.sample()` 做接點/回切比對,但 `sample()` **原本只取 rotate/translate/scale/
+  alpha,不取 shear** → L 正向序列刻意只用無 shear 的 hit/combo/charge/cascade 繞過盲點。**不加任何生成能力**,只
+  (1) 把 shear 納入 `sample()`(加性:per-bone 新增 shearX/shearY 預設 0,既有索引既有鍵呼叫端逐位元不變);(2) 以
+  含 shear 序列 `In→wobble→squash→twist→Loop→Out` 把 compose 的接點無縫/回切還原/簽章在 shear 通道釘回歸閘。
+  `validate_sequence_compose_shear.py` 5AC PASS:LS1 present+shear 真被驅動(峰 15.27°)、LS2 crux 接點無縫含 shear
+  (0.0<1e-3)、LS3 faithful concat 含 shear(回切逐幀還原 0.0<1e-4)、LS4 in-context shear 阻尼振盪+twist 反相簽章、
+  **LS5 crux 盲點負對照**(只 shear 不連續接點:shear-aware diff=12.0 判非無縫、non-shear diff=0.0 擴充前誤判無縫→
+  證補掉真實盲點)。**踩雷:稠密取樣序列不能直接套關鍵幀版 `_extrema_mags_decreasing`→新增 `_signed_extrema` 先抽
+  局部極值**。check_readiness 0 RED(新 cap `sequence_composition_shear`)。**關鍵:①取樣器覆蓋通道數決定閘能看見哪些
+  不連續,補一條通道=補所有下游閘的鑑別力;②證「擴充補掉真盲點」須同一接點跑擴充前後兩種 diff 對照**。honest:
+  驗證器覆蓋修正非新生成能力;anim-forge 仍 HOLD。見 `knowledge/s1-sequence-compose-shear.md`。
 - 2026-10-04:**S1 大獎序列組合:把各 beat clip 串接成單一可播放序列(里程碑,candidate L)** — 承 G-2 選題精神,
   刻意選**整合/組合閘**而非再加參數軸。`build_animations` 產的是各自獨立 clip(首尾 setup identity),**從未有閘**驗過
   真串接成單一 timeline 時「接點無縫 / 回切逐幀還原 / 簽章在序列脈絡中仍成立」。全 additive:`gen_animations.compose_sequence`

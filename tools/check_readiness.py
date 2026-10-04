@@ -406,6 +406,23 @@ BLOCKS = [
                      "②接點去重的無損性取決於保留帶『正確 outgoing curve』的幀——緩動掛在起點幀,去重方向錯會悄悄換掉後段緩動;③identity-介面構成一個可自由排序的 beat 集合,"
                      "進出場(In/Out/burst 的 collapse 端)是唯一位置約束**。honest:beat 排序為 PROPOSAL(手感 A 類);shear beat(wobble/squash/twist)之 shear 通道不被 sample() 覆蓋,"
                      "正向序列採無 shear 的 hit/combo/charge/cascade;單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_composition_shear", "序列組合 shear 通道覆蓋:把 L 的接點/回切/簽章閘補到 shear 兩軸(L-2,整合/盲點閘)", "L2",
+                "python3 tools/analyzer/validate_sequence_compose_shear.py", "pipeline",
+                note="補 candidate L 誠實列出的 honest boundary:L 的序列組合閘用 spine_anim.sample() 做接點/回切比對,但 sample() **原本只取 "
+                     "rotate/translate/scale/alpha,不取 shear** → L 的正向序列刻意只用無 shear 的 hit/combo/charge/cascade 繞過盲點。本 cap (1) 把 shear 納入 "
+                     "sample()(加性:per-bone 新增 shearX/shearY,預設 0=setup identity,既有索引既有鍵的呼叫端逐位元不變);(2) 以**含 shear 的序列** "
+                     "In→wobble→squash→twist→Loop→Out(三斜拉節拍全帶 shear)把 compose 的接點無縫/回切還原/in-context 簽章在 **shear 通道**釘回歸閘。"
+                     "**選題理由(延續 L/G-2 整合閘精神,不加參數軸)**:L-2 不加任何生成能力,只關掉一個**已知驗證盲點** —— 讓序列組合閘對一般仿射四自由度(含兩條 shear 軸)"
+                     "**全覆蓋**而非只覆蓋 5/7 通道。validate_sequence_compose_shear.py 5AC PASS:LS1 present+shear 真被驅動(composed 保有 shear timeline・sample() 現輸出 shearX/shearY・"
+                     "≥1 shear 段回切後 |shearX| 峰≥5° 實測 15.27°)/LS2 crux 接點無縫含 shear(每內部接點 shear-aware 殘差 0.0<1e-3)/LS3 faithful concat 含 shear(回切逐幀還原 "
+                     "含 shearX/shearY 殘差 0.0<1e-4 → 證 compose 時間平移+去重對 shear 通道亦無損)/LS4 in-context shear 簽章(回切 wobble/twist 段 shearX 阻尼振盪:繞0變號≥3+"
+                     "極值遞減,且 twist 兩軸反相 shearX·shearY<0 在序列中仍成立,== 孤立 clip)/**LS5 crux 盲點負對照**:構造『5 非 shear 通道全無縫、只 shear 不連續』接點"
+                     "(wobble 尾 shearX=0 → 合成 held clip 首 shearX=12°)→ (a) shear-aware diff=12.0 正確判非無縫+肇因指認;(b) **crux** 模擬擴充前盲點的 non-shear diff=0.0"
+                     "(擴充前會誤判無縫)→ 證 shear 覆蓋補掉**真實**盲點;(c) 守衛 純 identity 合成接點 shear-aware diff 仍 0。**關鍵發現:①一個驗證器的『取樣器覆蓋通道數』決定"
+                     "它能看見哪些不連續 —— sample() 漏 shear 使所有以它為基石的閘對 shear 盲,補通道=補所有下游閘的鑑別力;②負對照要證『擴充補掉真盲點』須在同一接點上同時跑"
+                     "擴充前(non-shear)與擴充後(shear-aware)兩種 diff,證前者誤判無縫、後者正確判不連續(非只證後者會響);③稠密取樣序列套阻尼判準須先抽局部極值"
+                     "(_signed_extrema),不能直接套關鍵幀版 _extrema_mags_decreasing**。honest:這是**驗證器覆蓋修正、非新生成能力**(無改任何 beat 生成/產線值,"
+                     "compose 本就通道無關,本 cap 只補 sample()+閘);beat 排序仍 PROPOSAL(A 類);單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

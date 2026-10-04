@@ -2,9 +2,17 @@
 """Spine 3.8 animation timeline **sampler**（純 Python,無瀏覽器/無 spine-webgl)。
 
 用途:把 gen_animations.py 產出的 `animations` timeline 在任意時間 t 取樣,回傳每根 bone
-的動畫通道值(rotate 角度 / translate 位移 / scale 倍率)與每個 slot 的 color alpha。
-這是 candidate 0d(分鏡→動畫 keyframe)的**自我驗證基石** — 用它量化運動幅度、
+的動畫通道值(rotate 角度 / translate 位移 / scale 倍率 / **shear 斜切(度)**)與每個 slot 的
+color alpha。這是 candidate 0d(分鏡→動畫 keyframe)的**自我驗證基石** — 用它量化運動幅度、
 Loop 無縫性、In/Out 邊界,不靠肉眼、不需 CDN。
+
+(candidate L-2,2026-10-04)補上 **shear** 通道:自 G-4' 起 wobble/squash/twist 等斜拉節拍會產出
+`shear` timeline(shearX/shearY,見 beat_templates),但 `sample()` 原本只取 rotate/translate/scale/
+alpha —— shear 通道**不被取樣**,使得任何用 `sample()` 做跨 beat 接點 / 回切比對的閘(如 candidate L
+的序列組合閘 `validate_sequence_compose`)對 shear 不連續**視而不見**(L 已誠實列為 honest boundary)。
+本次把 shear 納入取樣:per-bone 回傳新增 `shearX`/`shearY`(預設 0 = setup identity),為**加性**——
+既有呼叫端索引既有鍵(rotate/scaleX/…)者逐位元不變;以 setup 預設補缺的通用 diff 對無 shear 的 beat
+(兩端 shear 皆 0)亦不變。shear 幾何語意見 CLAUDE.md:Spine local 一般仿射 M 的 shearX/shearY 兩軸斜切。
 
 支援 3.8 keyframe 曲線:
   - 預設 linear(無 "curve" 鍵)
@@ -89,12 +97,14 @@ def _alpha_of(hexstr):
 
 def sample(anim, time, bones=None, slots=None):
     """在時間 time 取樣一支 animation。
-    回傳 {"bones":{bone:{rotate,x,y,scaleX,scaleY}}, "slots":{slot:{alpha}}}。
-    未在該 timeline 出現的通道 → setup 預設(rotate/x/y=0, scale=1, alpha=1)。"""
+    回傳 {"bones":{bone:{rotate,x,y,scaleX,scaleY,shearX,shearY}}, "slots":{slot:{alpha}}}。
+    未在該 timeline 出現的通道 → setup 預設(rotate/x/y/shearX/shearY=0, scale=1, alpha=1)。
+    (candidate L-2)shearX/shearY 為加性新增:shear timeline 存法同 translate/scale(x/y 鍵,單位度)。"""
     res_b, res_s = {}, {}
     bts = anim.get("bones", {})
     for bone, chans in bts.items():
-        d = {"rotate": 0.0, "x": 0.0, "y": 0.0, "scaleX": 1.0, "scaleY": 1.0}
+        d = {"rotate": 0.0, "x": 0.0, "y": 0.0, "scaleX": 1.0, "scaleY": 1.0,
+             "shearX": 0.0, "shearY": 0.0}
         if "rotate" in chans:
             d["rotate"] = _interp(chans["rotate"], time, ["angle"])["angle"]
         if "translate" in chans:
@@ -103,6 +113,9 @@ def sample(anim, time, bones=None, slots=None):
         if "scale" in chans:
             sc = _interp(chans["scale"], time, ["x", "y"])
             d["scaleX"], d["scaleY"] = sc["x"], sc["y"]
+        if "shear" in chans:
+            sh = _interp(chans["shear"], time, ["x", "y"])
+            d["shearX"], d["shearY"] = sh["x"], sh["y"]
         res_b[bone] = d
     sts = anim.get("slots", {})
     for slot, chans in sts.items():
