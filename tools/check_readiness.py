@@ -454,6 +454,20 @@ BLOCKS = [
                      "(a crux)三角脈衝(C0-loopable 但注入速度 kink)gap 2.0>1 is_c1_loopable=False→抓出 is_loopable 看不到的頓挫;(b 空驗守衛)靜止 clip gap=0 trivially C1 且 is_c1_loopable=True"
                      "**但**端點速度 0<1 無運動→證 gap≤tol 必要不充分須配非靜止(呼應 LP4);(c)In 非 C0-loopable→is_c1_loopable False 由 C0 先否決。"
                      "honest:Loop 是否該被設計成完美 C1 屬美術手感(A 類,光暈呼吸殘差 kick 0.19 為已知邊界);vel_tol=1.0 為量級選擇;無改任何生成/產線值(兩新函式純量測);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_build_roundtrip", "大獎序列→可載入資產 round-trip:序列化+重載保真+Spine3.8 結構合法(M,整合/產線閘)", "L2",
+                "python3 tools/analyzer/validate_sequence_build.py", "pipeline",
+                note="補「X 就緒 ≠ 產線成立」在**序列化層**的缺口:candidate (L) 的 compose_sequence docstring 一路宣稱其輸出『可直接塞進 "
+                     "skeleton[animations][序列名]、是可載入/播放的大獎序列』,但**從無產線路徑**把它寫進真實 skeleton.json、**也無閘**驗過"
+                     "『序列化(json.dump round 到產檔精度)→重載 後仍是結構合法、可被 Spine 3.8 載入、逐幀還原的 animation』;validate_build 只驗 setup 靜態幾何、從不碰 animation。"
+                     "本次關掉它:新增 gen_animations.emit_sequence_animation(把合成序列實際加進 skeleton 的 animations,additive,拒覆蓋既有 beat)+ forward_sequence_order"
+                     "(正向序列 PROPOSAL)+ build_spine --sequence(端到端直出可載入 'BigWin' 序列,與各 beat 並存)。選題:延續 L/L-2/L-3/L-4 刻意選整合/組合閘,不加參數軸,直指 north star『產出可載入 Spine 的大獎序列動畫』。"
+                     "**關鍵發現(crux):① 合成序列是多 beat 時間平移+接點去重後的單一 timeline → Spine 3.8 SkeletonJson 要求每通道時間嚴格遞增;合成/去重+_shift_frames 的 6 位 round 第一次"
+                     "在序列化形態下被檢驗(M3:重載後每通道嚴格遞增/finite/緊湊 bezier 散鍵與 color 8-hex 皆存活)。② round-trip 保真要證嚴格相等(max diff==0)非『<tol』——Python json 以 repr 寫浮點可逐位元還原,M2 密集取樣+逐段回切證實、M5c 擾動對照證 0 有意義。**"
+                     "validate_sequence_build.py 5AC PASS:M1 present+emission additive(BigWin 與各 beat 並存且各既有 beat 逐位元不變)/M2 crux round-trip max diff==0(415 取樣點,序列化無損)/"
+                     "M3 crux Spine3.8 結構合法(重載後 0 non-strict 通道・28 緊湊 bezier+52 color-hex 存活非空驗)/M4 faithful concat(重載逐段回切還原孤立 beat 殘差 0・接點 C0 在 clip 端點層量,"
+                     "**不從 composed 時間軸 ±ε 量**——L/L-4 已證那是 velocity×ε artifact 且去重抹成單幀恆連續)/M5 負對照+守衛(a crux 注入非嚴格遞增通道→結構檢查器抓出 證 M3 非空驗・b emit 覆蓋既有 beat→ValueError、"
+                     "order 含未知 beat→KeyError・c 擾動一值→round-trip diff>0 證比較器有鑑別力)。honest:正向播放順序屬美術手感(A 類,identity-介面 beat 可自由排序,見 L5c);"
+                     "預設序列不納 burst(collapse 登場→序列中段會製造不連續接點)/shear 節拍(與 L 無 shear 正向序列一致,含 shear 請自訂 order 走 compose,L-2 已覆蓋);無改任何 beat 生成/產線值(compose 純平移);單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

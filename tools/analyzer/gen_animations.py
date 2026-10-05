@@ -714,6 +714,61 @@ def is_c1_loopable(clip, tol=1e-6, vel_tol=1.0, h=1e-3):
     return is_loopable(clip, tol) and loop_seam_velocity_gap(clip, h) <= vel_tol
 
 
+# candidate (M):大獎序列的正向播放順序(PROPOSAL / A 類手感)。identity-介面 beat 可自由排序
+# (見 candidate L 的 L5c composability),In/Out 的 collapse 端是唯一位置約束。此處採 candidate L
+# 已端到端驗過的正向序列 In → (主秀節拍) → Loop → Out,主秀節拍取 anims 中**存在**者依固定類別序排列。
+# burst(collapse→identity,登場式)放序列中段會製造 identity→collapsed 不連續接點 → 刻意不納入預設正向序列
+# (它是「起手/收尾」位置 beat,見 L5a 負對照);shear 節拍(wobble/squash/twist)亦不納入預設(與 L 驗過的
+# 無 shear 正向序列一致,保持預設可播放序列乾淨;要含 shear 請自訂 order 走 compose_sequence,已由 L-2 覆蓋)。
+_FORWARD_MAIN_SHOW = ["hit", "combo", "charge", "cascade"]
+
+
+def forward_sequence_order(anims):
+    """candidate (M) — 由 anims 中**實際存在**的 beat 組出大獎序列的正向播放順序(PROPOSAL)。
+
+    回傳 `["In", <存在的主秀節拍依 _FORWARD_MAIN_SHOW 序>, "Loop", "Out"]`,只納入 `anims` 真有的 beat。
+    排序本身是手感 A 類 PROPOSAL(identity-介面 beat 可自由排序);本函式只給一個**確定性、可播放**的預設。
+    純函式、additive、不改任何值。"""
+    order = []
+    if "In" in anims:
+        order.append("In")
+    for cat in _FORWARD_MAIN_SHOW:
+        for name in anims:
+            if name == cat or name.startswith(cat + "__"):
+                # 只取 base 主秀 beat(不含 {beat}__{tier} 檔位變體;變體屬各檔位獨立序列)
+                if name == cat:
+                    order.append(name)
+    if "Loop" in anims:
+        order.append("Loop")
+    if "Out" in anims:
+        order.append("Out")
+    return order
+
+
+def emit_sequence_animation(skeleton, anims, order, name="BigWin", gap=0.0, merge_tol=1e-6):
+    """candidate (M) — 把 `compose_sequence(anims, order)` 的大獎序列**實際寫進 skeleton 的 animations**,
+    成為一支**具名、可載入**的 Spine 3.8 animation(把 `compose_sequence` docstring 一直宣稱的「可直接塞進
+    skeleton["animations"][序列名]」真的做出來 —— 在此之前從未有產線路徑/閘把它序列化成可載入資產)。
+
+    - `skeleton`:build_spine 產的 skeleton dict(會被就地新增一個 `animations[name]` 條目,**additive**)。
+    - `anims`:`build_animations` 產的各 beat clip dict。
+    - `order`:beat 名序列(可重複,如 In→Loop×N→Out);None → `forward_sequence_order(anims)`。
+    - `name`:序列 animation 名(預設 "BigWin");**拒絕覆蓋**既有同名 animation(避免清掉某 beat)。
+
+    回傳 `segments`(同 `compose_sequence`,供回切各段量測)。**不改任何既有 beat 的值**(compose 純時間平移);
+    新增的序列與各獨立 beat 並存於同一 skeleton,一起走 build_spine 的 json.dump → 可被 Spine runtime 載入。
+    純粹組裝 + 就地加鍵(additive),不依賴任何既有索引。"""
+    if order is None:
+        order = forward_sequence_order(anims)
+    animations = skeleton.setdefault("animations", {})
+    if name in animations:
+        raise ValueError(
+            "emit_sequence_animation: animation 名 '{}' 已存在(拒絕覆蓋既有 beat;請改名)".format(name))
+    composed, segments = compose_sequence(anims, order, gap=gap, merge_tol=merge_tol)
+    animations[name] = composed
+    return segments
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("skeleton_json", help="build_spine 產出的 skeleton.json")

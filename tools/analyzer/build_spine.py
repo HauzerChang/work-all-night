@@ -190,7 +190,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
 
 def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False,
           deform=False, pivot_rotate=False, scale_pivot=False, shear_pivot=False, tier_variants=False,
-          twist_volume=False, cascade_dir=None,
+          twist_volume=False, cascade_dir=None, sequence=None,
           deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
@@ -358,6 +358,15 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
             from gen_deform import build_deform, load_source_field
             us, fl, _ = load_source_field(*deform_src)
             build_deform(skeleton, spec["3_motion_storyboard"], us, fl)
+        if sequence is not None:
+            # candidate M:把各獨立 beat 組成**單一可載入**大獎序列 animation,與各 beat 並存於同一 skeleton。
+            # sequence=True/"auto" → 正向序列 PROPOSAL(forward_sequence_order);也可給明確 order list。
+            # emission 純時間平移 + 接點去重(不改任何 beat 值),序列化後逐幀還原(validate_sequence_build 把關)。
+            from gen_animations import emit_sequence_animation, forward_sequence_order
+            seq_order = (forward_sequence_order(skeleton["animations"])
+                         if sequence in (True, "auto") else list(sequence))
+            seq_segments = emit_sequence_animation(skeleton, skeleton["animations"], seq_order,
+                                                   name="BigWin")
     json.dump(skeleton, open(os.path.join(out_dir, "skeleton.json"), "w"),
               ensure_ascii=False, indent=1)
     json.dump(build_meta, open(os.path.join(out_dir, "build_meta.json"), "w"), ensure_ascii=False, indent=1)
@@ -374,6 +383,10 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
         # 非 rig 的 pivot 補償模式:回報件中心 O 與關節 pivot P(閘據此驗端到端不動點殘差)。
         summary["pivot_centers"] = {b: [round(c[0], 3), round(c[1], 3)] for b, c in pivot_center.items()}
         summary["pivot_joints"] = {b: [round(p[0], 3), round(p[1], 3)] for b, p in pivot_world.items()}
+    if animate and sequence is not None:
+        # candidate M:回報大獎序列的段落結構(供人工/閘檢視可載入序列資產)。
+        summary["sequence"] = {"name": "BigWin", "order": [s["beat"] for s in seq_segments],
+                               "segments": seq_segments}
     return summary
 
 
@@ -430,11 +443,15 @@ def main():
                          "po 件序/auto 查 genre 建議。J-6 一般化:給**角度(度,如 90)**或**向量 'ux,uy'(如 '1,1')**→ "
                          "相位依件中心在該方向投影排序(lr/rl 即 0°/180° 特例)。J-7:**geo**(或 geo:SOURCE)→ 方向向量"
                          "**由件幾何導出**(質心→最遠件),隨資產自適應。預設件序 byte-identical;需 --animate")
+    ap.add_argument("--sequence", action="store_true",
+                    help="candidate M:把各獨立 beat 組成**單一可載入**大獎序列 animation 'BigWin'(正向序列 PROPOSAL "
+                         "In→主秀節拍→Loop→Out;與各 beat 並存)。純時間平移+接點去重,序列化後逐幀還原;需 --animate")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
     s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,
               pivot_rotate=a.pivot_rotate, scale_pivot=a.scale_pivot, shear_pivot=a.shear_pivot,
-              tier_variants=a.tier_variants, twist_volume=a.twist_volume, cascade_dir=a.cascade_dir)
+              tier_variants=a.tier_variants, twist_volume=a.twist_volume, cascade_dir=a.cascade_dir,
+              sequence=(True if a.sequence else None))
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

@@ -10,6 +10,43 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 大獎序列 → 可載入資產 round-trip(里程碑,2026-10-05 run 003,candidate M)** —
+  補「X 就緒 ≠ 產線成立」在**序列化層**的缺口:candidate (L) 的 `compose_sequence` docstring 一路宣稱其輸出
+  「可直接塞進 `skeleton["animations"][序列名]`、是可載入/播放的大獎序列」,但**從無產線路徑**把它寫進真實
+  `skeleton.json`、**也無閘**驗過「序列化(json.dump round 到產檔精度)→ 重載 後仍是結構合法、可被 Spine 3.8
+  載入、逐幀還原的 animation」;`validate_build` 只驗 setup 靜態幾何、從不碰 animation。L~L-4 四代把 compose
+  在 **in-memory** clip 上量了四遍,序列化/重載這一哩**從未**被驗。延續 L/L-2/L-3/L-4 刻意選整合/組合閘、**不加
+  參數軸**,把 compose 從「量測對象」推成「真實可載入資產」,直指 north star「產出可載入 Spine 的大獎序列動畫」。
+  **做了什麼(全 additive)**:①`gen_animations.forward_sequence_order(anims)`(由存在的 beat 組正向序列
+  PROPOSAL `In→hit/combo/charge/cascade→Loop→Out`);②`emit_sequence_animation(skeleton,anims,order,name)`
+  (compose 後就地加進 `skeleton["animations"][name]`,additive,**拒覆蓋**既有 beat);③`build_spine --sequence`
+  端到端直出可載入 `"BigWin"` 序列(與各 beat 並存寫進 skeleton.json,summary 回報段落結構);④新閘
+  `validate_sequence_build.py`(M,5 AC)從**先驗庫 → 真實 robot 骨架 → build_animations → emit → json.dump →
+  重載**端到端。**5 AC 全 PASS**:**M1** present+emission additive(BigWin 與各 beat 並存且各既有 beat **逐位元
+  不變**、segments 覆蓋 order、總時長 6.4s==末段 start+dur);**M2 crux round-trip fidelity**(整份 skeleton 以
+  build_spine 同參數 json.dump→重載,重載 BigWin 密集 400 點+段邊界取樣與 in-mem sample() **max diff==0.0**
+  嚴格相等 → Python json 以 repr 寫浮點逐位元無損);**M3 crux Spine3.8 結構合法**(重載 BigWin 每通道**時間
+  嚴格遞增**=SkeletonJson 硬性要求、合成/去重+`_shift_frames` 6 位 round 第一次在**序列化形態**被檢驗,**0
+  non-strict**;全 finite;**28 緊湊 bezier 散鍵 + 52 color 8-hex 存活**非空驗);**M4 faithful concat**(重載逐段
+  回切還原孤立 beat 殘差全 **0.0**;每內部接點 C0 **在 clip 端點層量**;重載 duration==in-mem==末段);**M5 負對照
+  +守衛**:(a) **crux** 注入非嚴格遞增幀(等時間/遞減)→ 結構檢查器 `_nonstrict_channels` 抓出(證 M3 非空驗、
+  真能擋下 Spine 載不進的 timeline),對照合法序列 0 non-strict;(b) emit 覆蓋既有 beat 名("Loop")→ValueError、
+  order 含未知 beat→KeyError;(c) 擾動一值+5→round-trip diff=5.0>0(證 M2 的 0 有意義、比較器有鑑別力)。
+  **迭代踩雷(預算內自修)**:①初版 M4 接點 C0 **從 composed 時間軸以 `sample(bt−ε)` vs `sample(bt+ε)` 量 → 假
+  FAIL**(殘差 0.004–0.019)——正是 **L/L-4 已記載兩次**的量測 artifact(compose 去重把接點抹成**單幀**恆連續;
+  硬取 ±ε 兩側則捕捉的是接點附近**真實非零速度**×ε≈0.01 **非不連續**);修法=回到 **clip 端點層**量(孤立 prev
+  beat sample(dur) vs 孤立 next beat sample(0),同 L 的 L2 接點閘),並把教訓寫死在閘註解裡避免第四次重犯;②gate
+  須鏡像 build_spine 產線序(先 `skeleton["animations"]=build_animations(...)` 再 emit),兩者才並存。
+  **回歸:check_readiness 全綠 0 RED**(新增 cap `sequence_build_roundtrip` L2 併入 `spine-anim-forge`,仍 HOLD;
+  既有閘逐一 GREEN 證兩新純組裝函式 + build_spine 的 opt-in `--sequence` 零回歸)。**關鍵發現**:①**「docstring 宣稱
+  可載入」≠「真的序列化成可載入資產且逐幀還原」有 AC** —— 「X 就緒 ≠ 產線成立」在序列化層的實例(同 E/0i/G-2);
+  ②**合成/去重的單一 timeline 的「嚴格遞增時間」要在序列化形態驗** —— 只有寫檔再重載才算驗到 Spine SkeletonJson
+  的硬約束,in-memory sample() 不檢查;③**round-trip 保真要證「嚴格相等(==0)」而非「<tol」**(Python json repr
+  可逐位元還原,以擾動對照證 0 非空轉);④**「量在哪一層」教訓第三次出現**(接點 C0 須在 clip 端點層非 composed
+  時間軸)→ 寫死在註解。**honest boundary**:正向播放順序屬美術手感(A 類,identity-介面 beat 可自由排序);預設
+  序列不納 burst(collapse 登場)/shear 節拍(與 L 無 shear 正向序列一致,含 shear 自訂 order 走 compose,L-2 已
+  覆蓋);「可載入」以純 Python sample 重載 + Spine 3.8 結構約束為真值代理,**實機 spine-webgl round-trip** 仍需
+  瀏覽器自動化(CDN 被網路政策擋)為後續;無改任何 beat 生成/產線值;單一真值資產。見 `knowledge/s1-sequence-build-roundtrip.md`。
 - **S1 自接點 C1(速度)連續 / C1-loopability(里程碑,2026-10-05 run 002,candidate L-4)** —
   關掉 candidate (L-3) 誠實列出的 honest boundary:`is_loopable` 只驗 **C0**(自接點值連續),明記
   「不保證 C1 速度連續(loop 重啟頓挫)」。本次把 **C1**(自接點速度連續)顯式量化並以閘把關,延續
@@ -1201,6 +1238,25 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-10-05 run 003:**S1 大獎序列 → 可載入資產 round-trip(里程碑,candidate M)** — 補「X 就緒 ≠ 產線成立」在
+  **序列化層**的缺口:candidate (L) 的 `compose_sequence` docstring 宣稱其輸出「可直接塞進 skeleton[animations]、可載入」,
+  但從無產線路徑寫進真實 skeleton.json、也無閘驗過「序列化→重載 後仍結構合法/可被 Spine 3.8 載入/逐幀還原」;
+  validate_build 只驗 setup 靜態幾何。L~L-4 把 compose 在 in-memory 量了四代,序列化這一哩從未驗。延續整合/組合閘、
+  不加參數軸。全 additive:`forward_sequence_order`(正向序列 PROPOSAL)+ `emit_sequence_animation`(compose 就地加進
+  skeleton.animations,拒覆蓋既有 beat)+ `build_spine --sequence`(端到端直出可載入 "BigWin")+ 新閘
+  `validate_sequence_build.py`。5AC PASS(真實 robot 骨架,emit→json.dump→重載端到端):M1 present+emission additive
+  (BigWin 與各 beat 並存且各既有 beat 逐位元不變、6.4s)/**M2 crux round-trip max diff==0**(400+段邊界取樣,序列化
+  逐位元無損)/**M3 crux Spine3.8 結構合法**(重載每通道**時間嚴格遞增**=SkeletonJson 硬約束首次在序列化形態驗、0
+  non-strict;28 緊湊 bezier+52 color-hex 存活非空驗)/M4 faithful concat(重載逐段回切還原孤立 beat 殘差 0・接點 C0
+  在 clip 端點層量)/M5 負對照(a crux 注入非嚴格遞增幀→結構檢查器抓出 證 M3 非空驗・b emit 覆蓋既有 beat→ValueError
+  /未知 beat→KeyError・c 擾動一值→diff>0 證比較器有鑑別力)。**踩雷:初版 M4 從 composed 時間軸 ±ε 量接點 C0 假 FAIL
+  (0.004–0.019)—— L/L-4 已記載兩次的 velocity×ε artifact + 去重抹成單幀恆連續;改回 clip 端點層量(同 L2),教訓寫死
+  註解。** check_readiness 全綠 0 RED(新 cap `sequence_build_roundtrip`)。**關鍵:①docstring 宣稱可載入 ≠ 真序列化成
+  可載入資產且逐幀還原有 AC(序列化層的 X 就緒≠產線成立);②合成/去重單一 timeline 的嚴格遞增時間要在序列化形態驗
+  (in-memory sample 不檢查 SkeletonJson 硬約束);③round-trip 保真證嚴格相等==0 非 <tol(json repr 可逐位元還原,擾動
+  對照證 0 非空轉);④「量在哪一層」教訓第三次(接點 C0 須在 clip 端點層非 composed 時間軸)。** honest:正向順序屬手感
+  (A 類);預設序列不納 burst/shear 節拍;實機 spine-webgl round-trip 待瀏覽器自動化(CDN 被擋);無改任何生成/產線值;
+  單一真值資產。見 `knowledge/s1-sequence-build-roundtrip.md`。
 - 2026-10-05 run 002:**S1 自接點 C1(速度)連續 / C1-loopability(里程碑,candidate L-4)** — 關掉 L-3 誠實列出的
   honest boundary(`is_loopable` 只驗 C0,明記不保證 C1 速度連續)。延續 L/L-2/L-3/G-2 整合/組合閘選題,**不加參數軸**。
   全 additive:新增 `gen_animations.loop_seam_velocity_gap`(自接點 C1 不連續量 `max|v_end−v_start|`,單側有限差分,純量測)
