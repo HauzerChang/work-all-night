@@ -10,7 +10,44 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 序列內 Loop 重播 N 次 + loopability 不變量(里程碑,2026-10-05 run 001,candidate L-3)** —
+  延續 L / L-2 / G-2 的整合/組合閘選題,**刻意不加任何參數軸**。candidate (L) 的 `compose_sequence(anims, order)`
+  的 `order` **本就可重複同一 beat 名**(逐一 iterate→查 `anims[name]`→平移 offset→extend),所以
+  `order=["In","Loop","Loop","Loop","Out"]` **本就能跑** —— 這正是真實大獎序列的播放形態:進場後 **Loop 重播 N 次**
+  (贏分計數滾動時循環待機)再收尾。但 L 的正向序列每 beat **只出現一次**,**從未有閘**驗過「同一支 clip 重複 N 次」
+  路徑:①重複鍵 offset 累加;②clip 接在**自己**後面的**自接點**(前份尾→後份首)無縫 = **loopability**(L 只驗過
+  **相異** beat 接點);③N 份重播逐幀還原同一孤立 clip(重播機制不漂移);④平鋪為**非靜止嚴格週期**(否則「無縫」空驗)。
+  **做了什麼(全 additive)**:①`gen_animations.is_loopable(clip, tol)` —— 判「首幀狀態==尾幀狀態」(所有通道 C0 相等,
+  **含 shear**),把「可安全重播」不變量顯式化(純判斷、不依賴既有索引、不改值);附 `_state_max_diff`(與 L 的
+  `_state_diff` 同源)供閘複用。介面契約下 Loop/主秀 beat(首尾 identity)loopable;In(collapsed→id)/Out(id→collapsed)
+  首≠尾 → **非** loopable。明記:loopable 只保證 **C0**,不保證「有運動」或「C1 速度連續」。②新閘
+  `validate_sequence_loop.py`(L-3,5 AC)以 `In→Loop×3→Out` 從**先驗庫 → 真實 build_spine robot 骨架 →
+  build_animations** 端到端(與 L/charge 同一 fixture)。**5 AC 全 PASS**:**LP1** present+loopable(Loop)+offset
+  累加(segments 恰含 3 個 "Loop" 於 `[0.6,2.6,4.6]`・總時長 `7.0`==In0.6+3·Loop2.0+Out0.4・bone 皆現身)、
+  **LP2 crux 自接點無縫**(Loop→Loop self-seam `0.0`<1e-3,= loopability 的 clip 端點層 C0 判準;並確認 compose 產物
+  為連續函數 wrap shrink 比 ≈0.1)、**LP3 periodicity/idempotent**(3 份重播各去 offset 逐幀還原孤立 Loop 殘差 `0.0`<1e-4,
+  且 3 份彼此逐幀相同→重播不隨份數漂移)、**LP4 non-static+嚴格週期**((a) Loop 內部離 setup 最大位移 `5.0`≥1.0 非靜止
+  →無縫非空驗;(b) 平鋪區 `sample(t)==sample(t+Loop_dur)` 殘差 `0.0`→N 份平鋪成恰 N 週期循環)、**LP5 負對照**:
+  (a) **crux** In `is_loopable`=False・In→In 自接點 `40.0`>>・**深一層 crux** tiled-In 的 composed 經時間去重後 wrap
+  **看起來仍 C0**(shrink 0.1 與合格 Loop 無異)→ 證 loopability **不能從 composed 判**唯 clip 端點 self-seam 揭露;
+  (b) Out `is_loopable`=False・Out→Out 自接點 `25.0`;(c) **crux 空驗守衛** 合成**靜止**(恆 identity)clip →
+  `is_loopable`=True 且自接點 `0`(trivially 無縫)**但** LP4 非靜止=`0` → 證「光自接點無縫」不足以是有意義 loop
+  (須同時非靜止+嚴格週期),LP4 有鑑別力。**迭代踩雷(預算內自修)**:初版 LP2 想從 **composed 時間軸**直接量 wrap
+  邊界兩側 C0 跳變(`sample(bt−ε)` vs `sample(bt+ε)`),對合格 Loop 量到 3e-3 誤判 FAIL —— 這是**量測 artifact**
+  (捕捉的是 Loop 邊界附近**真實非零速度** end-velocity·ε+start-velocity·ε,非不連續;ε→0 線性縮小)。追查更發現
+  `compose_sequence` 的**時間去重**(coincident-time 幀只看時間不看值 collapse 成單幀)會把值不符的接點**抹成陡坡**
+  而非真跳變 → composed 取樣**恆 C0**(tiled-In 與合格 Loop 的 shrink 比皆 ≈0.1 無從鑑別);改用 clip 端點 self-seam
+  作 crux,composed 連續性僅作佐證。**回歸:check_readiness 全綠 0 RED / 56 GREEN**(新增 cap `sequence_loop_repeat`
+  L2 併入 `spine-anim-forge`,仍 HOLD;L 等既有閘逐一 GREEN 證 `is_loopable`/`_state_max_diff` 新增純函式零回歸)。
+  **關鍵發現**:①**`compose_sequence` 的時間去重讓 composed 恆 C0** —— 值不符接點被抹成陡坡而非真跳變 → 從 composed
+  時間軸永遠看不出一個 beat 是否 loopable;**loop 判準必須在 clip 端點層**(首幀 vs 尾幀),這正是 `is_loopable` 做的事
+  (呼應 L-2「量在哪一層決定能看見什麼」);②**「首尾 identity→loopable」是 C0 不是全部** —— 靜止 clip 也 loopable 且
+  自接點無縫但平鋪無意義,有意義的 loop 需「非靜止+嚴格週期」兩條件並立(再現本 repo 通則「真簽章常需兩獨立條件並立」);
+  ③**重複鍵的 offset 累加/逐幀還原/彼此相同三者並驗**才證重播機制對「同 clip 出現 N 次」正確(L 的相異-beat 路徑驗不到)。
+  **honest boundary**:重播次數 N 為 PROPOSAL(A 類);只驗 **C0** 不驗 **C1 速度連續**(loop 重啟頓挫,屬美術/後續);
+  無改任何 beat 生成/產線值(`is_loopable` 純判斷,`compose_sequence` 本就支援重複鍵);單一真值資產。見 `knowledge/s1-sequence-loop-repeat.md`。
 - **S1 序列組合 shear 通道覆蓋:把 L 的接點/回切/簽章閘補到 shear 兩軸(里程碑,2026-10-04 run 002,candidate L-2)** —
+  延續 L / G-2 的整合閘選題,**刻意不加任何生成軸**,只關掉 candidate L 誠實列出的 honest boundary:L 的序列
   延續 L / G-2 的整合閘選題,**刻意不加任何生成軸**,只關掉 candidate L 誠實列出的 honest boundary:L 的序列
   組合閘 `validate_sequence_compose` 用 `spine_anim.sample()` 做接點(前 beat 尾幀 vs 後 beat 首幀)與回切
   (composed vs 孤立 clip)比對,但 **`sample()` 原本只取 rotate/translate/scale/alpha,不取 shear** —— 自 G-4'
@@ -1094,8 +1131,14 @@
 >   補 L 的 honest boundary:把 shear 納入 `spine_anim.sample()`(加性 shearX/shearY)+ `validate_sequence_compose_shear.py`
 >   以含 shear 序列 In→wobble→squash→twist→Loop→Out 把接點無縫/回切還原/簽章在 shear 兩軸釘回歸閘;LS5 crux 盲點負對照
 >   (只 shear 不連續接點 shear-aware diff=12.0 判非無縫、non-shear diff=0.0 擴充前誤判無縫→證補掉真實盲點)。
+> **(L-3) ~~序列內 Loop 重播 N 次 + loopability 不變量~~ ✅ 完成(2026-10-05 run 001,candidate L-3,`sequence_loop_repeat` L2,見上里程碑)** ——
+>   `compose_sequence` 的 order 本就支援重複鍵(`In→Loop×N→Out`),但 L 每 beat 只出現一次,從未驗過「同一 clip 重複 N 次」路徑。
+>   新增 `gen_animations.is_loopable`(首幀==尾幀→可安全重播,含 shear,純判斷)+ `validate_sequence_loop.py` 5AC PASS。
+>   **關鍵:compose 的時間去重把值不符接點抹成陡坡 → composed 恆 C0 → loopability 只能在 clip 端點層判(self-seam/is_loopable)**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(L-3) 把 L 的回切/簽章閘擴成「跨 beat 混場(crossfade / mix)」或「序列內 Loop 重複 N 次」的接點閘**(序列組合的下一個組合層軸,仍整合閘精神);
+> **(L-4) 把序列組合閘擴成「跨 beat 混場(crossfade / mix)」接點閘**(L-3 的 Loop 重播是 C0 拼接;crossfade 是**時間重疊 + 權重混合**,
+>   compose 的純平移+去重做不到,需真正的 mix 機制;屬序列組合的下一個組合層軸,仍整合閘精神);或 **(L-3') loop 的 C1 速度連續閘**
+>   (L-3 只驗 C0,loop 重啟的「速度頓挫」= 尾速度≠首速度;可量兩端有限差速度向量並驗連續,為 loop 手感客觀化);
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。
@@ -1123,6 +1166,21 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-10-05 run 001:**S1 序列內 Loop 重播 N 次 + loopability 不變量(里程碑,candidate L-3)** — 延續 L/L-2/G-2
+  整合/組合閘選題,**不加任何參數軸**。`compose_sequence` 的 `order` 本就可重複同一 beat 名(`In→Loop×N→Out`),這正是真實大獎
+  序列形態(進場→Loop 重播待機→收尾),但 L 每 beat 只出現一次,**從未有閘**驗過「同一支 clip 重複 N 次」路徑。全 additive:
+  新增 `gen_animations.is_loopable`(判「首幀==尾幀(含 shear)→ 可安全重播」,純判斷不改值)+ `validate_sequence_loop.py`
+  以 `In→Loop×3→Out` 從先驗庫→真實 robot 骨架→build_animations 把重複鍵 offset 累加/自接點無縫/N 份逐幀還原/非靜止嚴格週期
+  釘回歸閘。5AC PASS:LP1 present+loopable+offset([0.6,2.6,4.6]・總時長 7.0)、LP2 crux 自接點無縫(Loop→Loop self-seam 0.0)、
+  LP3 periodicity(N 份去 offset 逐幀還原孤立 Loop 0.0 且彼此逐幀相同)、LP4 non-static(內部運動 5.0)+嚴格週期
+  (`sample(t)==sample(t+Loop_dur)` 0.0)、**LP5 負對照**(a crux In is_loopable=False・自接點 40・且 tiled-In composed 仍看似
+  C0→證須 clip 端點判;b Out 自接點 25;c crux 空驗守衛 靜止 clip loopable 且自接點 0 但 LP4 非靜止=0→證須非靜止+嚴格週期)。
+  **踩雷:初版想從 composed 時間軸量 wrap C0 跳變(sample(bt−ε) vs sample(bt+ε))對合格 Loop 量到 3e-3 誤判 —— 那是真實速度
+  的量測 artifact;更發現 compose 的時間去重把值不符接點抹成陡坡而非真跳變 → composed 恆 C0 → loopability 只能在 clip 端點層判。**
+  check_readiness 全綠 0 RED / 56 GREEN(新 cap `sequence_loop_repeat`)。**關鍵:①compose 去重讓 composed 恆 C0,loop 判準必須
+  在 clip 端點層(is_loopable);②首尾 identity→loopable 只是 C0,有意義 loop 需非靜止+嚴格週期兩條件並立;③重複鍵的 offset
+  累加/逐幀還原/彼此相同三者並驗**。honest:N 為 PROPOSAL(A 類);只驗 C0 不驗 C1;無改任何生成/產線值;anim-forge 仍 HOLD。
+  見 `knowledge/s1-sequence-loop-repeat.md`。
 - 2026-10-04 run 002:**S1 序列組合 shear 通道覆蓋(里程碑,candidate L-2)** — 補 candidate L 誠實列出的 honest
   boundary:L 的序列組合閘用 `spine_anim.sample()` 做接點/回切比對,但 `sample()` **原本只取 rotate/translate/scale/
   alpha,不取 shear** → L 正向序列刻意只用無 shear 的 hit/combo/charge/cascade 繞過盲點。**不加任何生成能力**,只

@@ -607,6 +607,48 @@ def compose_sequence(anims, order, gap=0.0, merge_tol=1e-6):
     return composed, segments
 
 
+_LOOP_IDENT = {"rotate": 0.0, "x": 0.0, "y": 0.0, "scaleX": 1.0, "scaleY": 1.0,
+               "shearX": 0.0, "shearY": 0.0}
+
+
+def _state_max_diff(s1, s2):
+    """兩個 `spine_anim.sample()` 狀態的跨 bone/slot 最大絕對差(缺席通道視為 setup identity;含 shear)。"""
+    m = 0.0
+    for b in set(s1["bones"]) | set(s2["bones"]):
+        d1 = s1["bones"].get(b, _LOOP_IDENT)
+        d2 = s2["bones"].get(b, _LOOP_IDENT)
+        for k in _LOOP_IDENT:
+            m = max(m, abs(d1.get(k, _LOOP_IDENT[k]) - d2.get(k, _LOOP_IDENT[k])))
+    for s in set(s1["slots"]) | set(s2["slots"]):
+        a1 = s1["slots"].get(s, {"alpha": 1.0})["alpha"]
+        a2 = s2["slots"].get(s, {"alpha": 1.0})["alpha"]
+        m = max(m, abs(a1 - a2))
+    return m
+
+
+def is_loopable(clip, tol=1e-6):
+    """candidate (L-3) — 判斷一支 beat clip 是否可**安全重複/平鋪**(loopable)。
+
+    一支 clip 若「首幀狀態 == 尾幀狀態」(所有通道 C0 相等,含 shear),把它接在自己後面(重複 N 次)時
+    **自接點**(前一份的尾 → 後一份的首)值連續、無 C0「跳變 / pop」—— 這正是遊戲 idle / Loop 動畫可
+    無限重播的前提。`compose_sequence` 的 `order` 本就可重複同一 beat 名(如 `In→Loop×N→Out`)把「Loop
+    重播」顯式串出,但**唯有 loopable 的 beat 重複才無縫**;本判準把這個不變量顯式化(供閘與產線判斷)。
+
+    介面契約下:Loop / 主秀 beat(hit/combo/wobble…)首尾皆 setup identity → loopable;
+    In(collapsed→identity)、Out(identity→collapsed)首≠尾 → **非** loopable(重複會在自接點 pop)。
+    注意:loopable 只保證 **C0**(值連續、不跳變);它**不**保證「有運動」或「速度連續(C1)」——
+    一支恆 identity 的靜止 clip 也 loopable 但平鋪後毫無意義(見閘 LP4 的非靜止+週期驗證)。
+    回傳 bool。純判斷、不改任何值(additive;不依賴任何既有索引)。
+    """
+    import spine_anim as _SA
+    dur = _SA.duration(clip)
+    if dur <= 0:
+        return True  # 空 / 無時間跨度的 clip 平鋪退化為恆值,自接點天然連續
+    start = _SA.sample(clip, 0.0)
+    end = _SA.sample(clip, dur)
+    return _state_max_diff(start, end) <= tol
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("skeleton_json", help="build_spine 產出的 skeleton.json")

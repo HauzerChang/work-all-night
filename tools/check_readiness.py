@@ -423,6 +423,22 @@ BLOCKS = [
                      "擴充前(non-shear)與擴充後(shear-aware)兩種 diff,證前者誤判無縫、後者正確判不連續(非只證後者會響);③稠密取樣序列套阻尼判準須先抽局部極值"
                      "(_signed_extrema),不能直接套關鍵幀版 _extrema_mags_decreasing**。honest:這是**驗證器覆蓋修正、非新生成能力**(無改任何 beat 生成/產線值,"
                      "compose 本就通道無關,本 cap 只補 sample()+閘);beat 排序仍 PROPOSAL(A 類);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_loop_repeat", "序列內 Loop 重播 N 次 + loopability 不變量(L-3,整合/組合閘)", "L2",
+                "python3 tools/analyzer/validate_sequence_loop.py", "pipeline",
+                note="補 candidate L 的缺口(能力早在、AC 從缺,同 L/G-2 整合閘精神):compose_sequence(anims, order) 的 order **本就可重複同一 beat 名**"
+                     "(如 In→Loop×N→Out)—— 這正是真實大獎序列的播放形態(進場後 Loop 重播 N 次待機、贏分滾動,再收尾),但 L 的正向序列每 beat **只出現一次**,"
+                     "**從未有閘**驗過『同一支 clip 重複 N 次』路徑:重複鍵 offset 累加 / clip 接自己的**自接點**無縫(=loopability,L 只驗過**相異** beat 接點)/ "
+                     "N 份重播逐幀還原同一 clip / 平鋪為**非靜止嚴格週期**。新增 gen_animations.is_loopable(把『首幀==尾幀 → 可安全重播』不變量顯式化,additive 純判斷)+ 閘。"
+                     "選題理由:延續 L/L-2/G-2 刻意選整合/組合閘,不加參數軸;客觀新不變量=loopability+週期平鋪,L 涵蓋不到。"
+                     "**關鍵發現(crux):compose_sequence 的時間去重會把『同時刻、不同值』的接點 collapse 成單幀 → 值不符的接點(非 loopable beat)被抹成陡坡而非真跳變,"
+                     "composed 取樣恆 C0(Loop 與 tiled-In 的 wrap shrink 比皆 ≈0.1)→ loopability 只能在 clip 端點層(self-seam / is_loopable)判,不能從 composed 時間軸判。**"
+                     "validate_sequence_loop.py 5AC PASS:LP1 present+loopable(Loop)+offset 累加([0.6,2.6,4.6]・總時長 7.0==In+3·Loop+Out)/LP2 crux 自接點無縫"
+                     "(Loop→Loop self-seam 0.0<1e-3・compose 產物確為 C0)/LP3 periodicity(N 份去 offset 逐幀還原孤立 Loop 殘差 0.0 且彼此逐幀相同→重播不漂移)/"
+                     "LP4 non-static(Loop 內部運動 5.0≥1.0,非靜止→無縫非空驗)+嚴格週期(平鋪區 sample(t)==sample(t+Loop_dur) 殘差 0.0)/"
+                     "**LP5 負對照**:(a crux)In(collapsed→id)is_loopable=False・In→In 自接點 40>>・且 tiled-In 的 composed wrap 仍看似 C0(shrink 0.1)→證 loopability 須 clip 端點判;"
+                     "(b)Out(id→collapsed)self-seam 25・非 loopable;(c crux 空驗守衛)合成靜止 clip is_loopable=True 且自接點 0(trivially 無縫)**但** LP4 非靜止=0→證"
+                     "『光自接點無縫』不足以是有意義 loop(須同時非靜止+嚴格週期),LP4 有鑑別力。honest:重播次數 N 為 PROPOSAL(A 類);無改任何生成/產線值(is_loopable 純判斷);"
+                     "單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"
