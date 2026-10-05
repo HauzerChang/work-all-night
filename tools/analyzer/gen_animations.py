@@ -649,6 +649,71 @@ def is_loopable(clip, tol=1e-6):
     return _state_max_diff(start, end) <= tol
 
 
+def _state_velocity(clip, at_start, h):
+    """單側有限差分的「狀態速度」(每通道 d(值)/dt),在 clip 端點取。
+    at_start=True → `(sample(h)-sample(0))/h`(進入 t=0⁺ 的外向速度);
+    at_start=False → `(sample(dur)-sample(dur-h))/h`(逼近 t=dur⁻ 的內向速度)。
+    回傳與 `sample()` 同形狀的 state,但每個數值欄位是**速度**(scale/alpha 的 setup 基準在相減時抵消,
+    故此處所有欄位基準皆取 0 —— 單純對 `sample()` 兩次取值相減再除 h,與基準無關)。純函式、不改值。"""
+    import spine_anim as _SA
+    dur = _SA.duration(clip)
+    t0, t1 = (0.0, h) if at_start else (dur - h, dur)
+    s0, s1 = _SA.sample(clip, t0), _SA.sample(clip, t1)
+    vb = {}
+    for b in set(s0["bones"]) | set(s1["bones"]):
+        d0 = s0["bones"].get(b, _LOOP_IDENT)
+        d1 = s1["bones"].get(b, _LOOP_IDENT)
+        vb[b] = {k: (d1.get(k, _LOOP_IDENT[k]) - d0.get(k, _LOOP_IDENT[k])) / h for k in _LOOP_IDENT}
+    vs = {}
+    for s in set(s0["slots"]) | set(s1["slots"]):
+        a0 = s0["slots"].get(s, {"alpha": 1.0})["alpha"]
+        a1 = s1["slots"].get(s, {"alpha": 1.0})["alpha"]
+        vs[s] = {"alpha": (a1 - a0) / h}
+    return {"bones": vb, "slots": vs}
+
+
+def loop_seam_velocity_gap(clip, h=1e-3):
+    """candidate (L-4) — 一支 loopable clip 在**自接點**(重複/平鋪時 前份尾→後份首)的 **C1(速度)不連續量**。
+
+    `is_loopable`(L-3)只保證自接點 **C0**(值連續、不跳變);但把一支 clip 平鋪重播時,即使端點值相等,
+    若**進入 t=0⁺ 的外向速度 ≠ 逼近 t=dur⁻ 的內向速度**,自接點就有**速度突變(velocity kink / 頓挫)**——
+    這正是 L-3 誠實列為未驗的 honest boundary(「loop 重啟頓挫」)。本函式把這個 C1 不變量**顯式量化**:
+    回傳 `max |v_end − v_start|`(跨所有 bone 通道 rotate/x/y/scale/shear + 每個 slot 的 alpha,
+    單側有限差分),單位為「state-diff 每秒」(沿用 `_state_max_diff` 的混合單位慣例,只是多除一個時間)。
+
+    ⚠️ **必須在 clip 端點層量,不能從 composed 時間軸量**:L-3 已發現 `compose_sequence` 的時間去重會把
+    接點抹成陡坡,composed 取樣恆 C0 → 跨 composed 接點的速度是**量測 artifact**;真 C1 判準只在孤立 clip
+    的端點切線(本函式所做)。對分段線性 / 端點附近近線性的 timeline,單側差分即端點切線,對 h 穩定(見閘 C1b)。
+    純函式、additive、不依賴任何既有索引。"""
+    vs = _state_velocity(clip, True, h)
+    ve = _state_velocity(clip, False, h)
+    m = 0.0
+    for b in set(vs["bones"]) | set(ve["bones"]):
+        d0 = vs["bones"].get(b, {k: 0.0 for k in _LOOP_IDENT})
+        d1 = ve["bones"].get(b, {k: 0.0 for k in _LOOP_IDENT})
+        for k in _LOOP_IDENT:
+            m = max(m, abs(d0.get(k, 0.0) - d1.get(k, 0.0)))
+    for s in set(vs["slots"]) | set(ve["slots"]):
+        a0 = vs["slots"].get(s, {"alpha": 0.0})["alpha"]
+        a1 = ve["slots"].get(s, {"alpha": 0.0})["alpha"]
+        m = max(m, abs(a0 - a1))
+    return m
+
+
+def is_c1_loopable(clip, tol=1e-6, vel_tol=1.0, h=1e-3):
+    """candidate (L-4) — 一支 clip 是否可**無頓挫地**重複/平鋪(C1-loopable)。
+
+    `= is_loopable(clip, tol)` (自接點 C0 值連續) **AND** `loop_seam_velocity_gap(clip, h) <= vel_tol`
+    (自接點 C1 速度連續)。C1-loopable ⇒ C0-loopable(嚴格更強)。
+
+    **為何需要**(crux,見閘 C1d):真實產線的一次性主秀 beat(hit/combo/charge/cascade)首尾皆 setup
+    identity → `is_loopable`(C0)**一律 True**,看似「可安全重播」;但它們是單發節拍,自接點速度突變達數十~上百
+    deg/s(符號翻轉)→ 平鋪會每份頓挫一次。唯有 **C1** 能把真正的 idle-**Loop**(速度亦連續)與這些一次性 beat
+    區分開。`vel_tol` 預設 1.0(真實 Loop 自接點 gap 實測 ≈0.19,來自光暈呼吸式 scale/alpha 的小殘差 kink;
+    主秀 beat ≥64)。純函式、additive。"""
+    return is_loopable(clip, tol) and loop_seam_velocity_gap(clip, h) <= vel_tol
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("skeleton_json", help="build_spine 產出的 skeleton.json")

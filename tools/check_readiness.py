@@ -439,6 +439,21 @@ BLOCKS = [
                      "(b)Out(id→collapsed)self-seam 25・非 loopable;(c crux 空驗守衛)合成靜止 clip is_loopable=True 且自接點 0(trivially 無縫)**但** LP4 非靜止=0→證"
                      "『光自接點無縫』不足以是有意義 loop(須同時非靜止+嚴格週期),LP4 有鑑別力。honest:重播次數 N 為 PROPOSAL(A 類);無改任何生成/產線值(is_loopable 純判斷);"
                      "單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_loop_c1", "自接點 C1(速度)連續 / C1-loopability(L-4,關掉 L-3 的 C0-only honest boundary)", "L2",
+                "python3 tools/analyzer/validate_sequence_loop_c1.py", "pipeline",
+                note="補 candidate (L-3) 誠實列出的 honest boundary:is_loopable 把『可安全重播』顯式化但**只驗 C0**(自接點值連續),"
+                     "並明記『不保證 C1 速度連續(loop 重啟頓挫)』。本次關掉它:新增 gen_animations.loop_seam_velocity_gap(自接點 C1 速度不連續量,"
+                     "單側有限差分 max|v_end−v_start|,additive 純函式)+ is_c1_loopable(C0 ∧ C1)+ 閘。選題:延續 L/L-2/L-3/G-2 刻意選整合/組合閘,不加參數軸。"
+                     "**關鍵發現(crux):真實一次性主秀 beat(hit/combo/charge/cascade)首尾皆 setup identity → is_loopable(C0)一律 True —— L-3 的 loopability 判準會"
+                     "誤把單發節拍當『可安全重播』;但它們自接點速度突變 64~167 deg/s(符號翻轉),平鋪會每份頓挫。唯 C1(自接點速度亦連續)能把真 idle-Loop"
+                     "(gap≈0.19,僅光暈呼吸 scale/alpha 小殘差)與單發 beat(gap≥64)區分 → C1-loopability 嚴格更強、與 C0 獨立(真簽章常需兩獨立條件並立)。**"
+                     "validate_sequence_loop_c1.py 5AC PASS:C1a present+C0 複驗+非空驗(Loop 端點速度≈15≥1)/C1b crux metric 良定義(gap 對 h∈{2e-3,1e-3,5e-4} bit-stable→"
+                     "單側差分=端點切線非 artifact;且確認須在 clip 端點層量,跨 composed 接點因 L-3 時間去重被抹平恆 C0 量不到 kink)/C1c crux Loop gap 0.19<1 且 is_c1_loopable=True・"
+                     "通道分解 剛體 limb rotate 精確 C1(gap~1e-12)唯一殘差=光暈呼吸(scaleY 0.024)/C1d crux C1 獨立於 C0:{Loop,hit,combo,charge,cascade} 全 is_loopable=True(C0 不能鑑別)"
+                     "但 C1 gap Loop 0.19 vs 主秀 ≥64(ratio 340×)・is_c1_loopable 對主秀全 False→證 is_loopable 單獨會誤放單發 beat/C1e 負對照+空驗守衛:"
+                     "(a crux)三角脈衝(C0-loopable 但注入速度 kink)gap 2.0>1 is_c1_loopable=False→抓出 is_loopable 看不到的頓挫;(b 空驗守衛)靜止 clip gap=0 trivially C1 且 is_c1_loopable=True"
+                     "**但**端點速度 0<1 無運動→證 gap≤tol 必要不充分須配非靜止(呼應 LP4);(c)In 非 C0-loopable→is_c1_loopable False 由 C0 先否決。"
+                     "honest:Loop 是否該被設計成完美 C1 屬美術手感(A 類,光暈呼吸殘差 kick 0.19 為已知邊界);vel_tol=1.0 為量級選擇;無改任何生成/產線值(兩新函式純量測);單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

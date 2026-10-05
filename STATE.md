@@ -10,6 +10,41 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 自接點 C1(速度)連續 / C1-loopability(里程碑,2026-10-05 run 002,candidate L-4)** —
+  關掉 candidate (L-3) 誠實列出的 honest boundary:`is_loopable` 只驗 **C0**(自接點值連續),明記
+  「不保證 C1 速度連續(loop 重啟頓挫)」。本次把 **C1**(自接點速度連續)顯式量化並以閘把關,延續
+  L/L-2/L-3/G-2 刻意選整合/組合閘、**不加任何參數軸**。**做了什麼(全 additive)**:①
+  `gen_animations.loop_seam_velocity_gap(clip, h=1e-3)` → 自接點 C1 不連續量 `max|v_end−v_start|`
+  (跨所有 bone 通道 + slot alpha,單側有限差分;單位=`_state_max_diff` 混合單位每秒;純量測、不改值);
+  ②`is_c1_loopable(clip, tol, vel_tol=1.0, h)` = `is_loopable`(C0) **AND** gap ≤ vel_tol(C1 ⇒ C0,
+  嚴格更強);③新閘 `validate_sequence_loop_c1.py`(L-4,5 AC)從**先驗庫 → 真實 build_spine robot
+  骨架 → build_animations** 端到端(與 L/L-3 同一 fixture)。**5 AC 全 PASS**:**C1a** present+C0 複驗
+  +非空驗(Loop 端點速度≈15≥1 否則 C1 判準空驗)、**C1b crux metric 良定義**(Loop gap 對 h∈
+  {2e-3,1e-3,5e-4} **bit-stable** 相對差<1e-3→單側差分=端點**切線**非有限差分 artifact;並確認須在
+  clip 端點層量,跨 **composed** 接點因 L-3 時間去重被抹平恆 C0,composed wrap 速度差≪clip 端點真
+  gap 0.19,量不到真 kick)、**C1c crux Loop C1+通道分解**(Loop gap **0.188**<1 且 `is_c1_loopable`
+  =True;通道分解:**剛體 limb rotate 精確 C1**(右手/左手/頭 rotate gap≈1e-12≤1e-6),唯一殘差來自
+  **光暈呼吸** scaleY 0.024/alpha 0.188 —— breathing pulse 升後降,自接點速度符號翻轉)、**C1d crux
+  C1 獨立於 C0(本 run 核心)**:{Loop,hit,combo,charge,cascade} **全部** `is_loopable`(C0)==True
+  → **C0 不能鑑別**;但 C1 gap:Loop 0.188 vs 主秀 hit134/combo109/charge167/cascade64(每個≥10,
+  min(主秀)/Loop=**340×**≥50)→ 證 **`is_loopable` 單獨會誤把單發 beat 當『可安全重播』**,C1
+  loop-seam 連續是鑑別子;`is_c1_loopable` 對主秀 beat **全 False**、對 Loop True、**C1e 負對照+空驗
+  守衛**:(a) **crux** 三角脈衝 scale1→2→1(C0-loopable 但注入速度 kink)gap **2.0**>1 且
+  `is_c1_loopable`=False → 閘抓出 `is_loopable` 看不到的頓挫;(b) **空驗守衛** 靜止 clip gap==0
+  trivially C1 且 `is_c1_loopable`=True **但**端點速度≈0<1 無運動 → 證「gap≤tol」必要不充分須配非
+  靜止(呼應 L-3 LP4);(c) In 非 C0-loopable → `is_c1_loopable`=False 且由 **C0 先否決**。
+  **回歸:check_readiness 全綠 0 RED / 57 GREEN**(新增 cap `sequence_loop_c1` L2 併入
+  `spine-anim-forge`,仍 HOLD;L-3 等既有 56 閘逐一 GREEN 證兩新純量測函式零回歸)。**關鍵發現**:
+  ①**`is_loopable`(C0)會誤把單發主秀 beat 當『可安全重播』** —— 它們首尾皆 setup identity → C0 全
+  True,但自接點速度突變 64~167 deg/s(符號翻轉),平鋪會每份頓挫;**C1 是把真 idle-Loop 與一次性
+  beat 區分開的鑑別子**(再現本 repo 通則「真簽章常需兩獨立條件並立」,呼應 L-3 的 C0 無縫+非靜止週期);
+  ②**同一支 Loop 在不同通道有不同階的連續性** —— 剛體 limb rotate 精確 C1(端點切線完全相等,由週期性
+  擺動設計保證),光暈 breathing scale/alpha 只做到 C0(0.19 速度 kick);C1-loopability 看全通道最大
+  gap,分解到通道能誠實指認殘差來源;③**C1 metric 良定義須證對取樣步長 h 不敏感(bit-stable=真切線)
+  且須在 clip 端點層量**(呼應 L-2/L-3/Z4:「量在哪一層 + 對無關變數是否穩定」決定能否看見真不變量)。
+  **honest boundary**:Loop 是否該設計成完美 C1 屬美術手感(A 類,光暈 0.19 kick 為已知邊界);
+  vel_tol=1.0 為量級選擇;無改任何 beat 生成/產線值(兩新函式純量測/純判斷);單一真值資產。
+  見 `knowledge/s1-sequence-loop-c1.md`。
 - **S1 序列內 Loop 重播 N 次 + loopability 不變量(里程碑,2026-10-05 run 001,candidate L-3)** —
   延續 L / L-2 / G-2 的整合/組合閘選題,**刻意不加任何參數軸**。candidate (L) 的 `compose_sequence(anims, order)`
   的 `order` **本就可重複同一 beat 名**(逐一 iterate→查 `anims[name]`→平移 offset→extend),所以
@@ -1166,6 +1201,22 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-10-05 run 002:**S1 自接點 C1(速度)連續 / C1-loopability(里程碑,candidate L-4)** — 關掉 L-3 誠實列出的
+  honest boundary(`is_loopable` 只驗 C0,明記不保證 C1 速度連續)。延續 L/L-2/L-3/G-2 整合/組合閘選題,**不加參數軸**。
+  全 additive:新增 `gen_animations.loop_seam_velocity_gap`(自接點 C1 不連續量 `max|v_end−v_start|`,單側有限差分,純量測)
+  + `is_c1_loopable`(C0 ∧ C1,嚴格更強)+ `validate_sequence_loop_c1.py`。5AC PASS(真實 robot 骨架):C1a present+C0
+  複驗+非空驗、C1b crux metric 良定義(gap 對 h bit-stable=端點切線非 artifact;須 clip 端點層量,跨 composed 接點被 L-3
+  時間去重抹平恆 C0)、C1c crux Loop gap 0.188<1 is_c1_loopable=True・分解 剛體 limb rotate 精確 C1(~1e-12)唯一殘差=光暈
+  呼吸(scaleY 0.024/alpha 0.188)、**C1d crux C1 獨立於 C0**:{Loop,hit,combo,charge,cascade} 全 is_loopable=True(C0
+  不能鑑別)但 C1 gap Loop 0.188 vs 主秀 ≥64(ratio 340×)→ 證 is_loopable 單獨會誤把單發 beat 當『可安全重播』,C1 是
+  鑑別子;is_c1_loopable 對主秀全 False、C1e 負對照+空驗守衛(a crux 三角脈衝 C0-loopable 但注入 kick gap 2.0>1 →
+  is_c1_loopable=False 抓出 is_loopable 看不到的頓挫;b 空驗守衛 靜止 clip gap=0 trivially C1 但端點速度 0 無運動→須配非靜止;
+  c In 非 C0-loopable→C0 先否決)。回歸:check_readiness 0 RED / 57 GREEN(新增 cap `sequence_loop_c1` L2 併入
+  `spine-anim-forge` 仍 HOLD;既有 56 閘逐一 GREEN 證兩新純量測函式零回歸)。關鍵發現:①is_loopable(C0)會誤把單發主秀
+  beat 當可安全重播(首尾皆 identity→C0 全 True,但自接點速度突變 64~167 deg/s 符號翻轉→平鋪頓挫),C1 是鑑別子(真簽章
+  常需兩獨立條件並立);②同一支 Loop 在不同通道有不同階連續性(剛體 limb rotate 精確 C1、光暈 breathing 只 C0);
+  ③C1 metric 良定義須證對 h 不敏感(bit-stable=真切線)且須在 clip 端點層量。honest:Loop 是否該完美 C1 屬美術(A 類,
+  光暈 0.19 kick 為已知邊界);vel_tol=1.0 量級選擇;無改任何生成/產線值;單一真值資產。見 `knowledge/s1-sequence-loop-c1.md`。
 - 2026-10-05 run 001:**S1 序列內 Loop 重播 N 次 + loopability 不變量(里程碑,candidate L-3)** — 延續 L/L-2/G-2
   整合/組合閘選題,**不加任何參數軸**。`compose_sequence` 的 `order` 本就可重複同一 beat 名(`In→Loop×N→Out`),這正是真實大獎
   序列形態(進場→Loop 重播待機→收尾),但 L 每 beat 只出現一次,**從未有閘**驗過「同一支 clip 重複 N 次」路徑。全 additive:
