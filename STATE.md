@@ -10,6 +10,41 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 跨 beat 混場(crossfade / overlap-mix)接點機制(里程碑,2026-10-05 run 003,candidate M)** —
+  關掉 candidate (L-4) 誠實列出的下一個組合層軸 honest boundary:`compose_sequence`(L)用**純時間平移 +
+  接點去重**串序列 → 任一時刻輸出**恰等於某一支 clip**(平移後),**從不產生兩支 clip 的混合**;但真實
+  大獎序列常需「前拍未收完、後拍已起」的**時間重疊交叉淡入淡出**(Spine runtime track mix),去重做不到
+  (值不等被抹成陡坡,見 L-3),**需真正的 mix 機制**。延續 L/L-2/L-3/L-4 刻意選整合/組合閘、**不加任何
+  參數軸**。**做了什麼(全 additive)**:①`gen_animations.crossfade_pair(clipA,clipB,window,dt=1/120,
+  weight="smooth")` —— 把 A 尾段 `window` 秒與 B 首段 `window` 秒**時間重疊**,窗內 `out=(1-w)·A+w·B`
+  凸組合(B 右移 `offsetB=durA−window`;總長 `durA+durB−window`;**窗外逐位元沿用原幀**保留 bezier,僅
+  窗內 dt 重取樣線性橋接;slot color 恆 `ffffffAA` 由混合 alpha 重建);②`_crossfade_weight(u,mode)`
+  (linear / smoothstep `3u²−2u³`,端點 w'=0 更順);③`crossfade_sequence(anims,order,window,...)`
+  fold-left 折疊多拍(結果 clip 仍是 clip → 機制深度無關);④新閘 `validate_sequence_crossfade.py`(M,
+  5 AC)從**先驗庫 → 真實 build_spine robot 骨架 → build_animations** 端到端(hit×combo,與 L/L-3/L-4
+  同一 fixture)。**5 AC 全 PASS**:**M1** present+structure(`total==durA+durB−W=1.1`・`overlap==[0.2,0.5]`・
+  `all_finite`・bones 齊);**M2 crux 端點精確+非空驗**(窗首 `cf(0.2)==hit(0.2)`・窗尾 `cf(0.5)==combo(0.3)`
+  bone 殘差 **4e-7**<1e-4,含 alpha 的 full diff <0.01 的 8-bit 量化容忍;**中點** `cf==0.5·A+0.5·B` 殘差
+  4e-7 → 混場公式忠實烘進 keyframe;非空驗中點 `|A−B|≈8.33≥1` 確在混);**M3 crux 混場深度 compose 做不到
+  (本 run 核心)**:重疊窗格點上 crossfade 對「{A(t),B(t−offsetB)}」最小距離(mix depth)**max=4.20≥1**
+  (達兩拍都不在的中間態),而 `compose_sequence([hit,combo])` 在**同一絕對時間** mix depth **=0**(恆等某
+  一支 clip)→ 證本機制是 compose **做不到**的新組合層軸、非換皮;**M4 faithful outside overlap**(A 內部
+  knot `cf==A`、B 內部 knot `cf==B` 殘差 **<1e-6** → 只動重疊窗);**M5 負對照+守衛**:(a) **crux window→0
+  連續退化**:cf(W) vs concat 的 sup-dist **線性於 W**(窗外純-B 段較 concat 右移恰 W → sup=接點速度·W),
+  W∈{0.04,0.02,0.01} 的 `sup/W=212.96` **三者恆定**、sup 隨 W 遞減 → W→0 時 →0,**concat = 零窗 crossfade**;
+  (b) **partition-of-unity 守衛**:兩支**相同靜止 hold**(恆 P=20°)混場 → 窗內 `cf==P` 殘差 **0**(若權重非
+  和=1 如相加會得 2P)→ 證真凸組合;(c) **凸性守衛**:窗內逐 knot 每通道 `cf∈[min(A,B),max(A,B)]` 越界 **0**。
+  **回歸:check_readiness 全綠 0 RED**(新增 cap `sequence_crossfade` L2 併入 `spine-anim-forge`,仍 HOLD;
+  既有閘逐一 GREEN 證 crossfade 四新函式零回歸)。**關鍵發現**:①**compose(平移+去重)與 crossfade(重疊+
+  凸組合)是兩種本質不同的接點** —— compose 任一時刻輸出=某一支 clip 的值,**狀態空間只走兩 clip 各自軌跡**;
+  crossfade 在重疊窗內走**兩軌跡凸包內部**,能到達**兩拍誰都不經過**的中間態(M3 以同一絕對時間 mix depth
+  4.2 vs 0 量化)→ 要讓不等值接點**平順過渡**,不能靠平移去重,須**時間重疊+權重混合**(L-3 發現「去重把
+  不等值接點抹成陡坡」的正面解);②**crossfade 是 concat 的連續推廣** —— window→0 逐點退化回 compose
+  (M5a 的 sup/W 恆定=線性退化證據),兩者是**同一族接點的兩端**(零重疊=C0 拼接;正重疊=混場);③**凸組合
+  三代數性質(端點精確/partition-of-unity/凸有界)一次釘死機制正確性**,比「看起來平滑」穩健——它們**可被
+  負對照否證**(相加破 partition-of-unity、權重>1 破凸有界)。**honest boundary**:重疊窗長 W / 權重曲線
+  (linear/smooth)屬美術手感(A 類);beat 排序仍 PROPOSAL;混合在值空間(近似 track mix),rotate 最短弧 /
+  weighted deform 混場未涵蓋;單一真值資產。見 `knowledge/s1-sequence-crossfade.md`。
 - **S1 自接點 C1(速度)連續 / C1-loopability(里程碑,2026-10-05 run 002,candidate L-4)** —
   關掉 candidate (L-3) 誠實列出的 honest boundary:`is_loopable` 只驗 **C0**(自接點值連續),明記
   「不保證 C1 速度連續(loop 重啟頓挫)」。本次把 **C1**(自接點速度連續)顯式量化並以閘把關,延續
@@ -1170,10 +1205,14 @@
 >   `compose_sequence` 的 order 本就支援重複鍵(`In→Loop×N→Out`),但 L 每 beat 只出現一次,從未驗過「同一 clip 重複 N 次」路徑。
 >   新增 `gen_animations.is_loopable`(首幀==尾幀→可安全重播,含 shear,純判斷)+ `validate_sequence_loop.py` 5AC PASS。
 >   **關鍵:compose 的時間去重把值不符接點抹成陡坡 → composed 恆 C0 → loopability 只能在 clip 端點層判(self-seam/is_loopable)**。
-> **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(L-4) 把序列組合閘擴成「跨 beat 混場(crossfade / mix)」接點閘**(L-3 的 Loop 重播是 C0 拼接;crossfade 是**時間重疊 + 權重混合**,
->   compose 的純平移+去重做不到,需真正的 mix 機制;屬序列組合的下一個組合層軸,仍整合閘精神);或 **(L-3') loop 的 C1 速度連續閘**
->   (L-3 只驗 C0,loop 重啟的「速度頓挫」= 尾速度≠首速度;可量兩端有限差速度向量並驗連續,為 loop 手感客觀化);
+> **(M) ~~把序列組合閘擴成「跨 beat 混場(crossfade / mix)」接點機制~~ ✅ 完成(2026-10-05 run 003,candidate M,`sequence_crossfade` L2,見上里程碑)** ——
+>   `crossfade_pair`(重疊窗內 `out=(1-w)·A+w·B` 凸組合,窗外逐位元沿用原幀)+ `crossfade_sequence` fold + `validate_sequence_crossfade.py` 5AC
+>   (M3 crux 混場深度 crossfade 4.2 vs compose 0 → 證 compose 做不到的新組合層軸;M5a crux window→0 線性退化回 concat)。
+>   **續**(擇一,皆純自主):**(M-2) crossfade 的 C1 / 速度連續閘**(smooth 權重讓混場進/出純段速度連續,可比照 L-4 的
+>   `loop_seam_velocity_gap` 量混場邊界速度跳變,證 smooth 比 linear 無頓挫——linear 在窗邊有速度折點);
+>   **(M-3) crossfade × loopability**(把 Loop 首尾自 crossfade 成**完美無縫無頓挫**的循環,接 L-3/L-4);
+>   **(M-4) 多拍 fold 的接點不變量**(`crossfade_sequence` 在**每個**接點複驗 M2–M5,現已能跑未加閘);
+> **(L-4 已改名)** 原「loop 的 C1 速度連續閘」已於 run 002 以 candidate **L-4** 完成(見 `sequence_loop_c1`);
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。

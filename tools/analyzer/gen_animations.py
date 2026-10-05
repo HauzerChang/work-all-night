@@ -714,6 +714,182 @@ def is_c1_loopable(clip, tol=1e-6, vel_tol=1.0, h=1e-3):
     return is_loopable(clip, tol) and loop_seam_velocity_gap(clip, h) <= vel_tol
 
 
+# ======================================================================
+# candidate (M) — 跨 beat 混場 (crossfade / overlap-mix) 接點機制
+# ======================================================================
+#
+# `compose_sequence`(L)把 beat **純時間平移 + 接點去重**串成序列:任一時刻的輸出都**恰等於某一支 clip**
+# 的值(平移後),**從不產生兩支 clip 的混合**。真實大獎序列常需「前一拍還沒收完、後一拍已經起」——
+# 兩拍在一段**時間重疊窗**內**同時作用**、以權重交叉淡入淡出(Spine runtime 的 track mix)。這無法用平移+去重
+# 做到(去重要求接點值相等才無損;值不等則被抹成陡坡,見 L-3 發現),**需要真正的 mix 機制**:在重疊窗內
+# **同步取樣兩支 clip 並做凸組合** `out = (1-w)·A + w·B`,w 於窗內 0→1。這是 L-4 誠實列為未做的下一個組合層軸。
+#
+# 幾何/不變量(本機制的客觀性質,供閘把關):
+#   ·端點精確:窗首 w=0 ⇒ 輸出==A,窗尾 w=1 ⇒ 輸出==B(交接無縫,銜接「A 當下在做什麼」→「B 當下在做什麼」)。
+#   ·單位分解(partition of unity):(1-w)+w≡1 ⇒ 若窗內 A==B 則輸出==A(兩拍一致時**不引入任何失真**)。
+#   ·凸性/有界:輸出恆為兩輸入的凸組合 ⇒ 每通道值落在 [min(A,B),max(A,B)],**無 overshoot**。
+#   ·混場深度:窗內輸出可達「**兩支 clip 當下都不在**」的中間態(0.5A+0.5B)——這正是 compose 的平移+去重
+#     **永遠做不到**的狀態(compose 任一時刻 = 某一支 clip 的值),是本機制 vs L 的鑑別點。
+#   ·退化:窗→0 ⇒ 連續退化回 `compose_sequence` 的 C0 拼接(crossfade 是 concat 的推廣,concat = 零窗 crossfade)。
+#
+# 實作為**加性**:不改任何既有函式;重疊窗外**逐位元沿用原 clip 幀**(保留原 bezier 緩動),僅重疊窗內
+# 以 dt 重取樣成線性橋接幀。slot color 在本資產恆為 `ffffffAA`(僅 alpha 動)→ 由混合後 alpha 重建 hex,忠實。
+
+
+def _crossfade_weight(u, mode="smooth"):
+    """交叉淡權重 w(u),u∈[0,1] 為窗內時間佔比。
+    "linear" = u;"smooth" = smoothstep 3u²−2u³(端點 w'(0)=w'(1)=0 → 進/出純段時速度亦連續,C1 更順)。
+    兩者皆滿足 w(0)=0、w(1)=1、中點 w(0.5)=0.5(混場深度鑑別與 mode 無關)。"""
+    if u <= 0.0:
+        return 0.0
+    if u >= 1.0:
+        return 1.0
+    if mode == "linear":
+        return u
+    return u * u * (3.0 - 2.0 * u)
+
+
+_CF_BONE_CHANS = (("rotate", ("angle",)), ("translate", ("x", "y")),
+                  ("scale", ("x", "y")), ("shear", ("x", "y")))
+# sample() 狀態鍵 ↔ timeline 幀鍵 的對映(每個 channel group 寫回時用)
+_CF_STATE_KEYS = {"rotate": {"angle": "rotate"}, "translate": {"x": "x", "y": "y"},
+                  "scale": {"x": "scaleX", "y": "scaleY"}, "shear": {"x": "shearX", "y": "shearY"}}
+
+
+def _alpha_to_hex(a):
+    """0..1 alpha → 8-hex `ffffffAA`(RGB 在本資產恆白;重疊窗外沿用原幀故不失真)。"""
+    v = max(0, min(255, int(round(a * 255.0))))
+    return "ffffff" + format(v, "02x")
+
+
+def crossfade_pair(clipA, clipB, window, dt=1.0 / 120.0, weight="smooth"):
+    """candidate (M) — 把 clipA 的**尾段** `window` 秒與 clipB 的**首段** `window` 秒**時間重疊**,
+    於窗內做 `out=(1-w)·A+w·B` 凸組合,串成**單一可載入** animation(確定性)。
+
+    回傳 `(composed, info)`:
+      composed = {"bones":{...},"slots":{...}}(重疊窗外逐位元沿用原幀,窗內 dt 重取樣線性橋接)。
+      info = {"durA","durB","window","offsetB","total","overlap":[start,end],"weight"}。
+
+    時間軸:clipB 整體右移 `offsetB = durA − window`;總長 `total = durA + durB − window`。
+      · 窗前 [0, offsetB)        → 純 clipA(原幀,time<offsetB)。
+      · 重疊 [offsetB, durA]     → 混場(A-time=t,B-time=t−offsetB,w=weight((t−offsetB)/window))。
+      · 窗後 (durA, total]       → 純 clipB(原幀 time>window,右移 offsetB)。
+    window 會被夾到 (0, min(durA,durB)];window≤0 視為 compose 的 C0 拼接(無重疊)。純函式、加性、不改既有索引。"""
+    import spine_anim as _SA
+    durA, durB = _SA.duration(clipA), _SA.duration(clipB)
+    w_eff = min(float(window), durA, durB)
+    if w_eff <= 0.0:
+        # 退化:無重疊 = compose 的純拼接(此處直接委派,保證「窗→0 連續退化回 concat」)
+        composed, _segs = compose_sequence({"__A": clipA, "__B": clipB}, ["__A", "__B"])
+        return composed, {"durA": durA, "durB": durB, "window": 0.0, "offsetB": durA,
+                          "total": durA + durB, "overlap": [durA, durA], "weight": weight}
+    offsetB = durA - w_eff
+    total = durA + durB - w_eff
+
+    # 重疊窗取樣時間(含兩端點):offsetB, +dt, ..., durA
+    bts = []
+    t = offsetB
+    while t < durA - 1e-9:
+        bts.append(round(t, 6))
+        t += dt
+    bts.append(round(durA, 6))
+
+    # 每個橋接時間的混合狀態(union of parts;缺席 part/channel 以 setup identity 補)
+    def _blend_at(tb):
+        w = _crossfade_weight((tb - offsetB) / w_eff, weight)
+        sA = _SA.sample(clipA, tb)
+        sB = _SA.sample(clipB, tb - offsetB)
+        bones = {}
+        for p in set(sA["bones"]) | set(sB["bones"]):
+            da = sA["bones"].get(p, _LOOP_IDENT)
+            db = sB["bones"].get(p, _LOOP_IDENT)
+            bones[p] = {k: (1.0 - w) * da.get(k, _LOOP_IDENT[k]) + w * db.get(k, _LOOP_IDENT[k])
+                        for k in _LOOP_IDENT}
+        slots = {}
+        for s in set(sA["slots"]) | set(sB["slots"]):
+            aa = sA["slots"].get(s, {"alpha": 1.0})["alpha"]
+            ab = sB["slots"].get(s, {"alpha": 1.0})["alpha"]
+            slots[s] = {"alpha": (1.0 - w) * aa + w * ab}
+        return bones, slots
+
+    bridge = [(_tb, _blend_at(_tb)) for _tb in bts]
+
+    composed = {"bones": {}, "slots": {}}
+    # ---- bones ----
+    boneparts = set(clipA.get("bones", {})) | set(clipB.get("bones", {}))
+    for p in boneparts:
+        chA = clipA.get("bones", {}).get(p, {})
+        chB = clipB.get("bones", {}).get(p, {})
+        dst = composed["bones"].setdefault(p, {})
+        for group, _keys in _CF_BONE_CHANS:
+            if group not in chA and group not in chB:
+                continue
+            frames = []
+            # 窗前:clipA 原幀 time<offsetB(逐位元,保留 curve)
+            for f in chA.get(group, []):
+                if f["time"] < offsetB - 1e-9:
+                    frames.append(dict(f))
+            # 重疊:橋接幀(線性)
+            for tb, (bstate, _s) in bridge:
+                st = bstate.get(p, _LOOP_IDENT)
+                fr = {"time": tb}
+                for fkey, skey in _CF_STATE_KEYS[group].items():
+                    fr[fkey] = round(st[skey], 6)
+                frames.append(fr)
+            # 窗後:clipB 原幀 time>window(右移 offsetB,逐位元)
+            for f in chB.get(group, []):
+                if f["time"] > w_eff + 1e-9:
+                    g = dict(f)
+                    g["time"] = round(f["time"] + offsetB, 6)
+                    frames.append(g)
+            if frames:
+                dst[group] = frames
+        if not dst:
+            composed["bones"].pop(p, None)
+    # ---- slots (color/alpha) ----
+    slotparts = set(clipA.get("slots", {})) | set(clipB.get("slots", {}))
+    for s in slotparts:
+        cA = clipA.get("slots", {}).get(s, {}).get("color", [])
+        cB = clipB.get("slots", {}).get(s, {}).get("color", [])
+        if not cA and not cB:
+            continue
+        frames = []
+        for f in cA:
+            if f["time"] < offsetB - 1e-9:
+                frames.append(dict(f))
+        for tb, (_b, sstate) in bridge:
+            a = sstate.get(s, {"alpha": 1.0})["alpha"]
+            frames.append({"time": tb, "color": _alpha_to_hex(a)})
+        for f in cB:
+            if f["time"] > w_eff + 1e-9:
+                g = dict(f)
+                g["time"] = round(f["time"] + offsetB, 6)
+                frames.append(g)
+        if frames:
+            composed["slots"].setdefault(s, {})["color"] = frames
+    for group in ("bones", "slots"):
+        if not composed[group]:
+            composed.pop(group)
+    info = {"durA": round(durA, 6), "durB": round(durB, 6), "window": round(w_eff, 6),
+            "offsetB": round(offsetB, 6), "total": round(total, 6),
+            "overlap": [round(offsetB, 6), round(durA, 6)], "weight": weight}
+    return composed, info
+
+
+def crossfade_sequence(anims, order, window, dt=1.0 / 120.0, weight="smooth"):
+    """把 `order` 的 beat 依序**兩兩 crossfade** 折疊成單一序列(fold-left)。
+    每個相鄰接點都以 `window` 秒重疊混場;結果 clip 本身仍是 clip,故可再與下一支混場(機制深度無關)。
+    回傳 `(composed, infos)`,infos 為每個接點的 `crossfade_pair` info(供逐接點量測)。"""
+    if not order:
+        return {"bones": {}, "slots": {}}, []
+    cur = anims[order[0]]
+    infos = []
+    for name in order[1:]:
+        cur, info = crossfade_pair(cur, anims[name], window, dt=dt, weight=weight)
+        infos.append(info)
+    return cur, infos
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("skeleton_json", help="build_spine 產出的 skeleton.json")

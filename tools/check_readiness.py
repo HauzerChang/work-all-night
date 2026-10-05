@@ -454,6 +454,21 @@ BLOCKS = [
                      "(a crux)三角脈衝(C0-loopable 但注入速度 kink)gap 2.0>1 is_c1_loopable=False→抓出 is_loopable 看不到的頓挫;(b 空驗守衛)靜止 clip gap=0 trivially C1 且 is_c1_loopable=True"
                      "**但**端點速度 0<1 無運動→證 gap≤tol 必要不充分須配非靜止(呼應 LP4);(c)In 非 C0-loopable→is_c1_loopable False 由 C0 先否決。"
                      "honest:Loop 是否該被設計成完美 C1 屬美術手感(A 類,光暈呼吸殘差 kick 0.19 為已知邊界);vel_tol=1.0 為量級選擇;無改任何生成/產線值(兩新函式純量測);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_crossfade", "跨 beat 混場(crossfade/overlap-mix)接點機制(M,compose 做不到的組合層軸)", "L2",
+                "python3 tools/analyzer/validate_sequence_crossfade.py", "pipeline",
+                note="補 candidate (L-4) 誠實列出的 honest boundary:compose_sequence(L)用**純時間平移+接點去重**串序列 → 任一時刻輸出**恰等於某一支 clip**,"
+                     "**從不產生兩支 clip 的混合**;但真實大獎序列常需『前拍未收完、後拍已起』的**時間重疊交叉淡入淡出**(Spine runtime track mix),去重做不到"
+                     "(值不等被抹成陡坡,見 L-3),**需真正 mix 機制**。新增 gen_animations.crossfade_pair(重疊窗內同步取樣兩 clip 做凸組合 out=(1-w)·A+w·B,"
+                     "w 於窗內 0→1;smoothstep/linear 權重)+ crossfade_sequence(fold-left 折疊多拍),additive、窗外逐位元沿用原幀、僅窗內 dt 重取樣。"
+                     "選題:延續 L/L-2/L-3/L-4 刻意選整合/組合閘,不加參數軸。**關鍵鑑別(crux M3):crossfade 窗內可達『兩拍當下都不在』的中間態(≈0.5A+0.5B),"
+                     "compose 永遠做不到(任一時刻=某一支 clip 的值)—— 同一對 beat、同一絕對時間量 mix depth:crossfade 達 4.2≥1 而 compose=0 → 證本機制是 compose"
+                     "做不到的新組合層軸而非換皮。第二 crux(M5a):窗→0 **連續退化**回 concat(sup-dist 線性於 W,sup/W 恆定 212.96→ W=0 時 0),證 concat=零窗 crossfade。**"
+                     "validate_sequence_crossfade.py 5AC PASS(端到端 priors→build_spine robot→build_animations hit×combo):M1 present+structure(total=durA+durB−W・overlap=[durA−W,durA]・all_finite)/"
+                     "M2 crux 端點精確+非空驗(窗首 cf==A(offsetB)・窗尾 cf==B(window) bone<1e-4・中點 cf==0.5A+0.5B 公式忠實・中點|A−B|≈8.3≥1 確在混)/"
+                     "M3 crux 混場深度 compose 做不到(crossfade 4.2 vs compose 0)/M4 窗外逐位元忠實(A/B 內部 knot 殘差<1e-6 只動重疊窗)/"
+                     "M5 負對照+守衛:(a crux)窗→0 線性退化 sup/W=[212.96×3] 恆定遞減(b)partition-of-unity 守衛 兩支相同靜止 hold 混場窗內恆 P 殘差 0(權重和=1,非相加)"
+                     "(c)凸性守衛 窗內逐 knot 每通道 cf∈[min(A,B),max(A,B)] 越界 0。honest:重疊窗長 W/權重曲線(linear/smooth)屬美術手感(A 類);beat 排序仍 PROPOSAL;"
+                     "單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"
