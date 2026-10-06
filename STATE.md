@@ -10,6 +10,40 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 跨 beat 混場 crossfade/mix 序列接點(里程碑,2026-10-06 run 001,candidate L-5)** —
+  補 (L)/(L-2)/(L-3)/(L-4) 一路圍繞的 `compose_sequence` 的 honest boundary:它是**純時間平移 + 接點去重
+  = C0 拼接**,任一瞬間**恰好一支 beat 在作用**。真實大獎序列常用**混場 / 溶接(crossfade / dissolve)**:
+  重疊窗內前 beat 淡出、後 beat 淡入,**兩者同時貢獻(疊加 superposition)**—— 純平移 + 去重**在結構上做不到
+  疊加**(只能錯開時間,不能讓兩 beat 同一瞬間並存),故 crossfade 是**序列組合的下一個組合層軸**,需真正的
+  mix 機制。延續 L/L-2/L-3/L-4 刻意選**整合/組合閘**、**不加任何參數軸**。**做了什麼(全 additive)**:
+  ①`gen_animations.crossfade_weight(tau,overlap,fade="linear")`(混場權重 w∈[0,1],A 權重=1−w,**partition
+  of unity**);②`blend_states(sa,sb,w)`(兩 `sample()` 狀態逐通道線性混合 `(1-w)A+wB`,含 shear+slot alpha);
+  ③`crossfade_pair(A,B,overlap,dt=1/30)`(**烘焙式混場**:`[0,offsetB)` 純 A・`[offsetB,durA]` 重疊窗同步
+  取樣兩 clip 混合發關鍵幀・`(durA,total]` 純 B;`overlap==0` **委派 compose_sequence** 保證逐位元退化);
+  ④`crossfade_sequence`(多 beat 左折疊);⑤新閘 `validate_sequence_crossfade.py`(L-5,5 AC)從**先驗庫 →
+  真實 build_spine robot 骨架 → build_animations**(combo→cascade,OV=0.5)端到端,與 L/L-3/L-4 同一 fixture。
+  **5 AC 全 PASS**:**CF1** present+mechanism-active(可載入・dur==durA+durB−OV=1.6・**非空驗**:窗內兩 beat
+  同時偏離 identity max=9.13≥1→真有疊加,非兩 identity 空混)、**CF2 crux C0 窗邊界連續**(進窗 w=0→A(offsetB)・
+  出窗 w=1→B(OV),**骨殘差 ≤1e-4 精確銜接**,全狀態 ≤QUANT_TOL slot 8-bit 量化)、**CF3 crux 真疊加+concat
+  做不到(本 run 核心)**(窗內 grid t*=0.6 w=0.4 兩 beat 皆非 identity:(a)線性 cf==(1-w)A+wB 骨精確;(b)兩者
+  皆貢獻 `|cf−純A|=5.25>1` 且 `|cf−純B|=7.88>1`;(c)**crux** `compose_sequence(t*)==純 A`(骨≤1e-4)且
+  `|concat−cf|=5.25>1`→**C0 拼接同一時間只拿得到單一 beat,結構上做不到混合**)、**CF4 partition+退化守衛**
+  ((a)partition of unity:兩常數 clip 10°/30° 窗內==10+20w 精確 err 1.3e-5、端點 10/30;(b)**no-bump 守衛**:
+  兩等值常數 20°/20° 窗內恆 20 dev 0→權重和=1 無 artifact;(c)**crux overlap=0 逐位元==compose_sequence**→
+  crossfade 是嚴格推廣,零重疊退化回 L 的 C0 拼接)、**CF5 純區段保真+多 beat**(純前段 `[0,t0]` 逐幀還原孤立
+  A、純後段 `(durA,total]` 逐幀還原孤立 B 骨≤1e-4→混場只動重疊窗;`crossfade_sequence(hit→combo→cascade
+  每接點0.3s)` 可載入 dur==Σdur−2·0.3=2.0)。**量測精度誠實**:骨通道混合精確(殘差僅 6 位時間 round ~1e-5,
+  BONE_TOL=1e-4);slot alpha 受 Spine 8-hex 8-bit 量化(≤1/255≈0.0039),全狀態殘差以 QUANT_TOL 把關並**分離**
+  回報(哪部分精確、哪部分受格式量化)。**回歸:check_readiness 全綠 0 RED / 58 GREEN**(新增 cap
+  `sequence_crossfade` L2 併入 `spine-anim-forge`,仍 HOLD;L-4 等既有 57 閘逐一 GREEN 證 3 新純函式+2 公開 API
+  零回歸)。**關鍵發現**:①**C0 拼接(L~L-4)與加權疊加(L-5)是兩個結構不同的組合層**——前者**時間互斥**
+  (錯開時間、一次一 beat)、後者**同時並存**(重疊窗內兩 beat 疊加);concat 在重疊時間拿不到混合值是**結構性
+  限制**而非精度問題(CF3c:同一 t* concat==純 A 而 cf 明顯含兩者);②**partition of unity(權重和=1)是「混合
+  無 artifact」的保證**(no-bump 守衛)——和 L-3 LP4「光自接點無縫不足以是有意義 loop」同屬「機制正確性需專門
+  守衛」;③**退化測試(overlap=0 逐位元==compose_sequence)把新機制釘回舊機制**,是「新軸不破壞既有不變量」最強
+  的回歸形式。**honest boundary**:窗長/緩動曲線屬美術手感(A 類,本閘用 linear 權重不引入美感軸,smoothstep 已
+  備用未設預設);slot 混合假設 alpha-only 白色 tint(重疊窗 color 以 ffffff+alpha 重發,純區段保留原 hex);
+  單一真值資產。見 `knowledge/s1-sequence-crossfade.md`。
 - **S1 自接點 C1(速度)連續 / C1-loopability(里程碑,2026-10-05 run 002,candidate L-4)** —
   關掉 candidate (L-3) 誠實列出的 honest boundary:`is_loopable` 只驗 **C0**(自接點值連續),明記
   「不保證 C1 速度連續(loop 重啟頓挫)」。本次把 **C1**(自接點速度連續)顯式量化並以閘把關,延續
@@ -1170,10 +1204,15 @@
 >   `compose_sequence` 的 order 本就支援重複鍵(`In→Loop×N→Out`),但 L 每 beat 只出現一次,從未驗過「同一 clip 重複 N 次」路徑。
 >   新增 `gen_animations.is_loopable`(首幀==尾幀→可安全重播,含 shear,純判斷)+ `validate_sequence_loop.py` 5AC PASS。
 >   **關鍵:compose 的時間去重把值不符接點抹成陡坡 → composed 恆 C0 → loopability 只能在 clip 端點層判(self-seam/is_loopable)**。
+> **(L-4) ~~loop 的 C1 速度連續閘~~ ✅ 完成(2026-10-05 run 002,candidate L-4,`sequence_loop_c1` L2,見上里程碑)** ——
+>   `loop_seam_velocity_gap`(自接點 C1 不連續量)+ `is_c1_loopable`(C0 ∧ C1);crux C1 獨立於 C0(主秀 beat C0-loopable 但非 C1-loopable)。
+> **(L-5) ~~跨 beat 混場 crossfade / mix 接點閘~~ ✅ 完成(2026-10-06 run 001,candidate L-5,`sequence_crossfade` L2,見上里程碑)** ——
+>   `crossfade_pair`/`crossfade_sequence`/`blend_states`/`crossfade_weight`:重疊窗內加權疊加 `(1-w)A+wB`,compose 的純平移+去重**結構上做不到疊加**;
+>   crux CF3 同一 t* concat==純 A 而 cf 明顯含兩 beat → C0 拼接與加權疊加是兩個結構不同組合層;overlap=0 逐位元退化回 compose_sequence。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(L-4) 把序列組合閘擴成「跨 beat 混場(crossfade / mix)」接點閘**(L-3 的 Loop 重播是 C0 拼接;crossfade 是**時間重疊 + 權重混合**,
->   compose 的純平移+去重做不到,需真正的 mix 機制;屬序列組合的下一個組合層軸,仍整合閘精神);或 **(L-3') loop 的 C1 速度連續閘**
->   (L-3 只驗 C0,loop 重啟的「速度頓挫」= 尾速度≠首速度;可量兩端有限差速度向量並驗連續,為 loop 手感客觀化);
+> **(L-6) crossfade 權重曲線 C1 客觀化**(接 L-4 的 C1 精神到混場:linear 權重在窗兩端有速度 kink,smoothstep 窗邊界速度=0→C1;
+>   為 crossfade 的客觀新不變量,非美感 —— 量重疊窗兩端 cf 的單側速度與純區段速度是否連續);或
+> **(L-7) crossfade 幾何守恆相容性**(混合兩個各自體積守恆的 beat,線性混合**不**保 `det≡1` → 揭示「疊加」與「保形」兩約束何時相容,呼應 twist volume 系列);
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。

@@ -1,23 +1,27 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-10-05 run 001(S1 candidate **(L-3):序列內 Loop 重播 N 次 + loopability 不變量 —— 整合/組合閘**)。
-> 延續 L / L-2 / G-2 的整合/組合閘選題,**刻意不加任何參數軸**:candidate (L) 的 `compose_sequence(anims, order)` 的
-> `order` **本就可重複同一 beat 名**(如 `In→Loop×N→Out`)—— 這正是真實大獎序列的播放形態(進場後 Loop 重播 N 次
-> 待機、贏分滾動,再收尾),但 L 的正向序列每 beat **只出現一次**,**從未有閘**驗過「同一支 clip 重複 N 次」路徑:
-> 重複鍵 offset 累加 / clip 接自己的**自接點**無縫(= loopability,L 只驗過**相異** beat 接點)/ N 份重播逐幀還原同一
-> clip / 平鋪為**非靜止嚴格週期**。全 additive:新增 `gen_animations.is_loopable`(把「首幀==尾幀 → 可安全重播」不變量
-> 顯式化,純判斷)+ `validate_sequence_loop.py`(`In→Loop×3→Out`,先驗庫→真實 robot 骨架→build_animations)。5AC PASS:
-> LP1 present+loopable(Loop)+offset 累加([0.6,2.6,4.6]・總時長 7.0==In+3·Loop+Out)/LP2 crux 自接點無縫(Loop→Loop
-> self-seam 0.0<1e-3)/LP3 periodicity(N 份去 offset 逐幀還原孤立 Loop 殘差 0.0 且彼此逐幀相同→重播不漂移)/LP4
-> non-static(Loop 內部運動 5.0≥1.0)+嚴格週期(平鋪區 sample(t)==sample(t+Loop_dur) 殘差 0.0)/**LP5 負對照**(a crux:
-> In collapsed→id,is_loopable=False・In→In 自接點 40>>・且 tiled-In 的 composed wrap 仍看似 C0→證須 clip 端點判;
-> b:Out id→collapsed self-seam 25・非 loopable;c crux 空驗守衛:合成靜止 clip is_loopable=True 且自接點 0 **但** LP4
-> 非靜止=0→證「光自接點無縫」不足以是有意義 loop)。**關鍵發現:`compose_sequence` 的時間去重會把「同時刻、不同值」的
-> 接點抹成陡坡而非真跳變,composed 取樣恆 C0 → loopability 只能在 clip 端點層(self-seam / is_loopable)判,不能從 composed
-> 時間軸判。** 新增 cap `sequence_loop_repeat` L2(pipeline)→ `spine-anim-forge` 仍 HOLD。
-> **56 閘全綠**(54 + L-2 + 新 sequence_loop_repeat,0 RED,無 GREEN→RED;`is_loopable` 為新增純判斷函式,對既有閘零回歸)。詳見 `knowledge/s1-sequence-loop-repeat.md`。
-> (前次:**(L-2)序列組合 shear 通道覆蓋** / **(L)大獎序列組合:把各 beat clip 串接成單一可播放序列** / **(G-2)主秀節拍下 limb 繞關節 pivot 旋轉+縮放** /
+> 產生於 2026-10-06 run 001(S1 candidate **(L-5):跨 beat 混場 crossfade / mix 序列接點 —— 整合/組合閘**)。
+> 延續 L / L-2 / L-3 / L-4 的整合/組合閘選題,**刻意不加任何參數軸**。補的是 L 系列一路圍繞的 `compose_sequence`
+> 的 honest boundary:它是**純時間平移 + 接點去重 = C0 拼接**,任一瞬間**恰好一支 beat 在作用**。真實大獎序列常用
+> **混場 / 溶接(crossfade / dissolve)**:重疊窗內前 beat 淡出、後 beat 淡入,**兩者同時貢獻(疊加 superposition)**
+> —— 純平移 + 去重**在結構上做不到疊加**(只能錯開時間,不能讓兩 beat 同一瞬間並存),故 crossfade 是**序列組合的
+> 下一個組合層軸**。全 additive:新增 `gen_animations.crossfade_pair`(烘焙式混場:重疊窗內同步取樣兩 clip、加權
+> 線性混合 `(1-w)A+wB`、以 dt 網格發出混合關鍵幀;窗外維持純 A/純 B 保真;`overlap==0` 委派 `compose_sequence`)
+> + `crossfade_sequence`(多 beat 左折疊)+ `blend_states`/`crossfade_weight`(純函式)+ `validate_sequence_crossfade.py`
+> (combo→cascade OV=0.5,先驗庫→真實 robot 骨架→build_animations)。**5AC PASS**:CF1 present+mechanism-active
+> (可載入・dur==durA+durB−OV=1.6・非空驗:窗內兩 beat 同時偏離 identity 9.13≥1→真有疊加)/**CF2 crux C0 窗邊界連續**
+> (進窗 w=0→A(offsetB)・出窗 w=1→B(OV),骨精確≤1e-4 全狀態≤量化)/**CF3 crux 真疊加+concat 做不到**(t*=0.6 w=0.4:
+> 線性 cf==(1-w)A+wB 骨精確・`|cf−純A|=5.25>1` 且 `|cf−純B|=7.88>1` 兩者皆貢獻・`compose_sequence(t*)==純 A` 且
+> `|concat−cf|=5.25>1`→**C0 拼接同一時間只拿得到單一 beat,結構做不到混合**)/**CF4 partition+退化守衛**(a partition
+> of unity:兩常數 10°/30° 窗內==10+20w 精確・b no-bump 兩等值常數窗內恆值 dev 0・c **crux overlap=0 逐位元==compose**)/
+> CF5 純區段保真+多 beat(純前段還原孤立 A・純後段還原孤立 B 骨≤1e-4・crossfade_sequence hit→combo→cascade dur==2.0)。
+> **關鍵發現:C0 拼接(L~L-4)與加權疊加(L-5)是兩個結構不同的組合層 —— 前者時間互斥、後者同時並存;concat 在重疊
+> 時間拿不到混合值是結構性而非精度問題;partition of unity(權重和=1)是「混合無 artifact」的保證;overlap=0 逐位元==
+> compose 把新機制釘回舊機制是最強回歸形式。** 量測精度誠實:骨通道精確(BONE_TOL=1e-4,僅 6 位時間 round)、slot alpha
+> 受 Spine 8-bit 量化(≤1/255)分離回報。新增 cap `sequence_crossfade` L2(pipeline)→ `spine-anim-forge` 仍 HOLD。
+> **58 閘全綠**(57 + 新 sequence_crossfade,0 RED,無 GREEN→RED;3 新純函式+2 公開 API additive,對既有閘零回歸)。詳見 `knowledge/s1-sequence-crossfade.md`。
+> (前次:**(L-4)自接點 C1 連續/C1-loopability** / **(L-3)序列內 Loop 重播 N 次 + loopability** / **(L-2)序列組合 shear 通道覆蓋** / **(L)大獎序列組合:把各 beat clip 串接成單一可播放序列** / **(G-2)主秀節拍下 limb 繞關節 pivot 旋轉+縮放** /
 > **(G-4'''''-charge)charge 蓄力階段數隨檔位(count-aware 補齊全部單件主秀 beat)** / (J-7)cascade 波方向由件幾何導出 /
 > (J-6)cascade 任意角投影 / (J-5)cascade 方向由空間位置決定。)
 > ⚠️ 觀察(非本 run 引入):矩陣現顯示 `spine-asset-forge` 達「可 skill 化」門檻(2026-10-01 analyzer `gen` 閘 RED→GREEN

@@ -714,6 +714,195 @@ def is_c1_loopable(clip, tol=1e-6, vel_tol=1.0, h=1e-3):
     return is_loopable(clip, tol) and loop_seam_velocity_gap(clip, h) <= vel_tol
 
 
+# ============================================================================
+# candidate (L-5) — 跨 beat 混場 crossfade / mix(序列組合的下一個組合層軸)
+# ============================================================================
+# L / L-2 / L-3 / L-4 都圍繞 `compose_sequence`,而它是**純時間平移 + 接點去重**
+# = **C0 拼接**:任一瞬間**恰好一支 beat 在作用**(前 beat 尾==後 beat 首時無縫銜接)。
+# 真實大獎序列常用**混場 / 溶接(crossfade / dissolve)**:在一段**重疊窗**內前 beat
+# **淡出**、後 beat **淡入**,兩者**同時貢獻**(疊加 superposition / 加權混合)。
+# 純平移 + 去重**在結構上做不到疊加**(它只能把時間錯開,不能讓兩 beat 在同一瞬間並存)。
+# 這正是 L 系列一路誠實列出的 honest boundary(「crossfade 需真正的 mix 機制」)。本段把
+# 這個**組合層新軸**補上:烘焙式 crossfade —— 在重疊窗內同步取樣兩 clip、加權線性混合、
+# 以 dt 網格發出混合關鍵幀;窗外維持純 A / 純 B(原關鍵幀不動,保真)。
+#
+# 契約與不變量:
+#   · partition of unity:A 權重 = 1-w、B 權重 = w、w∈[0,1] ⇒ 兩恆等 clip 混合仍恆等(無 bump)。
+#   · 退化:overlap==0 ⇒ **逐位元等同** compose_sequence 的 C0 拼接(strict generalization 負對照)。
+#   · 冪等:crossfade(A, A, ov) ⇒ 重疊窗內逐幀還原 A((1-w)A + wA = A)。
+#   · C0 邊界:重疊窗兩端(進窗 w=0 → A(進窗點);出窗 w=1 → B(出窗點 local))與純區段值連續。
+#   · 真疊加(concat 做不到):重疊窗內某瞬間兩 beat 皆非 identity 時,混合值 = (1-w)·A + w·B
+#     既 ≠ 純 A 亦 ≠ 純 B;而 compose_sequence 在同一全域時間只會是**單一** clip 的值。
+# honest boundary:slot 混合假設 **alpha-only 白色 tint**(本資產光暈成立),重疊窗內 slot color
+#   以 "ffffff"+alpha hex 重發(純區段保留原 hex 不受影響);非白 tint 的 rgb 混合為後續。
+
+
+def _alpha_hex(a):
+    """alpha 0..1 → 8-hex RGBA 字串(白色 tint;重疊窗 slot 混合用)。"""
+    v = int(round(max(0.0, min(1.0, a)) * 255))
+    return "ffffff{:02x}".format(v)
+
+
+def crossfade_weight(tau, overlap, fade="linear"):
+    """混場權重 w(tau)∈[0,1]:tau=0→0(全 A)、tau=overlap→1(全 B)。A 權重=1-w(partition of unity)。
+    預設 **linear**(= tau/overlap);`smooth`=smoothstep(保留但不設預設 —— 不在整合閘引入美感軸)。純函式。"""
+    if overlap <= 0:
+        return 1.0
+    x = max(0.0, min(1.0, tau / overlap))
+    if fade == "linear":
+        return x
+    if fade == "smooth":
+        return x * x * (3.0 - 2.0 * x)
+    raise ValueError("crossfade_weight: 未知 fade %r" % (fade,))
+
+
+def blend_states(sa, sb, w):
+    """兩個 `spine_anim.sample()` 狀態的逐通道線性混合 `(1-w)·A + w·B`(bones 全通道 + slot alpha;
+    缺席通道視為 setup identity,同 `_state_max_diff` 慣例)。純函式、additive。"""
+    out_b = {}
+    for b in set(sa["bones"]) | set(sb["bones"]):
+        da = sa["bones"].get(b, _LOOP_IDENT)
+        db = sb["bones"].get(b, _LOOP_IDENT)
+        out_b[b] = {k: (1.0 - w) * da.get(k, _LOOP_IDENT[k]) + w * db.get(k, _LOOP_IDENT[k])
+                    for k in _LOOP_IDENT}
+    out_s = {}
+    for s in set(sa["slots"]) | set(sb["slots"]):
+        aa = sa["slots"].get(s, {"alpha": 1.0})["alpha"]
+        ab = sb["slots"].get(s, {"alpha": 1.0})["alpha"]
+        out_s[s] = {"alpha": (1.0 - w) * aa + w * ab}
+    return {"bones": out_b, "slots": out_s}
+
+
+# 骨通道 → (keyframe 欄位名, blend-state 狀態鍵)
+_BONE_CHAN = {
+    "rotate":    (["angle"],    ["rotate"]),
+    "translate": (["x", "y"],   ["x", "y"]),
+    "scale":     (["x", "y"],   ["scaleX", "scaleY"]),
+    "shear":     (["x", "y"],   ["shearX", "shearY"]),
+}
+
+
+def _dedup_sorted(frames, merge_tol=1e-6):
+    """依 time 排序並去除時間重合幀(保留後加入者),確保 Spine『同通道時間嚴格遞增』。"""
+    frames = sorted(frames, key=lambda f: f["time"])
+    out = []
+    for f in frames:
+        if out and abs(f["time"] - out[-1]["time"]) <= merge_tol:
+            out[-1] = f  # 重合 → 保留後者(混合/後段幀優先於被抹的前段幀)
+        else:
+            out.append(f)
+    return out
+
+
+def crossfade_pair(A, B, overlap, dt=1.0 / 30.0, fade="linear", merge_tol=1e-6):
+    """把兩支 beat clip 以**重疊窗 overlap**(秒)烘焙成**單一**可載入 clip(duration = durA+durB-overlap)。
+
+    結構:
+      [0, offsetB)        純 A(原關鍵幀,保真);offsetB = durA - overlap
+      [offsetB, durA]     重疊窗:以 dt 網格同步取樣 A(local=t)與 B(local=t-offsetB),
+                          混合 `(1-w)·A + w·B`、w=crossfade_weight(t-offsetB, overlap) 發出混合關鍵幀
+      (durA, total]       純 B(原關鍵幀平移 +offsetB,保真)
+
+    overlap==0(退化)→ **逐位元等同** compose_sequence 的 C0 拼接(委派之,保證 strict-generalization 負對照)。
+    回傳 composed clip(`{"bones":{...},"slots":{...}}`)。純函式、additive、確定性。
+    """
+    import spine_anim as _SA
+    durA, durB = _SA.duration(A), _SA.duration(B)
+    lo = min(durA, durB)
+    if overlap < -1e-12 or overlap > lo + 1e-9:
+        raise ValueError("crossfade_pair: overlap %r 必須在 [0, min(durA,durB)=%r]" % (overlap, lo))
+    if overlap <= merge_tol:
+        # 無重疊 → 純 C0 拼接,等同 compose_sequence(保證與 L 的拼接機制逐位元一致)
+        composed, _ = compose_sequence({"__A": A, "__B": B}, ["__A", "__B"])
+        return composed
+
+    offsetB = durA - overlap
+    total = durA + durB - overlap
+    # 重疊窗取樣網格(含兩端點;末點釘死 durA 以免浮點漂移)
+    import math as _math
+    n = max(1, int(_math.ceil(overlap / dt - 1e-9)))
+    grid = [offsetB + i * dt for i in range(n + 1)]
+    grid[-1] = durA
+    if len(grid) >= 2 and abs(grid[-1] - grid[-2]) <= merge_tol:
+        grid.pop(-2)
+    # 預先在網格上算好混合狀態(一次,避免逐通道重取樣)
+    blended = []
+    for tg in grid:
+        w = crossfade_weight(tg - offsetB, overlap, fade)
+        sa = _SA.sample(A, tg)
+        sb = _SA.sample(B, tg - offsetB)
+        blended.append((tg, blend_states(sa, sb, w)))
+
+    composed = {"bones": {}, "slots": {}}
+
+    # ---------- bones ----------
+    parts = set(A.get("bones", {})) | set(B.get("bones", {}))
+    for part in parts:
+        achans = A.get("bones", {}).get(part, {})
+        bchans = B.get("bones", {}).get(part, {})
+        for chan in set(achans) | set(bchans):
+            if chan not in _BONE_CHAN:
+                continue
+            fkeys, skeys = _BONE_CHAN[chan]
+            frames = []
+            # 純 A(窗前)
+            for f in achans.get(chan, []):
+                if f["time"] < offsetB - merge_tol:
+                    frames.append(_shift_frames([f], 0.0)[0])
+            # 重疊窗混合
+            for tg, bl in blended:
+                d = bl["bones"].get(part, _LOOP_IDENT)
+                fr = {"time": round(tg, 6)}
+                for fk, sk in zip(fkeys, skeys):
+                    fr[fk] = d.get(sk, _LOOP_IDENT[sk])
+                frames.append(fr)
+            # 純 B(窗後,local>overlap)
+            for f in bchans.get(chan, []):
+                if f["time"] > overlap + merge_tol:
+                    frames.append(_shift_frames([f], offsetB)[0])
+            frames = _dedup_sorted(frames, merge_tol)
+            if frames:
+                composed["bones"].setdefault(part, {})[chan] = frames
+
+    # ---------- slots(color→alpha hex;重疊窗白 tint) ----------
+    sparts = set(A.get("slots", {})) | set(B.get("slots", {}))
+    for part in sparts:
+        achans = A.get("slots", {}).get(part, {})
+        bchans = B.get("slots", {}).get(part, {})
+        for chan in set(achans) | set(bchans):
+            if chan != "color":
+                continue
+            frames = []
+            for f in achans.get(chan, []):
+                if f["time"] < offsetB - merge_tol:
+                    frames.append(_shift_frames([f], 0.0)[0])
+            for tg, bl in blended:
+                a = bl["slots"].get(part, {"alpha": 1.0})["alpha"]
+                frames.append({"time": round(tg, 6), "color": _alpha_hex(a)})
+            for f in bchans.get(chan, []):
+                if f["time"] > overlap + merge_tol:
+                    frames.append(_shift_frames([f], offsetB)[0])
+            frames = _dedup_sorted(frames, merge_tol)
+            if frames:
+                composed["slots"].setdefault(part, {})[chan] = frames
+
+    for group in ("bones", "slots"):
+        if not composed[group]:
+            composed.pop(group)
+    return composed
+
+
+def crossfade_sequence(anims, order, overlap, dt=1.0 / 30.0, fade="linear"):
+    """把 `order` 內多支 beat 以每接點 `overlap`(秒)左折疊成單一 crossfade 序列。
+    overlap==0 ⇒ 等同 compose_sequence(純 C0 拼接)。回傳 composed clip。確定性、additive。"""
+    if not order:
+        return {}
+    cur = anims[order[0]]
+    for name in order[1:]:
+        cur = crossfade_pair(cur, anims[name], overlap, dt=dt, fade=fade)
+    return cur
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("skeleton_json", help="build_spine 產出的 skeleton.json")

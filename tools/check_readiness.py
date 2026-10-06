@@ -454,6 +454,22 @@ BLOCKS = [
                      "(a crux)三角脈衝(C0-loopable 但注入速度 kink)gap 2.0>1 is_c1_loopable=False→抓出 is_loopable 看不到的頓挫;(b 空驗守衛)靜止 clip gap=0 trivially C1 且 is_c1_loopable=True"
                      "**但**端點速度 0<1 無運動→證 gap≤tol 必要不充分須配非靜止(呼應 LP4);(c)In 非 C0-loopable→is_c1_loopable False 由 C0 先否決。"
                      "honest:Loop 是否該被設計成完美 C1 屬美術手感(A 類,光暈呼吸殘差 kick 0.19 為已知邊界);vel_tol=1.0 為量級選擇;無改任何生成/產線值(兩新函式純量測);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_crossfade", "跨 beat 混場 crossfade/mix 序列接點(L-5,整合/組合閘;補 C0 拼接做不到疊加的 honest boundary)", "L2",
+                "python3 tools/analyzer/validate_sequence_crossfade.py", "pipeline",
+                note="補 L/L-2/L-3/L-4 一路圍繞的 compose_sequence 的 honest boundary:它是**純時間平移+接點去重=C0 拼接**,任一瞬間**恰好一支 beat 在作用**。"
+                     "真實大獎序列常用**混場/溶接(crossfade/dissolve)**:重疊窗內前 beat 淡出、後 beat 淡入,兩者**同時貢獻(疊加 superposition)**—— 純平移+去重**結構上做不到疊加**"
+                     "(只能把時間錯開,不能讓兩 beat 在同一瞬間並存),故 crossfade 是**序列組合的下一個組合層軸**,需真正的 mix 機制。新增 gen_animations.crossfade_pair(烘焙式混場:重疊窗內"
+                     "同步取樣兩 clip、加權線性混合 (1-w)A+wB、以 dt 網格發出混合關鍵幀;窗外維持純 A/純 B 保真)+ crossfade_sequence(多 beat 左折疊)+ blend_states/crossfade_weight(additive 純函式)。"
+                     "選題:延續 L/L-2/L-3/L-4 刻意選整合/組合閘,不加參數軸。**關鍵(crux):取窗內 grid t*(兩 beat 皆非 identity)—— 混合值既明顯≠純 A 亦≠純 B(兩者都在出力);而 compose_sequence"
+                     "在同一 t*(<durA)只會是純 A 的值(單一 beat),與混合值差 5.25>MIX_MIN → 直接證明 C0 拼接結構上做不到疊加,crossfade 是真的新組合層。** 量測精度誠實:骨通道混合精確"
+                     "(殘差僅 6 位時間 round ~1e-5,BONE_TOL=1e-4);slot alpha 受 Spine 8-hex 8-bit 量化(≤1/255),全狀態殘差以 QUANT_TOL 把關並分離回報。"
+                     "從先驗庫→真實 build_spine robot 骨架→build_animations(combo→cascade,OV=0.5),validate_sequence_crossfade.py 5AC PASS:CF1 present+mechanism-active"
+                     "(可載入・dur==durA+durB−OV・非空驗:窗內兩 beat 同時偏離 identity 9.13≥1→真有疊加)/CF2 crux C0 窗邊界連續(進窗 w=0→A(offsetB)・出窗 w=1→B(OV),骨精確≤1e-4 全狀態≤量化)/"
+                     "CF3 crux 真疊加+concat 做不到(t*=0.6 w=0.4:線性 cf==(1-w)A+wB 骨精確・|cf−純A|=5.25>1 且 |cf−純B|=7.88>1 兩者皆貢獻・compose_sequence(t*)==純 A 且 |concat−cf|=5.25>1→結構做不到混合)/"
+                     "CF4 partition+退化守衛(a partition of unity:兩常數 10°/30° 窗內==10+20w 精確 err 1.3e-5・b no-bump 兩等值常數窗內恆值 dev 0・c **crux overlap=0 逐位元==compose_sequence**→嚴格推廣退化回 C0 拼接)/"
+                     "CF5 純區段保真+多 beat(純前段逐幀還原孤立 A・純後段逐幀還原孤立 B 骨≤1e-4・crossfade_sequence(hit→combo→cascade 每接點0.3s)可載入 dur==Σdur−2·0.3)。**關鍵發現:C0 拼接(L~L-4)與加權疊加"
+                     "(L-5)是兩個結構不同的組合層 —— 前者時間互斥、後者同時並存;concat 在重疊時間拿不到混合值是結構性而非精度問題。** honest:窗長/緩動曲線屬美術手感(A 類,本閘用 linear 權重不引入美感軸);"
+                     "slot 混合假設 alpha-only 白色 tint(重疊窗 color 以 ffffff+alpha 重發,純區段保留原 hex);單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"
