@@ -10,6 +10,42 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 跨 beat 混場 crossfade(時間重疊+權重混合)(里程碑,2026-10-06 run 001,candidate L-5)** —
+  補 candidate (L) 誠實列出的 honest boundary:`compose_sequence` 只做**純時間平移+接點去重**(C0 拼接),
+  接點值不等(A 尾≠B 首)就留 pop,做不到真實遊戲轉場用的「**時間重疊+權重混合**」。延續 L/L-2/L-3/L-4
+  刻意選整合/組合閘、**不加任何參數軸** —— crossfade 是 compose 純平移拼接**做不到的下一組合層**。
+  **做了什麼(全 additive,`gen_animations.py`)**:①`crossfade_weight(tau, kind)`(過渡權重 w(τ),linear/
+  smoothstep,單調 0→1);②`_blend_states(sa,sb,w)`(兩 `sample()` 狀態逐通道線性混合 `(1−w)·A+w·B`,bone
+  rotate/x/y/scale/shear + slot alpha 全涵蓋);③`crossfade_state(A,B,mix_dur,t,weight)`(**ground truth 混合律**,
+  三段式:`[0,w0)` 純 A → `[w0,dur_A]` mix 窗混合 → `(dur_A,總長]` 純 B;w0=dur_A−mix_dur;端點 w=0→純 A 尾、
+  w=1→純 B 首 → **整段 C0 連續**,與 A 尾/B 首是否相等無關);④`crossfade(A,B,mix_dur,steps,weight)`(確定性
+  **重取樣**產可載入混場 clip:節點=均勻格點∪A/B 原關鍵幀時間∪{0,w0,dur_A,總長},純區節點 bone 逐位元還原、
+  窗內節點逐位元==混合律、節點間線性近似;`mix_dur=0` 退化為**純拼接** bit-identical `compose_sequence`)。
+  fixture:先驗庫→真實 build_spine robot 骨架→build_animations(與 L/L-3/L-4 同一),**A=Out**(尾 collapsed)、
+  **B=Loop**(首 identity)→ 接點 **J≈25 真不連續**。**5 AC 全 PASS**:**X1** present+backward-compat
+  (mix=0 bit-identical compose)+非空驗(J≥5);**X2 crux 端點銜接+純區保真**(窗首==孤立 A、窗尾==孤立 B
+  殘差≤0.01;純 A 區 Out 關鍵幀節點 bone **逐位元**還原 diff=0、純 B 區還原 Loop);**X3 crux 不連續接點 C0 vs
+  硬切**(crossfade seam@1e-4=0.0096≤0.05 且隨 eps **線性縮小** ratio≈10→連續;**同一接點硬切** seam≈25
+  **恆定** ratio≈1→真 step → 證 crossfade **消掉硬切留的 pop**);**X4 混合律+權重+steps 收斂**(線性 τ=0.5==
+  0.5·(A⊕B) 殘差 0;權重單調端點 0/1;窗內節點 bone 逐位元 slot≤1/255;重取樣 steps 8→32→128 逼近誤差**嚴格
+  遞減** 0.167→0.0103→0.0019);**X5 負對照+空驗守衛**((a) **可調旋鈕** peak 速度 mix0.1/0.2=230.8/106.1
+  ratio **2.18≈2×**(mix 愈小愈陡→compose 沒有的平滑旋鈕);(b) **空驗守衛** 無縫對 hit→Loop J=0<1 → C0 宣稱
+  空驗 → 證 X3 crux 須配**不連續** fixture;(c) 非法 mix_dur(>min 時長/<0)與空 clip 皆觸 ValueError)。
+  **回歸:check_readiness 全綠 0 RED**(新增 cap `sequence_crossfade` L2 併入 `spine-anim-forge`,仍 HOLD;
+  既有序列閘 L/L-2/L-3/L-4 逐一 GREEN 證三新函式零回歸)。**迭代踩雷(預算內自修)**:①slot color 初版寫
+  `"ffffff"+_alpha_hex(a)` 但 `_alpha_hex` **已含** ffffff 前綴 → 雙前綴 `ffffffffffff9e`、sample 讀 [6:8]=ff
+  恆 alpha=1.0;改直接用 `_alpha_hex(a)`。②初版「純區複製原關鍵幀、只重取樣 mix 窗」對稀疏 bezier clip(Out
+  只 2 幀)**把 bezier 緩動壓到更短區間扭曲**(t=0.1 值跑到孤立 clip t=0.3 深度)→ 改**整段** `crossfade_state`
+  重取樣(節點釘住 A/B 關鍵幀,純區逐位元、節點間線性近似收斂)。③X3 初版把「eps=1e-3 接點差≤0.05」當 C0
+  門檻 FAIL(0.096>0.05,那是切線斜率×2eps 非跳變)→ 改「**最小 eps** 接點差小 **且** 隨 eps 線性縮小」。
+  **關鍵發現**:①**「C0 連續 vs 真 step」客觀判準 = 接點差對取樣 eps 的行為** —— 連續函數接點差=切線斜率×
+  2eps 隨 eps→0 線性縮小;真跳變恆定 eps-無關;量兩個 eps 的比值即可鑑別,不需絕對門檻(呼應 L-3/L-4「量在
+  哪一層+對無關變數的行為」決定能看見什麼);②**crossfade 的價值 = compose 沒有的『平滑旋鈕』**:pop 攤平到
+  寬 mix_dur 的窗,peak 過渡速度∝1/mix_dur(mix 減半 → peak 約 2×);拼接只有「接/不接」,混場多一條連續可調
+  轉場時長;③**混場端點必須銜接純段**(節點含 w0 與 dur_A),否則窗與純段接縫自己會 pop。**honest boundary**:
+  mix_dur/權重曲線/用在哪兩支 beat 屬美術手感(A 類);節點間線性近似(真值分段二次+bezier)誤差隨 steps→0
+  收斂(已量化);slot alpha 8-bit 量化為 Spine 格式固有;無改任何生成/產線值(三新函式純量測/純產檔);單一
+  真值資產。見 `knowledge/s1-sequence-crossfade.md`。
 - **S1 自接點 C1(速度)連續 / C1-loopability(里程碑,2026-10-05 run 002,candidate L-4)** —
   關掉 candidate (L-3) 誠實列出的 honest boundary:`is_loopable` 只驗 **C0**(自接點值連續),明記
   「不保證 C1 速度連續(loop 重啟頓挫)」。本次把 **C1**(自接點速度連續)顯式量化並以閘把關,延續
@@ -1170,10 +1206,16 @@
 >   `compose_sequence` 的 order 本就支援重複鍵(`In→Loop×N→Out`),但 L 每 beat 只出現一次,從未驗過「同一 clip 重複 N 次」路徑。
 >   新增 `gen_animations.is_loopable`(首幀==尾幀→可安全重播,含 shear,純判斷)+ `validate_sequence_loop.py` 5AC PASS。
 >   **關鍵:compose 的時間去重把值不符接點抹成陡坡 → composed 恆 C0 → loopability 只能在 clip 端點層判(self-seam/is_loopable)**。
+> **(L-5) ~~跨 beat 混場 crossfade(時間重疊+權重混合)~~ ✅ 完成(2026-10-06 run 001,candidate L-5,`sequence_crossfade` L2,見上里程碑)** ——
+>   補 L 的 honest boundary:`compose_sequence` 純平移拼接做不到「時間重疊+權重混合」。新增 `crossfade_state`(ground truth 混合律三段式)+
+>   `crossfade`(確定性重取樣產可載入混場 clip)+ `crossfade_weight`(linear/smoothstep),全 additive。`validate_sequence_crossfade.py` 5AC PASS
+>   (A=Out 尾 collapsed、B=Loop 首 identity,J≈25;**crux** crossfade 整段 C0(seam@1e-4=0.0096 隨 eps 線性縮小)vs 硬切真 step(≈25 恆定);mix 是 compose 沒有的平滑旋鈕 peak∝1/mix)。
+>   **關鍵:「C0 連續 vs 真 step」客觀判準=接點差對取樣 eps 的行為(連續→線性縮小、跳變→eps-無關)**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(L-4) 把序列組合閘擴成「跨 beat 混場(crossfade / mix)」接點閘**(L-3 的 Loop 重播是 C0 拼接;crossfade 是**時間重疊 + 權重混合**,
->   compose 的純平移+去重做不到,需真正的 mix 機制;屬序列組合的下一個組合層軸,仍整合閘精神);或 **(L-3') loop 的 C1 速度連續閘**
->   (L-3 只驗 C0,loop 重啟的「速度頓挫」= 尾速度≠首速度;可量兩端有限差速度向量並驗連續,為 loop 手感客觀化);
+> **(L-5') 混場的 C1(速度)連續閘**(crossfade linear 權重在窗界(w0/dur_A)有速度 kink,smoothstep 沒有;可量窗界兩側有限差速度並驗 smooth 連續、linear 不連續,
+>   為轉場手感客觀化,比照 L-4 對 loop 的 C1;延續整合/組合閘精神、不加參數軸);或
+> **(L-6) 多接點混場序列 `compose_with_crossfades(order, mix_durs)`**(把 crossfade 推廣成整條 In→主秀…→Loop→Out 每接點可選「拼接 or 混場+時長」,組合層再上一階);或
+> **(L-5'') 加性混合(additive mix)**(crossfade 是取代式 A→B;另一種是疊加 B 於 A 上,對應 Spine additive animation,如主秀節拍疊在 Loop 之上,另一條混合軸);
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。

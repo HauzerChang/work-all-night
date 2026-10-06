@@ -454,6 +454,21 @@ BLOCKS = [
                      "(a crux)三角脈衝(C0-loopable 但注入速度 kink)gap 2.0>1 is_c1_loopable=False→抓出 is_loopable 看不到的頓挫;(b 空驗守衛)靜止 clip gap=0 trivially C1 且 is_c1_loopable=True"
                      "**但**端點速度 0<1 無運動→證 gap≤tol 必要不充分須配非靜止(呼應 LP4);(c)In 非 C0-loopable→is_c1_loopable False 由 C0 先否決。"
                      "honest:Loop 是否該被設計成完美 C1 屬美術手感(A 類,光暈呼吸殘差 kick 0.19 為已知邊界);vel_tol=1.0 為量級選擇;無改任何生成/產線值(兩新函式純量測);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_crossfade", "跨 beat 混場 crossfade(時間重疊+權重混合;L-5,整合/組合閘的下一組合層)", "L2",
+                "python3 tools/analyzer/validate_sequence_crossfade.py", "pipeline",
+                note="補 candidate (L) 誠實列出的 honest boundary:compose_sequence 只做**純時間平移+接點去重**(C0 拼接),接點值不等(A 尾≠B 首)就留 pop,"
+                     "做不到真實遊戲轉場用的『時間重疊+權重混合』。本次補上這個 mix 機制:gen_animations.crossfade_state(混場取樣 ground truth 混合律)+ "
+                     "crossfade(產可載入混場 clip,確定性重取樣)+ crossfade_weight(linear/smoothstep 過渡權重),全 additive 純函式。選題:延續 L/L-2/L-3/L-4 "
+                     "刻意選整合/組合閘,不加參數軸 —— crossfade 是 compose 純平移拼接做不到的**下一組合層**。fixture:先驗庫→真實 build_spine robot 骨架→"
+                     "build_animations,A=Out(identity→collapsed,尾非 identity)、B=Loop(起於 identity)→接點 J≈25 真不連續,混場才有意義。"
+                     "**關鍵發現(crux):即使 A 尾≠B 首(拼接會 pop),crossfade 在整段仍 C0 連續 —— pop 被攤平到 mix 窗(寬 mix_dur,一個可調旋鈕);"
+                     "對同一接點硬切(t<接點取 A、否則取 B)則留 eps-無關的真 step。量化:crossfade 接點差 |s(seam−eps)−s(seam+eps)| 隨 eps→0 線性縮小(10× eps→≈10× 小)、"
+                     "hard cut 恆≈J。** validate_sequence_crossfade.py 5AC PASS:X1 present+backward-compat(mix=0 bit-identical compose)+非空驗(J≥5)/"
+                     "X2 crux 端點銜接(窗首==孤立 A、窗尾==孤立 B,殘差≤0.01)+純區保真(純 A 區 Out 關鍵幀節點 bone 逐位元還原 diff=0、純 B 區還原 Loop)/"
+                     "X3 crux 不連續接點 C0 vs 硬切(crossfade seam 1e-4=0.0096≤0.05 且隨 eps 線性縮小 ratio≈10→連續;hardcut seam≈25 恆定 ratio≈1→真 step)/"
+                     "X4 混合律(線性 τ=0.5==0.5·(A⊕B) 殘差 0)+權重單調端點 0/1+窗內節點 bone 逐位元(diff=0)slot≤1/255+steps 8→32→128 逼近誤差嚴格遞減(0.167→0.0103→0.0019)/"
+                     "X5 負對照+空驗守衛:(a)可調旋鈕 peak 速度 mix0.1/0.2=230.8/106.1 ratio 2.18≈2×(mix 愈小愈陡,compose 沒有的平滑旋鈕);(b)空驗守衛 無縫對 hit→Loop J=0<1 → C0 宣稱空驗 證 X3 須配不連續 fixture;(c)非法 mix_dur(>min 時長/<0)與空 clip 皆觸 ValueError。"
+                     "honest:mix_dur/權重曲線/用在哪兩支 beat 屬美術手感(A 類);純區外節點間為線性近似(真值分段二次+bezier),誤差隨 steps→0 收斂(已量化);slot alpha 8-bit 量化為 Spine 格式固有;無改任何生成/產線值(三新函式純量測/純產檔);單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

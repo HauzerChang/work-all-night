@@ -714,6 +714,201 @@ def is_c1_loopable(clip, tol=1e-6, vel_tol=1.0, h=1e-3):
     return is_loopable(clip, tol) and loop_seam_velocity_gap(clip, h) <= vel_tol
 
 
+# ======================================================================
+# candidate (L-5) — 跨 beat 混場(crossfade / mix)接點機制
+# ----------------------------------------------------------------------
+# `compose_sequence`(L)只做**純時間平移 + 接點去重**(C0 拼接):相鄰 beat 在接點
+# 值相等(無縫序列)才無損,接點值**不等**(A 尾 ≠ B 首)時會留一個 C0 跳變(pop)。
+# 真實遊戲轉場常用 **crossfade / mix**:讓 A、B 在一段**時間重疊窗**內同時取樣、以權重
+# w(τ) 由 A 平滑過渡到 B —— 這是 compose 的純平移做不到的(它沒有「時間重疊 + 權重混合」)。
+# 本區塊補上這個 mix 機制:`crossfade_state`(混場取樣,ground truth 混合律)+ `crossfade`
+# (產出單一可載入的混場 clip)。直指 L 誠實列出的 honest boundary:「序列組合的下一層 = 真正的
+# mix,非拼接」。crux:即使 A 尾 ≠ B 首(拼接會 pop),crossfade 在整段仍 **C0 連續**(pop 被
+# 攤平到 mix 窗),見閘 `validate_sequence_crossfade`。純 CPU、確定性、additive。
+# ======================================================================
+
+def crossfade_weight(tau, kind="linear"):
+    """混場權重 w(τ),τ∈[0,1] 為 mix 窗內的時間佔比;w(0)=0(全 A)、w(1)=1(全 B)、單調遞增。
+    kind="linear"(預設,對齊 Spine runtime 預設 MixBlend 的線性混合)或 "smooth"(smoothstep,
+    端點速度=0 的 C1 更順過渡)。"""
+    if tau <= 0.0:
+        return 0.0
+    if tau >= 1.0:
+        return 1.0
+    if kind == "smooth":
+        return tau * tau * (3.0 - 2.0 * tau)
+    return tau  # linear
+
+
+def _blend_states(sa, sb, w):
+    """兩個 `spine_anim.sample()` 狀態的逐通道線性混合 (1-w)·A + w·B(缺席通道視為 setup identity)。"""
+    out_b = {}
+    for b in set(sa["bones"]) | set(sb["bones"]):
+        da = sa["bones"].get(b, _LOOP_IDENT)
+        db = sb["bones"].get(b, _LOOP_IDENT)
+        out_b[b] = {k: (1.0 - w) * da.get(k, _LOOP_IDENT[k]) + w * db.get(k, _LOOP_IDENT[k])
+                    for k in _LOOP_IDENT}
+    out_s = {}
+    for s in set(sa["slots"]) | set(sb["slots"]):
+        a0 = sa["slots"].get(s, {"alpha": 1.0})["alpha"]
+        a1 = sb["slots"].get(s, {"alpha": 1.0})["alpha"]
+        out_s[s] = {"alpha": (1.0 - w) * a0 + w * a1}
+    return {"bones": out_b, "slots": out_s}
+
+
+def crossfade_duration(clipA, clipB, mix_dur):
+    """混場序列總時長 = dur_A + dur_B − mix_dur(重疊窗只算一次)。"""
+    import spine_anim as _SA
+    return _SA.duration(clipA) + _SA.duration(clipB) - mix_dur
+
+
+def crossfade_state(clipA, clipB, mix_dur, t, weight="linear"):
+    """candidate (L-5) — 混場序列在**全域時間 t** 的混合後狀態(ground truth 混合律,純取樣、不產 clip)。
+
+    時間軸三段(w0 = dur_A − mix_dur 為 mix 窗起點;總長 dur_A + dur_B − mix_dur):
+      1. t ∈ [0, w0)           → 純 A(`sample(A, t)`)。
+      2. t ∈ [w0, dur_A]       → **mix 窗**:A 續播到自己的尾(local=t),B 從 0 起(local=t−w0);
+                                   τ=(t−w0)/mix_dur,w=crossfade_weight(τ);state=(1−w)·A ⊕ w·B。
+      3. t ∈ (dur_A, 總長]      → 純 B(local=t−w0,即 B 的 local 從 mix_dur 續到 dur_B)。
+    端點銜接:w0 處 w=0 → 純 A 尾段值連續;dur_A 處 w=1 → 純 B 起段值連續。故**整段 C0 連續**,
+    與 A 尾/B 首是否相等**無關**(crux:拼接會在此 pop,crossfade 不會)。純函式、additive。"""
+    import spine_anim as _SA
+    dur_a = _SA.duration(clipA)
+    dur_b = _SA.duration(clipB)
+    if mix_dur < 0 or mix_dur > dur_a + 1e-12 or mix_dur > dur_b + 1e-12:
+        raise ValueError("crossfade: mix_dur={} 必須在 [0, min(dur_A={}, dur_B={})]".format(
+            mix_dur, dur_a, dur_b))
+    w0 = dur_a - mix_dur
+    if t <= w0:
+        return _SA.sample(clipA, t)
+    if t >= dur_a:
+        return _SA.sample(clipB, t - w0)
+    tau = (t - w0) / mix_dur if mix_dur > 0 else 1.0
+    w = crossfade_weight(tau, weight)
+    return _blend_states(_SA.sample(clipA, t), _SA.sample(clipB, t - w0), w)
+
+
+def _frames_from_state(state, bone, chan):
+    """從一個混合狀態抽出某 (bone, channel) 的鍵值(對應 spine_anim 的通道存法)。回傳 dict(無 time)。"""
+    d = state["bones"].get(bone, _LOOP_IDENT)
+    if chan == "rotate":
+        return {"angle": d.get("rotate", 0.0)}
+    if chan == "translate":
+        return {"x": d.get("x", 0.0), "y": d.get("y", 0.0)}
+    if chan == "scale":
+        return {"x": d.get("scaleX", 1.0), "y": d.get("scaleY", 1.0)}
+    if chan == "shear":
+        return {"x": d.get("shearX", 0.0), "y": d.get("shearY", 0.0)}
+    raise KeyError("unknown bone channel " + chan)
+
+
+def _clip_key_times(clip):
+    """一支 clip 所有 timeline 的關鍵幀時間集合(供重取樣時釘住原幀值,降純區近似誤差)。"""
+    ts = set()
+    for chans in clip.get("bones", {}).values():
+        for tl in chans.values():
+            for f in tl:
+                ts.add(f["time"])
+    for chans in clip.get("slots", {}).values():
+        for tl in chans.values():
+            for f in tl:
+                ts.add(f["time"])
+    return ts
+
+
+def crossfade(clipA, clipB, mix_dur, steps=16, weight="linear", merge_tol=1e-6):
+    """candidate (L-5) — 把 A、B 兩支 clip 以**時間重疊窗 mix_dur** 混場成**單一可載入** animation。
+
+    與 `compose_sequence`(L,純時間平移拼接)的差別 = 真正的 **mix 機制**:在 [w0, dur_A] 的重疊窗內
+    (w0 = dur_A − mix_dur),A 續播到自己的尾、B 從 0 起,以權重 w(τ) 由 A **混合**到 B(見 `crossfade_state`
+    的三段式混合律 —— 這就是拼接做不到的「時間重疊 + 權重混合」)。
+
+    **產出(確定性重取樣)**:以 `crossfade_state` 為 ground truth,在一組節點上取混合狀態並存成**線性**
+    關鍵幀。節點 = {均勻格點(窗內間距 dt = mix_dur/steps,全程同密度)} ∪ {A 的原關鍵幀時間(純 A 區)}
+    ∪ {B 的原關鍵幀時間平移後(純 B 區)} ∪ {0, w0, dur_A, 總長}。於是:
+      · 純 A / 純 B 區的**原關鍵幀時間節點上逐位元等於孤立 clip**(crossfade_state 在窗外即 `sample(A/B)`);
+      · 窗內節點上逐位元等於混合律;節點**之間**為線性近似(兩支分段線性×w 真值為分段二次,且 A/B 本身
+        可能帶 bezier 緩動),誤差隨 dt→0 收斂(honest boundary,見閘 X4 的 steps 收斂)。
+    端點銜接:節點含 w0 與 dur_A → 窗首值=純 A 尾、窗尾值=純 B 首,**整段 C0 連續**,與 A 尾/B 首是否相等
+    **無關**(crux:拼接會在接點 pop,crossfade 把 pop 攤平到 mix 窗,見閘 X3)。`mix_dur=0` → 退化為
+    **純拼接**(等同 `compose_sequence([A,B])`,bit-identical,供 backward-compat / 負對照)。
+
+    回傳 `(composed, info)`:composed 可直接塞進 skeleton["animations"];
+      info = {"dur_a","dur_b","mix_dur","w0","total","weight","steps","nkeys"}。
+    純 CPU、確定性、additive(不改任何既有函式/beat 值)。"""
+    import spine_anim as _SA
+    dur_a = _SA.duration(clipA)
+    dur_b = _SA.duration(clipB)
+    if dur_a <= 0 or dur_b <= 0:
+        raise ValueError("crossfade: 兩支 clip 皆須有正時長(dur_A={}, dur_B={})".format(dur_a, dur_b))
+    if mix_dur < 0 or mix_dur > dur_a + 1e-12 or mix_dur > dur_b + 1e-12:
+        raise ValueError("crossfade: mix_dur={} 必須在 [0, min(dur_A={}, dur_B={})]".format(
+            mix_dur, dur_a, dur_b))
+    if steps < 1:
+        raise ValueError("crossfade: steps 須 ≥1")
+    w0 = dur_a - mix_dur
+    total = dur_a + dur_b - mix_dur
+    if mix_dur <= 0.0:
+        # 退化:純拼接(與 compose_sequence 同一去重規則,bit-identical)
+        composed, _ = compose_sequence({"__A": clipA, "__B": clipB}, ["__A", "__B"],
+                                       gap=0.0, merge_tol=merge_tol)
+        nkeys = sum(len(tl) for g in composed.values() for ch in g.values() for tl in ch.values())
+        return composed, {"dur_a": dur_a, "dur_b": dur_b, "mix_dur": 0.0, "w0": round(w0, 6),
+                          "total": round(total, 6), "weight": weight, "steps": steps, "nkeys": nkeys}
+
+    # ---- 節點集合:均勻格點 + A/B 原關鍵幀(釘住純區) + 端點/窗界 ----
+    dt = mix_dur / steps
+    nodes = set()
+    j = 0
+    while True:
+        t = j * dt
+        if t >= total:
+            break
+        nodes.add(round(t, 6))
+        j += 1
+    nodes |= {round(x, 6) for x in (0.0, w0, dur_a, total)}
+    # 純 A 區:A 原關鍵幀時間(< w0);窗內與純 B 區交給格點/B 關鍵幀
+    for t in _clip_key_times(clipA):
+        if t < w0 - merge_tol:
+            nodes.add(round(t, 6))
+    # 純 B 區:B 原關鍵幀時間平移 +w0(> dur_a)
+    for t in _clip_key_times(clipB):
+        ts = round(t + w0, 6)
+        if ts > dur_a + merge_tol:
+            nodes.add(ts)
+    times = sorted(x for x in nodes if 0.0 - merge_tol <= x <= total + merge_tol)
+    states = [crossfade_state(clipA, clipB, mix_dur, t, weight) for t in times]
+
+    composed = {"bones": {}, "slots": {}}
+    # ---- bone 通道:只輸出 A∪B 實際驅動過的 (bone, channel) ----
+    bones = set(clipA.get("bones", {})) | set(clipB.get("bones", {}))
+    for bone in bones:
+        chans = set(clipA.get("bones", {}).get(bone, {})) | set(clipB.get("bones", {}).get(bone, {}))
+        for ch in chans:
+            frames = []
+            for t, s in zip(times, states):
+                fr = {"time": t}
+                fr.update(_frames_from_state(s, bone, ch))
+                frames.append(fr)
+            composed["bones"].setdefault(bone, {})[ch] = frames
+    # ---- slot color(alpha)----
+    slots = set(clipA.get("slots", {})) | set(clipB.get("slots", {}))
+    for slot in slots:
+        if "color" not in clipA.get("slots", {}).get(slot, {}) and \
+           "color" not in clipB.get("slots", {}).get(slot, {}):
+            continue
+        frames = [{"time": t, "color": _alpha_hex(s["slots"].get(slot, {"alpha": 1.0})["alpha"])}
+                  for t, s in zip(times, states)]
+        composed["slots"].setdefault(slot, {})["color"] = frames
+
+    for group in ("bones", "slots"):
+        if not composed[group]:
+            composed.pop(group)
+    nkeys = sum(len(tl) for g in composed.values() for ch in g.values() for tl in ch.values())
+    return composed, {"dur_a": dur_a, "dur_b": dur_b, "mix_dur": mix_dur, "w0": round(w0, 6),
+                      "total": round(total, 6), "weight": weight, "steps": steps, "nkeys": nkeys}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("skeleton_json", help="build_spine 產出的 skeleton.json")
