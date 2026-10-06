@@ -10,6 +10,39 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 跨 beat crossfade / mix 序列組合:以 C1 斜坡消接點 C1 kink(里程碑,2026-10-06 run 002,candidate L-6)** —
+  把 L-5 攤開的「序列每相異接點 C0 無縫但 C1 不連續(速度突變 15~114)」從**量化**推到**修正**。`compose_sequence`
+  (L,純時間平移+接點去重,瞬切)**做不到**平滑接點,需真正的 **mix 機制**(STATE「下一步」/line 1210-1211 的
+  crossfade 軸)。延續 L/L-2/L-3/L-4/L-5/G-2 刻意選整合/組合閘、**不加任何參數軸**。**做了什麼(全 additive,
+  `tools/analyzer/gen_animations.py` 全新純函式,`xf=0` 一律退化回 `compose_sequence` 逐位元相容)**:①
+  `crossfade_ramp(name)`→`(w,w')`(smoothstep 3s²−2s³=C1 / smootherstep 6s⁵−15s⁴+10s³=C2 / linear);②
+  `crossfade_pose_at(anims,order,xf,T,ramp)`→ 重疊區 `P(T)=(1−w(s))A(ta)+w(s)B(tb)` 解析混合姿勢(compose
+  純平移做不到);③`crossfade_seam_kink(before,after,xf,ramp)`→**閉式**接點 C1 kink 左界 `(w'(0)/xf)(B_start
+  −A(d−xf))`、右界 `(w'(1)/xf)(B(xf)−A_end)`;④`crossfade_junction_kinks` / `is_c1_crossfade_sequence`
+  (crossfade 後全程 C1 判準,與 L-5 `is_c1_continuous_sequence` 對照);⑤`crossfade_sequence(...,nsamp,ramp)`
+  → 重取樣成單一可載入 animation(body 忠實+重疊混合,統一時間解析度 `dt=xf/nsamp`,`xf=0` 委派);⑥新閘
+  `validate_sequence_crossfade.py`(L-6,5 AC)從**先驗庫 → 真實 build_spine robot 骨架 → build_animations**
+  端到端(與 L/L-3/L-4/L-5 同一 fixture 正向序列,xf=0.15)。**5 AC 全 PASS**:**X1** present+well-formed
+  (時間嚴格遞增/finite)+總時長 5.5==Σdur−6·xf+body 忠實(emitted vs 孤立 clip 0.0019≤0.05)+`xf=0` 逐位元==
+  `compose_sequence`+segments 相鄰相交 xf;**X2 crux smoothstep 消接點 kink**(smoothstep 每接點閉式 kink **全
+  0**≤1e-6 對照純接續 L-5 114/87/109/78/15/15 → `is_c1_crossfade_sequence`=True 而 `is_c1_continuous_sequence`
+  =False);**X3 真混合+非空驗**(重疊中點姿勢與前/後 beat 單獨皆不同≥0.3 最小 0.577・重疊真縮短總時長 0.9・
+  接點兩側端點速度≥1);**X4 crux C1 斜坡才是鑑別子(負對照)**(**線性**斜坡每接點 kink 102/36/120/20/15/102
+  `is_c1`=False 對照 smoothstep=0 → 證斜坡的 C1 性 w'兩端=0 才是消 kink 的原因非 crossfade 本身;**smootherstep**
+  C2 亦每接點=0 → 關鍵=w'(0)=w'(1)=0 的共性);**X5 metric 良定義+守衛+空驗**((a) 閉式(10/40)==數值有限差分
+  (10.0006/39.9994 rel<1e-3);(b) emitted 重疊忠實隨 nsamp 收斂 16:0.191→64:0.0028;(c) 輸入守衛 xf<0 與
+  xf>min_dur/2→ValueError・xf=0 委派不報錯;(d) 空驗守衛 兩靜止 clip 任何斜坡 kink 皆 0 因無運動 → kink=0 須
+  配非靜止才有意義,呼應 L-5)。**回歸:check_readiness 0 RED**(新增 cap `sequence_crossfade` L2 併入
+  `spine-anim-forge`,仍 HOLD;L-5 等既有閘逐一 GREEN 證全新純函式 + `xf=0` 委派零回歸)。**關鍵發現**:①**crossfade
+  消接點 C1 kink 的充要是斜坡本身 C1(w'兩端=0),非有無 crossfade** —— 線性斜坡 crossfade 兩界 kink 猶存
+  (15~120),smoothstep/smootherstep 恆 0;把「重疊混合」與「斜坡連續性」分成兩獨立條件,後者才是鑑別子(呼應
+  L-3/L-4/L-5「真簽章常需兩獨立條件並立」);②**接點引入的 kink 要用閉式(乘 w' 導數)量,不可用有限差分探純值**
+  —— 閉式與取樣步長/clip 內部關鍵幀位置皆無關(xf=0.2 探針落內部節拍 kink 量到假 134~167 而閉式恆 0),L-5 的
+  `seam_velocity_gap` 是本量的 `xf→0` 瞬切極限;③**「量化/攤開」可推到「修正」,但修正觸美術手感要界清楚**(本
+  run 只客觀化機制,不替使用者決定套哪些接點);④**統一時間解析度(body 與重疊同 dt)讓重取樣忠實度單調隨 nsamp
+  收斂**。**honest boundary**:哪些接點該平滑、xf 多長屬美術手感(A 類,離散節拍撞擊感可能該保留);vel_tol=1.0/
+  xf=0.15 為量級選擇;無改任何生成/產線值(全新純函式,xf=0 委派後逐位元不變);單一真值資產。見
+  `knowledge/s1-sequence-crossfade.md`。
 - **S1 相異 beat 接點 C1(速度)連續 / 序列全程 C1(里程碑,2026-10-06 run 001,candidate L-5)** —
   關掉 candidate (L-4) 誠實列出的 honest boundary:L-4 的 `loop_seam_velocity_gap`/`is_c1_loopable`
   **只驗自接點**(同一 Loop 重播 N 次),並明記序列**全程** C1(含**相異 beat 接點** In→hit/…/Loop→Out
@@ -1207,9 +1240,12 @@
 >   新增 `gen_animations.is_loopable`(首幀==尾幀→可安全重播,含 shear,純判斷)+ `validate_sequence_loop.py` 5AC PASS。
 >   **關鍵:compose 的時間去重把值不符接點抹成陡坡 → composed 恆 C0 → loopability 只能在 clip 端點層判(self-seam/is_loopable)**。
 > **建議下一個 bounded chunk(擇一,皆純自主):**
-> **(L-4) 把序列組合閘擴成「跨 beat 混場(crossfade / mix)」接點閘**(L-3 的 Loop 重播是 C0 拼接;crossfade 是**時間重疊 + 權重混合**,
->   compose 的純平移+去重做不到,需真正的 mix 機制;屬序列組合的下一個組合層軸,仍整合閘精神);或 **(L-3') loop 的 C1 速度連續閘**
->   (L-3 只驗 C0,loop 重啟的「速度頓挫」= 尾速度≠首速度;可量兩端有限差速度向量並驗連續,為 loop 手感客觀化);
+> **(L-6) ~~把序列組合閘擴成「跨 beat 混場(crossfade / mix)」接點閘~~ ✅ 完成(2026-10-06 run 002,candidate L-6,`sequence_crossfade` L2,見上里程碑)** ——
+>   crossfade(時間重疊 xf + 權重斜坡混合)把 L-5 攤開的接點 C1 kink 消掉;compose 的純平移+去重做不到,需真正的 mix 機制。
+>   `crossfade_pose_at`(解析混合)+ `crossfade_seam_kink`(閉式接點 kink)+ `crossfade_sequence`(xf=0 委派 compose)+ `validate_sequence_crossfade.py` 5AC PASS。
+>   **crux:smoothstep(w'兩端=0)每接點 kink 閉式=0 vs 純接續 15~114、線性斜坡仍 15~120 → C1 斜坡才是鑑別子**。
+>   **續**(擇一,皆自主):接點平滑的**選擇性套用**(per-接點 xf / 只平滑特定接點,觸美術手感 A 類為 PROPOSAL)、crossfade×tier(高檔位更緊湊接點)、非對稱 crossfade;
+>   或 **(L-4-orig 已被 L-4 label 佔用,此為真 crossfade 完成)** / **(L-3') loop 的 C1 速度連續閘**(已由 L-4/L-5 完成);
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。

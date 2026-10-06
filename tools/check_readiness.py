@@ -467,6 +467,21 @@ BLOCKS = [
                      "S4 crux 自接點 C1⊬序列接點 C1:Loop is_c1_loopable=True 但 cascade→Loop/Loop→Out c1≈15≥10・min/self ratio≈80≥50/S5 正+負+空驗:(a 正對照放行力)共線切分兩半→接點 c0≈0 c1≈0 is_c1_continuous=True→證閘能放行真 C1 非恆判 False 廢閘;"
                      "(b crux 負對照)C0 續(10==10)但切線反向(10→5)→c1=15>1 is_c1_continuous=False→抓出 C0 看不到的速度 kink;(c 空驗守衛)兩靜止 clip→c0=c1=0 trivially C1 但端點速度 0<1 無運動→gap≤tol 必要不充分須配非靜止(呼應 L-4 C1e-b/L-3 LP4)。"
                      "honest:大獎序列是否該全程 C1 屬美術手感(A 類,離散節拍的接點 kick 為設計使然非 bug);vel_tol=1.0 為量級選擇;無改任何生成/產線值(三新函式純量測/純判斷,loop_seam 委派後逐位元不變);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_crossfade", "跨 beat crossfade / mix 序列組合:以 C1 斜坡消接點 C1 kink(L-6,把 L-5 的『量化』推到『修正』)", "L2",
+                "python3 tools/analyzer/validate_sequence_crossfade.py", "pipeline",
+                note="承 L-5:compose_sequence(L)只做純時間平移+接點去重,相鄰 beat 瞬間切換 → L-5 證實正向大獎序列每相異接點 C0 無縫但 C1 不連續(接點速度突變 15~114)。"
+                     "純平移去重**做不到**平滑接點 —— 需真正的 mix 機制。本次新增 crossfade:相鄰 beat 時間重疊 xf 秒,重疊區以權重斜坡 w(s) 混合兩 beat 姿勢。"
+                     "全 additive 純函式:crossfade_ramp(smoothstep/smootherstep/linear 的 w 與 w')・crossfade_pose_at(解析混合姿勢,compose 的純平移做不到)・"
+                     "crossfade_seam_kink(閉式接點 C1 kink = |w'(0)/xf·(B_start−A(d−xf))| / |w'(1)/xf·(B(xf)−A_end)|)・crossfade_junction_kinks・is_c1_crossfade_sequence・"
+                     "crossfade_sequence(重取樣 body(忠實)+重疊(混合)成單一可載入 animation,xf=0 委派 compose_sequence 逐位元相容)。"
+                     "**關鍵發現(crux):crossfade 能否消接點 C1 kink,取決於斜坡本身是否 C1(w'兩端=0),非 crossfade 本身**——閉式推導接點引入的 kink = w'(端)/xf × 兩 clip 在重疊界的值差:"
+                     "smoothstep/smootherstep(w'(0)=w'(1)=0)→每接點 kink **恆 0(精確)**把離散瞬切換成 xf 秒平滑過渡;線性斜坡(w'≡1)→兩界 kink 猶存 15~120 → is_c1_crossfade_sequence 仍 False。"
+                     "閉式(乘 w' 導數)與有限差分步長/clip 內部關鍵幀位置皆無關,不會把 beat 自身節拍 kink 誤計為接點 artifact(L-5 的 seam_velocity_gap 是 xf→0 的瞬切極限)。"
+                     "validate_sequence_crossfade.py 5AC PASS:X1 present+well-formed(時間嚴格遞增/finite)+總時長=Σdur−(m−1)xf+body 區忠實(emitted vs 孤立 clip 誤差<FAITH_TOL)+xf=0 逐位元==compose_sequence/"
+                     "X2 crux smoothstep 每接點閉式 kink≈0(≤KINK_ZERO_TOL)vs 純接續(L-5)15~114 → crossfade 消 kink,ratio 巨大/X3 真混合(重疊中點姿勢與前後 beat 皆不同≥BLEND_MIN)+重疊真縮短總時長 (m−1)xf+非空運動/"
+                     "X4 crux 負對照 線性斜坡每接點 kink≥SEAM_KINK_MIN(crossfade 本身不足以 C1)對照 smoothstep=0 → 證**C1 斜坡**才是鑑別子;smootherstep(C2)亦=0 證關鍵=w'兩端=0/"
+                     "X5 metric 良定義+守衛:閉式==數值有限差分(合成 clean clip 對,線性斜坡)/emitted 重疊忠實(vs 解析 pose_at,隨 nsamp 收斂)/輸入守衛(xf<0 與 xf>min_dur/2→ValueError・xf=0 委派)/空驗(兩靜止 clip→任何斜坡 kink 皆 0 因無運動→kink=0 須配非靜止才有意義)。"
+                     "honest:哪些接點該平滑/xf 多長屬美術手感(A 類,離散節拍的撞擊感可能該保留);vel_tol=1.0 / xf=0.15 為量級選擇;無改任何生成/產線值(全新純函式,xf=0 委派後逐位元不變);單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

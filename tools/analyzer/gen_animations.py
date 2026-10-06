@@ -778,6 +778,271 @@ def is_c1_continuous_sequence(anims, order, tol=1e-6, vel_tol=1.0, h=1e-3):
     return True
 
 
+# ===================== candidate (L-6):跨 beat crossfade / mix 序列組合 =====================
+#
+# 動機(承 L-5):`compose_sequence`(L)只做**純時間平移 + 接點去重**,相鄰 beat 在接點**瞬間**切換
+# (前 beat 尾 → 後 beat 首)。L-5 證實正向大獎序列每個相異接點雖 **C0 無縫**(值連續、可串接播放),
+# 卻 **C1 不連續**(接點速度突變 15~114):各 beat 是離散節拍,端點切線互不相同。純平移去重**做不到**
+# 平滑接點 —— 需真正的 **mix 機制**:讓相鄰 beat 在接點**時間重疊** `xf` 秒,重疊區以權重斜坡 `w(s)`
+# (s∈[0,1])混合兩 beat 的姿勢。本段把這個組合層機制顯式做出來(STATE/L-5「下一步」的 crossfade 軸)。
+#
+# 關鍵不變量(為何 crossfade 能把 C1 kink 消掉,且為何**斜坡本身必須 C1**):
+#   重疊區 composed 姿勢 P(T) = (1−w(s))·A(ta) + w(s)·B(tb),s=(T−T0)/xf,ta/tb 為兩 clip 的 local 時間
+#   (dta/dT=dtb/dT=1)。微分 →
+#     P'(T) = (w'(s)/xf)·(B(tb)−A(ta)) + (1−w)·A'(ta) + w·B'(tb)。
+#   在重疊**左界** T0(s=0):P'(T0⁺) = (w'(0)/xf)·(B_start−A(d_before−xf)) + A'(d_before−xf);
+#   左界之外(純 A)P'(T0⁻) = A'(d_before−xf)。相減 → **接點引入的速度不連續** = (w'(0)/xf)·(B_start−A(d−xf))。
+#   同理**右界** T0+xf(s=1):= (w'(1)/xf)·(B(xf)−A_end)。
+#   ⇒ 斜坡 w'(0)=w'(1)=0(smoothstep/smootherstep)時**接點引入的 kink 恆為 0(閉式精確)**,把離散切換換成
+#     xf 秒的平滑過渡(過渡內速度為 A'/B' 的平滑混合,無新 kink);線性斜坡 w'≡1 則兩端 kink≠0 → crossfade
+#     本身**不足以** C1,**C1 的斜坡**才是關鍵(見閘 X4 負對照)。此 kink 是**閉式**(乘 w'(0)/w'(1)),與有限差分
+#     取樣步長、與 clip 內部關鍵幀位置皆無關 —— 不會把 beat 自身的內部節拍 kink 誤計為接點 artifact。
+
+def crossfade_ramp(name):
+    """權重斜坡 `w(s)` 與其導數 `w'(s)`(s∈[0,1],w(0)=0 全取前 beat、w(1)=1 全取後 beat)。回傳 `(w, wprime)`。
+      - "smoothstep"   : w=3s²−2s³,w'(0)=w'(1)=0 → **C1**(接點速度連續)。
+      - "smootherstep" : w=6s⁵−15s⁴+10s³,w'(0)=w'(1)=w''(0)=w''(1)=0 → **C2**(更高階,兩端 w'仍=0)。
+      - "linear"       : w=s,w'≡1 → 兩端 w'≠0(負對照:crossfade 仍在重疊兩界頓挫)。
+    純函式、additive。未知名稱 → ValueError。"""
+    if name == "smoothstep":
+        return (lambda s: 3.0 * s * s - 2.0 * s * s * s, lambda s: 6.0 * s - 6.0 * s * s)
+    if name == "smootherstep":
+        return (lambda s: 6.0 * s ** 5 - 15.0 * s ** 4 + 10.0 * s ** 3,
+                lambda s: 30.0 * s ** 4 - 60.0 * s ** 3 + 30.0 * s ** 2)
+    if name == "linear":
+        return (lambda s: s, lambda s: 1.0)
+    raise ValueError("crossfade_ramp: 未知 ramp '{}'(可用 smoothstep/smootherstep/linear)".format(name))
+
+
+def _blend_state(sa, sb, w):
+    """兩個 `spine_anim.sample()` 狀態的線性混合 `(1−w)·sa + w·sb`(缺席通道視為 setup identity;含 shear)。
+    回傳同 `sample()` 形狀。純函式。"""
+    rb = {}
+    for b in set(sa["bones"]) | set(sb["bones"]):
+        da = sa["bones"].get(b, _LOOP_IDENT)
+        db = sb["bones"].get(b, _LOOP_IDENT)
+        rb[b] = {k: (1.0 - w) * da.get(k, _LOOP_IDENT[k]) + w * db.get(k, _LOOP_IDENT[k]) for k in _LOOP_IDENT}
+    rs = {}
+    for s in set(sa["slots"]) | set(sb["slots"]):
+        aa = sa["slots"].get(s, {"alpha": 1.0})["alpha"]
+        ab = sb["slots"].get(s, {"alpha": 1.0})["alpha"]
+        rs[s] = {"alpha": (1.0 - w) * aa + w * ab}
+    return {"bones": rb, "slots": rs}
+
+
+def _crossfade_layout(anims, order, xf):
+    """計算 crossfade 序列的時間佈局(確定性)。相鄰 beat 重疊 `xf` 秒 → 每個接點總時長縮 xf。
+    回傳 `(offsets, durs, total)`:offsets[i]=第 i beat 在 composed 的起點,beat i 佔 [offsets[i], offsets[i]+durs[i]]。
+    守衛:xf<0 或 xf 超過**最短 beat 時長的一半**(避免三方重疊/頭尾重疊互撞)→ ValueError;beat 不存在 → KeyError。"""
+    import spine_anim as _SA
+    if xf < 0:
+        raise ValueError("crossfade: xf 不可為負(xf={})".format(xf))
+    durs = []
+    for name in order:
+        if name not in anims:
+            raise KeyError("crossfade: beat '{}' 不在 anims(可用:{})".format(name, sorted(anims.keys())))
+        durs.append(_SA.duration(anims[name]))
+    if len(order) >= 2 and xf > 0:
+        min_d = min(durs)
+        if xf > min_d / 2.0 + 1e-12:
+            raise ValueError("crossfade: xf={} 超過最短 beat 時長的一半 {}(會造成三方重疊)".format(xf, min_d / 2.0))
+    offsets = []
+    o = 0.0
+    for i, name in enumerate(order):
+        offsets.append(round(o, 6))
+        o += durs[i] - (xf if i < len(order) - 1 else 0.0)
+    total = round(o, 6)
+    return offsets, durs, total
+
+
+def crossfade_pose_at(anims, order, xf, T, ramp="smoothstep"):
+    """candidate (L-6) — crossfade 序列在 composed 時間 `T` 的**解析混合姿勢**(真正的 mix,非純平移)。
+
+    相鄰 beat 重疊 `xf` 秒;重疊區 `P(T)=(1−w(s))·A(ta)+w(s)·B(tb)`(見本段頂部推導),body 區為該 beat 原姿勢。
+    `ramp` 決定權重斜坡(見 `crossfade_ramp`)。`xf=0` 退化為純接續(= `compose_sequence` 的姿勢,接點瞬間切換)。
+    回傳同 `spine_anim.sample()` 形狀的 state。**這是 `compose_sequence`(純平移+去重)做不到的組合層能力**:
+    在接點**混合**而非瞬切。純函式、additive、不改任何值。"""
+    import spine_anim as _SA
+    wfun, _ = crossfade_ramp(ramp)
+    offsets, durs, total = _crossfade_layout(anims, order, xf)
+    T = min(total, max(0.0, T))
+    last = len(order) - 1
+    for i, name in enumerate(order):
+        start = offsets[i]
+        end = start + durs[i]
+        # 與後一 beat 的重疊區 [end−xf, end](= [offsets[i+1], offsets[i+1]+xf])
+        if i < last and xf > 0 and (end - xf) - 1e-9 <= T <= end + 1e-9:
+            nb = order[i + 1]
+            s = (T - (end - xf)) / xf
+            s = min(1.0, max(0.0, s))
+            return _blend_state(_SA.sample(anims[name], T - start),
+                                _SA.sample(anims[nb], T - offsets[i + 1]), wfun(s))
+        # body 區 [start + (左重疊?xf:0), end − (右重疊?xf:0)]
+        lo = start + (xf if i > 0 else 0.0)
+        hi = end - (xf if i < last else 0.0)
+        if lo - 1e-9 <= T <= hi + 1e-9:
+            return _SA.sample(anims[name], T - start)
+    return _SA.sample(anims[order[last]], T - offsets[last])
+
+
+def _state_scaled_diff(s1, s2, scale):
+    """`max |scale·(s1−s2)|` 跨所有 bone 通道 + slot alpha(缺席視為 setup identity)。純函式。"""
+    m = 0.0
+    for b in set(s1["bones"]) | set(s2["bones"]):
+        d1 = s1["bones"].get(b, _LOOP_IDENT)
+        d2 = s2["bones"].get(b, _LOOP_IDENT)
+        for k in _LOOP_IDENT:
+            m = max(m, abs(scale * (d1.get(k, _LOOP_IDENT[k]) - d2.get(k, _LOOP_IDENT[k]))))
+    for s in set(s1["slots"]) | set(s2["slots"]):
+        a1 = s1["slots"].get(s, {"alpha": 1.0})["alpha"]
+        a2 = s2["slots"].get(s, {"alpha": 1.0})["alpha"]
+        m = max(m, abs(scale * (a1 - a2)))
+    return m
+
+
+def crossfade_seam_kink(clip_before, clip_after, xf, ramp="smoothstep"):
+    """candidate (L-6) — crossfade 接點(前 beat 尾 ⨯ 後 beat 首,重疊 `xf` 秒)**接點引入的 C1 速度不連續量(閉式)**。
+
+    依本段頂部推導,crossfade 重疊區只在**兩界**可能引入接點速度不連續(過渡內部為平滑混合,無新 kink):
+      - 左界(重疊起點,s=0):`|w'(0)/xf · (B_start − A(d_before−xf))|`
+      - 右界(重疊終點,s=1):`|w'(1)/xf · (B(xf) − A_end)|`
+    (A=clip_before,B=clip_after;各通道取 max,單位同 `seam_velocity_gap`。)回傳 `{"left","right","max"}`。
+
+    **閉式、精確**:乘上斜坡導數 `w'(0)/w'(1)`,**與有限差分步長、與 clip 內部關鍵幀位置皆無關** —— 不會把
+    beat 自身的內部節拍速度 kink 誤計為接點 artifact(L-5 的 `seam_velocity_gap` 量**純接續**瞬切的 kink,
+    是 `xf→0` 的極限;本函式量**crossfade 後**殘餘的接點 kink)。`w'(0)=w'(1)=0` 的斜坡(smoothstep/
+    smootherstep)→ 兩界皆 **0**(接點 kink 被 crossfade 消掉);線性斜坡 `w'≡1` → 兩界 = 兩 clip 在重疊界的
+    值差 / xf(kink 猶存,見閘 X4)。守衛:xf≤0 → ValueError(xf=0 非 crossfade,應走 compose_sequence)。
+    純函式、additive。"""
+    import spine_anim as _SA
+    if xf <= 0:
+        raise ValueError("crossfade_seam_kink: xf 必須 > 0(xf={};xf=0 為純接續,見 seam_velocity_gap)".format(xf))
+    _, wp = crossfade_ramp(ramp)
+    da = _SA.duration(clip_before)
+    b_start = _SA.sample(clip_after, 0.0)
+    a_mid = _SA.sample(clip_before, da - xf)          # 前 beat 尾前 xf 秒的姿勢
+    b_mid = _SA.sample(clip_after, xf)                # 後 beat 首後 xf 秒的姿勢
+    a_end = _SA.sample(clip_before, da)
+    left = _state_scaled_diff(b_start, a_mid, wp(0.0) / xf)
+    right = _state_scaled_diff(b_mid, a_end, wp(1.0) / xf)
+    return {"left": left, "right": right, "max": max(left, right)}
+
+
+def crossfade_junction_kinks(anims, order, xf, ramp="smoothstep"):
+    """candidate (L-6) — crossfade 序列 `order` 每個相鄰接點的 crossfade 後 C1 kink(閉式,見 `crossfade_seam_kink`)。
+    回傳 `[{"i","seam","left","right","max"}, ...]`(長度 len(order)-1)。純函式、additive。"""
+    _crossfade_layout(anims, order, xf)   # 觸發守衛(xf 範圍 / beat 存在)
+    out = []
+    for i in range(len(order) - 1):
+        a, b = order[i], order[i + 1]
+        k = crossfade_seam_kink(anims[a], anims[b], xf, ramp)
+        out.append({"i": i, "seam": "{}->{}".format(a, b), "left": k["left"], "right": k["right"], "max": k["max"]})
+    return out
+
+
+def is_c1_crossfade_sequence(anims, order, xf, ramp="smoothstep", vel_tol=1.0):
+    """candidate (L-6) — crossfade 序列 `order`(重疊 xf、斜坡 ramp)串接後是否**全程 C1 連續**(每接點 kink ≤ vel_tol)。
+
+    與 `is_c1_continuous_sequence`(L-5,純接續)對照:後者對真實大獎序列恆 False(接點速度突變 15~114);
+    本函式以 crossfade **修正**接點 —— `ramp="smoothstep"`(w'兩端=0)時每接點 kink 閉式=0 → **True**,證
+    crossfade+C1 斜坡把「可播放(C0)」提升到「播得平順(C1)」。`ramp="linear"` → 仍 False(kink 猶存)。
+    純函式、additive。"""
+    return all(j["max"] <= vel_tol for j in crossfade_junction_kinks(anims, order, xf, ramp))
+
+
+def _encode_alpha(a):
+    """alpha 0..1 → Spine 8-hex 色(白 RGB + alpha 末兩碼),夾到 [0,1]。"""
+    v = int(round(min(1.0, max(0.0, a)) * 255))
+    return "ffffff{:02x}".format(v)
+
+
+_BONE_CH_KEYS = {"rotate": (["angle"], ["rotate"]),
+                 "translate": (["x", "y"], ["x", "y"]),
+                 "scale": (["x", "y"], ["scaleX", "scaleY"]),
+                 "shear": (["x", "y"], ["shearX", "shearY"])}
+
+
+def crossfade_sequence(anims, order, xf, nsamp=16, ramp="smoothstep", merge_tol=1e-6):
+    """candidate (L-6) — 把多個 beat 依 `order` 以 **crossfade(時間重疊 `xf` 秒 + 權重混合)** 串成**單一可載入**
+    animation,回傳 `(composed, segments)`。每個出現過的通道(bone rotate/translate/scale/shear + slot color alpha)
+    逐一重取樣**解析混合姿勢** `crossfade_pose_at` 成線性關鍵幀:取樣時刻 = 該通道所屬 beat 的**原關鍵幀**平移後時刻
+    (角點精確命中)∪ 每段 body 的 `nsamp` 等分細分(捕捉 bezier 弧)∪ 每個接點重疊區的 `nsamp` 等分。
+    body 區 `crossfade_pose_at` 回純 clip 姿勢(忠實),重疊區回混合姿勢。
+
+    與 `compose_sequence`(L,純平移+去重,接點瞬切 → C0 但 C1 kink)對照:本函式在接點**混合**而非瞬切,
+    `ramp="smoothstep"` 時接點 C1 連續(見 `crossfade_seam_kink` / 閘)。**`xf=0` 委派 `compose_sequence`
+    (逐位元相容零回歸)** —— 無重疊即純接續。`segments` 回報各 beat 在 composed 的 `[start, start+dur]`
+    (**重疊 → 相鄰段區間相交 xf**,與 compose 的無交疊不同)。確定性、additive、不改任何輸入 clip 的值。"""
+    if xf == 0:
+        return compose_sequence(anims, order)
+    offsets, durs, total = _crossfade_layout(anims, order, xf)
+    last = len(order) - 1
+
+    # 收集每個 (group, part, ch) 的取樣時刻集合(composed 時間軸)。
+    times = {}   # (group, part, ch) -> set[float]
+
+    def _add(group, part, ch, t):
+        times.setdefault((group, part, ch), set()).add(round(min(total, max(0.0, t)), 6))
+
+    def _subdiv(group, part, ch, lo, hi, n):
+        if hi <= lo:
+            return
+        for j in range(n + 1):
+            _add(group, part, ch, lo + (hi - lo) * j / n)
+
+    dt = xf / nsamp   # 統一時間解析度:body 與重疊同步距 → body 忠實度隨 nsamp 收斂(同重疊)
+    for i, name in enumerate(order):
+        clip = anims[name]
+        start = offsets[i]
+        body_lo = start + (xf if i > 0 else 0.0)
+        body_hi = start + durs[i] - (xf if i < last else 0.0)
+        nbody = max(1, int(round((body_hi - body_lo) / dt)))
+        for group in ("bones", "slots"):
+            for p, chans in clip.get(group, {}).items():
+                for ch, frames in chans.items():
+                    # body 的原關鍵幀(平移後)精確命中角點 + body 等步細分(dt)捕捉 bezier 弧
+                    for f in frames:
+                        t = f["time"] + start
+                        if body_lo - merge_tol <= t <= body_hi + merge_tol:
+                            _add(group, p, ch, t)
+                    _subdiv(group, p, ch, body_lo, body_hi, nbody)
+    # 重疊區:每個接點重取樣,涵蓋前後 beat 在重疊出現的所有通道
+    for i in range(last):
+        ov_start = offsets[i + 1]
+        chset = set()
+        for src in (anims[order[i]], anims[order[i + 1]]):
+            for group in ("bones", "slots"):
+                for p, chans in src.get(group, {}).items():
+                    for ch in chans:
+                        chset.add((group, p, ch))
+        for (group, p, ch) in chset:
+            _subdiv(group, p, ch, ov_start, ov_start + xf, nsamp)
+
+    composed = {"bones": {}, "slots": {}}
+    for (group, p, ch), tset in times.items():
+        frames = []
+        for t in sorted(tset):
+            st = crossfade_pose_at(anims, order, xf, t, ramp)
+            fr = {"time": round(t, 6)}
+            if group == "slots":
+                a = st["slots"].get(p, {"alpha": 1.0})["alpha"]
+                fr["color"] = _encode_alpha(a)
+            else:
+                d = st["bones"].get(p, _LOOP_IDENT)
+                keys, srckeys = _BONE_CH_KEYS[ch]
+                for k, sk in zip(keys, srckeys):
+                    fr[k] = round(d[sk], 6)
+            if frames and abs(frames[-1]["time"] - fr["time"]) <= merge_tol:
+                continue   # 時間重合去重(維持 Spine 時間嚴格遞增)
+            frames.append(fr)
+        composed[group].setdefault(p, {})[ch] = frames
+    for group in ("bones", "slots"):
+        if not composed[group]:
+            composed.pop(group)
+    segments = [{"beat": order[i], "start": offsets[i], "dur": round(durs[i], 6)} for i in range(len(order))]
+    return composed, segments
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("skeleton_json", help="build_spine 產出的 skeleton.json")
