@@ -672,6 +672,38 @@ def _state_velocity(clip, at_start, h):
     return {"bones": vb, "slots": vs}
 
 
+def seam_velocity_gap(clip_before, clip_after, h=1e-3):
+    """candidate (L-5) — 兩支 beat clip 在**相異接點**(前 beat 尾 → 後 beat 首)的 **C1(速度)不連續量**。
+
+    一般化 (L-4) 的 `loop_seam_velocity_gap`:後者是本函式 `clip_before is clip_after`(自接點)的特例。
+    回傳 `max |v_end(clip_before) − v_start(clip_after)|`(跨所有 bone 通道 rotate/x/y/scale/shear + 每個
+    slot 的 alpha,單側有限差分;單位同 `_state_max_diff` 混合單位每秒):前一 beat 逼近 `t=dur⁻` 的內向速度
+    與後一 beat 進入 `t=0⁺` 的外向速度之差。
+
+    `compose_sequence` 的 **C0 無縫**(`validate_sequence_compose` L2 的接點殘差閘)只保證接點**值連續**,
+    即 `state_end(before) == state_start(after)`;即使如此,若兩 beat 在接點的**切線速度不同**,串接後
+    在接點仍有**速度突變(velocity kink)**。本函式把這個序列**全程 C1**(相異接點版)的不變量顯式量化,
+    是 (L-4) 自接點 C1 的互補:L-4 驗「同一支 clip 重播 N 次」的自接點,本函式驗「相異 beat 接起來」的接點。
+
+    ⚠️ **必須在 clip 端點層量,不能從 composed 時間軸量**(同 L-4):`compose_sequence` 的接點去重使 composed
+    取樣的接點速度是 sampling/dedup 相依的 artifact(見閘 S2:對部分接點 composed 會**低報**真 kick);真 C1
+    判準只在孤立 clip 的端點切線(本函式所做)。對分段線性 / 端點附近近線性 timeline,單側差分即端點切線,
+    對 h 穩定(見閘 S2)。純函式、additive、不依賴任何既有索引。"""
+    ve = _state_velocity(clip_before, False, h)   # 前 beat 逼近 t=dur⁻ 的內向速度
+    vs = _state_velocity(clip_after, True, h)      # 後 beat 進入 t=0⁺ 的外向速度
+    m = 0.0
+    for b in set(vs["bones"]) | set(ve["bones"]):
+        d0 = ve["bones"].get(b, {k: 0.0 for k in _LOOP_IDENT})
+        d1 = vs["bones"].get(b, {k: 0.0 for k in _LOOP_IDENT})
+        for k in _LOOP_IDENT:
+            m = max(m, abs(d0.get(k, 0.0) - d1.get(k, 0.0)))
+    for s in set(vs["slots"]) | set(ve["slots"]):
+        a0 = ve["slots"].get(s, {"alpha": 0.0})["alpha"]
+        a1 = vs["slots"].get(s, {"alpha": 0.0})["alpha"]
+        m = max(m, abs(a0 - a1))
+    return m
+
+
 def loop_seam_velocity_gap(clip, h=1e-3):
     """candidate (L-4) — 一支 loopable clip 在**自接點**(重複/平鋪時 前份尾→後份首)的 **C1(速度)不連續量**。
 
@@ -684,20 +716,9 @@ def loop_seam_velocity_gap(clip, h=1e-3):
     ⚠️ **必須在 clip 端點層量,不能從 composed 時間軸量**:L-3 已發現 `compose_sequence` 的時間去重會把
     接點抹成陡坡,composed 取樣恆 C0 → 跨 composed 接點的速度是**量測 artifact**;真 C1 判準只在孤立 clip
     的端點切線(本函式所做)。對分段線性 / 端點附近近線性的 timeline,單側差分即端點切線,對 h 穩定(見閘 C1b)。
-    純函式、additive、不依賴任何既有索引。"""
-    vs = _state_velocity(clip, True, h)
-    ve = _state_velocity(clip, False, h)
-    m = 0.0
-    for b in set(vs["bones"]) | set(ve["bones"]):
-        d0 = vs["bones"].get(b, {k: 0.0 for k in _LOOP_IDENT})
-        d1 = ve["bones"].get(b, {k: 0.0 for k in _LOOP_IDENT})
-        for k in _LOOP_IDENT:
-            m = max(m, abs(d0.get(k, 0.0) - d1.get(k, 0.0)))
-    for s in set(vs["slots"]) | set(ve["slots"]):
-        a0 = vs["slots"].get(s, {"alpha": 0.0})["alpha"]
-        a1 = ve["slots"].get(s, {"alpha": 0.0})["alpha"]
-        m = max(m, abs(a0 - a1))
-    return m
+    純函式、additive、不依賴任何既有索引。自 (L-5) 起委派 `seam_velocity_gap(clip, clip, h)`(自接點 =
+    `clip_before is clip_after` 的特例;逐位元等價,零回歸)。"""
+    return seam_velocity_gap(clip, clip, h)
 
 
 def is_c1_loopable(clip, tol=1e-6, vel_tol=1.0, h=1e-3):
@@ -712,6 +733,49 @@ def is_c1_loopable(clip, tol=1e-6, vel_tol=1.0, h=1e-3):
     區分開。`vel_tol` 預設 1.0(真實 Loop 自接點 gap 實測 ≈0.19,來自光暈呼吸式 scale/alpha 的小殘差 kink;
     主秀 beat ≥64)。純函式、additive。"""
     return is_loopable(clip, tol) and loop_seam_velocity_gap(clip, h) <= vel_tol
+
+
+def sequence_seam_gaps(anims, order, h=1e-3):
+    """candidate (L-5) — 一條播放序列 `order` 的**每個相鄰接點**的 C0(值)與 C1(速度)不連續量。
+
+    對 `order` 裡每一對相鄰 beat `(order[i], order[i+1])` 量:
+      - `c0_gap` = `_state_max_diff(sample(before, dur_before), sample(after, 0))`(接點值不連續;L 的 C0 判準)。
+      - `c1_gap` = `seam_velocity_gap(before, after, h)`(接點速度不連續;本 candidate 的 C1 判準)。
+    相鄰同名(如 `Loop, Loop`)自然退化為**自接點**(`seam_velocity_gap(X, X)` = L-4 的 `loop_seam_velocity_gap`)。
+
+    回傳 `[{"i":i,"seam":"A->B","c0_gap":..,"c1_gap":..}, ...]`(長度 = `len(order)-1`)。這是序列**全程**
+    連續性的逐接點報告:C0 全 ≤ tol ⇒ 可無跳變串接播放(L);但 C1 未必 ⇒ 接點仍可能頓挫(本 candidate)。
+    純函式、additive、不依賴任何既有索引、不改任何值。"""
+    import spine_anim as _SA
+    out = []
+    for i in range(len(order) - 1):
+        a, b = order[i], order[i + 1]
+        if a not in anims:
+            raise KeyError("sequence_seam_gaps: beat '{}' 不在 anims".format(a))
+        if b not in anims:
+            raise KeyError("sequence_seam_gaps: beat '{}' 不在 anims".format(b))
+        ca, cb = anims[a], anims[b]
+        da = _SA.duration(ca)
+        c0 = _state_max_diff(_SA.sample(ca, da), _SA.sample(cb, 0.0))
+        c1 = seam_velocity_gap(ca, cb, h)
+        out.append({"i": i, "seam": "{}->{}".format(a, b), "c0_gap": c0, "c1_gap": c1})
+    return out
+
+
+def is_c1_continuous_sequence(anims, order, tol=1e-6, vel_tol=1.0, h=1e-3):
+    """candidate (L-5) — 一條序列 `order` 串接後是否**全程 C1 連續**(每個接點值且速度皆連續)。
+
+    `= 每個相鄰接點 c0_gap ≤ tol`(C0 無縫,L)**AND** `c1_gap ≤ vel_tol`(C1 無頓挫,本 candidate)。
+    C1-continuous ⇒ C0-continuous(嚴格更強)。
+
+    **與 `is_c1_loopable`(L-4)互補且獨立**:L-4 驗**自接點**(同一 Loop 重播 N 次是否無縫無頓挫);本函式驗
+    **相異接點**(不同 beat 串成序列是否無縫無頓挫)。兩者互不蘊含 —— 一支 Loop 可以**自接點 C1**(可安全重播)
+    卻在**與鄰 beat 的接點 C1 失敗**(Loop 端點正在擺動、鄰 beat 卻近靜止 → 接點速度突變),見閘 S4。
+    純函式、additive。"""
+    for g in sequence_seam_gaps(anims, order, h):
+        if g["c0_gap"] > tol or g["c1_gap"] > vel_tol:
+            return False
+    return True
 
 
 def main():

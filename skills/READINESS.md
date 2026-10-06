@@ -1,7 +1,16 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> 產生於 2026-10-05 run 001(S1 candidate **(L-3):序列內 Loop 重播 N 次 + loopability 不變量 —— 整合/組合閘**)。
+> **最新:2026-10-06 run 001(S1 candidate (L-5):相異 beat 接點 C1(速度)連續 / 序列全程 C1 —— 整合/組合閘)。
+> 58 閘全綠(57 + 新 `sequence_seam_c1`,0 RED,無 GREEN→RED)。** 關掉 L-4 的 self-seam-only honest boundary:
+> L-4 的 `loop_seam_velocity_gap`/`is_c1_loopable` 只驗自接點,序列**全程** C1(含相異 beat 接點 In→hit/…/Loop→Out
+> 的速度連續)尚未驗。全 additive:新增 `seam_velocity_gap`(相異接點 C1 量,一般化 `loop_seam_velocity_gap`=
+> `seam(clip,clip)` 自接點特例,逐位元等價零回歸)+ `sequence_seam_gaps` + `is_c1_continuous_sequence` + 閘。
+> **crux 發現:①真實大獎序列全程 C0 無縫但每接點 C1 不連續(接點速度突變 15~114,離散節拍/撞擊);②自接點
+> C1(L-4)與相異接點 C1(L-5)互不蘊含——Loop 自接點 C1-loopable=True 卻在與鄰 beat 接點 c1≈15≫tol(ratio≈80×)。**
+> cap `sequence_seam_c1` L2 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s1-sequence-seam-c1.md`。
+>
+> (前次)產生於 2026-10-05 run 001(S1 candidate **(L-3):序列內 Loop 重播 N 次 + loopability 不變量 —— 整合/組合閘**)。
 > 延續 L / L-2 / G-2 的整合/組合閘選題,**刻意不加任何參數軸**:candidate (L) 的 `compose_sequence(anims, order)` 的
 > `order` **本就可重複同一 beat 名**(如 `In→Loop×N→Out`)—— 這正是真實大獎序列的播放形態(進場後 Loop 重播 N 次
 > 待機、贏分滾動,再收尾),但 L 的正向序列每 beat **只出現一次**,**從未有閘**驗過「同一支 clip 重複 N 次」路徑:

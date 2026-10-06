@@ -454,6 +454,19 @@ BLOCKS = [
                      "(a crux)三角脈衝(C0-loopable 但注入速度 kink)gap 2.0>1 is_c1_loopable=False→抓出 is_loopable 看不到的頓挫;(b 空驗守衛)靜止 clip gap=0 trivially C1 且 is_c1_loopable=True"
                      "**但**端點速度 0<1 無運動→證 gap≤tol 必要不充分須配非靜止(呼應 LP4);(c)In 非 C0-loopable→is_c1_loopable False 由 C0 先否決。"
                      "honest:Loop 是否該被設計成完美 C1 屬美術手感(A 類,光暈呼吸殘差 kick 0.19 為已知邊界);vel_tol=1.0 為量級選擇;無改任何生成/產線值(兩新函式純量測);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_seam_c1", "相異 beat 接點 C1(速度)連續 / 序列全程 C1(L-5,關掉 L-4 的 self-seam-only honest boundary)", "L2",
+                "python3 tools/analyzer/validate_sequence_seam_c1.py", "pipeline",
+                note="補 candidate (L-4) 誠實列出的 honest boundary:L-4 的 loop_seam_velocity_gap / is_c1_loopable **只驗自接點**(同一 Loop 重播 N 次),"
+                     "並明記序列全程 C1(含相異 beat 接點 In→hit/…/Loop→Out 的速度連續)尚未驗。本次關掉它:新增 seam_velocity_gap(相異接點 C1 量,一般化 "
+                     "loop_seam_velocity_gap = seam(clip,clip) 自接點特例,逐位元等價零回歸)+ sequence_seam_gaps(序列逐接點 C0/C1 報告)+ is_c1_continuous_sequence(序列全程 C1 判準),皆 additive 純函式。"
+                     "選題:延續 L/L-2/L-3/L-4/G-2 刻意選整合/組合閘,不加參數軸。**關鍵發現(crux):①真實大獎正向序列 In→hit→combo→charge→cascade→Loop→Out 每個相異接點都 C0 無縫(值連續,L 已驗)"
+                     "但都 C1 不連續(接點速度突變 15~114)—— 大獎序列本質是一串離散節拍/撞擊,非速度平滑變形(誠實攤開、逐接點定位,屬美術手感 A 類);②自接點 C1(L-4)與相異接點 C1(L-5)是兩個獨立不變量:"
+                     "Loop 自接點 C1-loopable=True(gap 0.19 可安全重播)卻在與鄰 beat 接點(cascade→Loop/Loop→Out)C1 gap≈15≫tol(Loop 端點呼吸擺動≈15 而鄰 beat 近靜止)→ is_c1_loopable 不蘊含序列接點 C1。**"
+                     "validate_sequence_seam_c1.py 5AC PASS:S1 present+C0 複驗(每接點 c0_gap≤1e-6)+非空驗(接點兩側端點速度≥1)+sequence_seam_gaps 良構/S2 crux metric 良定義(接點 gap 對 h∈{2e-3,1e-3,5e-4} 穩定 rel<1e-3→"
+                     "端點切線非 artifact;且確認須在 clip 端點層量,≥1 接點 composed 時間軸速度低報真 kick)/S3 crux 序列全程 C0 無縫但每接點 c1_gap≥10 → is_c1_continuous_sequence=False 且非因 C0(C0 全過)→證可無跳變播放卻逐接點頓挫,定位最大 kick In→hit 114/"
+                     "S4 crux 自接點 C1⊬序列接點 C1:Loop is_c1_loopable=True 但 cascade→Loop/Loop→Out c1≈15≥10・min/self ratio≈80≥50/S5 正+負+空驗:(a 正對照放行力)共線切分兩半→接點 c0≈0 c1≈0 is_c1_continuous=True→證閘能放行真 C1 非恆判 False 廢閘;"
+                     "(b crux 負對照)C0 續(10==10)但切線反向(10→5)→c1=15>1 is_c1_continuous=False→抓出 C0 看不到的速度 kink;(c 空驗守衛)兩靜止 clip→c0=c1=0 trivially C1 但端點速度 0<1 無運動→gap≤tol 必要不充分須配非靜止(呼應 L-4 C1e-b/L-3 LP4)。"
+                     "honest:大獎序列是否該全程 C1 屬美術手感(A 類,離散節拍的接點 kick 為設計使然非 bug);vel_tol=1.0 為量級選擇;無改任何生成/產線值(三新函式純量測/純判斷,loop_seam 委派後逐位元不變);單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

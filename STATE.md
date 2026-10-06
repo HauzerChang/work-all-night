@@ -10,6 +10,42 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 相異 beat 接點 C1(速度)連續 / 序列全程 C1(里程碑,2026-10-06 run 001,candidate L-5)** —
+  關掉 candidate (L-4) 誠實列出的 honest boundary:L-4 的 `loop_seam_velocity_gap`/`is_c1_loopable`
+  **只驗自接點**(同一 Loop 重播 N 次),並明記序列**全程** C1(含**相異 beat 接點** In→hit/…/Loop→Out
+  的速度連續)尚未驗。本次把 C1 從自接點**一般化到相異接點**,延續 L/L-2/L-3/L-4/G-2 刻意選整合/組合閘、
+  **不加任何參數軸**。**做了什麼(全 additive)**:①`seam_velocity_gap(clip_before,clip_after,h=1e-3)` →
+  相異接點 C1 量 `max|v_end(前)−v_start(後)|`(一般化 `loop_seam_velocity_gap` = `seam(clip,clip)` 自接點
+  特例;②`loop_seam_velocity_gap` **改為委派** `seam_velocity_gap(clip,clip,h)`,**逐位元等價零回歸**
+  (探針實測 Loop/hit/In 的 `seam(x,x)==loop_seam(x)` 皆 True);③`sequence_seam_gaps(anims,order,h)` →
+  序列逐接點 `{c0_gap,c1_gap}` 報告(相鄰同名自然退化為自接點);④`is_c1_continuous_sequence(anims,order,
+  tol,vel_tol,h)` → 每接點 C0≤tol ∧ C1≤vel_tol;⑤新閘 `validate_sequence_seam_c1.py`(L-5,5 AC)從**先驗庫
+  → 真實 build_spine robot 骨架 → build_animations** 端到端(與 L/L-3/L-4 同一 fixture,正向序列
+  `In→hit→combo→charge→cascade→Loop→Out`)。**5 AC 全 PASS**:**S1** present+C0 複驗(每接點 c0_gap≤1e-6 **全
+  0**,值無縫可串接播放)+非空驗(接點兩側端點速度≥1)+`sequence_seam_gaps` 良構;**S2 crux metric 良定義**
+  (接點 gap 對 h∈{2e-3,1e-3,5e-4} 穩定 rel<1e-3 最大 In→hit 5.8e-4→端點切線非 artifact;且確認須在 clip
+  端點層量,≥1 接點 composed 時間軸速度**低報**真 kick 實測 hit→combo 48.4 vs 86.6 低報至 0.56×);**S3 crux
+  序列 C0 無縫但非 C1**(全程 C0 無縫但每接點 c1_gap≥10 實測 In→hit 114/hit→combo 87/combo→charge 109/
+  charge→cascade 78/cascade→Loop 15/Loop→Out 15 → `is_c1_continuous_sequence`=**False** 且**非**因 C0→證可
+  無跳變播放卻逐接點頓挫,最大 kick In→hit 114);**S4 crux 自接點 C1⊬序列接點 C1(本 run 核心)**(`Loop`
+  `is_c1_loopable`=True 自接點 0.188<1 **但** cascade→Loop/Loop→Out c1≈**14.997≥10**、min/self ratio≈
+  **79.7×≥50**→證自接點 C1 **不蘊含**序列接點 C1,肇因 Loop 端點呼吸擺動≈15 而鄰 beat 近靜止);**S5 正+負+
+  空驗守衛**:(a) **正對照放行力** 共線切分 clip(rotate 0→10→20 切兩半)→接點 c0≈0 c1≈0
+  `is_c1_continuous_sequence`=True→證閘能**放行**真 C1 非恆判 False 廢閘;(b) **crux 負對照** 同前半+切線
+  不符後半(rotate 10→5)→c0≈0 值仍連續**但** c1=15>1 is_c1_continuous=False→抓出 C0 看不到的速度 kink;
+  (c) **空驗守衛** 兩靜止 clip→c0=c1=0 trivially C1 但端點速度 0<1 無運動→gap≤tol 必要不充分須配非靜止
+  (呼應 L-4 C1e-b/L-3 LP4)。**回歸:check_readiness 0 RED**(新增 cap `sequence_seam_c1` L2 併入
+  `spine-anim-forge`,仍 HOLD;L-4 等既有閘逐一 GREEN 證三條新純函式 + `loop_seam_velocity_gap` 委派重構零
+  回歸)。**關鍵發現**:①**真實大獎序列全程 C0 無縫但每接點 C1 不連續** —— 每 beat 首尾皆 setup identity
+  使接點值連續(可串接播放)但各 beat 是**離散節拍/撞擊**,接點速度突變 15~114;把「能播放(C0)」與
+  「播得平順(C1)」分成兩獨立可量測層(呼應「真簽章常需兩獨立條件並立」);②**自接點 C1(L-4)與相異接點
+  C1(L-5)互不蘊含** —— 同一 Loop 可安全重播卻在與鄰 beat 的序列接點頓挫,loop 層無縫≠序列層無縫(量在
+  哪一層決定看見哪種連續性,呼應 L-2/L-3/Z4);③**composed 時間軸的接點速度對相異接點是不可靠 proxy**
+  (部分接點低報真 kick、部分巧合吻合)→ principled C1 量只在孤立 clip 端點切線;④**一般化舊函式要證特例
+  逐位元等價**(`loop_seam_velocity_gap` 委派 `seam_velocity_gap(clip,clip)` 探針實測逐位元相等,呼應 J-6)。
+  **honest boundary**:大獎序列是否該全程 C1 屬美術手感(A 類,離散節拍的接點 kick 為設計使然非 bug);
+  vel_tol=1.0 為量級選擇;無改任何生成/產線值(三新函式純量測/純判斷,loop_seam 委派後逐位元不變);單一
+  真值資產。見 `knowledge/s1-sequence-seam-c1.md`。
 - **S1 自接點 C1(速度)連續 / C1-loopability(里程碑,2026-10-05 run 002,candidate L-4)** —
   關掉 candidate (L-3) 誠實列出的 honest boundary:`is_loopable` 只驗 **C0**(自接點值連續),明記
   「不保證 C1 速度連續(loop 重啟頓挫)」。本次把 **C1**(自接點速度連續)顯式量化並以閘把關,延續
