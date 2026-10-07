@@ -496,6 +496,20 @@ BLOCKS = [
                      "P4 真混合+body 忠實+非對稱:相異 VEC 每接點重疊中點與前後 beat 皆不同≥BLEND_MIN・非對稱鄰接下 body 忠實(0.002≤FAITH_TOL)・VEC 總時長 5.2≠均勻 5.5(逐接點寬窄真改佈局)/"
                      "P5 metric 良定義+守衛+空驗:非 XF 寬度(0.5)閉式==數值有限差分・守衛(列表長度不符/負元素/per-beat 三方重疊→ValueError・全零向量委派不報錯)・兩靜止 clip 間 xf=0 接點 seam_velocity_gap=0(無運動→瞬切亦無 kink)→證 SHARP kink 重現須配非靜止。"
                      "honest:混哪些接點/各給多長 xf 仍屬美術手感(A 類 PROPOSAL,本閘只一般化機制不決定取值);無改任何生成/產線值(等值/零向量逐位元不變);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_crossfade_priors", "crossfade 序列軸整合進先驗庫:genre_priors 宣告播放序列配方(order+逐接點 xf+ramp),sequence_recipe 讀出驅動 crossfade(L-8,如 (E)/(H)/(I) 把 beat 整合進先驗)", "L2",
+                "python3 tools/analyzer/validate_sequence_crossfade_priors.py", "pipeline",
+                note="承 L-6/L-7:crossfade 序列機制已做出並一般化成 per-junction,但 order 與逐接點 xf 一直由各閘硬編(FORWARD/VEC),從未像 (E)/(H)/(I) 把 beat 整合進先驗庫那樣把**播放序列配方**整合進 genre_priors。"
+                     "本次把『播放哪些 beat、以何序、每接點混多久』宣告進 genre_priors.slot_bigwin['sequence'](order + crossfade_xf 逐接點向量 + ramp),並以 genre_priors.sequence_recipe(prior) 讀出 → **大獎 crossfade 序列可完全由先驗庫驅動**。"
+                     "全 additive:新增 sequence_recipe(prior)(回 {order,xf,ramp} 新副本;無 sequence 欄位→None;結構校驗 order 非空/key∈beats/xf 長度/非負/ramp 合法 → 讀取當下 ValueError)+ slot_bigwin 加 sequence 欄位(獨立命名空間,不在 beat dict 內)。"
+                     "**crux:先驗宣告的『播放順序 + 每接點混場秒數』(A 類手感)可被 L-7 客觀機制如實逐接點落地** —— 先驗把 In→hit 設 xf=0(保撞擊)其餘 xf>0(平滑),經 crossfade_sequence 驅動後:In→hit 接點 kink 重現為 L-5 瞬切極限 seam_velocity_gap(114.35≥SEAM_KINK_MIN)、其餘接點被 smoothstep 消成 0、is_c1=False。"
+                     "即先驗只**宣告**要哪種手感,機制忠實落地 —— 把『選擇性平滑』從閘硬編上移到**先驗庫的可宣告配方**(完成 L 系列從機制→先驗整合)。"
+                     "**零回歸鐵則**:配方驅動 crossfade_sequence == 以同值顯式呼叫(逐位元)、junction kinks 逐一相等;未宣告 sequence 的先驗(slot_reveal)→ sequence_recipe=None;先驗 beats/classify_anim/覆蓋率不受 sequence 欄位影響(validate_priors 覆蓋率仍 1.0)。"
+                     "validate_sequence_crossfade_priors.py 5AC PASS:R1 配方 present+well-formed+schema(order key∈beats・xf scalar/長度==接點數 且有限≥0・ramp 合法)+ additive(sequence∉beat dict・slot_reveal 配方 None)+ 純函式(改回傳不污染 PRIORS)/"
+                     "R2 prior-driven 端到端 realizable(recipe.order 每 beat 皆由該先驗 storyboard 經 build_animations 產出・crossfade_sequence 合法 timeline・總時長==Σdur−Σxf=5.45)/"
+                     "R3 crux 選擇性平滑如實落地(In→hit kink 114.35 重現==L-5 c1_gap≥SEAM_KINK_MIN・其餘接點 kink≤KINK_ZERO_TOL・is_c1(配方)=False・把該 0 換 XF 全平滑覆寫→is_c1=True 證破 C1 的正是先驗宣告保留的撞擊接點)/"
+                     "R4 配方忠實(crossfade_sequence(配方) 逐位元==顯式同值呼叫・body 忠實 emitted vs 孤立 clip 0.004≤FAITH_TOL・junction kinks 逐一相等)/"
+                     "R5 守衛(order 空/幻影 beat/xf 長度不符/負 xf/未知 ramp → 讀取當下 ValueError)+ 負對照(未宣告 sequence→None 非 error)+ vacuity(xf 全零配方→委派 compose 逐位元)。"
+                     "honest:order/xf 取值仍屬美術手感(A 類 PROPOSAL,本閘只驗機制 threading/零回歸/選擇性平滑如實落地,不驗美感);Award 真值僅 In/Loop/Out → 中段主秀 beat 同 beats 的 prior_beats_unused(誠實);build_spine CLI 直出序列檔為後續;單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

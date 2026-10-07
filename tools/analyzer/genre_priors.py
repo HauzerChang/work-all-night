@@ -112,6 +112,18 @@ PRIORS = {
         ],
         "roles": _BIGWIN_ROLES,
         "validated_against": "Award",
+        # candidate (L-8):大獎**播放序列配方**(把 L-6/L-7 的 crossfade 序列軸整合進先驗庫,如 (E)/(H)/(I)
+        # 把 beat 整合進先驗一樣)。`order`=beat key 播放序(可含重複鍵,如 Loop×N);`crossfade_xf`=**逐接點**
+        # 重疊秒數(L-7 per-junction;某接點給 0 = 不混場、保留瞬切撞擊);`ramp`=權重斜坡。
+        # **PROPOSAL(A 類)**:播放順序與每接點混場秒數屬美術手感(無唯一正解);本配方只宣告**機制**可逐接點
+        # 指定的取值建議(語意:In→hit 保撞擊 xf=0、Loop→Out 柔收尾 xf 最大),閘只驗機制 threading / 零回歸,
+        # 不驗美感。Award 真值僅 In/Loop/Out → 中段主秀 beat 同 beats 的 prior_beats_unused(誠實,覆蓋率不受擾)。
+        "sequence": {
+            "order": ["In", "hit", "combo", "charge", "cascade", "Loop", "Out"],
+            "crossfade_xf": [0.0, 0.15, 0.15, 0.15, 0.2, 0.3],   # 6 接點;In→hit=0 保撞擊、Loop→Out=0.3 柔收尾
+            "ramp": "smoothstep",
+            "note": "PROPOSAL:播放順序與每接點 crossfade 秒數屬美術手感(A 類);閘只驗機制 threading / 零回歸。",
+        },
     },
     "slot_reveal": {
         "desc": "開獎/揭示物件:靜置→待機→登場→開獎主秀→命中強調→循環→收尾(觀測自 main_draw 9 支)",
@@ -207,3 +219,51 @@ def classify_anim(name, prior):
         if cands:
             return kw2beat[max(cands, key=len)]
     return None
+
+
+_RAMPS = ("smoothstep", "smootherstep", "linear")
+
+
+def sequence_recipe(prior):
+    """candidate (L-8) — 讀出先驗宣告的**播放序列配方**(把 L-6/L-7 的 crossfade 序列軸整合進先驗庫)。
+
+    回傳 `{"order", "xf", "ramp"}`(全為**新建副本**,純函式、不洩漏內部 PRIORS 參照);
+    先驗若無 `"sequence"` 欄位 → 回 `None`(零回歸:未宣告配方的先驗行為不變)。
+
+    - `order`:beat key 播放序(可含重複鍵,如 `Loop×N`);每個 key 必須 ∈ 該先驗的 `beats` key 集合
+      (負對照:引用先驗沒有的 beat → ValueError,配方不得憑空指涉幻影 beat)。
+    - `xf`:**逐接點**重疊秒數(L-7 per-junction)。可為 scalar(全接點同)或長度 = `len(order)-1` 的列表;
+      每值須有限且 ≥0(某接點 0 = 不混場、保留瞬切撞擊)。scalar 按 L-6/L-7 由 `_normalize_xf` 廣播。
+    - `ramp` ∈ {smoothstep, smootherstep, linear};預設 smoothstep。
+
+    **honest boundary**:`order` / `xf` 取值屬美術手感(A 類 PROPOSAL);本函式只把先驗宣告的**機制配方**取出
+    並做結構校驗(長度 / 非負 / beat 存在 / ramp 合法),**不替使用者決定取值**(同 L-6/L-7 只客觀化機制)。
+    純函式、additive。malformed 配方 → ValueError(讓錯誤在讀取當下就被擋,而非 crossfade 時才炸)。"""
+    seq = prior.get("sequence")
+    if seq is None:
+        return None
+    order = list(seq.get("order", []))
+    if not order:
+        raise ValueError("sequence_recipe: order 不可為空")
+    beat_keys = {b["key"] for b in prior.get("beats", [])}
+    for k in order:
+        if k not in beat_keys:
+            raise ValueError("sequence_recipe: order 引用先驗沒有的 beat '{}'(可用:{})".format(
+                k, sorted(beat_keys)))
+    ramp = seq.get("ramp", "smoothstep")
+    if ramp not in _RAMPS:
+        raise ValueError("sequence_recipe: 未知 ramp '{}'(可用:{})".format(ramp, _RAMPS))
+    raw = seq.get("crossfade_xf", 0.0)
+    njunc = len(order) - 1
+    if isinstance(raw, (list, tuple)):
+        if len(raw) != njunc:
+            raise ValueError("sequence_recipe: crossfade_xf 長度 {} != 接點數 {}(order 長度 {})".format(
+                len(raw), njunc, len(order)))
+        xf = [float(v) for v in raw]
+    else:
+        xf = float(raw)
+    for v in (xf if isinstance(xf, list) else [xf]):
+        import math as _m
+        if not _m.isfinite(v) or v < 0:
+            raise ValueError("sequence_recipe: crossfade_xf 須有限且 ≥0(得 {})".format(raw))
+    return {"order": order, "xf": xf, "ramp": ramp}

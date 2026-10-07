@@ -10,6 +10,36 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 crossfade 序列軸整合進先驗庫:prior-driven crossfade sequence(里程碑,2026-10-07 run 002,candidate L-8)** —
+  承 L-6/L-7:crossfade 序列機制已做出並一般化成 per-junction,**但 `order` 與逐接點 `xf` 一直由各閘硬編**
+  (FORWARD/VEC),從未像 (E)/(H)/(I) 把 beat 整合進先驗庫那樣把**播放序列配方**整合進 `genre_priors`。本次把
+  「播放哪些 beat、以何序、每接點混多久」宣告進 `genre_priors.slot_bigwin["sequence"]`(`order`+`crossfade_xf`
+  逐接點向量+`ramp`),並以 `genre_priors.sequence_recipe(prior)` 讀出 → **大獎 crossfade 序列可完全由先驗庫
+  驅動**(先驗→build_spine robot 骨架→build_animations→配方→crossfade_sequence 端到端,不再硬編 order/xf)。
+  **做了什麼(全 additive,`tools/analyzer/genre_priors.py`)**:①`slot_bigwin` 加 `"sequence"` 欄位(獨立命名
+  空間,**不在 beat dict 內**):`order=[In,hit,combo,charge,cascade,Loop,Out]`、`crossfade_xf=[0.0,0.15,0.15,
+  0.15,0.2,0.3]`(In→hit=0 保撞擊、Loop→Out=0.3 柔收尾)、`ramp=smoothstep`;②`sequence_recipe(prior)`→
+  `{order,xf,ramp}`(全**新副本**,純函式;無 `sequence` 欄位→`None` 零回歸;讀取當下校驗 order 非空/每 key∈
+  beats/xf scalar 或長度==接點數/每值有限≥0/ramp 合法 → malformed 一律 ValueError);③新閘
+  `validate_sequence_crossfade_priors.py`(L-8,5 AC)從**先驗庫→真實 build_spine→build_animations→配方→
+  crossfade_sequence** 端到端。**5 AC 全 PASS**:**R1** 配方 present+well-formed+schema(order key∈beats・xf
+  scalar/長度==接點數 且有限≥0・ramp 合法)+**additive**(sequence∉beat dict・slot_reveal 配方 None)+**純函式**
+  (改回傳不污染 PRIORS);**R2** prior-driven 端到端 realizable(recipe.order 每 beat 皆由該先驗 storyboard 經
+  build_animations 產出・crossfade_sequence 合法 timeline・總時長 **5.45**==Σdur−Σxf);**R3 crux 選擇性平滑如實
+  落地**(In→hit kink **114.35 重現**==L-5 `sequence_seam_gaps` c1_gap(瞬切極限)≥10・其餘接點 kink≤1e-6・
+  `is_c1`(配方)=False・把該 0 換成 XF「全平滑」覆寫→`is_c1`=True → 證破 C1 的正是先驗宣告保留的撞擊接點);
+  **R4** 配方忠實(`crossfade_sequence(配方)` **逐位元**==以同值顯式呼叫・body 忠實 emitted vs 孤立 clip
+  **0.004**≤FAITH_TOL・junction kinks 配方==顯式 逐一相等);**R5** 守衛(order 空/幻影 beat/xf 長度不符/負 xf/
+  未知 ramp → 讀取當下 ValueError)+負對照(未宣告 sequence→None 非 error)+vacuity(xf 全零配方→委派
+  `compose_sequence` 逐位元)。**回歸:check_readiness 0 RED / 61 GREEN**(新增 cap `sequence_crossfade_priors`
+  GREEN 併入 `spine-anim-forge`,仍 HOLD;`validate_priors` 覆蓋率仍 **1.0** 證 sequence 欄位 additive 不擾
+  classify_anim/beat 清單)。**關鍵發現**:**先驗宣告的「播放順序+每接點混場秒數」(A 類手感)可被 L-7 客觀機制
+  如實逐接點落地** —— 先驗只**宣告**要哪種手感,機制忠實落地,把「選擇性平滑」從閘硬編上移到**先驗庫的可宣告
+  配方**(完成 L 系列「機制(L-6)→一般化(L-7)→先驗整合(L-8)」的收束,對映 0g→(H)/0h→(I) 把節拍整合進先驗)。
+  **honest boundary**:`order`/`xf` 取值仍屬美術手感(A 類 PROPOSAL,閘只驗機制 threading/零回歸/選擇性平滑如實
+  落地,不驗美感);Award 真值僅 In/Loop/Out → 中段主秀 beat 同 beats 的 `prior_beats_unused`(誠實);
+  **build_spine CLI 直出序列檔(`--sequence`)為後續**(本 cap 端到端在閘內驗);單一真值資產。見
+  `knowledge/s1-sequence-crossfade-priors.md`。
 - **S1 per-junction(逐接點/選擇性/非對稱)crossfade:把 L-6 單一 scalar xf 一般化成逐接點向量(里程碑,2026-10-07 run 001,candidate L-7)** —
   關掉 candidate (L-6) 誠實列出的 honest boundary:L-6 的 `crossfade_sequence` 把接點 C1 kink 消掉了,**但 `xf`
   是單一 scalar(所有接點同一重疊秒數)**;L-6 明記「接點平滑的**選擇性套用**(per-接點 xf / 只平滑特定接點)」
@@ -1287,6 +1317,10 @@
 >   `validate_sequence_crossfade_selective.py` 5AC PASS。**crux:某接點給 xf=0 退化為瞬切,其 kink 重現=L-5 seam_velocity_gap;序列全程 C1 當且僅當每接點都平滑 → 混場可逐接點選擇(撞擊與平滑過渡並存)**。
 >   **零回歸:scalar==等值向量逐位元、xf=0/全零向量委派 compose 逐位元**。
 >   **續**(擇一,皆自主):讓 genre 先驗庫**建議每接點 xf**(如 In→hit 保撞擊、Loop→Out 柔收尾;但最終手感仍 A 類)、**crossfade×tier**(高檔位更緊湊/更長接點混場)、**非對稱單接點 crossfade**(左 xf≠右 xf,需把 `_crossfade_layout` 對稱重疊拆成前退/後進兩段);
+> **(L-8) ~~crossfade 序列軸整合進先驗庫(讓 genre 先驗庫建議每接點 xf)~~ ✅ 完成(2026-10-07 run 002,candidate L-8,`sequence_crossfade_priors` L2,見上里程碑)** ——
+>   把「播放哪些 beat、以何序、每接點混多久」宣告進 `genre_priors.slot_bigwin["sequence"]`(order+逐接點 crossfade_xf+ramp)+ `sequence_recipe(prior)` 讀出驅動 crossfade → 大獎序列由先驗庫端到端驅動(如 (E)/(H)/(I) 把 beat 整合進先驗)。
+>   `validate_sequence_crossfade_priors.py` 5AC PASS(R3 crux:先驗把 In→hit 設 xf=0 保撞擊,經機制驅動後 kink 114.35 重現==L-5 瞬切極限、其餘接點消成 0、is_c1=False → 先驗宣告的手感被 L-7 機制如實逐接點落地)。零回歸:配方==顯式逐位元、未宣告 sequence→None、覆蓋率仍 1.0。
+>   **續**(擇一,皆自主):**build_spine `--sequence`**(讀配方把 crossfaded 序列當單一 animation 寫進 skeleton.json,真正端到端落地檔 + round-trip validate_build)、**crossfade×tier**(xf 隨檔位)、**slot_reveal 也宣告 sequence 配方**(第二 genre,main_draw 真值)、**非對稱單接點 crossfade**;
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。
