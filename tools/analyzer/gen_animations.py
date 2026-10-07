@@ -247,8 +247,48 @@ _CASCADE_DIRS = {"lr", "rl", "co", "oc", "po"}
 # (`tier_variants.TIER_CASCADE_DIR`,如 slot_bigwin→"co")。J-7 新增 sentinel `cascade_dir="geo"`:方向**向量**
 # 由件實際幾何導出(質心→最遠件),隨資產自適應,不再寫死。導出後仍走 **J-6 的投影排序(同機制)**,故 J-7
 # **不是新正交軸**,是**方向軸取值的來源**(provenance):J-5 空間化→J-6 連續化→J-7 自動化,三者逐步移除人手指定。
-_CASCADE_GEO_SOURCES = {"centroid_farthest"}
+_CASCADE_GEO_SOURCES = {"centroid_farthest", "pca"}
 _CASCADE_GEO_DEFAULT = "centroid_farthest"
+
+
+def _pca_principal_axis_dir(centers, aniso_tol=1e-6):
+    """candidate (J-8) — 件中心的 **PCA 主軸**(最大變異方向)單位向量 `(ux, uy)`,**符號確定性地**解決。
+
+    閉式 2×2 PCA(避免外部 `eig` 的特徵向量 ±符號不確定):共變異矩陣 `[[sxx,sxy],[sxy,syy]]` 的主軸角
+      `θ = ½·atan2(2·sxy, sxx−syy)` → 主軸 `(cosθ, sinθ)`(對應較大特徵值 λ1,即「資料橢圓」長軸)。
+
+    **crux — 符號(方向正負)確定性**:PCA 只給一條**線**(±v 皆為合法特徵向量),J-7 正因此避開 PCA 改用
+    最遠件。本函式以**幾何規則**定號,保留 J-7「波朝最外延掃」的語意:主軸指向**沿主軸投影絕對值最大的
+    極端件**(其投影 ≥ 0)。tie(投影量並列,如左右對稱)時以**座標字典序最大件**定號(純幾何 →
+    **與件輸入順序無關**;不像天真規則用 index tie-break 會因排序翻號)。較 `centroid_farthest` **更穩健**:
+    方向取自整體散佈軸而非單一最遠件,單一離軸離群件不會甩動主軸(見閘 PA3)。
+
+    守衛:件重合(λ1≈0,無散佈)或**近似各向同性**(λ1−λ2 ≤ `aniso_tol`·(λ1+λ2),主軸不唯一,如正方 / 圓對稱
+    佈局)→ `ValueError`(不捏造方向)。純函式、確定性。"""
+    n = len(centers)
+    mx = sum(c[0] for c in centers) / n
+    my = sum(c[1] for c in centers) / n
+    sxx = sum((x - mx) ** 2 for x, y in centers) / n
+    syy = sum((y - my) ** 2 for x, y in centers) / n
+    sxy = sum((x - mx) * (y - my) for x, y in centers) / n
+    tr = sxx + syy
+    D = math.hypot(sxx - syy, 2.0 * sxy)          # = λ1 − λ2(≥0),共變異特徵值差
+    lam1 = (tr + D) / 2.0
+    if lam1 <= 1e-12:
+        raise ValueError("derive_cascade_dir(pca): degenerate geometry (parts coincide → no spread)")
+    if D <= aniso_tol * tr:
+        raise ValueError(
+            "derive_cascade_dir(pca): near-isotropic spread (λ1≈λ2 → principal axis undefined; "
+            "anisotropy {:.3e} ≤ tol {:.3e})".format(D / tr, aniso_tol))
+    theta = 0.5 * math.atan2(2.0 * sxy, sxx - syy)
+    ux, uy = math.cos(theta), math.sin(theta)     # 單位向量(建構即正規化)
+    # 確定性符號:指向沿主軸投影 |proj| 最大的極端件(其 proj ≥ 0);tie 以座標字典序(純幾何,件序無關)。
+    projs = [((x - mx) * ux + (y - my) * uy, x, y) for x, y in centers]
+    maxabs = max(abs(p) for p, _, _ in projs)
+    ref = max((p for p in projs if abs(p[0]) >= maxabs - 1e-9), key=lambda p: (p[1], p[2]))
+    if ref[0] < 0.0:
+        ux, uy = -ux, -uy
+    return (ux, uy)
 
 
 def derive_cascade_dir(centers, source="centroid_farthest"):
@@ -258,18 +298,23 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
       "centroid_farthest"(預設):件質心 → 距質心**最遠件**的單位向量。**確定性、無 PCA ±符號歧義**
         (PCA 主軸只給一條線、方向正負須另定;最遠件天然定出一個明確指向)。語意 = 波沿「叢集中心 →
         最外側肢體」軸掃(投影最大的最遠件最後 pop)。
+      "pca"(J-8):件中心的 **PCA 主軸**(最大變異方向),**符號確定性地**定(見 `_pca_principal_axis_dir`)。
+        較 `centroid_farthest` 穩健 —— 方向取自整體散佈軸而非單一最遠件,離軸離群件不甩動主軸;保留
+        「波朝最外延掃」語意。近似各向同性(主軸不唯一)→ ValueError(不捏造方向)。
 
     `centers`:list of `(x, y)` 件中心(呼叫端給**當前 beat 的有效件**→ 方向隨實際參與件自適應)。
-    回傳**正規化**單位向量。輸入守衛:未知 source、無件、退化幾何(所有件重合 → 零方向)→ `ValueError`。
+    回傳**正規化**單位向量。輸入守衛:未知 source、無件、退化幾何(所有件重合 → 零方向 / 各向同性)→ `ValueError`。
 
-    crux(為何導出的是**投影向量**而非 radial):最遠件定出一條**有向軸**,相位沿該軸投影排序 → 落在
-    J-6 的 `("proj", vec)` 機制,`_cascade_phase_of` 無須任何新排序邏輯;radial(co/oc)是另一族,J-7 不碰。"""
+    crux(為何導出的是**投影向量**而非 radial):導出的方向定出一條**有向軸**,相位沿該軸投影排序 → 落在
+    J-6 的 `("proj", vec)` 機制,`_cascade_phase_of` 無須任何新排序邏輯;radial(co/oc)是另一族,J-7/J-8 不碰。"""
     if source not in _CASCADE_GEO_SOURCES:
         raise ValueError("unknown cascade geo source: {!r} (allowed {})".format(
             source, sorted(_CASCADE_GEO_SOURCES)))
     n = len(centers)
     if n == 0:
         raise ValueError("derive_cascade_dir: no part centers")
+    if source == "pca":
+        return _pca_principal_axis_dir(centers)
     mx = sum(c[0] for c in centers) / n
     my = sum(c[1] for c in centers) / n
     # 最遠件:距質心平方距離最大;相等時 tie-break 用件序 index(確定性,與 _cascade_phase_of 一致)

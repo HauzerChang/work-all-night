@@ -301,9 +301,10 @@ def run():
         G.derive_cascade_dir([(5.0, 7.0), (5.0, 7.0), (5.0, 7.0)]); guards["degenerate"] = False
     except ValueError:
         guards["degenerate"] = True
-    # derive 直接:未知 source
+    # derive 直接:未知 source(J-8 起 "pca" 已為合法 source,改用仍未知的字串保持本守衛語意)
     try:
-        G.derive_cascade_dir([(0.0, 0.0), (1.0, 1.0)], source="pca"); guards["derive_unknown_source"] = False
+        G.derive_cascade_dir([(0.0, 0.0), (1.0, 1.0)], source="nonexistent_src_zzz")
+        guards["derive_unknown_source"] = False
     except ValueError:
         guards["derive_unknown_source"] = True
     w5["d_input_guards"] = {"detail": guards, "pass": all(guards.values())}

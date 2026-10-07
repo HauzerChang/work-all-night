@@ -638,6 +638,18 @@ BLOCKS = [
                      "W5 負對照 (a)**crux data-derived discriminator** 同 cascade_dir=\"geo\" 套兩個不同幾何(robot vA≈13° vs 把頭移遠成最遠件 vB≈90°)→ 導出向量不同且波序不同,各自吻合自身幾何的質心→最遠件投影序 證方向由資料導出非常數 "
                      "(b)導出向量/波序==閘獨立重算(robot)且最遠件最後 pop (c)geo 波序≠手感常數 co(cascade_dir_for)/≠oc/≠件序 po/≠lr/≠rl (d)輸入守衛未知 source/空件/退化幾何→ValueError)。"
                      "**方向軸取值來源至此自動化;honest:source 選擇與最終手感微調仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
+            CAP("cascade_dir_pca", "cascade 波方向 PCA 主軸 geo source,符號確定性(J-8,新增 geo source=pca:整體散佈主軸,確定性解掉 PCA ±符號歧義)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_pca.py", "pipeline",
+                note="承 (J-7):J-7 導出方向用**質心→最遠件**,**刻意避開 PCA**(主軸只給一條線,±v 皆合法特徵向量→符號歧義)。"
+                     "J-8 新增 geo source=\"pca\":用 PCA 主軸(**最大變異方向**,反映整體散佈)並以**幾何規則確定性定號**正面解掉 ±歧義 —— 主軸指向沿軸投影 |proj| 最大的極端件(保 J-7「波朝最外延掃」語意),"
+                     "tie 以座標字典序(純幾何→**件輸入順序無關**,不像天真 index tie-break 會翻號)。閉式 2×2 PCA(θ=½atan2(2sxy,sxx−syy))避開外部 eig 符號不確定;近似各向同性(λ1≈λ2,主軸不唯一)→ValueError 不捏造方向。"
+                     "**honest(勿誇大)**:J-8 **不是**新正交軸、不改 J-6 投影機制,只是 geo source(provenance)多一個選項,crux=把 PCA ±歧義以確定性幾何規則釘死;較 centroid_farthest 的價值=方向取整體散佈軸(全域二階矩)而非單一最遠件(單點)。"
+                     "新增 _pca_principal_axis_dir + derive_cascade_dir source=pca + _CASCADE_GEO_SOURCES 加 pca(centroid_farthest 路徑逐位元不變);build_spine --cascade-dir geo:pca。"
+                     "validate_cascade_dir_pca.py 5AC PASS(PA1 present+backward-compat pca 產每 cascade beat・非 cascade 逐位元同 base・po==None・geo 預設逐位元==geo:centroid_farthest 零回歸/"
+                     "PA2 **crux 符號確定性** (a)主軸==numpy 主特徵向量|dot|≈1 (b)非對稱&對稱佈局所有排列逐位元同一帶號向量(件序無關)(c)鏡射→符號確定性翻轉/"
+                     "PA3 **crux pca 看整體散佈 vs cf 看單一最遠件** (a)最遠件離主軸→pca 貼主軸(0°)cf 甩向離群件(90°)不同線 (b)移動非最遠內部件→cf 方向嚴格不變(0°)pca 隨之改變(7.96°)/"
+                     "PA4 真實 robot 端到端 pca 投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip/PA5 metric==numpy|各向異性門檻有鑑別力(正方/正五邊形→ValueError、微量各向異性放行)|守衛件重合/單件/空件/未知 source→ValueError)。"
+                     "**geo source 增 pca(確定性符號);honest:用 pca 或 centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
         ],
     },
 ]

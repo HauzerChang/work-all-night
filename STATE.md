@@ -10,6 +10,38 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 波方向 PCA 主軸 geo source:符號確定性地解掉 J-7 迴避的 PCA ±歧義(里程碑,2026-10-07 run 002,candidate J-8)** —
+  J-7 的 `cascade_dir="geo"` 只實作一個 source(`centroid_farthest` 質心→最遠件),並**刻意避開 PCA**(主軸只給一條**線**,
+  `±v` 皆合法特徵向量、`numpy eigh` 回哪個符號不保證 → 符號歧義)。本次新增 geo source **`"pca"`**,**正面解掉**這個 ±歧義:
+  用 PCA 主軸(**最大變異方向**,反映件群**整體散佈**)並以**幾何規則確定性定號**。延續 J-5→J-6→J-7 方向軸 provenance 精煉,
+  **不加任何新正交軸、不改 J-6 投影機制**(導出向量後仍走 `("proj",vec)`)。**做了什麼(全 additive,
+  `centroid_farthest` 路徑逐位元不變)**:①`gen_animations._pca_principal_axis_dir(centers,aniso_tol=1e-6)`:閉式 2×2 PCA
+  (`θ=½atan2(2sxy,sxx−syy)`,避開外部 eig 符號不確定)→ 主軸 `(cosθ,sinθ)`;**確定性定號** = 指向沿軸投影 |proj| 最大的
+  **極端件**(令其 proj≥0,保 J-7「波朝最外延掃」語意),**tie 以座標字典序(純幾何→件輸入順序無關;天真 index tie-break 在
+  對稱佈局會翻號)**;各向異性守衛 λ1−λ2≤aniso_tol·(λ1+λ2)(近似各向同性/件重合 → ValueError,不捏造方向)。
+  ②`derive_cascade_dir` 於 `n==0` 守衛後 `source=="pca"` 提前分流;`_CASCADE_GEO_SOURCES` 加 `"pca"`。
+  ③`_normalize_cascade_dir`/`_cascade_phase_of`/`build_spine --cascade-dir geo:pca` **無須改碼**(走 J-7 既有 `("geo",src)` 解析)。
+  ④新閘 `validate_cascade_dir_pca.py`(J-8,5 AC;PCA 主軸/投影序**由閘以 numpy 獨立重算**保持獨立驗證)。⑤J-7 閘一條負對照
+  斷言 `source="pca"` 應 raise(當時未實作)→ 改用仍未知的 `"nonexistent_src_zzz"`(守衛語意不變)。**5 AC 全 PASS**:**PA1**
+  present+well-formed+**零回歸**(pca 產每 cascade beat finite/有 bone・非 cascade 主秀 beat 逐位元同 base・None/po 逐位元同件序・
+  **`geo` 預設逐位元==`("geo","centroid_farthest")`**、`derive(.,"centroid_farthest")`==閘獨立質心→最遠件);**PA2 crux 符號確定性**
+  ((a) 拉長件群主軸==閘獨立 numpy 主特徵向量 |dot|≈1;(b) **件序無關** 非對稱 120 排列+對稱 24 排列**皆只 1 個 distinct 帶號
+  向量**——對稱佈局正是 index tie-break 會翻號處;(c) 沿主軸鏡射→符號確定性翻轉);**PA3 crux pca 看整體散佈 vs cf 看單一
+  最遠件**((a) 最遠件離主軸→pca 貼主軸 0° / cf 甩向離群件 90° / |dot|=0 不同線;(b) 移動一個**非最遠**內部件→**cf 方向嚴格
+  不變(line shift 0°,只依質心→最遠件)/ pca 主軸隨之改變(7.96°)**→ 證 cf 單點統計量、pca 全域二階矩);**PA4 端到端(robot)**
+  (`build_animations(cascade_dir=("geo","pca"))` 每 cascade beat 各件峰時刻依閘獨立 pca 投影鍵嚴格遞增:vec≈`(0.998,0.063)`
+  波序 `[1,0,2,3,4]` 最遠投影最後 pop・仍跨件波散佈≥0.30・首尾 setup identity・特效 slot alpha=1・dir⟂nrip);**PA5 metric
+  +守衛**((a) pca 主軸==numpy 共變異主特徵向量 3 佈局 |dot|≈1;(b) 各向異性門檻有鑑別力:**正方/正五邊形→ValueError**、微量
+  各向異性放行且軸正確 0°;(c) 守衛 件重合/單件/空件/未知 source 直接 & 經 build_animations `("geo","zzz")`→ValueError、`("geo","pca")`
+  經 build 可用)。**回歸:check_readiness 0 RED**(新增 cap `cascade_dir_pca` L2 併入 `spine-anim-forge`,仍 HOLD;J-5/J-6/J-7
+  等既有閘逐一 GREEN 證 `centroid_farthest` 路徑逐位元不變)。**關鍵發現**:①**J-7 迴避的 PCA ±符號歧義可用純幾何規則確定性
+  解掉**——閉式主軸 + 投影極端件定號 + **幾何 tie-break(非 index)**,不必回退人手定號;②**「無向線→有向向量」定號的正確性靠
+  「件輸入順序無關」釘住**(對所有排列證逐位元同一帶號向量;呼應 J-6 lr/rl==0°/180° 特例、L-7 scalar==等值向量逐位元);
+  ③**同一 provenance 軸可有多個統計量 source,各反映不同層次**(cf=單點極端 / pca=全域二階矩),要**誠實標差異而非誇大穩健**
+  ——⚠️ **單一夠遠離群件會主導方差 → PCA 主軸也被拉轉(正確行為),故不宣稱抗離群**;④各向異性是 PCA 方向良定義前提,
+  近似各向同性應 raise。**honest boundary**:用 `pca` 還是 `centroid_farthest`(或手感常數)仍屬美術手感(A 類 PROPOSAL,本閘只新增
+  一個**確定性**幾何 source);`aniso_tol`/PA3 門檻為量級選擇;無改任何生成/產線值(全 additive);單一真值資產。
+  見 `knowledge/s1-cascade-dir-pca.md`。
 - **S1 per-junction(逐接點/選擇性/非對稱)crossfade:把 L-6 單一 scalar xf 一般化成逐接點向量(里程碑,2026-10-07 run 001,candidate L-7)** —
   關掉 candidate (L-6) 誠實列出的 honest boundary:L-6 的 `crossfade_sequence` 把接點 C1 kink 消掉了,**但 `xf`
   是單一 scalar(所有接點同一重疊秒數)**;L-6 明記「接點平滑的**選擇性套用**(per-接點 xf / 只平滑特定接點)」
@@ -1287,7 +1319,11 @@
 >   `validate_sequence_crossfade_selective.py` 5AC PASS。**crux:某接點給 xf=0 退化為瞬切,其 kink 重現=L-5 seam_velocity_gap;序列全程 C1 當且僅當每接點都平滑 → 混場可逐接點選擇(撞擊與平滑過渡並存)**。
 >   **零回歸:scalar==等值向量逐位元、xf=0/全零向量委派 compose 逐位元**。
 >   **續**(擇一,皆自主):讓 genre 先驗庫**建議每接點 xf**(如 In→hit 保撞擊、Loop→Out 柔收尾;但最終手感仍 A 類)、**crossfade×tier**(高檔位更緊湊/更長接點混場)、**非對稱單接點 crossfade**(左 xf≠右 xf,需把 `_crossfade_layout` 對稱重疊拆成前退/後進兩段);
-> **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
+> **(J-8) ~~擴充 geo `source`:PCA 主軸配確定性定號~~ ✅ 完成(2026-10-07 run 002,candidate J-8,`cascade_dir_pca` L2,見上里程碑)** ——
+>   新增 geo source `"pca"`:用 PCA 主軸(最大變異方向,整體散佈)並以**幾何規則確定性定號**正面解掉 J-7 迴避的 PCA ±歧義
+>   (閉式 2×2 PCA + 投影極端件定號 + 座標字典序 tie-break → 件序無關;近似各向同性→ValueError)。`build_spine --cascade-dir geo:pca`;
+>   `validate_cascade_dir_pca.py` 5AC PASS。**crux:符號確定性(所有排列逐位元同一帶號向量)；pca 看整體散佈 vs cf 看單一最遠件(移非最遠件 cf 不變/pca 變)。誠實:不宣稱抗離群(遠離群件會主導方差拉轉主軸)**。零回歸:centroid_farthest 路徑逐位元不變。
+>   **續**(擇一,皆自主):其他確定性幾何 source(加權質心 / 第二主軸垂直掃波)、讓 genre 先驗庫建議「用 pca / centroid_farthest / 手感常數」(provenance 之上再加選擇規則,最終手感仍 A 類);
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。
 > ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 52 GREEN**。見上里程碑。
