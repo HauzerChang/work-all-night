@@ -228,6 +228,24 @@ def cascade_dir_for(genre):
     return TIER_CASCADE_DIR.get(genre)
 
 
+# candidate L-7 — genre → crossfade 接點重疊 xf(**序列組合層**的檔位軸,單位秒;**嚴格遞增**;
+# base=Super=0.15 → 逐位元同 L-6 golden `crossfade_sequence(...,0.15,...)`)。
+# 與所有既有檔位軸**不同層**:幅度 g / combo·wobble·squash·twist·charge 段數 / cascade span·dir
+# 皆為 **per-beat 值生成或跨件相位**;本軸在**組合層**決定相鄰 beat 重疊多少 → 直接改總時長。
+# xf 是**時間佈局**參數,`amplify_bone_tl`(值增益)動不到(見閘 L-7 T4,呼應 J-4「時間位置的幅度需重生成」)。
+# 上界:最短 beat 時長 Out=0.4 → `_crossfade_layout` 守衛要求 xf<0.2;Legend=0.19<0.2(餘裕 0.01)→ 不觸發守衛。
+# 方向(xf 隨檔位遞增 → 高檔位接點重疊更多、beat 更連綿、總序列更緊湊)屬美術手感(A 類);客觀不變量為
+# 「xf 嚴格遞增 / 總時長嚴格遞減 / **每檔位接點 C1 kink 仍 =0**(smoothstep w'兩端=0 與 xf 無關)」。
+TIER_CROSSFADE_XF = {
+    "slot_bigwin": {"Super": 0.15, "Mega": 0.163, "Omg": 0.176, "Legend": 0.19},
+}
+
+
+def crossfade_xf_for(genre):
+    """回傳該 genre 的 crossfade 接點重疊 xf 檔位表 `{tier: xf}`;無宣告的 genre 回 None。"""
+    return TIER_CROSSFADE_XF.get(genre)
+
+
 def _amp_scale(v, g):
     """scale 值幅度增益:僅放大 identity 上方 overshoot;下方(squash/collapse)樓地板不動。"""
     return 1.0 + g * (v - 1.0) if v >= 1.0 else v

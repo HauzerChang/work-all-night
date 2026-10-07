@@ -10,6 +10,35 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 crossfade 接點重疊 xf 隨檔位差異化:第一條「序列組合層」的檔位軸(里程碑,2026-10-07 run 001,candidate L-7)** —
+  接 L-6「續」的 crossfade×tier:把 L-6 固定重疊 `xf=0.15` 接上檔位軸。**本 run 的新位置**:既有全部檔位軸
+  (幅度 g・combo/wobble/squash/twist/charge 段數・cascade span/dir)都在 **per-beat 值生成** 或 **跨件相位** 層;
+  **xf 是第一條落在「序列組合層」的檔位軸** —— 不改任一 beat 的值或內部時間,只改相鄰 beat 疊多少 → 總時長。
+  **做了什麼(全 additive)**:① `tier_variants.TIER_CROSSFADE_XF`(slot_bigwin Super0.15<Mega0.163<Omg0.176<
+  Legend0.19,全 <最短 beat Out=0.4 的一半 0.2;Legend 餘裕 0.01)+ `crossfade_xf_for(genre)` 查表;②
+  `gen_animations.tier_crossfade_sequence(anims,order,tier,genre,nsamp,ramp)` 委派 `crossfade_sequence`,genre
+  未宣告 / 未知檔位 → ValueError;③新閘 `validate_crossfade_tier.py`(L-7,5 AC)從**先驗庫 → 真實 build_spine
+  robot 骨架 → build_animations** 端到端(與 L-5/L-6 同一正向序列 In→hit→combo→charge→cascade→Loop→Out)。
+  **5 AC 全 PASS**:**T1** 四檔位皆合法 timeline(時間嚴格遞增/finite)+每檔位 xf<min_dur/2(守衛不觸發)+
+  **base Super 逐位元 == L-6 golden `crossfade_sequence(...,0.15,"smoothstep")`**;**T2 crux** xf 嚴格遞增
+  `[0.15,0.163,0.176,0.19]` + 總時長嚴格**遞減** `[5.5,5.422,5.344,5.26]`(各 == `Σdur−(m−1)·xf` 閉式)+ 每
+  接點重疊長 == 該檔位 xf;**T3 crux 檔位(xf)軸 ⟂ C1(斜坡)性質** —— 每檔位 smoothstep 接點閉式 kink 恆 0
+  (≤1e-6,與 xf 無關)+ `is_c1_crossfade_sequence`=True 對照純接續 `is_c1_continuous_sequence`=False;**負對照**
+  線性斜坡在每檔位仍每接點 kink≥10 + 全非 c1 → 證壓縮接點不重新引入 kink、C1 來自斜坡;**T4 crux 值增益動不到
+  佈局軸(需重組合,呼應 J-4)** —— `amplify_anim`(TIER_GAIN Legend g=2.1)套每 beat→時長不變(只放大值不碰
+  time)→ 放大後以 Super xf 重 crossfade 總時長 == Super 5.5 **≠ Legend 5.26** → 值幅度檔位 ⟂ 佈局檔位;放大後
+  smoothstep kink 仍 0(值增益亦 ⟂ C1);**T5** flat-xf 負對照(全檔位同 xf→總時長全等→證 T2 單調性是真 xf 驅動
+  非 artifact)+ body 每檔位忠實(≤0.05)+ 輸入守衛(未宣告 genre/未知檔位→ValueError)。**回歸:L-6 閘仍 PASS
+  (base Super==golden 逐位元)、check_readiness 0 RED**(新 cap `crossfade_tier` L2 併入 `spine-anim-forge`,仍
+  HOLD)。**關鍵發現**:①**檔位差異化至此落到三個層** —— per-beat 值(幅度 g)、per-beat 結構(段數 nosc/
+  nhits/ncharge/nrip)、**序列組合(接點重疊 xf)**;xf 是第一條組合層的檔位軸;②**佈局(xf)軸與值增益正交、
+  需重組合** —— `xf` 是時間佈局參數(beat 之間疊多少→總時長),值增益只碰值不碰時間→動不到,與 **J-4(cascade
+  span)同階**(「時間位置的幅度需重生成,非 post-hoc 值增益」),但 J-4 在 **beat 內**(sweep 窗)、L-7 在 **beat
+  之間**(接點重疊);③**tier(xf)軸 ⟂ C1 性質** —— smoothstep `w'(0)=w'(1)=0` 使接點 kink 與 xf 無關,把「接點
+  多緊(xf)」與「接得多平順(斜坡)」分成兩正交可量測軸(再現「兩獨立條件並立 / 量在哪一層決定看見哪種不變量」)。
+  **honest boundary**:xf 隨檔位遞增 vs 遞減、各檔位 xf 值屬美術手感(A 類);L 系列 crossfade 仍停在 gen/閘層,
+  未進 build_spine `--animate` 產線(後續);無改任何生成/產線值(全新查表+委派,Super==L-6 golden 逐位元);單一
+  真值資產。見 `knowledge/s1-crossfade-tier.md`。
 - **S1 跨 beat crossfade / mix 序列組合:以 C1 斜坡消接點 C1 kink(里程碑,2026-10-06 run 002,candidate L-6)** —
   把 L-5 攤開的「序列每相異接點 C0 無縫但 C1 不連續(速度突變 15~114)」從**量化**推到**修正**。`compose_sequence`
   (L,純時間平移+接點去重,瞬切)**做不到**平滑接點,需真正的 **mix 機制**(STATE「下一步」/line 1210-1211 的
@@ -1244,7 +1273,11 @@
 >   crossfade(時間重疊 xf + 權重斜坡混合)把 L-5 攤開的接點 C1 kink 消掉;compose 的純平移+去重做不到,需真正的 mix 機制。
 >   `crossfade_pose_at`(解析混合)+ `crossfade_seam_kink`(閉式接點 kink)+ `crossfade_sequence`(xf=0 委派 compose)+ `validate_sequence_crossfade.py` 5AC PASS。
 >   **crux:smoothstep(w'兩端=0)每接點 kink 閉式=0 vs 純接續 15~114、線性斜坡仍 15~120 → C1 斜坡才是鑑別子**。
->   **續**(擇一,皆自主):接點平滑的**選擇性套用**(per-接點 xf / 只平滑特定接點,觸美術手感 A 類為 PROPOSAL)、crossfade×tier(高檔位更緊湊接點)、非對稱 crossfade;
+> **(L-7) ~~crossfade×tier(高檔位更緊湊接點)~~ ✅ 完成(2026-10-07 run 001,candidate L-7,`crossfade_tier` L2,見上里程碑)** ——
+>   `TIER_CROSSFADE_XF`(Super0.15<Mega0.163<Omg0.176<Legend0.19)+ `crossfade_xf_for` + `tier_crossfade_sequence` 委派 `crossfade_sequence`;
+>   **第一條「序列組合層」的檔位軸**(既有皆 per-beat 值/結構 或 跨件相位)。`validate_crossfade_tier.py` 5AC PASS:T2 crux xf 遞增 + 總時長遞減 [5.5,5.422,5.344,5.26];
+>   **T3 crux 檔位(xf)軸 ⟂ C1(斜坡)**(smoothstep 每檔位 kink=0 與 xf 無關;線性斜坡每檔位仍頓挫);**T4 crux 值增益(TIER_GAIN)動不到總時長/佈局→需重組合**(呼應 J-4,但在 beat 之間)。
+>   **續**(擇一,皆自主):接點平滑的**選擇性套用**(per-接點 xf / 只平滑特定接點,觸美術手感 A 類為 PROPOSAL)、**非對稱 crossfade**(in-side≠out-side 斜坡,左右界 kink 可獨立)、crossfade 接進 build_spine `--animate` 產線旗標;
 >   或 **(L-4-orig 已被 L-4 label 佔用,此為真 crossfade 完成)** / **(L-3') loop 的 C1 速度連續閘**(已由 L-4/L-5 完成);
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;

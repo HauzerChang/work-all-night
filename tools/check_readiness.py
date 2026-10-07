@@ -482,6 +482,19 @@ BLOCKS = [
                      "X4 crux 負對照 線性斜坡每接點 kink≥SEAM_KINK_MIN(crossfade 本身不足以 C1)對照 smoothstep=0 → 證**C1 斜坡**才是鑑別子;smootherstep(C2)亦=0 證關鍵=w'兩端=0/"
                      "X5 metric 良定義+守衛:閉式==數值有限差分(合成 clean clip 對,線性斜坡)/emitted 重疊忠實(vs 解析 pose_at,隨 nsamp 收斂)/輸入守衛(xf<0 與 xf>min_dur/2→ValueError・xf=0 委派)/空驗(兩靜止 clip→任何斜坡 kink 皆 0 因無運動→kink=0 須配非靜止才有意義)。"
                      "honest:哪些接點該平滑/xf 多長屬美術手感(A 類,離散節拍的撞擊感可能該保留);vel_tol=1.0 / xf=0.15 為量級選擇;無改任何生成/產線值(全新純函式,xf=0 委派後逐位元不變);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("crossfade_tier", "crossfade 接點重疊 xf 隨檔位差異化(L-7,**第一條序列組合層**的檔位軸)", "L2",
+                "python3 tools/analyzer/validate_crossfade_tier.py", "pipeline",
+                note="承 L-6:crossfade_sequence 以固定 xf=0.15 消接點 C1 kink。本次把 xf 本身接上檔位軸:tier_crossfade_sequence(anims,order,tier)依 TIER_CROSSFADE_XF[genre][tier]"
+                     "(slot_bigwin Super0.15<Mega0.163<Omg0.176<Legend0.19,全<最短 beat 時長 Out=0.4 的一半 0.2)選接點重疊秒數 → 高檔位接點重疊更多、beat 更連綿、總序列更緊湊。"
+                     "**本 run 的新位置:既有全部檔位軸(幅度 g・combo/wobble/squash/twist/charge 段數・cascade span/dir)都在 per-beat 值生成或跨件相位層;xf 是第一條落在『序列組合層』的檔位軸**"
+                     "——不改任一 beat 的值或內部時間,只改相鄰 beat 疊多少 → 總時長。全 additive(TIER_CROSSFADE_XF+crossfade_xf_for 查表、tier_crossfade_sequence 委派 crossfade_sequence)。"
+                     "validate_crossfade_tier.py 5AC PASS:T1 四檔位皆合法 timeline(時間嚴格遞增/finite)+xf<min_dur/2 守衛不觸發+**base Super 逐位元==L-6 golden crossfade_sequence(...,0.15,...)**/"
+                     "T2 crux xf 嚴格遞增且總時長嚴格遞減([5.5,5.422,5.344,5.26]==Σdur−(m−1)xf)+每接點重疊長==xf/"
+                     "**T3 crux 檔位(xf)軸 ⟂ C1(斜坡)性質**:smoothstep w'兩端=0 使每檔位接點閉式 kink 恆 0(與 xf 無關)→壓縮接點不重新引入頓挫,is_c1 每檔位 True 對照純接續 False;負對照 線性斜坡每檔位仍頓挫(kink≥10・is_c1 全 False)→證 C1 來自斜坡非 xf/"
+                     "**T4 crux 值增益動不到佈局軸(需重組合,呼應 J-4)**:amplify_anim(TIER_GAIN Legend g=2.1)套每 beat→時長不變→放大後以 Super xf 重 crossfade 總時長==Super 5.5≠Legend 5.26→值幅度檔位 ⟂ 佈局檔位;放大後 smoothstep kink 仍 0(值增益亦 ⟂ C1)/"
+                     "T5 flat-xf 負對照(全檔位同 xf→總時長全等→證 T2 單調性是真 xf 驅動非 artifact)+body 每檔位忠實(≤FAITH_TOL)+輸入守衛(未宣告 genre/未知檔位→ValueError)。"
+                     "關鍵發現:檔位差異化至此落到**三個層**——per-beat 值(幅度 g)、per-beat 結構(段數)、**序列組合(接點重疊 xf)**;xf 這條佈局軸與值增益正交、需重組合(與 J-4 cascade span 同階,但在 beat 之間而非 beat 內)。"
+                     "honest:xf 隨檔位遞增 vs 遞減、各檔位 xf 值屬美術手感(A 類);無改任何生成/產線值(全新查表+委派,Super==L-6 golden 逐位元);單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

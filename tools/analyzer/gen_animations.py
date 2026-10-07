@@ -1043,6 +1043,26 @@ def crossfade_sequence(anims, order, xf, nsamp=16, ramp="smoothstep", merge_tol=
     return composed, segments
 
 
+def tier_crossfade_sequence(anims, order, tier, genre="slot_bigwin", nsamp=16, ramp="smoothstep"):
+    """candidate (L-7) — 依**檔位** `tier` 的接點重疊 `xf` 把 beat 序列 crossfade 成**單一可載入** animation。
+
+    委派 `crossfade_sequence(anims, order, xf, nsamp, ramp)`,`xf = TIER_CROSSFADE_XF[genre][tier]`。
+    **xf 是序列組合層(接點重疊 / 總時長)的檔位軸** —— 與既有所有檔位軸(幅度 g / combo·wobble·squash·
+    twist·charge 段數 / cascade span·dir)**不同層**:後者皆 per-beat 值生成或跨件相位,本軸在**組合層**
+    決定相鄰 beat 疊多少。`xf` 為**時間佈局**參數,`amplify_bone_tl`(值增益)動不到(見閘 L-7 T4,呼應
+    J-4「時間位置的幅度需重生成」)。**base(Super)xf==L-6 golden → `tier=="Super"` 逐位元同
+    `crossfade_sequence(...,0.15,...)`**;smoothstep 斜坡下每檔位接點 C1 kink 恆 0(w'兩端=0 與 xf 無關 →
+    tier 壓縮/展開接點**不會**重新引入 kink,見閘 T3)。回傳 `(composed, segments)`。純函式、additive。
+    genre 未宣告 / 未知檔位 → ValueError。"""
+    from tier_variants import crossfade_xf_for
+    tbl = crossfade_xf_for(genre)
+    if tbl is None:
+        raise ValueError("tier_crossfade_sequence: genre '{}' 未宣告 TIER_CROSSFADE_XF".format(genre))
+    if tier not in tbl:
+        raise ValueError("tier_crossfade_sequence: 未知檔位 '{}'(可用:{})".format(tier, sorted(tbl.keys())))
+    return crossfade_sequence(anims, order, tbl[tier], nsamp, ramp)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("skeleton_json", help="build_spine 產出的 skeleton.json")
