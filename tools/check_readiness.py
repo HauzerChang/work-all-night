@@ -482,6 +482,20 @@ BLOCKS = [
                      "X4 crux 負對照 線性斜坡每接點 kink≥SEAM_KINK_MIN(crossfade 本身不足以 C1)對照 smoothstep=0 → 證**C1 斜坡**才是鑑別子;smootherstep(C2)亦=0 證關鍵=w'兩端=0/"
                      "X5 metric 良定義+守衛:閉式==數值有限差分(合成 clean clip 對,線性斜坡)/emitted 重疊忠實(vs 解析 pose_at,隨 nsamp 收斂)/輸入守衛(xf<0 與 xf>min_dur/2→ValueError・xf=0 委派)/空驗(兩靜止 clip→任何斜坡 kink 皆 0 因無運動→kink=0 須配非靜止才有意義)。"
                      "honest:哪些接點該平滑/xf 多長屬美術手感(A 類,離散節拍的撞擊感可能該保留);vel_tol=1.0 / xf=0.15 為量級選擇;無改任何生成/產線值(全新純函式,xf=0 委派後逐位元不變);單一真值資產。與 anim-forge 同 HOLD"),
+            CAP("sequence_crossfade_selective", "per-junction(逐接點/選擇性/非對稱)crossfade:把 L-6 的單一 scalar xf 一般化成逐接點向量(L-7,關掉 L-6 的『選擇性套用』honest boundary)", "L2",
+                "python3 tools/analyzer/validate_sequence_crossfade_selective.py", "pipeline",
+                note="承 L-6:crossfade_sequence 把接點 C1 kink 消掉了,但 xf 是單一 scalar(所有接點同一重疊秒數)。L-6 誠實列為未做的 honest boundary:『接點平滑的選擇性套用(per-接點 xf / 只平滑特定接點)』。"
+                     "本次把同一條 crossfade 重疊軸的取值由『單一 scalar』一般化成『逐接點向量』(同 J-5→J-6 把方向軸由離散補成連續的精神:機制一般化=客觀;取值=混哪些接點/各多長仍是美術手感 A 類 PROPOSAL)。"
+                     "全 additive:新增 _normalize_xf(order,xf)(scalar→廣播成等值向量;list→驗長度/非負;回 (xf_list,was_scalar))+ _crossfade_layout/crossfade_pose_at/crossfade_junction_kinks/crossfade_sequence 皆吃逐接點 xf。"
+                     "**crux:crossfade 的平滑/不平滑可逐接點獨立決定** —— 某接點給 xf=0 即退化為瞬切(不混場),其接點 C1 kink **重現**為 L-5 seam_velocity_gap(瞬切極限);其餘 xf>0 接點仍被 smoothstep 消成 0。"
+                     "故『序列全程 C1』當且僅當**每個**接點都被平滑(留一瞬切→is_c1_crossfade_sequence=False)。把 L-6 的『全平滑』擴成『可選擇性』(保留撞擊感的接點與平滑過渡的接點可並存)。"
+                     "**零回歸鐵則**:scalar xf == 等值 per-junction 向量 [xf]·(m−1)(逐位元);xf=0(scalar 或全零向量)委派 compose_sequence(逐位元);per-junction 時間佈局守衛在均勻取值時退化為 L-6 的 xf≤min_dur/2。"
+                     "validate_sequence_crossfade_selective.py 5AC PASS:P1 present+well-formed+總時長=Σdur−ΣVEC+零回歸(等值向量≡scalar 逐位元・全零向量≡compose・junction kinks max 逐一相等・相鄰段相交==各自 VEC[i])/"
+                     "P2 crux 選擇性:SEL=全 XF 但 SHARP(In->hit)接點設 0 → 其餘接點 kink≤KINK_ZERO_TOL(仍平滑)、SHARP kink 重現==L-5 c1_gap(114.35)≥SEAM_KINK_MIN、is_c1(SEL)=False 而 is_c1(全平滑)=True/"
+                     "P3 per-junction C1+線性負對照:相異向量 VEC smoothstep 每接點 kink≤tol(各接點不論寬窄皆消)is_c1=True・linear 每接點 kink≥SEAM_KINK_MIN(min 13.2)is_c1=False → 證消 kink 的是 C1 斜坡非 per-junction 機制本身(L-6 X4 的 per-junction 版)/"
+                     "P4 真混合+body 忠實+非對稱:相異 VEC 每接點重疊中點與前後 beat 皆不同≥BLEND_MIN・非對稱鄰接下 body 忠實(0.002≤FAITH_TOL)・VEC 總時長 5.2≠均勻 5.5(逐接點寬窄真改佈局)/"
+                     "P5 metric 良定義+守衛+空驗:非 XF 寬度(0.5)閉式==數值有限差分・守衛(列表長度不符/負元素/per-beat 三方重疊→ValueError・全零向量委派不報錯)・兩靜止 clip 間 xf=0 接點 seam_velocity_gap=0(無運動→瞬切亦無 kink)→證 SHARP kink 重現須配非靜止。"
+                     "honest:混哪些接點/各給多長 xf 仍屬美術手感(A 類 PROPOSAL,本閘只一般化機制不決定取值);無改任何生成/產線值(等值/零向量逐位元不變);單一真值資產。與 anim-forge 同 HOLD"),
             CAP("twist_dual_axis_shear", "生成器產反相雙軸 shear(G-4'''''',首度驅動 shearY)", "L2",
                 "python3 tools/analyzer/validate_twist_gen.py", "pipeline",
                 note="補 wobble(G-4')/squash(G-4'''')一路留到現在的最後一條 shear 通道 honest boundary(shearY≡0)。至今所有產 shear 的節拍"

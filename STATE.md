@@ -10,6 +10,43 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 per-junction(逐接點/選擇性/非對稱)crossfade:把 L-6 單一 scalar xf 一般化成逐接點向量(里程碑,2026-10-07 run 001,candidate L-7)** —
+  關掉 candidate (L-6) 誠實列出的 honest boundary:L-6 的 `crossfade_sequence` 把接點 C1 kink 消掉了,**但 `xf`
+  是單一 scalar(所有接點同一重疊秒數)**;L-6 明記「接點平滑的**選擇性套用**(per-接點 xf / 只平滑特定接點)」
+  未做(觸美術手感 A 類為 PROPOSAL)。本次把同一條 crossfade 重疊軸的**取值**由「單一 scalar」一般化成「**逐接點
+  向量**」(同 J-5→J-6 把方向軸由離散補成連續的精神:機制一般化=客觀;取值=混哪些接點/各多長仍 A 類),延續
+  L/L-2/L-3/L-4/L-5/L-6/G-2 刻意選整合/組合閘、**不加任何新生成軸**。**做了什麼(全 additive,
+  `tools/analyzer/gen_animations.py`)**:①新增 `_normalize_xf(order,xf)`→`(xf_list,was_scalar)`(scalar→廣播成等值
+  向量 `[xf]·(m−1)`;list/tuple→驗長度==接點數/每元素≥0;長度不符/負→ValueError);②`_crossfade_layout` 吃逐接點
+  xf —— **scalar 路徑零回歸**沿用 L-6 的 `xf≤min_dur/2` 守衛、**per-junction 路徑**用「每 beat 左右重疊和≤該 beat
+  時長」守衛(均勻取值時退化為 scalar 守衛),`offsets[i+1]=offsets[i]+dur[i]−xf[i]`;③`crossfade_pose_at`/
+  `crossfade_sequence` 的左/右重疊、body 邊界、重疊細分改讀逐接點 `xfs[i-1]`(左)/`xfs[i]`(右),`dt=min(非零 xf)
+  /nsamp`,xf=0 接點不做重疊細分(瞬切),**全零向量(含 scalar 0)委派 compose_sequence**;④`crossfade_junction_kinks`
+  吃逐接點 xf —— xf>0→閉式 `crossfade_seam_kink`、**xf=0→回報 `seam_velocity_gap`(L-5 瞬切極限)**;
+  ⑤`is_c1_crossfade_sequence` 不改碼經 junction_kinks 自動支援;⑥新閘 `validate_sequence_crossfade_selective.py`
+  (L-7,5 AC)從**先驗庫 → 真實 build_spine robot 骨架 → build_animations** 端到端(與 L/L-5/L-6 同一 fixture,
+  VEC=[0.1,0.15,0.2,0.25,0.3,0.2])。**5 AC 全 PASS**:**P1** present+well-formed(finite/時間嚴格遞增)+總時長 5.2==
+  Σdur−ΣVEC+**零回歸**(等值向量 `[XF]·6` emitted 逐位元==scalar XF・junction kinks max 逐一相等・全零向量 emitted
+  逐位元==compose_sequence・相鄰段相交==各自 VEC[i]);**P2 crux 選擇性平滑**(SEL=全 XF 但第 SHARP(`In→hit`)接點
+  設 0 → 其餘接點 kink≤1e-6 仍平滑・SHARP 接點 kink **重現**=114.35==L-5 `sequence_seam_gaps` c1_gap(瞬切極限)≥10・
+  `is_c1_crossfade_sequence(SEL)`=**False** 而全平滑 `is_c1_crossfade_sequence([XF]·6)`=**True**);**P3 per-junction C1
+  +線性負對照**(相異 VEC smoothstep 每接點 kink≤1e-6(各接點不論自身 xf 寬窄皆被消)is_c1=True・**linear** 每接點
+  kink≥10(實測 min 13.2)is_c1=False → 證**消 kink 的是 C1 斜坡、非 per-junction 機制本身**,L-6 X4 的 per-junction
+  版);**P4 真混合+body 忠實+非對稱**(相異 VEC 每接點重疊中點與前/後 beat 皆不同≥0.3 實測 min 1.15・非對稱鄰接下
+  body 忠實 0.002≤0.05・VEC 總時長 5.2≠均勻 [XF] 總時長 5.5 → 逐接點寬窄真改佈局);**P5 metric 良定義+守衛+空驗**
+  ((a) 非 XF 寬度(0.5)clean clip 對線性斜坡閉式==數值有限差分 rel<1e-3;(b) 守衛 列表長度不符/負元素/per-beat
+  三方重疊(左右重疊和>beat 時長)→ValueError・全零向量委派不報錯;(c) 空驗 兩**靜止** clip 間 xf=0 接點
+  `seam_velocity_gap`=0(無運動→瞬切亦無 kink)→證「SHARP kink 重現」須配非靜止)。**回歸:check_readiness 0 RED**
+  (新增 cap `sequence_crossfade_selective` L2 併入 `spine-anim-forge`,仍 HOLD;L-6 等既有閘逐一 GREEN 證
+  `_normalize_xf` 一般化 + 等值/零向量委派零回歸)。**關鍵發現**:①**crossfade 的平滑是逐接點可分解的屬性** ——
+  每接點 C1 連續性只由該接點自己的 xf 與斜坡決定,「序列全程 C1」= 所有接點 C1 的**合取**;混場不是全有全無,而是
+  可逐接點選擇(保留撞擊 vs 平滑過渡並存);②**一般化(scalar→向量)的正確性靠「等值特例逐位元等價」釘住** ——
+  等值向量≡scalar、全零向量≡compose,皆逐位元;per-junction 守衛在均勻取值退化為 scalar 守衛(呼應 J-6 的
+  lr/rl==θ=0°/180° 特例、L-5 `loop_seam_velocity_gap` 委派);③**xf=0 接點 = L-5 瞬切極限** —— `crossfade_junction_kinks`
+  在 xf=0 回報 `seam_velocity_gap`,把 L-5(全瞬切)/L-6(全平滑)/L-7(可選)在接點 kink 量上接成連續;④**消 kink 的
+  是 C1 斜坡,per-junction 機制只是讓你選接點**(P3 線性負對照在逐接點下仍成立)。**honest boundary**:混哪些接點、
+  各給多長 xf 仍屬美術手感(A 類 PROPOSAL,本閘只一般化機制不決定取值);vel_tol=1.0/XF=0.15/VEC 為量級選擇;無改
+  任何生成/產線值(全 additive,等值/零向量委派後逐位元不變);單一真值資產。見 `knowledge/s1-sequence-crossfade-selective.md`。
 - **S1 跨 beat crossfade / mix 序列組合:以 C1 斜坡消接點 C1 kink(里程碑,2026-10-06 run 002,candidate L-6)** —
   把 L-5 攤開的「序列每相異接點 C0 無縫但 C1 不連續(速度突變 15~114)」從**量化**推到**修正**。`compose_sequence`
   (L,純時間平移+接點去重,瞬切)**做不到**平滑接點,需真正的 **mix 機制**(STATE「下一步」/line 1210-1211 的
@@ -1244,8 +1281,12 @@
 >   crossfade(時間重疊 xf + 權重斜坡混合)把 L-5 攤開的接點 C1 kink 消掉;compose 的純平移+去重做不到,需真正的 mix 機制。
 >   `crossfade_pose_at`(解析混合)+ `crossfade_seam_kink`(閉式接點 kink)+ `crossfade_sequence`(xf=0 委派 compose)+ `validate_sequence_crossfade.py` 5AC PASS。
 >   **crux:smoothstep(w'兩端=0)每接點 kink 閉式=0 vs 純接續 15~114、線性斜坡仍 15~120 → C1 斜坡才是鑑別子**。
->   **續**(擇一,皆自主):接點平滑的**選擇性套用**(per-接點 xf / 只平滑特定接點,觸美術手感 A 類為 PROPOSAL)、crossfade×tier(高檔位更緊湊接點)、非對稱 crossfade;
->   或 **(L-4-orig 已被 L-4 label 佔用,此為真 crossfade 完成)** / **(L-3') loop 的 C1 速度連續閘**(已由 L-4/L-5 完成);
+> **(L-7) ~~per-junction(逐接點/選擇性/非對稱)crossfade~~ ✅ 完成(2026-10-07 run 001,candidate L-7,`sequence_crossfade_selective` L2,見上里程碑)** ——
+>   關掉 L-6 的 honest boundary(xf 為單一 scalar、選擇性套用未做):把 crossfade 重疊軸取值由 scalar 一般化成逐接點向量。
+>   新增 `_normalize_xf`(scalar→廣播成等值向量;list→驗長度/非負)+ `_crossfade_layout`/`crossfade_pose_at`/`crossfade_junction_kinks`/`crossfade_sequence` 吃逐接點 xf;
+>   `validate_sequence_crossfade_selective.py` 5AC PASS。**crux:某接點給 xf=0 退化為瞬切,其 kink 重現=L-5 seam_velocity_gap;序列全程 C1 當且僅當每接點都平滑 → 混場可逐接點選擇(撞擊與平滑過渡並存)**。
+>   **零回歸:scalar==等值向量逐位元、xf=0/全零向量委派 compose 逐位元**。
+>   **續**(擇一,皆自主):讓 genre 先驗庫**建議每接點 xf**(如 In→hit 保撞擊、Loop→Out 柔收尾;但最終手感仍 A 類)、**crossfade×tier**(高檔位更緊湊/更長接點混場)、**非對稱單接點 crossfade**(左 xf≠右 xf,需把 `_crossfade_layout` 對稱重疊拆成前退/後進兩段);
 > **(J-8) 擴充 geo `source`(PCA 主軸配確定性定號 / 主秀爆點方向),或讓 genre 先驗庫建議「用 geo 還是手感常數」**;
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。
@@ -1273,6 +1314,23 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-10-07 run 001:**S1 per-junction(逐接點/選擇性/非對稱)crossfade(里程碑,candidate L-7)** — 關掉 L-6
+  誠實列出的 honest boundary(xf 為單一 scalar、選擇性套用未做)。延續 L/L-2/L-3/L-4/L-5/L-6/G-2 整合/組合閘選題,
+  **不加新生成軸**,只把 crossfade 重疊軸取值由 scalar 一般化成逐接點向量。全 additive:新增 `_normalize_xf`(scalar→
+  廣播成等值向量;list→驗長度/非負)+ `_crossfade_layout`/`crossfade_pose_at`/`crossfade_junction_kinks`/
+  `crossfade_sequence` 吃逐接點 xf(xf=0 接點瞬切回報 `seam_velocity_gap`;全零向量委派 compose)。
+  `validate_sequence_crossfade_selective.py` 5AC PASS(真實 robot 骨架,VEC=[0.1,0.15,0.2,0.25,0.3,0.2]):P1
+  present+總時長 5.2=Σdur−ΣVEC+零回歸(等值向量≡scalar 逐位元・全零向量≡compose・段相交==各自 VEC[i])、**P2 crux
+  選擇性**(SEL=全 XF 但 In→hit 設 0→其餘接點 kink≤1e-6、SHARP kink 重現=114.35==L-5 c1_gap、is_c1(SEL)=False 而全平滑
+  =True)、P3 per-junction C1+線性負對照(smoothstep 每接點≤1e-6 is_c1=True・linear 每接點≥10 min13.2 is_c1=False→證
+  消 kink 的是 C1 斜坡非 per-junction 機制)、P4 真混合(每接點重疊中點與前後皆不同 min1.15)+body 忠實(0.002)+非對稱
+  (5.2≠均勻 5.5)、P5 閉式==數值+守衛(長度/負/三方重疊→ValueError・全零委派)+空驗(靜止 clip xf=0 接點 gap=0)。
+  check_readiness 0 RED(新 cap `sequence_crossfade_selective`)。**關鍵:①crossfade 平滑是逐接點可分解屬性,序列全程
+  C1=所有接點 C1 的合取,混場可逐接點選擇(撞擊與平滑過渡並存);②一般化正確性靠「等值特例逐位元等價」釘住(等值向量
+  ≡scalar、全零≡compose,呼應 J-6/L-5);③xf=0 接點=L-5 瞬切極限,L-5/L-6/L-7 在接點 kink 量上連續;④消 kink 的是 C1
+  斜坡,per-junction 機制只讓你選接點(P3 線性負對照在逐接點下仍成立)**。honest:混哪些接點/各給多長 xf 仍屬美術手感
+  (A 類 PROPOSAL);無改任何生成/產線值(等值/零向量委派後逐位元不變);anim-forge 仍 HOLD。見
+  `knowledge/s1-sequence-crossfade-selective.md`。
 - 2026-10-05 run 002:**S1 自接點 C1(速度)連續 / C1-loopability(里程碑,candidate L-4)** — 關掉 L-3 誠實列出的
   honest boundary(`is_loopable` 只驗 C0,明記不保證 C1 速度連續)。延續 L/L-2/L-3/G-2 整合/組合閘選題,**不加參數軸**。
   全 additive:新增 `gen_animations.loop_seam_velocity_gap`(自接點 C1 不連續量 `max|v_end−v_start|`,單側有限差分,純量測)

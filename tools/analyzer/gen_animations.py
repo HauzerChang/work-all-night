@@ -830,27 +830,71 @@ def _blend_state(sa, sb, w):
     return {"bones": rb, "slots": rs}
 
 
-def _crossfade_layout(anims, order, xf):
-    """計算 crossfade 序列的時間佈局(確定性)。相鄰 beat 重疊 `xf` 秒 → 每個接點總時長縮 xf。
-    回傳 `(offsets, durs, total)`:offsets[i]=第 i beat 在 composed 的起點,beat i 佔 [offsets[i], offsets[i]+durs[i]]。
-    守衛:xf<0 或 xf 超過**最短 beat 時長的一半**(避免三方重疊/頭尾重疊互撞)→ ValueError;beat 不存在 → KeyError。"""
-    import spine_anim as _SA
-    if xf < 0:
+def _normalize_xf(order, xf):
+    """candidate (L-7) — 把 crossfade 的 `xf` 規格正規化成 **per-junction**(逐接點)列表。
+
+    `xf` 可為:
+      - **scalar**(int/float):所有接點共用同一重疊秒數(= L-6 的行為;回 `(xf,)·(n-1)`,`was_scalar=True`)。
+      - **list/tuple**(長度 = `len(order)-1`):逐接點各自的重疊秒數(L-7 的**選擇性/非對稱** crossfade;
+        某接點給 `0` = 該接點**不混場**、保留瞬切撞擊感;`was_scalar=False`)。
+    回傳 `(xf_list, was_scalar)`。每個值須 ≥0,否則 ValueError;長度不符 → ValueError。純函式、additive。
+    **honest boundary**:哪些接點要混、各給多長 xf 屬**美術手感(A 類)** —— 本函式只把**機制**一般化成可逐接點指定,
+    不替使用者決定取值(同 L-6:只客觀化機制,不決定套哪些接點)。"""
+    njunc = max(0, len(order) - 1)
+    if isinstance(xf, (list, tuple)):
+        if len(xf) != njunc:
+            raise ValueError("crossfade: per-junction xf 長度 {} != 接點數 {}(order 長度 {})".format(
+                len(xf), njunc, len(order)))
+        xs = [float(v) for v in xf]
+        for v in xs:
+            if v < 0:
+                raise ValueError("crossfade: per-junction xf 不可為負(得 {})".format(xs))
+        return xs, False
+    x = float(xf)
+    if x < 0:
         raise ValueError("crossfade: xf 不可為負(xf={})".format(xf))
+    return [x] * njunc, True
+
+
+def _crossfade_layout(anims, order, xf):
+    """計算 crossfade 序列的時間佈局(確定性)。相鄰 beat 重疊 `xf` 秒 → 每個接點總時長縮該接點的 xf。
+    回傳 `(offsets, durs, total)`:offsets[i]=第 i beat 在 composed 的起點,beat i 佔 [offsets[i], offsets[i]+durs[i]]。
+
+    `xf` 可為 scalar 或 **per-junction 列表**(L-7,見 `_normalize_xf`)。
+    守衛:
+      - **scalar 路徑(零回歸)**:沿用 L-6 的「xf 超過**最短 beat 時長的一半**」判準(逐位元相容)。
+      - **per-junction 路徑**:對每個 beat,其**左右重疊和**(左接點 + 右接點 xf)不得超過該 beat 時長
+        (避免三方重疊);此判準在均勻 xf 時退化為 scalar 判準(2·xf ≤ min_dur ⟺ xf ≤ min_dur/2)。
+    xf<0 → ValueError;beat 不存在 → KeyError。"""
+    import spine_anim as _SA
     durs = []
     for name in order:
         if name not in anims:
             raise KeyError("crossfade: beat '{}' 不在 anims(可用:{})".format(name, sorted(anims.keys())))
         durs.append(_SA.duration(anims[name]))
-    if len(order) >= 2 and xf > 0:
-        min_d = min(durs)
-        if xf > min_d / 2.0 + 1e-12:
-            raise ValueError("crossfade: xf={} 超過最短 beat 時長的一半 {}(會造成三方重疊)".format(xf, min_d / 2.0))
+    xfs, was_scalar = _normalize_xf(order, xf)
+    last = len(order) - 1
+    if len(order) >= 2:
+        if was_scalar:
+            s = xfs[0]
+            if s > 0:
+                min_d = min(durs)
+                if s > min_d / 2.0 + 1e-12:
+                    raise ValueError("crossfade: xf={} 超過最短 beat 時長的一半 {}(會造成三方重疊)".format(
+                        s, min_d / 2.0))
+        else:
+            for i in range(len(order)):
+                leftx = xfs[i - 1] if i > 0 else 0.0
+                rightx = xfs[i] if i < last else 0.0
+                if leftx + rightx > durs[i] + 1e-12:
+                    raise ValueError(
+                        "crossfade: beat '{}' 左右重疊 {}+{}={} 超過時長 {}(會造成三方重疊)".format(
+                            order[i], leftx, rightx, leftx + rightx, durs[i]))
     offsets = []
     o = 0.0
     for i, name in enumerate(order):
         offsets.append(round(o, 6))
-        o += durs[i] - (xf if i < len(order) - 1 else 0.0)
+        o += durs[i] - (xfs[i] if i < last else 0.0)
     total = round(o, 6)
     return offsets, durs, total
 
@@ -865,21 +909,24 @@ def crossfade_pose_at(anims, order, xf, T, ramp="smoothstep"):
     import spine_anim as _SA
     wfun, _ = crossfade_ramp(ramp)
     offsets, durs, total = _crossfade_layout(anims, order, xf)
+    xfs, _ = _normalize_xf(order, xf)
     T = min(total, max(0.0, T))
     last = len(order) - 1
     for i, name in enumerate(order):
         start = offsets[i]
         end = start + durs[i]
-        # 與後一 beat 的重疊區 [end−xf, end](= [offsets[i+1], offsets[i+1]+xf])
-        if i < last and xf > 0 and (end - xf) - 1e-9 <= T <= end + 1e-9:
+        xr = xfs[i] if i < last else 0.0   # 與後一 beat 的右重疊秒數(per-junction)
+        xl = xfs[i - 1] if i > 0 else 0.0  # 與前一 beat 的左重疊秒數
+        # 與後一 beat 的重疊區 [end−xr, end](= [offsets[i+1], offsets[i+1]+xr]);xr=0 → 該接點瞬切,不混場
+        if i < last and xr > 0 and (end - xr) - 1e-9 <= T <= end + 1e-9:
             nb = order[i + 1]
-            s = (T - (end - xf)) / xf
+            s = (T - (end - xr)) / xr
             s = min(1.0, max(0.0, s))
             return _blend_state(_SA.sample(anims[name], T - start),
                                 _SA.sample(anims[nb], T - offsets[i + 1]), wfun(s))
-        # body 區 [start + (左重疊?xf:0), end − (右重疊?xf:0)]
-        lo = start + (xf if i > 0 else 0.0)
-        hi = end - (xf if i < last else 0.0)
+        # body 區 [start + 左重疊, end − 右重疊]
+        lo = start + xl
+        hi = end - xr
         if lo - 1e-9 <= T <= hi + 1e-9:
             return _SA.sample(anims[name], T - start)
     return _SA.sample(anims[order[last]], T - offsets[last])
@@ -928,15 +975,27 @@ def crossfade_seam_kink(clip_before, clip_after, xf, ramp="smoothstep"):
     return {"left": left, "right": right, "max": max(left, right)}
 
 
-def crossfade_junction_kinks(anims, order, xf, ramp="smoothstep"):
-    """candidate (L-6) — crossfade 序列 `order` 每個相鄰接點的 crossfade 後 C1 kink(閉式,見 `crossfade_seam_kink`)。
-    回傳 `[{"i","seam","left","right","max"}, ...]`(長度 len(order)-1)。純函式、additive。"""
+def crossfade_junction_kinks(anims, order, xf, ramp="smoothstep", h=1e-3):
+    """candidate (L-6 / L-7) — crossfade 序列 `order` 每個相鄰接點的 crossfade 後 C1 kink(閉式,見 `crossfade_seam_kink`)。
+
+    `xf` 可為 scalar(全接點同重疊)或 **per-junction 列表**(L-7,見 `_normalize_xf`)。
+    - 接點 xf>0 → crossfade 後殘餘 C1 kink(閉式 `crossfade_seam_kink`;smoothstep/smootherstep → 0)。
+    - 接點 **xf=0 → 該接點不混場、退化為瞬切** → 回報其 **L-5 `seam_velocity_gap`**(瞬切極限的接點 kink,
+      kink 重現)—— 這是**選擇性平滑**的 crux:只混部分接點,未混的接點保留撞擊頓挫。
+    回傳 `[{"i","seam","xf","left","right","max"}, ...]`(長度 len(order)-1)。純函式、additive。"""
     _crossfade_layout(anims, order, xf)   # 觸發守衛(xf 範圍 / beat 存在)
+    xfs, _ = _normalize_xf(order, xf)
     out = []
     for i in range(len(order) - 1):
         a, b = order[i], order[i + 1]
-        k = crossfade_seam_kink(anims[a], anims[b], xf, ramp)
-        out.append({"i": i, "seam": "{}->{}".format(a, b), "left": k["left"], "right": k["right"], "max": k["max"]})
+        if xfs[i] > 0:
+            k = crossfade_seam_kink(anims[a], anims[b], xfs[i], ramp)
+            out.append({"i": i, "seam": "{}->{}".format(a, b), "xf": xfs[i],
+                        "left": k["left"], "right": k["right"], "max": k["max"]})
+        else:
+            g = seam_velocity_gap(anims[a], anims[b], h)   # xf=0:瞬切,接點 kink = L-5 速度 gap
+            out.append({"i": i, "seam": "{}->{}".format(a, b), "xf": 0.0,
+                        "left": g, "right": g, "max": g})
     return out
 
 
@@ -972,11 +1031,18 @@ def crossfade_sequence(anims, order, xf, nsamp=16, ramp="smoothstep", merge_tol=
     與 `compose_sequence`(L,純平移+去重,接點瞬切 → C0 但 C1 kink)對照:本函式在接點**混合**而非瞬切,
     `ramp="smoothstep"` 時接點 C1 連續(見 `crossfade_seam_kink` / 閘)。**`xf=0` 委派 `compose_sequence`
     (逐位元相容零回歸)** —— 無重疊即純接續。`segments` 回報各 beat 在 composed 的 `[start, start+dur]`
-    (**重疊 → 相鄰段區間相交 xf**,與 compose 的無交疊不同)。確定性、additive、不改任何輸入 clip 的值。"""
-    if xf == 0:
+    (**重疊 → 相鄰段區間相交 xf**,與 compose 的無交疊不同)。確定性、additive、不改任何輸入 clip 的值。
+
+    **L-7 per-junction**:`xf` 可為 scalar 或**逐接點列表**(見 `_normalize_xf`)。某接點 xf=0 → 該接點**不混場**
+    (退化為瞬切,body 區相接、無重疊細分);其餘接點照常混場。**全接點 xf=0(含 scalar 0)→ 委派
+    `compose_sequence`(逐位元相容零回歸)**。body 細分的統一時間解析度 `dt` 取**最短非零接點** xf / nsamp。"""
+    xfs, _ = _normalize_xf(order, xf)
+    if all(x == 0 for x in xfs):
         return compose_sequence(anims, order)
     offsets, durs, total = _crossfade_layout(anims, order, xf)
     last = len(order) - 1
+    pos_xf = [x for x in xfs if x > 0]
+    min_xf = min(pos_xf)   # 統一時間解析度基準(最短非零接點)
 
     # 收集每個 (group, part, ch) 的取樣時刻集合(composed 時間軸)。
     times = {}   # (group, part, ch) -> set[float]
@@ -990,12 +1056,12 @@ def crossfade_sequence(anims, order, xf, nsamp=16, ramp="smoothstep", merge_tol=
         for j in range(n + 1):
             _add(group, part, ch, lo + (hi - lo) * j / n)
 
-    dt = xf / nsamp   # 統一時間解析度:body 與重疊同步距 → body 忠實度隨 nsamp 收斂(同重疊)
+    dt = min_xf / nsamp   # 統一時間解析度:body 與重疊同步距 → body 忠實度隨 nsamp 收斂(同重疊)
     for i, name in enumerate(order):
         clip = anims[name]
         start = offsets[i]
-        body_lo = start + (xf if i > 0 else 0.0)
-        body_hi = start + durs[i] - (xf if i < last else 0.0)
+        body_lo = start + (xfs[i - 1] if i > 0 else 0.0)
+        body_hi = start + durs[i] - (xfs[i] if i < last else 0.0)
         nbody = max(1, int(round((body_hi - body_lo) / dt)))
         for group in ("bones", "slots"):
             for p, chans in clip.get(group, {}).items():
@@ -1006,8 +1072,10 @@ def crossfade_sequence(anims, order, xf, nsamp=16, ramp="smoothstep", merge_tol=
                         if body_lo - merge_tol <= t <= body_hi + merge_tol:
                             _add(group, p, ch, t)
                     _subdiv(group, p, ch, body_lo, body_hi, nbody)
-    # 重疊區:每個接點重取樣,涵蓋前後 beat 在重疊出現的所有通道
+    # 重疊區:每個 xf>0 接點重取樣,涵蓋前後 beat 在重疊出現的所有通道(xf=0 接點瞬切、無重疊細分)
     for i in range(last):
+        if xfs[i] <= 0:
+            continue
         ov_start = offsets[i + 1]
         chset = set()
         for src in (anims[order[i]], anims[order[i + 1]]):
@@ -1016,7 +1084,7 @@ def crossfade_sequence(anims, order, xf, nsamp=16, ramp="smoothstep", merge_tol=
                     for ch in chans:
                         chset.add((group, p, ch))
         for (group, p, ch) in chset:
-            _subdiv(group, p, ch, ov_start, ov_start + xf, nsamp)
+            _subdiv(group, p, ch, ov_start, ov_start + xfs[i], nsamp)
 
     composed = {"bones": {}, "slots": {}}
     for (group, p, ch), tset in times.items():

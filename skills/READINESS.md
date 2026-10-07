@@ -1,14 +1,17 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-06 run 001(S1 candidate (L-5):相異 beat 接點 C1(速度)連續 / 序列全程 C1 —— 整合/組合閘)。
-> 58 閘全綠(57 + 新 `sequence_seam_c1`,0 RED,無 GREEN→RED)。** 關掉 L-4 的 self-seam-only honest boundary:
-> L-4 的 `loop_seam_velocity_gap`/`is_c1_loopable` 只驗自接點,序列**全程** C1(含相異 beat 接點 In→hit/…/Loop→Out
-> 的速度連續)尚未驗。全 additive:新增 `seam_velocity_gap`(相異接點 C1 量,一般化 `loop_seam_velocity_gap`=
-> `seam(clip,clip)` 自接點特例,逐位元等價零回歸)+ `sequence_seam_gaps` + `is_c1_continuous_sequence` + 閘。
-> **crux 發現:①真實大獎序列全程 C0 無縫但每接點 C1 不連續(接點速度突變 15~114,離散節拍/撞擊);②自接點
-> C1(L-4)與相異接點 C1(L-5)互不蘊含——Loop 自接點 C1-loopable=True 卻在與鄰 beat 接點 c1≈15≫tol(ratio≈80×)。**
-> cap `sequence_seam_c1` L2 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s1-sequence-seam-c1.md`。
+> **最新:2026-10-07 run 001(S1 candidate (L-7):per-junction(逐接點/選擇性/非對稱)crossfade —— 整合/組合閘)。
+> 60 閘全綠(59 + 新 `sequence_crossfade_selective`,0 RED,無 GREEN→RED)。** 關掉 L-6 的 honest boundary
+> (xf 為單一 scalar、選擇性套用未做):把 crossfade 重疊軸**取值**由「單一 scalar」一般化成「**逐接點向量**」
+> (同 J-5→J-6 把方向軸由離散補成連續:機制一般化=客觀;混哪些接點/各多長仍是美術手感 A 類 PROPOSAL)。全 additive:
+> 新增 `_normalize_xf`(scalar→廣播成等值向量;list→驗長度/非負)+ `_crossfade_layout`/`crossfade_pose_at`/
+> `crossfade_junction_kinks`/`crossfade_sequence` 吃逐接點 xf。**crux:某接點給 xf=0 退化為瞬切,其 kink 重現=L-5
+> `seam_velocity_gap`;其餘接點仍被 smoothstep 消成 0 → 序列全程 C1 當且僅當每接點都平滑 → 混場可逐接點選擇
+> (撞擊與平滑過渡並存)。零回歸:scalar==等值向量逐位元、xf=0/全零向量委派 compose 逐位元。** `validate_sequence_crossfade_selective.py`
+> 5AC PASS(真實 robot 骨架)。cap `sequence_crossfade_selective` L2 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s1-sequence-crossfade-selective.md`。
+>
+> (前次)2026-10-06 run 002(L-6 跨 beat crossfade/mix 序列組合,59 閘)/ run 001(L-5 相異 beat 接點 C1 / 序列全程 C1,58 閘)。
 >
 > (前次)產生於 2026-10-05 run 001(S1 candidate **(L-3):序列內 Loop 重播 N 次 + loopability 不變量 —— 整合/組合閘**)。
 > 延續 L / L-2 / G-2 的整合/組合閘選題,**刻意不加任何參數軸**:candidate (L) 的 `compose_sequence(anims, order)` 的
