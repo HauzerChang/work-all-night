@@ -10,6 +10,33 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 波方向 PCA 次主軸 geo source:沿短軸橫掃的另一條確定性幾何波(里程碑,2026-10-08 run 001,candidate J-9)** —
+  承 (J-8):J-8 用 PCA **主軸**(最大變異方向,沿件群**長軸延掃**)。本次新增 geo source **`"pca_minor"`** = PCA **次主軸**
+  (**最小變異方向**,`θ+90°`,與主軸**正交**)→ 波沿件群**短軸橫掃**。延續 J-5→J-6→J-7→J-8 的方向軸 provenance 精煉,
+  **不加任何新正交軸、不改 J-6 投影機制**(導出向量後仍走 `("proj",vec)`)。**做了什麼(全 additive,
+  `centroid_farthest` 與 `pca` 路徑**皆逐位元不變**)**:①`gen_animations._pca_principal_axis_dir` 加 `minor=False` 參數
+  —— `minor=False`(預設)**= J-8 原碼逐位元不變**(θ 不動、`ux,uy=cos,sin(θ)`),`minor=True` 時算出 θ 後 `θ+=π/2`(次主軸),
+  再走**同一套**確定性定號(指向沿**該軸**投影 |proj| 最大的極端件、tie 以座標字典序→件輸入順序無關)。
+  ②`derive_cascade_dir` 加分支 `source=="pca_minor"→_pca_principal_axis_dir(minor=True)`;`_CASCADE_GEO_SOURCES` 加 `"pca_minor"`。
+  ③`_normalize_cascade_dir`/`_cascade_phase_of`/`build_spine --cascade-dir geo:pca_minor` **無須改碼**(走 J-7 既有 `("geo",src)` 解析)。
+  ④新閘 `validate_cascade_dir_pca_minor.py`(J-9,5 AC;主/次軸/投影序**由閘以 numpy 獨立重算**)。**5 AC 全 PASS**:
+  **PM1** present+backward-compat+**零回歸**(pca_minor 產每 cascade beat finite/有 bone・非 cascade 逐位元同 base・po/None 逐位元同件序・
+  `geo` 預設逐位元==`("geo","centroid_farthest")`・**`("geo","pca")` 加 minor 參數後逐位元不變**・`derive(.,"pca")` 仍==numpy **主**特徵向量
+  → 主軸路徑未動);**PM2 crux 正交+符號確定性**((a) minor⟂major|dot|≈0 且 minor==閘獨立 numpy **次**特徵向量|dot|≈1;
+  (b) **件序無關** 非對稱 120 排列+對稱 24 排列**皆只 1 個 distinct 帶號向量**;(c) 沿 y 鏡射→符號確定性翻轉);
+  **PM3 crux minor 是真正不同的波**(二維佈局 minor⟂major・依 minor 投影排序件序≠依 major 投影排序件序・次軸方向極端件 minor 下最後 pop);
+  **PM4 端到端(robot)**(`build_animations(cascade_dir=("geo","pca_minor"))` 峰時刻依閘獨立 minor 投影鍵嚴格遞增:
+  vec≈`(0.063,−0.998)` 波序 `[2,1,4,0,3]`・**crux robot 上 minor pop 序`[2,1,4,0,3]`≠major pop 序`[1,0,2,3,4]`**・仍跨件波≥0.30・首尾 identity・特效 slot alpha=1・dir⟂nrip);
+  **PM5 metric+守衛**((a) minor==numpy 共變異**最小**特徵向量且⟂主軸 3 佈局;(b) 各向異性門檻有鑑別力:**正方/正五邊形→ValueError**、微量各向異性放行且次軸⟂主軸;
+  (c) 守衛 件重合/單件/空件/未知 source 直接 & 經 build→ValueError、`("geo","pca_minor")` 經 build 可用)。**端到端 `build_spine --animate --cascade-dir geo:pca_minor`
+  產可載入 Spine 素材(json+atlas+png)**。**回歸:check_readiness 0 RED**(新增 cap `cascade_dir_pca_minor` L2 併入 `spine-anim-forge`,仍 HOLD;
+  J-5/J-6/J-7/J-8 等既有閘逐一 GREEN 證 `centroid_farthest`/`pca` 路徑逐位元不變)。**關鍵發現**:①**同一套 PCA 符號定號機制可直接延伸到次主軸**
+  (主軸確定性定號一旦釘住,次主軸只是 `θ+90°` 後套同一套規則,不必另造機制);②**正交方向=一條真正不同的波**——minor 與 major 幾何正交→pop 序不同
+  (robot 實測 `[2,1,4,0,3]` vs `[1,0,2,3,4]`),價值 crux 要**端到端在真實資產上**證「不同波」(向量正交不保證特定件佈局下排序一定不同);
+  ③**各向同性守衛主/次軸共用**(λ1≈λ2 時主軸不唯一⇒次軸也不唯一,同一守衛同時擋掉);④**「換幾何特徵」(J-9 長軸 vs 短軸)與「換資訊基礎」
+  (J-8 散佈 vs 單點)是兩條不同的 provenance 價值軸**,各自誠實標明不互相宣稱優劣。**honest boundary**:用 `pca`/`pca_minor`/`centroid_farthest`
+  (或手感常數)仍屬美術手感(A 類 PROPOSAL,本閘只新增一個**確定性**幾何 source);`aniso_tol`/PM3/PM5 門檻為量級選擇;無改任何生成/產線值
+  (全 additive);單一真值資產。見 `knowledge/s1-cascade-dir-pca-minor.md`。
 - **S1 cascade 波方向 PCA 主軸 geo source:符號確定性地解掉 J-7 迴避的 PCA ±歧義(里程碑,2026-10-07 run 002,candidate J-8)** —
   J-7 的 `cascade_dir="geo"` 只實作一個 source(`centroid_farthest` 質心→最遠件),並**刻意避開 PCA**(主軸只給一條**線**,
   `±v` 皆合法特徵向量、`numpy eigh` 回哪個符號不保證 → 符號歧義)。本次新增 geo source **`"pca"`**,**正面解掉**這個 ±歧義:
@@ -1323,7 +1350,11 @@
 >   新增 geo source `"pca"`:用 PCA 主軸(最大變異方向,整體散佈)並以**幾何規則確定性定號**正面解掉 J-7 迴避的 PCA ±歧義
 >   (閉式 2×2 PCA + 投影極端件定號 + 座標字典序 tie-break → 件序無關;近似各向同性→ValueError)。`build_spine --cascade-dir geo:pca`;
 >   `validate_cascade_dir_pca.py` 5AC PASS。**crux:符號確定性(所有排列逐位元同一帶號向量)；pca 看整體散佈 vs cf 看單一最遠件(移非最遠件 cf 不變/pca 變)。誠實:不宣稱抗離群(遠離群件會主導方差拉轉主軸)**。零回歸:centroid_farthest 路徑逐位元不變。
->   **續**(擇一,皆自主):其他確定性幾何 source(加權質心 / 第二主軸垂直掃波)、讓 genre 先驗庫建議「用 pca / centroid_farthest / 手感常數」(provenance 之上再加選擇規則,最終手感仍 A 類);
+> **(J-9) ~~擴充 geo `source`:PCA 次主軸(短軸橫掃)~~ ✅ 完成(2026-10-08 run 001,candidate J-9,`cascade_dir_pca_minor` L2,見上里程碑)** ——
+>   新增 geo source `"pca_minor"`:用 PCA **次主軸**(最小變異方向,`θ+90°`,與主軸正交)→ 波沿件群**短軸橫掃**(vs pca 長軸延掃)。
+>   沿用 J-8 同一套確定性定號(不另造);`_pca_principal_axis_dir(minor=)` 加參數(`minor=False` 即 J-8 原碼逐位元不變→pca/cf 路徑零回歸)。`build_spine --cascade-dir geo:pca_minor`;
+>   `validate_cascade_dir_pca_minor.py` 5AC PASS。**crux:①minor⟂major 且==numpy 次特徵向量,符號確定性(所有排列逐位元同一);②是真正不同的波(robot 上 minor pop 序`[2,1,4,0,3]`≠major`[1,0,2,3,4]`,端到端實測)。各向同性守衛主/次軸共用**。零回歸:centroid_farthest/pca 路徑逐位元不變。
+>   **續**(擇一,皆自主):其他確定性幾何 source(加權質心 / 徑向以外對稱軸)、讓 genre 先驗庫建議「用 pca / pca_minor / centroid_farthest / 手感常數」(provenance 之上再加選擇規則,最終手感仍 A 類);
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。
 > ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 52 GREEN**。見上里程碑。
@@ -1350,6 +1381,22 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-10-08 run 001:**S1 cascade 波方向 PCA 次主軸 geo source(里程碑,candidate J-9)** — 承 (J-8):J-8 用 PCA
+  **主軸**(長軸延掃)。本次新增 geo source `"pca_minor"` = PCA **次主軸**(最小變異方向,`θ+90°`,與主軸**正交**)→ 波沿
+  件群**短軸橫掃**。延續 J-5→J-6→J-7→J-8 方向軸 provenance 精煉,**不加新正交軸、不改 J-6 投影機制**。全 additive
+  (`centroid_farthest`/`pca` 路徑**皆逐位元不變**):`_pca_principal_axis_dir` 加 `minor=False` 參數(`False`=J-8 原碼逐位元不變、
+  `True` 時 `θ+=π/2` 後套**同一套**確定性定號)+ `derive_cascade_dir source="pca_minor"` + `_CASCADE_GEO_SOURCES` 加 pca_minor;
+  `_normalize_cascade_dir`/`_cascade_phase_of`/`build_spine --cascade-dir geo:pca_minor` 無須改碼。`validate_cascade_dir_pca_minor.py`
+  5AC PASS(主/次軸/投影序**由閘以 numpy 獨立重算**):PM1 present+backward-compat+**零回歸**(`("geo","pca")` 加參數後逐位元不變・
+  `derive(.,"pca")` 仍==numpy 主特徵向量・geo 預設==centroid_farthest);**PM2 crux 正交+符號確定性**(minor⟂major 且==numpy 次特徵向量・
+  非對稱&對稱所有排列逐位元同一帶號向量・沿 y 鏡射符號翻轉);**PM3 crux minor 是真正不同的波**(二維佈局 minor 序≠major 序・次軸極端件最後 pop);
+  **PM4 端到端 robot**(minor 投影序嚴格遞增・**crux robot 上 minor pop 序`[2,1,4,0,3]`≠major`[1,0,2,3,4]`**・仍跨件波・首尾 identity・dir⟂nrip);
+  **PM5 metric+守衛**(minor==numpy 次特徵向量且⟂主軸・各向異性門檻有鑑別力:正方/正五邊形→ValueError・守衛件重合/單件/空件/未知 source→ValueError)。
+  端到端 `build_spine --animate --cascade-dir geo:pca_minor` 產可載入 Spine 素材。check_readiness 0 RED(新 cap `cascade_dir_pca_minor`)。
+  **關鍵:①同一套 PCA 符號定號可直接延伸到次主軸(主軸釘住後次軸只是 θ+90° 套同規則,不另造);②正交方向=真正不同的波,
+  價值 crux 要端到端在真實資產上證「不同波」(向量正交不保證特定佈局排序一定不同);③各向同性守衛主/次軸共用;④「換幾何特徵」
+  (長軸 vs 短軸)與「換資訊基礎」(散佈 vs 單點)是兩條不同的 provenance 價值軸,各自誠實標明不互相宣稱優劣**。honest:用
+  pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類);無改生成/產線值(全 additive);單一真值資產。見 `knowledge/s1-cascade-dir-pca-minor.md`、`log/2026-10-08-001.md`。
 - 2026-10-07 run 001:**S1 per-junction(逐接點/選擇性/非對稱)crossfade(里程碑,candidate L-7)** — 關掉 L-6
   誠實列出的 honest boundary(xf 為單一 scalar、選擇性套用未做)。延續 L/L-2/L-3/L-4/L-5/L-6/G-2 整合/組合閘選題,
   **不加新生成軸**,只把 crossfade 重疊軸取值由 scalar 一般化成逐接點向量。全 additive:新增 `_normalize_xf`(scalar→

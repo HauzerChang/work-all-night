@@ -650,6 +650,19 @@ BLOCKS = [
                      "PA3 **crux pca 看整體散佈 vs cf 看單一最遠件** (a)最遠件離主軸→pca 貼主軸(0°)cf 甩向離群件(90°)不同線 (b)移動非最遠內部件→cf 方向嚴格不變(0°)pca 隨之改變(7.96°)/"
                      "PA4 真實 robot 端到端 pca 投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip/PA5 metric==numpy|各向異性門檻有鑑別力(正方/正五邊形→ValueError、微量各向異性放行)|守衛件重合/單件/空件/未知 source→ValueError)。"
                      "**geo source 增 pca(確定性符號);honest:用 pca 或 centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
+            CAP("cascade_dir_pca_minor", "cascade 波方向 PCA 次主軸 geo source,符號確定性(J-9,新增 geo source=pca_minor:最小變異方向,與主軸正交→沿短軸橫掃的另一條波)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_pca_minor.py", "pipeline",
+                note="承 (J-8):J-8 用 PCA **主軸**(最大變異/長軸延掃)。J-9 新增 geo source=\"pca_minor\":用 PCA **次主軸**(**最小變異方向**,θ+90°,與主軸**正交**)→ 波沿件群**短軸橫掃**。"
+                     "**價值 crux**:次主軸與主軸正交→產生**不同的件 pop 序**(是一條真正不同的波,非 pca 主軸改版;robot 上 minor 序[2,1,4,0,3]≠major 序[1,0,2,3,4])。"
+                     "**正確性 crux**:同 J-8 —— 以幾何規則確定性定號(投影極端件+座標字典序 tie-break→件輸入順序無關),PCA ±符號歧義釘死。近似各向同性(λ1≈λ2,主/次軸皆不唯一)→ValueError(守衛主/次軸共用)。"
+                     "**honest(勿誇大)**:J-9 **不是**新正交軸、不改 J-6 投影機制,只是 geo source(provenance)多一個選項(短軸方向)。"
+                     "新增 _pca_principal_axis_dir(minor=) + derive_cascade_dir source=pca_minor + _CASCADE_GEO_SOURCES 加 pca_minor(centroid_farthest/pca 路徑逐位元不變);build_spine --cascade-dir geo:pca_minor。"
+                     "validate_cascade_dir_pca_minor.py 5AC PASS(PM1 present+backward-compat+**零回歸**(pca 主軸路徑逐位元不變・geo 預設==centroid_farthest・derive(.,pca)仍==numpy 主特徵向量)/"
+                     "PM2 **crux 正交+符號確定性** (a)minor⟂major|dot|≈0 且 minor==numpy 次特徵向量|dot|≈1 (b)非對稱&對稱佈局所有排列逐位元同一帶號向量(件序無關)(c)沿 y 鏡射→符號確定性翻轉/"
+                     "PM3 **crux minor 是真正不同的波** 二維佈局 minor⟂major+minor 序≠major 序+次軸極端件最後 pop/"
+                     "PM4 真實 robot 端到端 minor 投影序嚴格遞增+**crux robot 上 minor pop 序≠major pop 序**+仍跨件波+首尾 identity+dir⟂nrip/"
+                     "PM5 metric==numpy 次特徵向量且⟂主軸|各向異性門檻有鑑別力(正方/正五邊形→ValueError、微量各向異性放行且次軸⟂主軸)|守衛件重合/單件/空件/未知 source→ValueError)。"
+                     "**geo source 增 pca_minor(短軸方向);honest:用 pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
         ],
     },
 ]
