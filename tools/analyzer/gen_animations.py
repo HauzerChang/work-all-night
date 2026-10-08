@@ -247,7 +247,7 @@ _CASCADE_DIRS = {"lr", "rl", "co", "oc", "po"}
 # (`tier_variants.TIER_CASCADE_DIR`,如 slot_bigwin→"co")。J-7 新增 sentinel `cascade_dir="geo"`:方向**向量**
 # 由件實際幾何導出(質心→最遠件),隨資產自適應,不再寫死。導出後仍走 **J-6 的投影排序(同機制)**,故 J-7
 # **不是新正交軸**,是**方向軸取值的來源**(provenance):J-5 空間化→J-6 連續化→J-7 自動化,三者逐步移除人手指定。
-_CASCADE_GEO_SOURCES = {"centroid_farthest", "pca", "pca_minor", "farthest_pair"}
+_CASCADE_GEO_SOURCES = {"centroid_farthest", "pca", "pca_minor", "farthest_pair", "hull_long_edge"}
 _CASCADE_GEO_DEFAULT = "centroid_farthest"
 
 
@@ -346,6 +346,74 @@ def _farthest_pair_dir(centers, tol=1e-9):
     return (dx / L, dy / L)
 
 
+def _convex_hull(points):
+    """2D 凸包頂點(Andrew monotone chain),**CCW 順序、確定性**。純函式、O(n log n)。
+
+    先對點集**去重 + 座標字典序排序**(→ 件輸入順序無關);叉積 `<= 0` 判準**丟棄共線邊界點**
+    (只留嚴格凸轉角,與 `scipy.spatial.ConvexHull` 的頂點集同義)。回傳 hull 頂點 `list[(x,y)]`:
+      - 相異點 ≥ 3 且非全共線 → 完整多邊形頂點(CCW);
+      - 全共線(或恰 2 相異點)→ **2 端點**(退化線段,其唯一「邊」= diameter);
+      - 單一相異點 → `[p]`(無邊,由呼叫端守衛)。"""
+    pts = sorted(set((float(x), float(y)) for x, y in points))
+    if len(pts) <= 2:
+        return pts
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    lower = []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0.0:
+            lower.pop()
+        lower.append(p)
+    upper = []
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0.0:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+
+def _hull_long_edge_dir(centers, tol=1e-9):
+    """candidate (J-11) — 件中心**凸包最長邊**方向單位向量 `(ux, uy)`,確定性、件序無關。
+
+    hull long edge = 凸包**相鄰兩頂點間最長的那條邊**。方向沿這條最長邊界邊掃。這是**另一條確定性
+    幾何方向**,與既有四者的幾何基礎不同,**關鍵對比在 `farthest_pair`**:
+      - `farthest_pair`(diameter):點集中**彼此距離最大的兩件**(最長**弦**),兩端點在凸包上但**一般不相鄰**。
+      - `hull_long_edge`(本函式):凸包上**相鄰**兩頂點間最長的**邊**。最長弦 ≠ 最長邊(除退化情形)→
+        **一般給出不同方向**(crux,見閘 HE3:正方 diameter=對角、hull_long_edge=邊)。
+    與 `farthest_pair` 同屬**凸包邊界決定量**(只看 hull 頂點)→ **移動嚴格內部(非 hull 頂點)件不改方向**
+    (vs `pca`/`centroid_farthest` 用全體點,內部件會改;HE3 共同不變性 crux),但**取不同的邊界特徵**。
+
+    **crux — 符號 + 件序無關**:凸包由**去重後字典序排序**建(件序無關);最長邊以**端點對字典序**取唯一
+      代表(多邊並列最長,如正方四邊,取排序後 `(lo, hi)` 最小者),方向由字典序**較小**端點 → **較大**端點。
+
+    守衛:凸包頂點 < 2(所有件重合 → 無邊)或最長邊長度≈0 → `ValueError`(不捏造方向)。
+    **注意**:`hull_long_edge` **無各向同性守衛**(非變異軸);全共線時凸包退化成線段,其唯一邊 = diameter
+      →此退化情形 `hull_long_edge` 與 `farthest_pair` 重合(誠實邊界,見閘 HE5)。純函式、確定性。"""
+    hull = _convex_hull(centers)
+    if len(hull) < 2:
+        raise ValueError("derive_cascade_dir(hull_long_edge): degenerate geometry (parts coincide → no hull edge)")
+    m = len(hull)
+    edges = [(hull[0], hull[1])] if m == 2 else [(hull[k], hull[(k + 1) % m]) for k in range(m)]
+    best_len = max(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in edges)
+    if best_len < 1e-9:
+        raise ValueError("derive_cascade_dir(hull_long_edge): degenerate geometry (zero-length edge)")
+    # 最長邊並列(對稱佈局,如正方四邊)→ 以端點對座標字典序取唯一代表(件序無關)。
+    best_pair = None
+    for a, b in edges:
+        if math.hypot(b[0] - a[0], b[1] - a[1]) >= best_len - tol:
+            lo, hi = (a, b) if a <= b else (b, a)
+            if best_pair is None or (lo, hi) < best_pair:
+                best_pair = (lo, hi)
+    lo, hi = best_pair
+    dx, dy = hi[0] - lo[0], hi[1] - lo[1]
+    L = math.hypot(dx, dy)
+    if L < 1e-9:
+        raise ValueError("derive_cascade_dir(hull_long_edge): degenerate geometry (zero-length edge)")
+    return (dx / L, dy / L)
+
+
 def derive_cascade_dir(centers, source="centroid_farthest"):
     """J-7:由件幾何**導出** cascade 投影方向單位向量 `(ux, uy)`,取代手感指定的具名 / 角度 / 向量。
 
@@ -363,6 +431,10 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
         (凸包直徑),字典序定號。語意 = 波橫越「兩件最遠分離的肢體」的最長連線。**幾何基礎與前三者不同**:
         只由兩個極端件決定 → **移動內部件不改方向**(centroid_farthest 與 pca 皆會改;見 `_farthest_pair_dir`)。
         **無各向同性守衛**(非變異軸);件數<2 / 件重合(diameter≈0)→ ValueError。
+      "hull_long_edge"(J-11):件中心**凸包最長邊**方向 —— 由**凸包上相鄰兩頂點間最長的那條邊**定出,
+        字典序定號。語意 = 波沿件群輪廓的最長一段邊界掃。**與 farthest_pair 同屬凸包邊界決定量**(移動
+        嚴格內部件不改方向)**但取不同邊界特徵**:最長**邊**(相鄰頂點)≠ 最長**弦**(diameter,一般不相鄰)
+        → 一般給不同方向(見 `_hull_long_edge_dir`)。**無各向同性守衛**;頂點<2 / 件重合→ ValueError。
 
     `centers`:list of `(x, y)` 件中心(呼叫端給**當前 beat 的有效件**→ 方向隨實際參與件自適應)。
     回傳**正規化**單位向量。輸入守衛:未知 source、無件、退化幾何(所有件重合 → 零方向 / 各向同性)→ `ValueError`。
@@ -381,6 +453,8 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
         return _pca_principal_axis_dir(centers, minor=True)
     if source == "farthest_pair":
         return _farthest_pair_dir(centers)
+    if source == "hull_long_edge":
+        return _hull_long_edge_dir(centers)
     mx = sum(c[0] for c in centers) / n
     my = sum(c[1] for c in centers) / n
     # 最遠件:距質心平方距離最大;相等時 tie-break 用件序 index(確定性,與 _cascade_phase_of 一致)

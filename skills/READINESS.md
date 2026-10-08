@@ -1,8 +1,17 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-07 run 001(S1 candidate (L-7):per-junction(逐接點/選擇性/非對稱)crossfade —— 整合/組合閘)。
-> 60 閘全綠(59 + 新 `sequence_crossfade_selective`,0 RED,無 GREEN→RED)。** 關掉 L-6 的 honest boundary
+> **最新:2026-10-08 run 003(S1 candidate (J-11):cascade 波方向 凸包最長邊(hull_long_edge)geo source)。
+> 64 閘全綠(0 RED)。** 新增 geo source `"hull_long_edge"` = 件中心**凸包最長邊**(相鄰頂點間最長邊界邊)方向 ——
+> **與 J-10 farthest_pair 同屬凸包邊界決定量**(移動嚴格內部件逐位元不變)**但取不同邊界特徵**:最長**邊**(相鄰)≠
+> 最長**弦**(diameter,一般跨對角)→ 一般不同向(HE3 合成佈局 he-vs-fp 72.1°;正方 diameter=對角 he=邊)。生成端純
+> Python Andrew monotone chain(不綁 scipy 到產線)、閘端 scipy ConvexHull 獨立重算互證。誠實:robot 上最長邊恰==
+> diameter(佈局巧合,genuine-difference 走合成佈局 asset-independent)、全共線時 he==farthest_pair(退化成同一量)。
+> cap `cascade_dir_hull_long_edge` L2 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s1-cascade-dir-hull-long-edge.md`。
+> (前次 2026-10-08 run 001/002:J-9 pca_minor / J-10 farthest_pair;2026-10-07 run 001 L-7 per-junction crossfade。)
+>
+> (史)2026-10-07 run 001(S1 candidate (L-7):per-junction(逐接點/選擇性/非對稱)crossfade —— 整合/組合閘)。
+> 關掉 L-6 的 honest boundary
 > (xf 為單一 scalar、選擇性套用未做):把 crossfade 重疊軸**取值**由「單一 scalar」一般化成「**逐接點向量**」
 > (同 J-5→J-6 把方向軸由離散補成連續:機制一般化=客觀;混哪些接點/各多長仍是美術手感 A 類 PROPOSAL)。全 additive:
 > 新增 `_normalize_xf`(scalar→廣播成等值向量;list→驗長度/非負)+ `_crossfade_layout`/`crossfade_pose_at`/
