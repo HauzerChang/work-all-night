@@ -247,7 +247,7 @@ _CASCADE_DIRS = {"lr", "rl", "co", "oc", "po"}
 # (`tier_variants.TIER_CASCADE_DIR`,如 slot_bigwin→"co")。J-7 新增 sentinel `cascade_dir="geo"`:方向**向量**
 # 由件實際幾何導出(質心→最遠件),隨資產自適應,不再寫死。導出後仍走 **J-6 的投影排序(同機制)**,故 J-7
 # **不是新正交軸**,是**方向軸取值的來源**(provenance):J-5 空間化→J-6 連續化→J-7 自動化,三者逐步移除人手指定。
-_CASCADE_GEO_SOURCES = {"centroid_farthest", "pca", "pca_minor"}
+_CASCADE_GEO_SOURCES = {"centroid_farthest", "pca", "pca_minor", "farthest_pair"}
 _CASCADE_GEO_DEFAULT = "centroid_farthest"
 
 
@@ -296,6 +296,65 @@ def _pca_principal_axis_dir(centers, aniso_tol=1e-6, minor=False):
     return (ux, uy)
 
 
+def _orient_axis(centers, ux, uy):
+    """把一條**無向**軸 `(ux,uy)`(件群某幾何軸的任一帶號代表)**確定性地定號**。
+
+    與 `_pca_principal_axis_dir` 共用的同一套符號規則(J-8 建立):所取軸指向**沿該軸(相對件質心)
+    投影絕對值最大的極端件**(令其投影 ≥ 0),保留「波朝最外延掃」語意;tie(投影量並列,如對稱佈局)
+    時以**座標字典序最大件**定號 —— 純幾何,**與件輸入順序無關**(不像天真 index tie-break 在對稱佈局會翻號)。
+    純函式、確定性。供 `_farthest_pair_axis_dir`(J-10)等「只給一條線、符號待定」的幾何 source 共用。"""
+    n = len(centers)
+    mx = sum(c[0] for c in centers) / n
+    my = sum(c[1] for c in centers) / n
+    projs = [((x - mx) * ux + (y - my) * uy, x, y) for x, y in centers]
+    maxabs = max(abs(p) for p, _, _ in projs)
+    ref = max((p for p in projs if abs(p[0]) >= maxabs - 1e-9), key=lambda p: (p[1], p[2]))
+    if ref[0] < 0.0:
+        return (-ux, -uy)
+    return (ux, uy)
+
+
+def _farthest_pair_axis_dir(centers, rtol=1e-9):
+    """candidate (J-10) — 件中心的 **直徑軸**單位向量 `(ux, uy)`:互相距離最遠的**兩件連線**方向。
+
+    與 J-7/J-8/J-9 不同的**資訊基礎**:只依賴**兩個互距最遠的極端件**,**與件質心無關、與內部件無關**
+    (centroid_farthest 依質心→單一最遠件;pca/pca_minor 依全域二階矩)。語意 = 波沿件群的**最長跨距**掃。
+
+    **符號(±)確定性**:件對無序 → 直徑只給一條**線**(與 PCA 同樣有 ±歧義);以 `_orient_axis` 用**同一套**
+    規則定號(沿軸投影極端件、座標字典序 tie-break → 件序無關)。**直徑件對的選取亦件序無關**:若有多對並列
+    最遠(如正方的兩條對角線等長),取其端點座標字典序(排序端點後)**最小**的 canonical 件對 → 確定性且與輸入
+    順序無關。
+
+    守衛:需 ≥2 件(單件無「對」);所有件重合(最大距離 ≈0 → 無跨距)→ `ValueError`。與 pca 不同,直徑**無
+    各向同性退化問題**(除非件全重合,直徑恆良定義;各向同性如正方僅使並列對需 tie-break,不報錯)。純函式、確定性。"""
+    n = len(centers)
+    if n < 2:
+        raise ValueError("derive_cascade_dir(farthest_pair): need >=2 part centers for a diameter")
+    # 全對距離,找最大平方距離(件數少,O(n^2) 可接受)
+    maxd2 = -1.0
+    for i in range(n):
+        xi, yi = centers[i]
+        for j in range(i + 1, n):
+            d2 = (xi - centers[j][0]) ** 2 + (yi - centers[j][1]) ** 2
+            if d2 > maxd2:
+                maxd2 = d2
+    if maxd2 <= 1e-18:
+        raise ValueError("derive_cascade_dir(farthest_pair): degenerate geometry (all parts coincide → no span)")
+    tol = rtol * maxd2                                  # 相對容差:並列最遠件對
+    # 並列最遠件對中,取端點座標字典序(端點先排序)最小的 canonical 件對 → 件序無關、確定性
+    cand = []
+    for i in range(n):
+        xi, yi = centers[i]
+        for j in range(i + 1, n):
+            d2 = (xi - centers[j][0]) ** 2 + (yi - centers[j][1]) ** 2
+            if d2 >= maxd2 - tol:
+                cand.append(tuple(sorted(((xi, yi), (centers[j][0], centers[j][1])))))
+    a, b = min(cand)
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    L = math.hypot(dx, dy)
+    return _orient_axis(centers, dx / L, dy / L)
+
+
 def derive_cascade_dir(centers, source="centroid_farthest"):
     """J-7:由件幾何**導出** cascade 投影方向單位向量 `(ux, uy)`,取代手感指定的具名 / 角度 / 向量。
 
@@ -309,6 +368,10 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
       "pca_minor"(J-9):件中心的 **PCA 次主軸**(最小變異方向,與主軸正交),符號同樣確定性地定。
         語意 = 波沿件群**短軸橫掃**(vs pca 沿長軸延掃)—— 是**另一條確定性幾何方向**(與 pca 正交、
         產生不同的件 pop 序),非 pca 的改版。近似各向同性(主/次軸皆不唯一)→ ValueError。
+      "farthest_pair"(J-10):件中心的 **直徑軸**(互距最遠的兩件連線方向),符號同樣確定性地定。
+        **資訊基礎與上三者皆不同**:只依**兩個極端件**,與件質心無關(≠ centroid_farthest)、與內部件 /
+        全域二階矩無關(≠ pca/pca_minor)。語意 = 波沿件群**最長跨距**掃。無各向同性退化(件全重合才報錯;
+        正方等對稱佈局僅使並列件對需 tie-break,取座標字典序最小 canonical 對 → 件序無關,不報錯)。需 ≥2 件。
 
     `centers`:list of `(x, y)` 件中心(呼叫端給**當前 beat 的有效件**→ 方向隨實際參與件自適應)。
     回傳**正規化**單位向量。輸入守衛:未知 source、無件、退化幾何(所有件重合 → 零方向 / 各向同性)→ `ValueError`。
@@ -325,6 +388,8 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
         return _pca_principal_axis_dir(centers)
     if source == "pca_minor":
         return _pca_principal_axis_dir(centers, minor=True)
+    if source == "farthest_pair":
+        return _farthest_pair_axis_dir(centers)
     mx = sum(c[0] for c in centers) / n
     my = sum(c[1] for c in centers) / n
     # 最遠件:距質心平方距離最大;相等時 tie-break 用件序 index(確定性,與 _cascade_phase_of 一致)

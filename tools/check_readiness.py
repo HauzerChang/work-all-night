@@ -663,6 +663,19 @@ BLOCKS = [
                      "PM4 真實 robot 端到端 minor 投影序嚴格遞增+**crux robot 上 minor pop 序≠major pop 序**+仍跨件波+首尾 identity+dir⟂nrip/"
                      "PM5 metric==numpy 次特徵向量且⟂主軸|各向異性門檻有鑑別力(正方/正五邊形→ValueError、微量各向異性放行且次軸⟂主軸)|守衛件重合/單件/空件/未知 source→ValueError)。"
                      "**geo source 增 pca_minor(短軸方向);honest:用 pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
+            CAP("cascade_dir_farthest_pair", "cascade 波方向 farthest_pair geo source,符號確定性(J-10,新增 geo source=farthest_pair:件群直徑軸=互距最遠兩件連線,只依 2 極端件→內部件不變)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_farthest_pair.py", "pipeline",
+                note="承 (J-7/J-8/J-9):cf=質心→最遠件、pca=最大變異軸、pca_minor=最小變異軸。J-10 新增 geo source=\"farthest_pair\":件中心的**直徑軸**(互距最遠的兩件連線方向)。"
+                     "**價值 crux**:**資訊基礎與既有三者皆不同** —— 只依**兩個互距最遠的極端件**,與件質心無關(≠cf)、與內部件/全域二階矩無關(≠pca/pca_minor);故**移動內部件時方向逐位元不變**(直徑只由 2 極端件決定),而 cf 與 pca 兩者皆隨之改變。"
+                     "**正確性 crux**:件對無序→直徑只給一條線(±歧義同 PCA),以**同一套** _orient_axis(投影極端件+座標字典序 tie-break→件序無關)定號;並列最遠件對(如正方兩對角線)取座標字典序最小 canonical 對(件序無關)。"
+                     "**honest(勿誇大)**:J-10 **不是**新正交軸、不改 J-6 投影機制,只是 geo source(provenance)多一個選項(最長跨距方向)。與 pca 不同:直徑**無各向同性退化**(件全重合才報錯;正方等對稱佈局 fp 成功、pca ValueError)。"
+                     "新增 _orient_axis(抽出 J-8 共用符號規則)+ _farthest_pair_axis_dir + derive_cascade_dir source=farthest_pair + _CASCADE_GEO_SOURCES 加 farthest_pair(centroid_farthest/pca/pca_minor 路徑逐位元不變);build_spine --cascade-dir geo:farthest_pair。"
+                     "validate_cascade_dir_farthest_pair.py 5AC PASS(FP1 present+backward-compat+**零回歸**(pca/pca_minor 路徑逐位元不變・geo 預設==centroid_farthest・derive(.,pca_minor)仍==numpy 次特徵向量)/"
+                     "FP2 **crux 直徑正確+符號確定性** (a)fp==閘獨立 brute-force 直徑|dot|≈1 (b)非對稱&正方(兩對角線並列)佈局所有排列逐位元同一帶號向量(件序無關)(c)沿 y 鏡射→符號確定性翻轉/"
+                     "FP3 **crux 資訊基礎不同** 單一佈局 fp⟂cf|dot|≈0 且**移動內部件→fp 逐位元不變而 cf 與 pca 皆改變**(證只依 2 極端件)/"
+                     "FP4 真實 robot 端到端 fp 投影序嚴格遞增+**crux robot 上 fp pop 序[3,0,1,2,4]≠pca 序[1,0,2,3,4]**+仍跨件波+首尾 identity+dir⟂nrip/"
+                     "FP5 metric==brute-force 直徑 3 佈局|**行為差異 crux** 正方/正五邊形→fp 成功(確定性選對角線)而 pca ValueError|守衛件重合/單件(需≥2)/空件/未知 source→ValueError)。"
+                     "**geo source 增 farthest_pair(最長跨距方向);honest:用 farthest_pair/pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
         ],
     },
 ]

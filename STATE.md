@@ -10,6 +10,37 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 波方向 farthest_pair geo source:件群直徑軸=互距最遠兩件連線,換的是「資訊基礎」(里程碑,2026-10-08 run 002,candidate J-10)** —
+  承 (J-7/J-8/J-9):cf=質心→最遠件、pca=最大變異軸、pca_minor=最小變異軸。本次新增 geo source **`"farthest_pair"`** = 件中心的**直徑軸**
+  (互距最遠的兩件連線方向)。延續 J-5→…→J-9 的方向軸 provenance 精煉,**不加任何新正交軸、不改 J-6 投影機制**(導出向量後仍走 `("proj",vec)`)。
+  **價值定位**:J-8 vs J-9 比的是「換**幾何特徵**」(長軸 vs 短軸,**同**資訊基礎=全域二階矩);J-10 換的是**資訊基礎本身** —— 直徑**只依兩個互距最遠
+  的極端件**,與件質心無關(≠cf)、與內部件/全域散佈無關(≠pca/pca_minor)。**做了什麼(全 additive,`centroid_farthest`/`pca`/`pca_minor`
+  路徑**皆逐位元不變**)**:①新增 `_orient_axis(centers,ux,uy)`(**抽出 J-8 建立的共用符號規則**:沿軸相對質心投影 |proj| 最大的極端件、tie 座標
+  字典序→件序無關;`_pca_principal_axis_dir` **內聯碼未動**→pca/pca_minor 逐位元不變,僅新增此 helper 供共用)。②新增 `_farthest_pair_axis_dir(centers)`
+  (O(n²) brute-force 直徑 + 並列最遠件對取座標字典序最小 canonical 對 + `_orient_axis` 定號;守衛 n<2/件全重合→ValueError;**與 pca 不同:無各向
+  同性退化**)。③`derive_cascade_dir` 加分支 `source=="farthest_pair"`;`_CASCADE_GEO_SOURCES` 加 `"farthest_pair"`。④`_normalize_cascade_dir`/
+  `_cascade_phase_of`/`build_spine --cascade-dir geo:farthest_pair` **無須改碼**(走 J-7 既有 `("geo",src)` 解析)。⑤新閘 `validate_cascade_dir_farthest_pair.py`
+  (J-10,5 AC;直徑件對**由閘以 O(n²) brute-force 獨立重算**)。**5 AC 全 PASS**:**FP1** present+backward-compat+**零回歸**(farthest_pair 產每 cascade
+  beat finite/有 bone・非 cascade 逐位元同 base・po/None 件序・`geo` 預設逐位元==`("geo","centroid_farthest")`・`("geo","pca")`/`("geo","pca_minor")`
+  逐位元不變・`derive(.,"pca_minor")` 仍==閘獨立 numpy 次特徵向量);**FP2 crux 直徑正確+符號確定性**((a) fp==閘獨立 brute-force 直徑|dot|≈1;
+  (b) **件序無關** 非對稱 & **正方**(兩對角線並列最遠,tie-break 考驗)所有排列**皆只 1 個 distinct 帶號向量**;(c) 沿 y 鏡射→符號確定性翻轉);
+  **FP3 crux 資訊基礎不同(本 run 核心)**(單一佈局 `[(-10,0),(11,0),(0,16),(1,1),(-2,-1.5)]`:(a) fp=(1,0)⟂cf=(0,1)|dot|=0;(b) **移動兩個非極端
+  內部件→fp 逐位元不變,而 cf(質心移動)與 pca(二階矩改變)兩者皆改變**→證 fp 只依 2 極端件,較 J-8 PA3「移非最遠件 cf 不變/pca 變」更強:
+  fp 對內部件**全不變**且 cf、pca **兩者都變**);**FP4 端到端(robot)**(`build_animations(cascade_dir=("geo","farthest_pair"))` 峰時刻依直徑投影鍵
+  嚴格遞增:vec≈`(0.671,0.741)` 對角、**crux robot 上 fp pop 序`[3,0,1,2,4]`≠pca pop 序`[1,0,2,3,4]`**・仍跨件波≥0.30・首尾 identity・特效 alpha=1・
+  dir⟂nrip);**FP5 metric+守衛**((a) fp==brute-force 直徑 3 佈局;(b) **行為差異 crux**:正方/正五邊形→farthest_pair **成功**(確定性選一條對角線,
+  件序無關)而 pca **ValueError**(主軸不唯一)→兩 source 對稱佈局行為不同;(c) 守衛 件重合/單件(需≥2)/空件/未知 source 直接 & 經 build→ValueError、
+  `("geo","farthest_pair")` 經 build 可用)。端到端 `build_spine --animate --cascade-dir geo:farthest_pair` 產可載入 Spine 素材。**回歸:check_readiness
+  0 RED**(新增 cap `cascade_dir_farthest_pair` L2 併入 `spine-anim-forge`,仍 HOLD;既有 cascade dir 閘 `validate_cascade_dir`/`_vector`/`_geo`/`_pca`/
+  `_pca_minor` 逐一 GREEN 證 centroid_farthest/pca/pca_minor 路徑逐位元不變)。**關鍵發現**:①**provenance 價值有三層正交選擇**——J-8 vs J-9 換
+  幾何特徵(同資訊基礎)、J-10 換資訊基礎(2 極端件 vs 全域二階矩 vs 質心單點),各自誠實標明不宣稱優劣;②**「只依少數極端點」給出乾淨不變量**
+  ——fp 對內部件**全不變**(比 cf 只對非最遠件不變更強),**單一佈局**即證資訊基礎三方對照;③**符號定號可抽成跨 source 共用 helper**(`_orient_axis`),
+  任何只給一條線的幾何 source 直接共用不必重造(呼應 J-9「同一套 PCA 符號定號可延伸到次主軸」);④**退化行為是 source 固有屬性要誠實對照**
+  (pca 各向同性退化 vs fp 件全重合退化,正方上行為相反)。**honest boundary**:用 `farthest_pair`/`pca`/`pca_minor`/`centroid_farthest`(或手感常數)
+  仍屬美術手感(A 類 PROPOSAL,本閘只新增一個**確定性**幾何 source);並列件對 tie-break 為確定性約定非唯一解;fp 符號用質心基準 `_orient_axis`
+  (軸線對內部件全不變,符號一般情形可能隨質心微動,FP3 佈局中不翻);無改任何生成/產線值(全 additive);單一真值資產。見 `knowledge/s1-cascade-dir-farthest-pair.md`。
+  **⚠️ 分支狀況(基礎設施)**:本 session 依指示開發分支為 `claude/focused-dirac-dot7sm`(承接 J-9 等近期 run,為 `claude/spine-main` 線性後代;
+  spine-main 落後 6 commit 停在 L-4)。近期 routine 實際累積在此分支而非 SCHEDULE.md 所述固定分支 `claude/spine-main`。不阻塞;若要回歸固定分支慣例需使用者在 web 端對齊。
 - **S1 cascade 波方向 PCA 次主軸 geo source:沿短軸橫掃的另一條確定性幾何波(里程碑,2026-10-08 run 001,candidate J-9)** —
   承 (J-8):J-8 用 PCA **主軸**(最大變異方向,沿件群**長軸延掃**)。本次新增 geo source **`"pca_minor"`** = PCA **次主軸**
   (**最小變異方向**,`θ+90°`,與主軸**正交**)→ 波沿件群**短軸橫掃**。延續 J-5→J-6→J-7→J-8 的方向軸 provenance 精煉,
@@ -1354,7 +1385,12 @@
 >   新增 geo source `"pca_minor"`:用 PCA **次主軸**(最小變異方向,`θ+90°`,與主軸正交)→ 波沿件群**短軸橫掃**(vs pca 長軸延掃)。
 >   沿用 J-8 同一套確定性定號(不另造);`_pca_principal_axis_dir(minor=)` 加參數(`minor=False` 即 J-8 原碼逐位元不變→pca/cf 路徑零回歸)。`build_spine --cascade-dir geo:pca_minor`;
 >   `validate_cascade_dir_pca_minor.py` 5AC PASS。**crux:①minor⟂major 且==numpy 次特徵向量,符號確定性(所有排列逐位元同一);②是真正不同的波(robot 上 minor pop 序`[2,1,4,0,3]`≠major`[1,0,2,3,4]`,端到端實測)。各向同性守衛主/次軸共用**。零回歸:centroid_farthest/pca 路徑逐位元不變。
->   **續**(擇一,皆自主):其他確定性幾何 source(加權質心 / 徑向以外對稱軸)、讓 genre 先驗庫建議「用 pca / pca_minor / centroid_farthest / 手感常數」(provenance 之上再加選擇規則,最終手感仍 A 類);
+>   **續**(擇一,皆自主):~~其他確定性幾何 source~~ **✅ farthest_pair(2026-10-08 run 002,J-10,見下)**;讓 genre 先驗庫建議「用 pca / pca_minor / centroid_farthest / farthest_pair / 手感常數」(provenance 之上再加選擇規則,最終手感仍 A 類);
+> **(J-10) ~~擴充 geo `source`:farthest_pair(件群直徑軸)~~ ✅ 完成(2026-10-08 run 002,candidate J-10,`cascade_dir_farthest_pair` L2,見上里程碑)** ——
+>   新增 geo source `"farthest_pair"` = 件中心的**直徑軸**(互距最遠兩件連線)。**換的是資訊基礎**(只依 2 極端件,與質心/內部件/二階矩皆無關)而非 J-8/J-9 的幾何特徵。
+>   抽出 J-8 符號規則成共用 `_orient_axis`(centroid_farthest/pca/pca_minor 逐位元不變);`build_spine --cascade-dir geo:farthest_pair`;`validate_cascade_dir_farthest_pair.py` 5AC PASS。
+>   **crux:①fp⟂cf 且移動內部件→fp 逐位元不變而 cf,pca 皆變(只依 2 極端件,較 J-8 PA3 更強);②無各向同性退化——正方/正五邊形 fp 成功而 pca ValueError(行為對照)。** 零回歸:既有 geo source 路徑逐位元不變。
+>   **續**(擇一,皆自主):更多確定性幾何 source(加權質心需件面積額外接線、凸包週長最長邊、對稱軸)、讓 genre 先驗庫建議用哪個 source(provenance 之上再加選擇規則,最終手感仍 A 類);
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。
 > ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 52 GREEN**。見上里程碑。
