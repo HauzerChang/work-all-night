@@ -663,6 +663,19 @@ BLOCKS = [
                      "PM4 真實 robot 端到端 minor 投影序嚴格遞增+**crux robot 上 minor pop 序≠major pop 序**+仍跨件波+首尾 identity+dir⟂nrip/"
                      "PM5 metric==numpy 次特徵向量且⟂主軸|各向異性門檻有鑑別力(正方/正五邊形→ValueError、微量各向異性放行且次軸⟂主軸)|守衛件重合/單件/空件/未知 source→ValueError)。"
                      "**geo source 增 pca_minor(短軸方向);honest:用 pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
+            CAP("cascade_dir_farthest_pair", "cascade 波方向 diameter(最遠對)geo source,移動內部件不改向(J-10,新增 geo source=farthest_pair:凸包直徑,只由兩極端件決定)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_farthest_pair.py", "pipeline",
+                note="承 (J-7/J-8/J-9):三者方向取自質心→最遠件 / PCA 主軸 / PCA 次主軸。J-10 新增 geo source=\"farthest_pair\":用件中心點集的 **diameter(彼此距離最大的兩件,凸包直徑)**方向,字典序確定性定號。語意=波橫越「兩件最遠分離的肢體」的最長連線。"
+                     "**價值 crux**:幾何基礎與前三者**不同**——diameter **只由兩個極端件決定**→**移動內部(非極端)件不改方向**(farthest_pair 逐位元不變),而 centroid_farthest(質心移動)與 pca(二階矩轉動)皆改(FP3 實測 pca 轉 15.07°・cf 轉 10.03°・fp 0°,asset-independent 鑑別子)。"
+                     "**正確性 crux**:方向=字典序較小端點→較大端點(件輸入順序無關;並列最遠以端點對字典序取唯一代表)。"
+                     "**honest(勿誇大)**:J-10 **不是**新正交軸、不改 J-6 投影機制,只是 geo source(provenance)多一個選項。附帶誠實對比:farthest_pair **無各向同性守衛**——對正方(pca 因 λ1≈λ2 會 ValueError)farthest_pair 仍確定性回對角 diameter。"
+                     "新增 _farthest_pair_dir + derive_cascade_dir source=farthest_pair + _CASCADE_GEO_SOURCES 加 farthest_pair(centroid_farthest/pca/pca_minor 路徑逐位元不變);build_spine --cascade-dir geo:farthest_pair。"
+                     "validate_cascade_dir_farthest_pair.py 5AC PASS(FP1 present+backward-compat+**零回歸**(pca/pca_minor 路徑逐位元不變・geo 預設==centroid_farthest・derive(.,pca)==numpy 主特徵向量・derive(.,centroid_farthest)==閘獨立質心→最遠件)/"
+                     "FP2 **crux diameter 正確+件序無關+符號確定** (a)farthest_pair==閘獨立 brute diameter 逐位元 (b)非對稱&正方(並列 diameter)所有排列逐位元同一帶號向量 (c)沿 x 鏡射→y 分量符號翻轉/"
+                     "FP3 **crux fp vs pca/cf** 固定 diameter 對+移動內部件→fp 逐位元不變・pca 轉 15.07°・cf 轉 10.03°→三者幾何基礎不同/"
+                     "FP4 真實 robot 端到端 diameter 投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip(robot 上 fp 序[3,0,1,2,4]≠major[1,0,2,3,4] 誠實回報不作判準)/"
+                     "FP5 metric==brute diameter 多佈局逐位元|**並列/各向同性** 正方 pca→ValueError 而 fp 確定性回對角且件序無關|守衛件重合/單件/空件/未知 source→ValueError)。"
+                     "**geo source 增 farthest_pair(直徑方向,內部件不變性);honest:用 farthest_pair/pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
         ],
     },
 ]

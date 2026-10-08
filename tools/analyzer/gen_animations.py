@@ -247,7 +247,7 @@ _CASCADE_DIRS = {"lr", "rl", "co", "oc", "po"}
 # (`tier_variants.TIER_CASCADE_DIR`,如 slot_bigwin→"co")。J-7 新增 sentinel `cascade_dir="geo"`:方向**向量**
 # 由件實際幾何導出(質心→最遠件),隨資產自適應,不再寫死。導出後仍走 **J-6 的投影排序(同機制)**,故 J-7
 # **不是新正交軸**,是**方向軸取值的來源**(provenance):J-5 空間化→J-6 連續化→J-7 自動化,三者逐步移除人手指定。
-_CASCADE_GEO_SOURCES = {"centroid_farthest", "pca", "pca_minor"}
+_CASCADE_GEO_SOURCES = {"centroid_farthest", "pca", "pca_minor", "farthest_pair"}
 _CASCADE_GEO_DEFAULT = "centroid_farthest"
 
 
@@ -296,6 +296,56 @@ def _pca_principal_axis_dir(centers, aniso_tol=1e-6, minor=False):
     return (ux, uy)
 
 
+def _farthest_pair_dir(centers, tol=1e-9):
+    """candidate (J-10) — 件中心點集的 **diameter(最遠對)**方向單位向量 `(ux, uy)`,確定性、件序無關。
+
+    diameter = 點集中**彼此距離最大的兩件**(凸包直徑)。方向沿這條最長連線掃 = 波從一側最外肢體
+    橫越到**對側最外肢體**(兩件最遠分離者)。這是**另一條確定性幾何方向**,與既有三者的幾何基礎不同:
+      - `centroid_farthest`(質心→最遠件):錨在**質心**、端點是單一件;移動內部件會移動質心 → 方向改變。
+      - `pca` / `pca_minor`(二階矩散佈軸):用**所有件**的共變異;移動任一內部件 → 主/次軸轉動。
+      - `farthest_pair`(本函式):**只由兩個極端件決定**;移動任何**非極端(內部)件不改變方向**
+        (crux 鑑別子,見閘 FP3)。
+
+    **crux — 符號 + 件序無關**:PCA 有 ±符號歧義,本量天然定出兩個端點,以**座標字典序**(非 index)
+      定向——方向由字典序**較小**端點指向**較大**端點 → 純幾何、**與件輸入順序無關**。若多對並列最遠
+      (如對稱佈局),以**端點對的字典序**取唯一代表(排序後 `(lo, hi)` 最小者),同樣件序無關。
+
+    守衛:件數 < 2(無對可量)或所有件重合(diameter≈0)→ `ValueError`(不捏造方向)。
+    **注意**:`farthest_pair` **無各向同性守衛**(它非變異軸、不靠特徵值分離);只需 diameter > 0。
+    純函式、確定性、O(n²)(件數少,cascade 有效件通常個位數)。"""
+    n = len(centers)
+    if n < 2:
+        raise ValueError("derive_cascade_dir(farthest_pair): need ≥2 parts (no pair to span)")
+    best_d2 = -1.0
+    for i in range(n):
+        xi, yi = centers[i]
+        for j in range(i + 1, n):
+            xj, yj = centers[j]
+            d2 = (xi - xj) ** 2 + (yi - yj) ** 2
+            if d2 > best_d2:
+                best_d2 = d2
+    if best_d2 <= 1e-18:
+        raise ValueError("derive_cascade_dir(farthest_pair): degenerate geometry (parts coincide → zero diameter)")
+    best_d = math.sqrt(best_d2)
+    # diameter 內並列(對稱佈局)→ 以端點對的座標字典序取唯一代表(件序無關)。端點各自先排成 (lo, hi)。
+    best_pair = None
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = math.hypot(centers[i][0] - centers[j][0], centers[i][1] - centers[j][1])
+            if d >= best_d - tol:
+                a = (float(centers[i][0]), float(centers[i][1]))
+                b = (float(centers[j][0]), float(centers[j][1]))
+                cand = (a, b) if a <= b else (b, a)
+                if best_pair is None or cand < best_pair:
+                    best_pair = cand
+    lo, hi = best_pair
+    dx, dy = hi[0] - lo[0], hi[1] - lo[1]
+    L = math.hypot(dx, dy)
+    if L < 1e-9:
+        raise ValueError("derive_cascade_dir(farthest_pair): degenerate geometry (parts coincide → zero diameter)")
+    return (dx / L, dy / L)
+
+
 def derive_cascade_dir(centers, source="centroid_farthest"):
     """J-7:由件幾何**導出** cascade 投影方向單位向量 `(ux, uy)`,取代手感指定的具名 / 角度 / 向量。
 
@@ -309,6 +359,10 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
       "pca_minor"(J-9):件中心的 **PCA 次主軸**(最小變異方向,與主軸正交),符號同樣確定性地定。
         語意 = 波沿件群**短軸橫掃**(vs pca 沿長軸延掃)—— 是**另一條確定性幾何方向**(與 pca 正交、
         產生不同的件 pop 序),非 pca 的改版。近似各向同性(主/次軸皆不唯一)→ ValueError。
+      "farthest_pair"(J-10):件中心點集的 **diameter(最遠對)**方向 —— 由**彼此距離最大的兩件**定出
+        (凸包直徑),字典序定號。語意 = 波橫越「兩件最遠分離的肢體」的最長連線。**幾何基礎與前三者不同**:
+        只由兩個極端件決定 → **移動內部件不改方向**(centroid_farthest 與 pca 皆會改;見 `_farthest_pair_dir`)。
+        **無各向同性守衛**(非變異軸);件數<2 / 件重合(diameter≈0)→ ValueError。
 
     `centers`:list of `(x, y)` 件中心(呼叫端給**當前 beat 的有效件**→ 方向隨實際參與件自適應)。
     回傳**正規化**單位向量。輸入守衛:未知 source、無件、退化幾何(所有件重合 → 零方向 / 各向同性)→ `ValueError`。
@@ -325,6 +379,8 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
         return _pca_principal_axis_dir(centers)
     if source == "pca_minor":
         return _pca_principal_axis_dir(centers, minor=True)
+    if source == "farthest_pair":
+        return _farthest_pair_dir(centers)
     mx = sum(c[0] for c in centers) / n
     my = sum(c[1] for c in centers) / n
     # 最遠件:距質心平方距離最大;相等時 tie-break 用件序 index(確定性,與 _cascade_phase_of 一致)
