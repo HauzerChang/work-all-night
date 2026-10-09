@@ -247,7 +247,8 @@ _CASCADE_DIRS = {"lr", "rl", "co", "oc", "po"}
 # (`tier_variants.TIER_CASCADE_DIR`,如 slot_bigwin→"co")。J-7 新增 sentinel `cascade_dir="geo"`:方向**向量**
 # 由件實際幾何導出(質心→最遠件),隨資產自適應,不再寫死。導出後仍走 **J-6 的投影排序(同機制)**,故 J-7
 # **不是新正交軸**,是**方向軸取值的來源**(provenance):J-5 空間化→J-6 連續化→J-7 自動化,三者逐步移除人手指定。
-_CASCADE_GEO_SOURCES = {"centroid_farthest", "pca", "pca_minor", "farthest_pair", "hull_longest_edge", "obb_major"}
+_CASCADE_GEO_SOURCES = {"centroid_farthest", "pca", "pca_minor", "farthest_pair", "hull_longest_edge",
+                        "obb_major", "obb_minor"}
 _CASCADE_GEO_DEFAULT = "centroid_farthest"
 
 
@@ -418,8 +419,16 @@ def _hull_longest_edge_dir(centers, tol=1e-9):
     return (dx / L, dy / L)
 
 
-def _obb_major_axis_dir(centers, aspect_tol=1e-6, tol=1e-9):
-    """candidate (J-12) — 件中心**最小面積包圍矩形(OBB)長軸**方向單位向量 `(ux, uy)`,確定性、件序無關。
+def _obb_major_axis_dir(centers, aspect_tol=1e-6, tol=1e-9, minor=False):
+    """candidate (J-12/J-13) — 件中心**最小面積包圍矩形(OBB)軸**方向單位向量 `(ux, uy)`,確定性、件序無關。
+
+    `minor=False`(預設,J-12):OBB **長軸**(較長邊方向)—— 下方原碼逐位元不變。
+    `minor=True`(J-13):OBB **短軸**(較短邊方向,與長軸正交)—— 先以**同一套**旋轉卡尺 + tie-break 選出
+    **同一個**最小面積矩形(故長/短軸共面、嚴格正交,比照 `pca`→`pca_minor` 的 `θ+90°`),取其長軸後**轉 90°**
+    成短軸,再走**同一套**幾何符號規則定號。語意 = 波沿件群最緊包圍盒的**短邊**橫掃(vs 長邊延掃)。
+    近正方守衛(長≈寬 → 長/短軸皆不唯一)對長/短軸**共用**(與 `pca`/`pca_minor` 各向同性守衛共用同理)。
+    （以下長軸推導說明)
+    """ + """candidate (J-12) — 件中心**最小面積包圍矩形(OBB)長軸**方向單位向量 `(ux, uy)`,確定性、件序無關。
 
     OBB(oriented bounding box) = 以**旋轉卡尺**(rotating calipers)求件中心凸包的**最小面積**外接矩形。
     經典定理:凸多邊形的最小面積外接矩形**必有一邊與凸包某條邊共線** → 只需掃凸包每條邊、把點投影到
@@ -503,9 +512,12 @@ def _obb_major_axis_dir(centers, aspect_tol=1e-6, tol=1e-9):
     # 守衛:最小矩形(近)正方形 → 長軸不唯一。
     if major_len - minor_len <= aspect_tol * (major_len + minor_len):
         raise ValueError(
-            "derive_cascade_dir(obb_major): min-area box is (near-)square (major≈minor → major axis undefined; "
+            "derive_cascade_dir(obb_{}): min-area box is (near-)square (major≈minor → axis undefined; "
             "aspect {:.3e} ≤ tol {:.3e})".format(
+                "minor" if minor else "major",
                 (major_len - minor_len) / (major_len + minor_len) if (major_len + minor_len) else 0.0, aspect_tol))
+    if minor:
+        ux, uy = -uy, ux        # J-13:短軸 = 同一最小矩形長軸轉 90°(與長軸嚴格正交),再走同一套符號規則
     # 確定性符號:指向沿該軸投影 |proj| 最大的極端件(其 proj ≥ 0);tie 以座標字典序(件序無關)。
     n = len(centers)
     mx = sum(c[0] for c in centers) / n
@@ -546,6 +558,11 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
         hull_longest_edge 的 crux**:最小矩形雖與某凸包邊共線但**未必最長邊**,長軸是矩形較長邊 → 斜四邊形
         下兩者方向不同。**有退化守衛**(與 fp/hle 不同):最小矩形為(近)正方形(長≈寬)→ ValueError;
         相異件數<2 → ValueError。
+      "obb_minor"(J-13):件中心**最小面積包圍矩形(OBB)短軸**(與 `obb_major` 同一最小矩形的**較短邊**方向,
+        與長軸嚴格正交),字典序定號。語意 = 波沿件群最緊包圍盒的**短邊**橫掃(vs `obb_major` 沿長邊延掃)。
+        是**另一條確定性幾何方向**(與 `obb_major` 正交、產生不同的件 pop 序),非 `obb_major` 的改版 ——
+        關係同 `pca_minor` 之於 `pca`。**守衛與 `obb_major` 共用**:近正方(長≈寬 → 長/短軸皆不唯一)→
+        ValueError;相異件數<2 → ValueError。
 
     `centers`:list of `(x, y)` 件中心(呼叫端給**當前 beat 的有效件**→ 方向隨實際參與件自適應)。
     回傳**正規化**單位向量。輸入守衛:未知 source、無件、退化幾何(所有件重合 → 零方向 / 各向同性)→ `ValueError`。
@@ -568,6 +585,8 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
         return _hull_longest_edge_dir(centers)
     if source == "obb_major":
         return _obb_major_axis_dir(centers)
+    if source == "obb_minor":
+        return _obb_major_axis_dir(centers, minor=True)
     mx = sum(c[0] for c in centers) / n
     my = sum(c[1] for c in centers) / n
     # 最遠件:距質心平方距離最大;相等時 tie-break 用件序 index(確定性,與 _cascade_phase_of 一致)
