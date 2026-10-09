@@ -676,6 +676,20 @@ BLOCKS = [
                      "FP4 真實 robot 端到端 diameter 投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip(robot 上 fp 序[3,0,1,2,4]≠major[1,0,2,3,4] 誠實回報不作判準)/"
                      "FP5 metric==brute diameter 多佈局逐位元|**並列/各向同性** 正方 pca→ValueError 而 fp 確定性回對角且件序無關|守衛件重合/單件/空件/未知 source→ValueError)。"
                      "**geo source 增 farthest_pair(直徑方向,內部件不變性);honest:用 farthest_pair/pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
+            CAP("cascade_dir_hull_longest_edge", "cascade 波方向 凸包最長邊 geo source,相鄰頂點最長外廓邊 vs 對角直徑(J-11,新增 geo source=hull_longest_edge)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_hull_longest_edge.py", "pipeline",
+                note="承 (J-7/J-8/J-9/J-10):四者方向取自質心→最遠件 / PCA 主軸 / PCA 次主軸 / diameter(最遠對)。J-11 新增 geo source=\"hull_longest_edge\":用件中心**凸包最長邊**(相鄰兩頂點中連線最長者)方向,字典序確定性定號。語意=波沿件群外廓**最長的直邊**橫掃。"
+                     "**最鋒利 crux(vs 最相近的 farthest_pair)**:同一點集下,diameter 是**全域最遠對**(端點常是凸包**不相鄰**頂點=對角線),longest edge 是**相鄰**頂點的最長外廓線段→凸四邊形下兩者**方向不同**(HLE3a 實測 hle 相鄰邊 vs diameter 對角,差 13.24°)。"
+                     "**vs cf crux**:只由凸包頂點(外廓)決定→**移動凸包內部件不改方向**(hle 逐位元不變,farthest_pair 同屬 hull-only 亦不變→誠實共標;而 centroid_farthest 轉 28.07°;pca 轉動量僅誠實回報,外廓極值主導其二階矩→內部件槓桿小)。"
+                     "**vs pca crux**:正方/正多邊形 pca 因 λ1≈λ2 ValueError,而 hull_longest_edge **仍確定性回最長邊**(極值型,**無各向同性守衛**)。"
+                     "**正確性 crux**:== 閘獨立 scipy.spatial.ConvexHull 最長邊(套同一套字典序 tie-break 逐位元)。"
+                     "新增 _hull_longest_edge_dir(Andrew's monotone chain)+ derive_cascade_dir source=hull_longest_edge + _CASCADE_GEO_SOURCES 加 hull_longest_edge(前四 source 路徑逐位元不變);build_spine --cascade-dir geo:hull_longest_edge。"
+                     "validate_cascade_dir_hull_longest_edge.py 5AC PASS(HLE1 present+backward-compat+**零回歸**(pca/pca_minor/farthest_pair 路徑逐位元不變・geo 預設==centroid_farthest・derive(.,pca)==numpy 主特徵向量・derive(.,farthest_pair)==閘獨立 brute diameter・derive(.,centroid_farthest)==閘獨立質心→最遠件)/"
+                     "HLE2 **crux 最長邊正確+件序無關+符號確定** (a)hull_longest_edge==閘獨立 scipy ConvexHull 最長邊逐位元 (b)非對稱&正方(並列邊)所有排列逐位元同一帶號向量 (c)沿 x 鏡射→y 分量符號翻轉/"
+                     "HLE3 **crux longest-edge 價值** (a)凸四邊形 hle≠fp 方向(差 13.24°)+閘獨立確認 hle 端點相鄰/diameter 端點不相鄰 (b)固定凸包+移動嚴格內部件→hle/fp 逐位元不變・cf 轉 28.07°(pca 轉動僅回報)/"
+                     "HLE4 真實 robot 端到端 最長邊投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip(robot 上 hle 序==fp 序[3,0,1,2,4] 誠實回報:此資產最長邊恰與直徑同向,genuine-diff crux 在 asset-independent 的 HLE3a)/"
+                     "HLE5 metric==scipy 最長邊 多佈局逐位元|**並列/各向同性** 正方 pca→ValueError 而 hle 確定性回最長邊且件序無關|守衛件重合/單件/空件/未知 source→ValueError)。"
+                     "**geo source 增 hull_longest_edge(相鄰外廓最長邊,內部件不變性);honest:用 hull_longest_edge/farthest_pair/pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
         ],
     },
 ]

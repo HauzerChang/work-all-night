@@ -10,6 +10,37 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 波方向 凸包最長邊 geo source:相鄰頂點最長外廓邊 vs 對角直徑(里程碑,2026-10-09 run 001,candidate J-11)** —
+  承 (J-10):J-7/J-8/J-9/J-10 四 geo source 方向取自 質心→最遠件 / PCA 主軸 / PCA 次主軸 / diameter(最遠對)。本次新增**第五個確定性幾何 source**
+  `"hull_longest_edge"` = 件中心**凸包最長邊**(凸包上**相鄰**兩頂點中連線最長者)方向,字典序確定性定號 → 波沿件群外廓**最長的直邊**橫掃。
+  延續 J-7→J-10 方向軸 provenance 精煉,**不加任何新正交軸、不改 J-6 投影機制**(導出向量後仍走 `("proj",vec)`)。**做了什麼(全 additive,
+  `centroid_farthest`/`pca`/`pca_minor`/`farthest_pair` 路徑**皆逐位元不變**)**:①`gen_animations._hull_longest_edge_dir(centers,tol=1e-9)`:
+  去重排序 → **Andrew's monotone chain** 凸包(`<=0` 剔除共線中間點 → 共線退化成兩端點、唯一邊==diameter)→ 掃相鄰頂點邊取最長 →
+  方向=字典序較小端點→較大端點;並列最長以**端點對字典序**取唯一代表;守衛相異件<2 / 件重合(最長邊≈0)→ValueError,**無各向同性守衛**。
+  ②`derive_cascade_dir` 加分支 `source=="hull_longest_edge"`;`_CASCADE_GEO_SOURCES` 加 `"hull_longest_edge"`。③`_normalize_cascade_dir`/
+  `_cascade_phase_of`/`build_spine --cascade-dir geo:hull_longest_edge` **無須改碼**(走 J-7 既有 `("geo",src)` 解析)。④新閘
+  `validate_cascade_dir_hull_longest_edge.py`(J-11,5 AC;最長邊**由閘以 `scipy.spatial.ConvexHull` 獨立重算**、套同一套字典序 tie-break;
+  diameter/PCA 亦獨立重算)。**5 AC 全 PASS**:**HLE1** present+backward-compat+**零回歸**(hle 產每 cascade beat finite/有 bone・非 cascade 逐位元同
+  base・po==None・`geo` 預設==`("geo","centroid_farthest")`・**`("geo","pca")`/`("geo","pca_minor")`/`("geo","farthest_pair")` 逐位元不變**・
+  `derive(.,"pca")`==numpy 主特徵向量・`derive(.,"farthest_pair")`==閘獨立 brute diameter・`derive(.,"centroid_farthest")`==閘獨立質心→最遠件);
+  **HLE2 crux 最長邊正確+件序無關+符號確定**((a) ==閘獨立 scipy 最長邊逐位元(robot/quad/rect/scatter);(b) 非對稱 24 排列+正方 24 排列
+  (四邊並列)皆 1 個 distinct 帶號向量;(c) 沿 x 鏡射→y 分量符號翻轉);**HLE3 crux longest-edge 價值**((a) **longest edge≠diameter**:凸四邊形
+  `(0,0),(6,0),(6,2),(0,5)` hle 邊 `(0,5)-(6,2)` −26.57° vs diameter 對角 `(6,0)-(0,5)` −39.81° **差 13.24°**,閘獨立確認 hle 端點**相鄰**/diameter 端點
+  **不相鄰**;(b) **hull-only 內部件不變性**:固定矩形凸包+移內部件 `(2,2)→(12,2)`→**hle/fp 逐位元不變**・**cf 轉 28.07°**,⚠️ **pca 轉 0° 僅誠實回報**
+  (外廓極值主導二階矩、內部件槓桿小→不用此 crux 分 hle 與 pca));**HLE4 端到端(robot)**(`build_animations(cascade_dir=("geo","hull_longest_edge"))`
+  峰時刻依最長邊投影鍵(vec≈`(0.671,0.741)`)嚴格遞增・最遠投影最後 pop・仍跨件波≥0.30・首尾 identity・特效 slot alpha=1・dir⟂nrip;**誠實回報**
+  此 robot 資產**最長邊恰與直徑同向** → hle pop 序 `[3,0,1,2,4]`==fp 序,genuine-diff crux 在 asset-independent 的 HLE3a 非此);**HLE5 metric+守衛**
+  ((a) ==scipy 最長邊多佈局逐位元;(b) **並列/各向同性** 正方 `pca`→ValueError 而 `hull_longest_edge` 確定性回最長邊 `(0,1)` 且件序無關;(c) 守衛
+  件重合/單件/空件/未知 source 直接 & 經 build→ValueError、`("geo","hull_longest_edge")` 經 build 可用)。**端到端 `build_spine --animate
+  --cascade-dir geo:hull_longest_edge` 產可載入 Spine 素材(6 bones/5 slots/11 anims+atlas+png)**。**回歸:check_readiness 0 RED / 64 GREEN**
+  (新增 cap `cascade_dir_hull_longest_edge` L2 併入 `spine-anim-forge`,仍 HOLD;J-7/J-8/J-9/J-10/J-5/J-6 等既有 cascade gate 逐一 GREEN 證四 source
+  路徑逐位元不變)。**關鍵發現**:①**「相鄰最長邊」與「全域最遠對」是兩個不同的凸包幾何物件**(longest edge 相鄰 vs diameter 常對角)——是 J-11
+  相對最相近 source(farthest_pair)最鋒利、且 **asset-independent** 的鑑別子;②**hull-only 不變性是 hle 與 fp 共有(非 hle 獨有)**→ 內部件 crux 只把
+  hle/fp 與 cf 分開,**不分 hle 與 fp**(靠相鄰 vs 對角)、也**不分 hle 與 pca**(elongated 外廓下 pca 亦內部件穩健→轉 0°,誠實回報不作判準);
+  ③**區別一個 source 要在它最鋒利的維度各別證**(hle vs fp 用相鄰/對角、hle vs cf 用內部件、hle vs pca 用正方 ValueError),不硬塞單一佈局同時分開全部;
+  ④**幾何量閘底線=閘獨立重算**(scipy 凸包 + 同一 tie-break);⑤**共線退化一致性**(共線凸包退化成線段其唯一邊==diameter → hle 與 fp 共線佈局自然一致)。
+  **honest boundary**:用 `hull_longest_edge`/`farthest_pair`/`pca`/`pca_minor`/`centroid_farthest`(或手感常數)仍屬美術手感(A 類 PROPOSAL,本閘只新增一個
+  **確定性**幾何 source);`tol`/`MIN_ROT` 為量級選擇;無改任何生成/產線值(全 additive);單一真值資產。見 `knowledge/s1-cascade-dir-hull-longest-edge.md`。
 - **S1 cascade 波方向 diameter(最遠對)geo source:只由兩極端件決定、移動內部件不改向(里程碑,2026-10-08 run 002,candidate J-10)** —
   承 (J-9):J-7/J-8/J-9 方向取自質心→最遠件 / PCA 主軸 / PCA 次主軸。本次新增**確定性幾何 source** `"farthest_pair"` =
   件中心點集的 **diameter(彼此距離最大的兩件,凸包直徑)**方向,字典序確定性定號 → 波橫越「兩件最遠分離的肢體」的
@@ -1386,7 +1417,12 @@
 >   `validate_cascade_dir_pca_minor.py` 5AC PASS。**crux:①minor⟂major 且==numpy 次特徵向量,符號確定性(所有排列逐位元同一);②是真正不同的波(robot 上 minor pop 序`[2,1,4,0,3]`≠major`[1,0,2,3,4]`,端到端實測)。各向同性守衛主/次軸共用**。零回歸:centroid_farthest/pca 路徑逐位元不變。
 > **(J-10) ~~擴充 geo `source`:farthest_pair(diameter 最遠對)~~ ✅ 完成(2026-10-08 run 002,candidate J-10,`cascade_dir_farthest_pair` L2,見上里程碑)** ——
 >   新增 geo source `"farthest_pair"`:件中心點集的 **diameter(彼此距離最大的兩件,凸包直徑)**方向,字典序確定性定號。幾何基礎與前三者不同——**只由兩個極端件決定→移動內部件不改方向**(FP3:固定 diameter 對+移動內部件 fp 逐位元不變 0° vs pca 轉 15.07°/cf 轉 10.03°,asset-independent 鑑別子);**無各向同性守衛**(正方 pca→ValueError 而 fp 確定性回對角)。`_farthest_pair_dir`+`derive_cascade_dir source=farthest_pair`+`_CASCADE_GEO_SOURCES` 加 farthest_pair(前三 source 路徑逐位元不變);`build_spine --cascade-dir geo:farthest_pair`;`validate_cascade_dir_farthest_pair.py` 5AC PASS(diameter 由閘 brute-force 獨立重算)。
->   **續**(擇一,皆自主):其他確定性幾何 source(加權質心 / 最小包圍盒軸 / 凸包最長邊)、讓 genre 先驗庫建議「用 geo:farthest_pair / pca / pca_minor / centroid_farthest / 手感常數」(provenance 之上再加選擇規則,最終手感仍 A 類);
+> **(J-11) ~~擴充 geo `source`:hull_longest_edge(凸包最長邊)~~ ✅ 完成(2026-10-09 run 001,candidate J-11,`cascade_dir_hull_longest_edge` L2,見上里程碑)** ——
+>   新增**第五個**確定性幾何 source `"hull_longest_edge"`:件中心**凸包最長邊**(相鄰兩頂點中連線最長者)方向,字典序定號。**最鋒利 crux(vs 最相近的 farthest_pair,asset-independent)**:
+>   longest edge 是凸包**相鄰**頂點的最長外廓線段,diameter 是**全域最遠對**(常是**不相鄰**頂點=對角線)→ 凸四邊形下兩者方向差 13.24°(閘以獨立 scipy 凸包確認相鄰/不相鄰)。
+>   **vs cf**:移凸包內部件 hle/fp 逐位元不變、cf 轉 28.07°(pca 轉 0° 僅誠實回報,外廓極值主導其二階矩→不用內部件 crux 分 hle 與 pca);**vs pca**:正方 pca→ValueError 而 hle 確定性回最長邊(無各向同性守衛)。
+>   `_hull_longest_edge_dir`(Andrew's monotone chain)+`derive_cascade_dir source=hull_longest_edge`+`_CASCADE_GEO_SOURCES` 加(前四 source 逐位元不變);`build_spine --cascade-dir geo:hull_longest_edge`;`validate_cascade_dir_hull_longest_edge.py` 5AC PASS(最長邊由閘以 scipy.spatial.ConvexHull 獨立重算)。
+>   **續**(擇一,皆自主):更多確定性幾何 source(加權質心 / 最小面積包圍盒 OBB 主軸(旋轉卡尺,正方需各向同性守衛)/ 凸包**最短**邊 / 周長加權)、讓 genre 先驗庫建議「用 geo:hull_longest_edge / farthest_pair / pca / pca_minor / centroid_farthest / 手感常數」(provenance 之上再加選擇規則,最終手感仍 A 類);
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。
 > ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 52 GREEN**。見上里程碑。
@@ -1413,6 +1449,26 @@
 
 ## 進度摘要 (progress log)
 
+- 2026-10-09 run 001:**S1 cascade 波方向 凸包最長邊 geo source(里程碑,candidate J-11)** — 承 (J-10):J-7/J-8/J-9/J-10 四 geo
+  source 方向取自 質心→最遠件 / PCA 主軸 / PCA 次主軸 / diameter。本次新增**第五個**確定性幾何 source `"hull_longest_edge"` = 件中心
+  **凸包最長邊**(凸包相鄰兩頂點中連線最長者)方向,字典序定號 → 波沿件群外廓最長直邊橫掃。延續 J-7→J-10 provenance 精煉,**不加新正交軸、
+  不改 J-6 投影機制**。全 additive(前四 source `centroid_farthest`/`pca`/`pca_minor`/`farthest_pair` 路徑**皆逐位元不變**):`_hull_longest_edge_dir`
+  (Andrew's monotone chain 凸包 + 相鄰邊掃描 + 字典序定號,共線剔中間點→退化成 diameter)+ `derive_cascade_dir source="hull_longest_edge"`
+  + `_CASCADE_GEO_SOURCES` 加;`_normalize_cascade_dir`/`_cascade_phase_of`/`build_spine --cascade-dir geo:hull_longest_edge` 無須改碼。
+  `validate_cascade_dir_hull_longest_edge.py` 5AC PASS(最長邊**由閘以 scipy.spatial.ConvexHull 獨立重算**、套同一套字典序 tie-break):
+  HLE1 present+backward-compat+**零回歸**(前四 source 逐位元不變・geo 預設==centroid_farthest・derive(.,pca)==numpy 主特徵向量・
+  derive(.,farthest_pair)==閘獨立 brute diameter);**HLE2 crux 最長邊正確+件序無關+符號確定**(==閘獨立 scipy 最長邊逐位元・非對稱&正方
+  所有排列 1 個 distinct 帶號向量・鏡射符號翻轉);**HLE3 crux longest-edge 價值**((a) **longest edge≠diameter** 凸四邊形 hle −26.57°(相鄰邊)
+  vs fp −39.81°(對角)差 13.24°,閘獨立確認相鄰/不相鄰;(b) **hull-only** 移內部件 hle/fp 逐位元不變・cf 轉 28.07°,**pca 轉 0° 僅誠實回報**
+  →不用內部件 crux 分 hle 與 pca);**HLE4 端到端 robot**(最長邊投影序嚴格遞增 vec≈`(0.671,0.741)`・最遠投影最後 pop・仍跨件波・首尾 identity・
+  dir⟂nrip;**誠實回報**此 robot 資產最長邊恰與直徑同向→hle 序 `[3,0,1,2,4]`==fp 序,genuine-diff crux 在 asset-independent 的 HLE3a);
+  **HLE5 metric+守衛**(==scipy 最長邊多佈局逐位元・正方 pca→ValueError 而 hle 確定性回最長邊且件序無關・守衛件重合/單件/空件/未知 source→ValueError)。
+  端到端 `build_spine --animate --cascade-dir geo:hull_longest_edge` 產可載入 Spine 素材。check_readiness 0 RED / 64 GREEN(新 cap `cascade_dir_hull_longest_edge`)。
+  **關鍵:①「相鄰最長邊」與「全域最遠對」是兩個不同的凸包幾何物件(longest edge 相鄰 vs diameter 常對角),是相對最相近 source 最鋒利且
+  asset-independent 的鑑別子;②hull-only 不變性 hle 與 fp 共有(非 hle 獨有)→ 內部件 crux 只分 hle/fp 與 cf,不分 hle 與 fp(靠相鄰 vs 對角)、
+  也不分 hle 與 pca(elongated 下 pca 亦內部件穩健);③區別一個 source 要在它最鋒利的維度各別證,不硬塞單一佈局;④幾何量閘底線=閘獨立重算;
+  ⑤共線退化時 hle==diameter**。honest:用 hull_longest_edge/farthest_pair/pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類);無改生成/產線值
+  (全 additive);單一真值資產。見 `knowledge/s1-cascade-dir-hull-longest-edge.md`、`log/2026-10-09-001.md`。
 - 2026-10-08 run 001:**S1 cascade 波方向 PCA 次主軸 geo source(里程碑,candidate J-9)** — 承 (J-8):J-8 用 PCA
   **主軸**(長軸延掃)。本次新增 geo source `"pca_minor"` = PCA **次主軸**(最小變異方向,`θ+90°`,與主軸**正交**)→ 波沿
   件群**短軸橫掃**。延續 J-5→J-6→J-7→J-8 方向軸 provenance 精煉,**不加新正交軸、不改 J-6 投影機制**。全 additive
