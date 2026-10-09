@@ -10,6 +10,35 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 波方向 最小面積包圍矩形(OBB)長軸 geo source:面積極小 vs 方差極小(里程碑,2026-10-09 run 002,candidate J-12)** —
+  承 (J-11):J-7..J-11 五 geo source 方向取自 質心→最遠件 / PCA 主軸 / PCA 次主軸 / diameter(最遠對)/ 凸包最長邊。本次新增**第六個確定性幾何 source**
+  `"obb_major"` = 件中心**最小面積包圍矩形(OBB)長軸** —— 以**旋轉卡尺**(rotating calipers)求「面積最小」的外接矩形、取其**較長邊**方向,字典序確定性定號 → 波沿件群
+  **最緊包圍盒的長邊**橫掃。延續 J-7→J-11 方向軸 provenance 精煉,**不加任何新正交軸、不改 J-6 投影機制**(導出向量後仍走 `("proj",vec)`)。**做了什麼(全 additive,
+  `centroid_farthest`/`pca`/`pca_minor`/`farthest_pair`/`hull_longest_edge` 路徑**皆逐位元不變**)**:①`gen_animations._obb_major_axis_dir(centers,aspect_tol=1e-6,tol=1e-9)`:
+  去重排序 → **Andrew's monotone chain** 凸包 → **旋轉卡尺**(掃凸包每邊,點投影到邊方向×法向取範圍相乘=面積,取最小;定理:最優矩形必與某凸包邊共線)→ 方向軸=最小矩形
+  **較長邊** → **並列最小面積**(三角每邊/正多邊形)以**折半平面→座標字典序**取唯一軸線 → **符號**指向沿軸投影|proj|最大極端件(件序無關,同 pca 定號) → **守衛**相異件<2 /
+  最小矩形近正方(長≈寬)→ValueError。②`derive_cascade_dir` 加分支 `source=="obb_major"`;`_CASCADE_GEO_SOURCES` 加 `"obb_major"`。③`_normalize_cascade_dir`/
+  `_cascade_phase_of`/`build_spine --cascade-dir geo:obb_major` **無須改碼**(走 J-7 既有 `("geo",src)` 解析)。④新閘 `validate_cascade_dir_obb.py`(J-12,5 AC;OBB 長軸
+  **由閘以 `scipy.spatial.ConvexHull`+自寫旋轉卡尺獨立重算**、套同一套折半平面/字典序 tie-break+符號規則;pca/最長邊/diameter 亦獨立重算)。**5 AC 全 PASS**:**OBB1**
+  present+backward-compat+**零回歸**(obb 產每 cascade beat finite/有 bone・非 cascade 逐位元同 base・po==None・`geo` 預設==`("geo","centroid_farthest")`・
+  **`("geo","pca")`/`("geo","pca_minor")`/`("geo","farthest_pair")`/`("geo","hull_longest_edge")` 逐位元不變**・各 derive==閘獨立重算);**OBB2 crux 正確性+件序無關+符號確定**
+  ((a) ==閘獨立 scipy+卡尺 OBB 長軸逐位元(robot/L_shape/slant_quad/flag);(b) 唯一最小盒(slant_quad)&面積並列(三角每邊)所有排列皆 1 個 distinct 帶號向量;
+  (c) 沿 x 鏡射→y 分量符號翻轉);**OBB3 crux obb 價值**((a) **min-area≠min-variance**:L 形 `(0,0),(6,0),(6,1),(1,1),(1,4),(0,4)` obb `(1,0)` vs pca `(0.921,-0.389)`
+  **22.89°**・flag **21.42°**,**asset-independent**;(b) **OBB 共線邊≠最長邊**:斜四邊形 `(0,0),(6,0),(6,2),(0,5)` obb `(1,0)` ≠ hle `(0.894,-0.447)`(**26.57°**)≠ fp
+  `(0.768,-0.640)`(**39.81°**),閘獨立確認 flush_edge≠longest_edge);**OBB4 端到端(robot)**(`build_animations(cascade_dir=("geo","obb_major"))` 峰時刻依 OBB 長軸投影鍵
+  (vec=`(0.332,-0.943)`)嚴格遞增・最遠投影最後 pop・仍跨件波≥0.30・首尾 identity・特效 slot alpha=1・dir⟂nrip;**obb≠pca 於 robot 成立**(obb 序 `[1,2,0,4,3]`≠pca
+  序 `[1,0,2,3,4]`);**誠實回報** 此 robot 資產**最小面積恰 2 向 exact tie**(兩邊外接矩形面積皆 ==`47243.000000000`,差 2e-11)→ tie-break 確定性選 `(0.332,-0.943)`、
+  閘獨立 scipy 重算逐位元同 → robot 走 tie-break 分支,genuine-diff crux 在 asset-independent 的 OBB3 非此);**OBB5 metric+守衛**((a) ==scipy+卡尺 OBB 長軸多佈局逐位元;
+  (b) **正方守衛** obb 與 pca 皆 raise(判據不同:OBB 矩形長≈寬 vs pca λ1≈λ2)而 `farthest_pair`/`hull_longest_edge` 確定性回值;(c) 守衛 件重合/單件/空件/未知 source 直接 &
+  經 build→ValueError、`("geo","obb_major")` 經 build 可用)。**端到端 `build_spine --animate --cascade-dir geo:obb_major` 產可載入 Spine 素材(6 bones/5 slots/11 anims
+  +atlas+png)**。**回歸:check_readiness 0 RED / 65 GREEN**(新增 cap `cascade_dir_obb` L2 併入 `spine-anim-forge`,仍 HOLD;J-7..J-11 既有 cascade gate 逐一 GREEN 證五
+  source 路徑逐位元不變)。**關鍵發現**:①**「最小面積軸」與「最小方差軸」是兩個不同最優化準則**(OBB 看外廓範圍/面積、pca 看質量二階矩/方差)——質量偏一側(L 形/flag)
+  差 20°+ 且 asset-independent,是 J-12 相對最相近 source(pca)最鋒利的鑑別子;②**旋轉卡尺定理把連續旋轉搜尋降成掃凸包每條邊**,但共線邊未必最長邊、長軸未必沿共線邊(取
+  矩形較長邊)→ 與 hull_longest_edge 可方向不同;③**OBB 有正方退化守衛、極值型 fp/hle 沒有** → {obb,pca} 與 {fp,hle} 由「正方是否 raise」分兩族(obb/pca 判據仍不同);
+  ④**面積並列(三角每邊外接矩形面積==2×三角面積、正多邊形)靠折半平面+座標字典序 tie-break 釘死**件序無關;⑤**真實 robot(半整數座標)恰落 exact tie 的 tie-break 路徑**
+  (非瑕疵、確定性且閘獨立重算逐位元同,但意味 robot OBB 朝向對微擾敏感)→ genuine-value 刻畫交 asset-independent 佈局;⑥**幾何量閘底線=閘獨立重算**(scipy 凸包+自寫卡尺+同一
+  tie-break)。**honest boundary**:用 `obb_major`/`hull_longest_edge`/`farthest_pair`/`pca`/`pca_minor`/`centroid_farthest`(或手感常數)仍屬美術手感(A 類 PROPOSAL,本閘只新增
+  一個**確定性**幾何 source);`aspect_tol`/`MIN_ROT`/`tol` 為量級選擇;無改任何生成/產線值(全 additive);單一真值資產。見 `knowledge/s1-cascade-dir-obb.md`。
 - **S1 cascade 波方向 凸包最長邊 geo source:相鄰頂點最長外廓邊 vs 對角直徑(里程碑,2026-10-09 run 001,candidate J-11)** —
   承 (J-10):J-7/J-8/J-9/J-10 四 geo source 方向取自 質心→最遠件 / PCA 主軸 / PCA 次主軸 / diameter(最遠對)。本次新增**第五個確定性幾何 source**
   `"hull_longest_edge"` = 件中心**凸包最長邊**(凸包上**相鄰**兩頂點中連線最長者)方向,字典序確定性定號 → 波沿件群外廓**最長的直邊**橫掃。

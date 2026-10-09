@@ -1,8 +1,17 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-07 run 001(S1 candidate (L-7):per-junction(逐接點/選擇性/非對稱)crossfade —— 整合/組合閘)。
-> 60 閘全綠(59 + 新 `sequence_crossfade_selective`,0 RED,無 GREEN→RED)。** 關掉 L-6 的 honest boundary
+> **最新:2026-10-09 run 002(S1 candidate (J-12):cascade 波方向 最小面積包圍矩形(OBB)長軸 geo source —— 旋轉卡尺)。
+> 65 閘全綠(64 + 新 `cascade_dir_obb`,0 RED,無 GREEN→RED)。** 承 J-7..J-11 六 geo source(質心→最遠件/PCA 主軸/
+> PCA 次主軸/diameter/凸包最長邊/**OBB 長軸**):OBB 最小化矩形**面積**(vs pca 最小化**方差**)→ 質量偏一側(L 形
+> 22.89°/flag 21.42°)方向不同、asset-independent;最小矩形**必與某凸包邊共線**但未必最長邊(vs hull_longest_edge
+> 斜四邊形 26.57°);有**正方退化守衛**(obb/pca raise 而 fp/hle 回值)。全 additive:新增 `_obb_major_axis_dir`
+> (monotone chain + 旋轉卡尺 + 折半平面/字典序定號 + 正方守衛),前五 source 路徑逐位元不變。`validate_cascade_dir_obb.py`
+> 5AC PASS(OBB 由閘以 scipy ConvexHull+自寫卡尺獨立重算)。cap `cascade_dir_obb` L2 併入 `spine-anim-forge`(仍 HOLD)。
+> 見 `knowledge/s1-cascade-dir-obb.md`。
+>
+> (前一里程碑 2026-10-07 run 001:S1 candidate (L-7) per-junction crossfade —— 整合/組合閘,
+> 60 閘全綠 + 新 `sequence_crossfade_selective`。) 關掉 L-6 的 honest boundary
 > (xf 為單一 scalar、選擇性套用未做):把 crossfade 重疊軸**取值**由「單一 scalar」一般化成「**逐接點向量**」
 > (同 J-5→J-6 把方向軸由離散補成連續:機制一般化=客觀;混哪些接點/各多長仍是美術手感 A 類 PROPOSAL)。全 additive:
 > 新增 `_normalize_xf`(scalar→廣播成等值向量;list→驗長度/非負)+ `_crossfade_layout`/`crossfade_pose_at`/

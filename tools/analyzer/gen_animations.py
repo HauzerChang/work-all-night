@@ -247,7 +247,7 @@ _CASCADE_DIRS = {"lr", "rl", "co", "oc", "po"}
 # (`tier_variants.TIER_CASCADE_DIR`,如 slot_bigwin→"co")。J-7 新增 sentinel `cascade_dir="geo"`:方向**向量**
 # 由件實際幾何導出(質心→最遠件),隨資產自適應,不再寫死。導出後仍走 **J-6 的投影排序(同機制)**,故 J-7
 # **不是新正交軸**,是**方向軸取值的來源**(provenance):J-5 空間化→J-6 連續化→J-7 自動化,三者逐步移除人手指定。
-_CASCADE_GEO_SOURCES = {"centroid_farthest", "pca", "pca_minor", "farthest_pair", "hull_longest_edge"}
+_CASCADE_GEO_SOURCES = {"centroid_farthest", "pca", "pca_minor", "farthest_pair", "hull_longest_edge", "obb_major"}
 _CASCADE_GEO_DEFAULT = "centroid_farthest"
 
 
@@ -418,6 +418,106 @@ def _hull_longest_edge_dir(centers, tol=1e-9):
     return (dx / L, dy / L)
 
 
+def _obb_major_axis_dir(centers, aspect_tol=1e-6, tol=1e-9):
+    """candidate (J-12) — 件中心**最小面積包圍矩形(OBB)長軸**方向單位向量 `(ux, uy)`,確定性、件序無關。
+
+    OBB(oriented bounding box) = 以**旋轉卡尺**(rotating calipers)求件中心凸包的**最小面積**外接矩形。
+    經典定理:凸多邊形的最小面積外接矩形**必有一邊與凸包某條邊共線** → 只需掃凸包每條邊、把點投影到
+    「該邊方向 × 其法向」兩軸取範圍相乘得面積,取最小者。方向軸 = 該最小矩形的**較長邊**方向 =
+    波沿件群**最緊包圍盒的長邊**橫掃。這是**另一條確定性幾何方向**,與既有五者的幾何基礎皆不同:
+      - `pca` / `pca_minor`(二階矩散佈軸):最小化**方差**(質量二階矩,橢圓軸);OBB 最小化**矩形面積**
+        (只看外廓極值/範圍,不看質量分佈) → 右三角 / L 形等「質量偏一側」佈局兩者方向不同(見閘 OBB3a)。
+      - `farthest_pair`(diameter,最遠對):由兩個最遠件定出(常是對角線);OBB 長軸是**最緊矩形**的長邊。
+      - `hull_longest_edge`:沿凸包**最長邊**;OBB 的最小矩形雖與某邊共線,但**未必是最長邊**,且長軸是矩形
+        的較長邊(可能垂直於該共線邊) → 斜四邊形下兩者方向不同(見閘 OBB3b)。
+      - `centroid_farthest`(質心→最遠件):錨在質心、單一件。
+    與 `pca` 同屬「用整個外廓的軸」,但 pca 看方差、OBB 看**面積極小**:**crux = 對同一佈局,最小面積軸
+    ≠ 最小方差軸**(OBB3a)。同屬極值型但**有退化守衛**:最小矩形為(近)**正方形**(長≈寬)時長軸不唯一。
+
+    **crux — 符號 + 件序無關**:凸包是集合性質(`Andrew's monotone chain`,先排序 → 與輸入順序無關);
+      最小面積矩形的候選長軸向量由凸包邊的端點座標算出。並列最小面積(如三角形**每條邊**外接矩形面積皆
+      == 2×三角面積;正多邊形多解)→ 把候選長軸**折到上半平面**(`uy>0`,或 `uy==0 且 ux>0`)再取**座標
+      字典序最小**者定出唯一的**軸線**;再以**幾何符號規則**定號:指向沿該軸投影 `|proj|` 最大的極端件
+      (其 proj ≥ 0,tie 以座標字典序 → 純幾何、件輸入順序無關;同 `_pca_principal_axis_dir` 的定號)。
+
+    守衛:相異件數 < 2 → `ValueError`;最小面積矩形為(近)正方形(長−寬 ≤ `aspect_tol`·(長+寬),長軸不唯一,
+    如正方 / 圓對稱佈局 → 與 `pca` 近各向同性守衛**語意相近但判據不同**:pca 看 λ1≈λ2,OBB 看矩形長≈寬)→
+    `ValueError`(不捏造方向)。注意:`farthest_pair` / `hull_longest_edge` **無**此守衛(極值型非方形軸)→
+    OBB 在正方會 raise 而該兩者確定性回值(閘 OBB5b)。純函式、確定性;凸包 O(n log n),卡尺 O(h²)
+    (件數少,cascade 有效件通常個位數)。"""
+    # 去重 + 排序(件序無關):凸包是集合性質。
+    pts = sorted((float(x), float(y)) for x, y in centers)
+    uniq = []
+    for p in pts:
+        if not uniq or p != uniq[-1]:
+            uniq.append(p)
+    if len(uniq) < 2:
+        raise ValueError("derive_cascade_dir(obb_major): need ≥2 distinct parts (no bounding box)")
+
+    def _cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    lower = []
+    for p in uniq:
+        while len(lower) >= 2 and _cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    upper = []
+    for p in reversed(uniq):
+        while len(upper) >= 2 and _cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    hull = lower[:-1] + upper[:-1]                 # CCW 凸包頂點(去重接點)
+    m = len(hull)
+
+    # 旋轉卡尺:凸包每條邊 → 邊方向 × 法向上的範圍 → 矩形面積;取最小面積(定理:最優矩形與某邊共線)。
+    cands = []     # (area, canon_major_unit, major_len, minor_len)
+    for i in range(m):
+        a, b = hull[i], hull[(i + 1) % m]
+        ex, ey = b[0] - a[0], b[1] - a[1]
+        L = math.hypot(ex, ey)
+        if L < tol:
+            continue
+        ex, ey = ex / L, ey / L                    # 邊方向單位
+        nx, ny = -ey, ex                           # 法向單位
+        es = [px * ex + py * ey for px, py in hull]
+        ns = [px * nx + py * ny for px, py in hull]
+        we = max(es) - min(es)                     # 沿邊範圍
+        wn = max(ns) - min(ns)                     # 沿法向範圍
+        area = we * wn
+        if we >= wn:
+            mvx, mvy, major_len, minor_len = ex, ey, we, wn
+        else:
+            mvx, mvy, major_len, minor_len = nx, ny, wn, we
+        # 折到上半平面(選唯一軸線用;最終符號由下方幾何規則定):uy>0,或 uy==0 且 ux>0
+        if mvy < 0 or (mvy == 0.0 and mvx < 0):
+            mvx, mvy = -mvx, -mvy
+        cands.append((area, (mvx, mvy), major_len, minor_len))
+    if not cands:
+        raise ValueError("derive_cascade_dir(obb_major): degenerate geometry (parts coincide → no box)")
+    best_area = min(c[0] for c in cands)
+    # 並列最小面積(三角形每邊、正多邊形)→ 折半向量的座標字典序最小者定出唯一軸線(件序無關)。
+    tied = [c for c in cands if c[0] <= best_area + tol * (1.0 + best_area)]
+    tied.sort(key=lambda c: c[1])
+    _, (ux, uy), major_len, minor_len = tied[0]
+    # 守衛:最小矩形(近)正方形 → 長軸不唯一。
+    if major_len - minor_len <= aspect_tol * (major_len + minor_len):
+        raise ValueError(
+            "derive_cascade_dir(obb_major): min-area box is (near-)square (major≈minor → major axis undefined; "
+            "aspect {:.3e} ≤ tol {:.3e})".format(
+                (major_len - minor_len) / (major_len + minor_len) if (major_len + minor_len) else 0.0, aspect_tol))
+    # 確定性符號:指向沿該軸投影 |proj| 最大的極端件(其 proj ≥ 0);tie 以座標字典序(件序無關)。
+    n = len(centers)
+    mx = sum(c[0] for c in centers) / n
+    my = sum(c[1] for c in centers) / n
+    projs = [((x - mx) * ux + (y - my) * uy, x, y) for x, y in centers]
+    maxabs = max(abs(p) for p, _, _ in projs)
+    ref = max((p for p in projs if abs(p[0]) >= maxabs - 1e-9), key=lambda p: (p[1], p[2]))
+    if ref[0] < 0.0:
+        ux, uy = -ux, -uy
+    return (ux, uy)
+
+
 def derive_cascade_dir(centers, source="centroid_farthest"):
     """J-7:由件幾何**導出** cascade 投影方向單位向量 `(ux, uy)`,取代手感指定的具名 / 角度 / 向量。
 
@@ -440,6 +540,12 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
         (常是凸包**對角線**),longest edge 是**相鄰**頂點的最長外廓線段 → 凸四邊形下兩者方向不同
         (見 `_hull_longest_edge_dir`)。同屬極值型 → **移動凸包內部件不改方向**、**無各向同性守衛**;
         相異件數<2 / 件重合 → ValueError。
+      "obb_major"(J-12):件中心**最小面積包圍矩形(OBB)長軸**(旋轉卡尺求面積最小外接矩形,取其較長邊),
+        字典序定號。語意 = 波沿件群**最緊包圍盒的長邊**橫掃。**與 pca 的 crux**:OBB 最小化矩形**面積**、
+        pca 最小化**方差** → 質量偏一側(右三角 / L 形)兩者方向不同(見 `_obb_major_axis_dir`)。**與
+        hull_longest_edge 的 crux**:最小矩形雖與某凸包邊共線但**未必最長邊**,長軸是矩形較長邊 → 斜四邊形
+        下兩者方向不同。**有退化守衛**(與 fp/hle 不同):最小矩形為(近)正方形(長≈寬)→ ValueError;
+        相異件數<2 → ValueError。
 
     `centers`:list of `(x, y)` 件中心(呼叫端給**當前 beat 的有效件**→ 方向隨實際參與件自適應)。
     回傳**正規化**單位向量。輸入守衛:未知 source、無件、退化幾何(所有件重合 → 零方向 / 各向同性)→ `ValueError`。
@@ -460,6 +566,8 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
         return _farthest_pair_dir(centers)
     if source == "hull_longest_edge":
         return _hull_longest_edge_dir(centers)
+    if source == "obb_major":
+        return _obb_major_axis_dir(centers)
     mx = sum(c[0] for c in centers) / n
     my = sum(c[1] for c in centers) / n
     # 最遠件:距質心平方距離最大;相等時 tie-break 用件序 index(確定性,與 _cascade_phase_of 一致)

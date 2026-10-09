@@ -690,6 +690,20 @@ BLOCKS = [
                      "HLE4 真實 robot 端到端 最長邊投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip(robot 上 hle 序==fp 序[3,0,1,2,4] 誠實回報:此資產最長邊恰與直徑同向,genuine-diff crux 在 asset-independent 的 HLE3a)/"
                      "HLE5 metric==scipy 最長邊 多佈局逐位元|**並列/各向同性** 正方 pca→ValueError 而 hle 確定性回最長邊且件序無關|守衛件重合/單件/空件/未知 source→ValueError)。"
                      "**geo source 增 hull_longest_edge(相鄰外廓最長邊,內部件不變性);honest:用 hull_longest_edge/farthest_pair/pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
+            CAP("cascade_dir_obb", "cascade 波方向 最小面積包圍矩形(OBB)長軸 geo source,面積極小 vs 方差極小(J-12,新增 geo source=obb_major:旋轉卡尺)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_obb.py", "pipeline",
+                note="承 (J-7..J-11):五者方向取自質心→最遠件 / PCA 主軸 / PCA 次主軸 / diameter(最遠對)/ 凸包最長邊。J-12 新增 geo source=\"obb_major\":用件中心**最小面積包圍矩形(OBB)長軸**(旋轉卡尺求面積最小外接矩形、取較長邊),字典序確定性定號。語意=波沿件群**最緊包圍盒的長邊**橫掃。"
+                     "**最鋒利 crux(vs 最相近的 pca)**:OBB 最小化矩形**面積**(只看極值/範圍),pca 最小化**方差**(質量二階矩)→ 質量偏一側佈局(L 形 22.89°/flag 21.42°)兩者方向不同(OBB3a,asset-independent)。"
+                     "**vs hull_longest_edge / farthest_pair crux**:最小面積矩形**必與某凸包邊共線**(旋轉卡尺定理)但那條邊**未必最長邊**,長軸是矩形較長邊→斜四邊形下 obb≠hle(26.57°)≠fp(39.81°)+閘獨立確認 flush_edge≠longest_edge(OBB3b)。"
+                     "**守衛 crux(與 fp/hle 不同)**:最小矩形為(近)正方形(長≈寬)→長軸不唯一→ValueError;fp/hle **無**此守衛、確定性回值;pca 亦在正方 raise 但判據不同(λ1≈λ2 變異各向同性 vs OBB 矩形長≈寬)→誠實共標(OBB5b)。"
+                     "**正確性 crux**:== 閘獨立 scipy.spatial.ConvexHull + 自寫旋轉卡尺 OBB 長軸(套同一套折半平面→字典序 tie-break + 幾何符號規則逐位元)。"
+                     "新增 _obb_major_axis_dir(monotone chain + 旋轉卡尺)+ derive_cascade_dir source=obb_major + _CASCADE_GEO_SOURCES 加 obb_major(前五 source 路徑逐位元不變);build_spine --cascade-dir geo:obb_major。"
+                     "validate_cascade_dir_obb.py 5AC PASS(OBB1 present+backward-compat+**零回歸**(pca/pca_minor/farthest_pair/hull_longest_edge 路徑逐位元不變・geo 預設==centroid_farthest・derive 各 source==閘獨立重算)/"
+                     "OBB2 **crux 正確性+件序無關+符號確定** (a)obb_major==閘獨立 scipy+卡尺 OBB 長軸逐位元 (b)唯一最小盒&面積並列(三角每邊)所有排列逐位元同一帶號向量 (c)沿 x 鏡射→y 分量符號翻轉/"
+                     "OBB3 **crux obb 價值** (a)min-area≠min-variance:L 形/flag obb≠pca(22.89°/21.42°,asset-independent) (b)斜四邊形 obb≠hle(26.57°)≠fp(39.81°)+閘獨立確認 OBB 共線邊≠最長邊/"
+                     "OBB4 真實 robot 端到端 OBB 長軸投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip(honest:robot 最小面積恰 2 向並列 exact tie 47243→tie-break 選(0.332,-0.943)、閘獨立 scipy 重算逐位元同;obb≠pca 於 robot 成立 differs_pca=True)/"
+                     "OBB5 metric==scipy+卡尺 OBB 長軸 多佈局逐位元|**正方守衛** obb 與 pca 皆 raise(判據不同)而 fp/hle 確定性回值|守衛件重合/單件/空件/未知 source→ValueError)。"
+                     "**geo source 增 obb_major(最緊盒長軸,面積極小非方差極小,有正方退化守衛);honest:用 obb_major/hull_longest_edge/farthest_pair/pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
         ],
     },
 ]
