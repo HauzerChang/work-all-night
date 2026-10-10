@@ -704,6 +704,20 @@ BLOCKS = [
                      "OBB4 真實 robot 端到端 OBB 長軸投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip(honest:robot 最小面積恰 2 向並列 exact tie 47243→tie-break 選(0.332,-0.943)、閘獨立 scipy 重算逐位元同;obb≠pca 於 robot 成立 differs_pca=True)/"
                      "OBB5 metric==scipy+卡尺 OBB 長軸 多佈局逐位元|**正方守衛** obb 與 pca 皆 raise(判據不同)而 fp/hle 確定性回值|守衛件重合/單件/空件/未知 source→ValueError)。"
                      "**geo source 增 obb_major(最緊盒長軸,面積極小非方差極小,有正方退化守衛);honest:用 obb_major/hull_longest_edge/farthest_pair/pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
+            CAP("cascade_dir_obb_minor", "cascade 波方向 最小面積包圍矩形(OBB)次軸 geo source,短邊方向⟂長軸(J-13,新增 geo source=obb_minor)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_obb_minor.py", "pipeline",
+                note="承 (J-7..J-12):六者方向取自質心→最遠件 / PCA 主軸 / PCA 次主軸 / diameter(最遠對)/ 凸包最長邊 / OBB 長軸。J-13 新增 geo source=\"obb_minor\":用件中心**最小面積包圍矩形(OBB)次軸**(**短邊**方向,與 obb_major 正交),字典序確定性定號。語意=波沿件群**最緊包圍盒的短邊**橫掃(vs obb_major 沿長邊)。比照 pca→pca_minor:同一個最小面積矩形、同一套 tie-break,只把導出軸由較長邊換成較短邊(長軸轉 90°)。"
+                     "**最鋒利 crux(vs obb_major)**:obb_minor ⟂ obb_major(|dot|≈0)→一條真正不同的波(件 pop 序不同,非 obb_major 改版);robot 上 minor 序 [1,3,0,2,4]≠major 序 [1,2,0,4,3](OM4 crux)。"
+                     "**vs pca_minor crux**:OBB 次軸最小化矩形**面積**之盒短邊、pca_minor 最小化**方差**之次主軸→質量偏一側(L 形 22.89°/flag 21.42°)兩者方向不同(OM3b,asset-independent)。"
+                     "**守衛 crux(與 fp/hle 不同)**:最小矩形為(近)正方形(長≈寬)→長/短軸皆不唯一→ValueError;fp/hle **無**此守衛、確定性回值;pca_minor 亦在正方 raise 但判據不同(OM5b)。"
+                     "**正確性 crux**:== 閘獨立 scipy.spatial.ConvexHull + 自寫旋轉卡尺 OBB 次軸(套同一套折半平面→字典序 tie-break + 幾何符號規則逐位元)且 ⟂ 長軸。"
+                     "新增 _obb_major_axis_dir(minor=True)(次軸=長軸轉 90° + 同一符號規則;minor=False 逐位元同 J-12)+ derive_cascade_dir source=obb_minor + _CASCADE_GEO_SOURCES 加 obb_minor(前六 source 路徑逐位元不變);build_spine --cascade-dir geo:obb_minor。"
+                     "validate_cascade_dir_obb_minor.py 5AC PASS(OM1 present+backward-compat+**零回歸**(pca/pca_minor/farthest_pair/hull_longest_edge/obb_major 路徑逐位元不變・geo 預設==centroid_farthest・derive 各 source==閘獨立重算)/"
+                     "OM2 **crux 正確性+件序無關+符號確定** (a)obb_minor==閘獨立 scipy+卡尺 OBB 次軸逐位元且⟂長軸 (b)唯一最小盒&面積並列(三角每邊)所有排列逐位元同一帶號向量 (c)沿 x 鏡射→y 分量符號翻轉/"
+                     "OM3 **crux obb_minor 價值** (a)obb_minor⟂obb_major 且件 pop 序不同(spread2d/L 形,asset-independent) (b)min-area≠min-variance:L 形/flag obb_minor≠pca_minor(22.89°/21.42°)/"
+                     "OM4 真實 robot 端到端 OBB 次軸投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip;**crux robot 上 obb_minor pop 序≠obb_major pop 序(differs_major=True)**/"
+                     "OM5 metric==scipy+卡尺 OBB 次軸 多佈局逐位元且⟂長軸|**正方守衛** obb_minor 與 pca_minor 皆 raise(判據不同)而 fp/hle 確定性回值|守衛件重合/單件/空件/未知 source→ValueError)。"
+                     "**geo source 增 obb_minor(最緊盒短軸,⟂長軸的另一條確定性波,有正方退化守衛);honest:用 obb_minor/obb_major/hull_longest_edge/farthest_pair/pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
         ],
     },
 ]
