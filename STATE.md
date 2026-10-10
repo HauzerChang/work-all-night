@@ -10,6 +10,31 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 入場波變體:每件 collapsed→依序 burst 現身(entrance vs pop,首幀非 identity)(里程碑,2026-10-10 run 003,candidate J-15)** —
+  承 (J-5..J-14):cascade 至此一直是 **pop 波**(每件恆 identity、依序短暫放大再回 identity,首尾皆 identity);J-5..J-14 十個候選**只動波的方向/散佈/段數**,
+  **從未動單件運動基元**。本次新增 **reveal 入場波**(第一個動「單件運動基元」的候選):把單件運動由「pop 脈衝」換成「reveal 入場」——每件**起始 collapsed**
+  (scale≈0.02 + alpha 0,隱形),依 phase **依序 burst 現身**(collapsed → 蓄勢 hold → overshoot burst → 阻尼回穩 identity),現身後**保持 identity 到結尾**。
+  pop 是「一件接一件閃一下(全程可見)」,reveal 是「一件接一件冒出來(揭幕/入場)」;**首幀非 identity**(所有件 collapsed)是兩者乾淨鑑別點。入場序沿用
+  cascade_dir(J-5/J-6/J-7..)決定的 phase 序。**做了什麼(全 additive,pop 路徑逐位元不變)**:①`gen_cascade(..., reveal=False)` 新增參數(reveal=False → 原 pop 逐位元
+  相容;reveal=True 委派 `_gen_cascade_reveal`,一次性入場 → nrip 須 1、span 上界更緊 CASCADE_LEAD+span+0.24<1 → span≲0.60,否則 ValueError)。
+  ②`_gen_cascade_reveal`:單件入場包絡(scale COLLAPSE→hold→overshoot burst 唯一峰→0.95→1.02→1.0→hold;alpha 0→0→1→hold;limb/特效 另加 rotate),
+  現身中心 c=CASCADE_LEAD+p*sp(== 單 sweep pop 中心 → 入場序==pop phase 序)。③`_build_beat`/`build_animations`/`build_spine` 加 `cascade_reveal` 旗標
+  (mirror twist_volume);`build_spine --cascade-reveal`。④新閘 `validate_cascade_reveal.py`(J-15,5 AC)。**crux(處理「多件 collapse 疊加對 argmax 的擾動」)**:
+  若單件只是 collapsed hold→升到 identity 平台,argmax(scaleX) 會被尾端 identity 平地搶走、量不到現身時刻 → 跨件現身序不可靠;設計讓每件 burst 有**唯一 overshoot 峰**
+  (peak>1,現身後只回 1.0)→ argmax 唯一落 burst 時刻 → 現身序以 per-bone argmax 可靠量得。**5 AC 全 PASS**(真實 robot 骨架):**R1** present+backward-compat
+  (reveal build 產每 cascade beat finite/有 bone・**cascade_reveal=False 逐位元同 pop(零回歸)**・reveal=True 下非 cascade 主秀 beat 逐位元不變);
+  **R2 crux reveal ordering**(各件 burst 時刻 argmax scaleX 依 phase 嚴格遞增 `[0.22,0.355,0.49,0.625,0.76]`+散佈 0.54≥門檻,仍一道有序入場波);
+  **R3 crux entrance interface**(首幀所有件 collapsed scaleX≈0.02 且 alpha≈0 非 identity・尾幀所有件 identity scaleX≈1 且 alpha≈1 → 可接 Loop・現身後停在 identity 不回 collapse);
+  **R4 reveal vs pop+neg-ctrl**((a) 同一 beat pop 首幀 scaleX==1/alpha==1 vs reveal 首幀 scaleX≈0.02/alpha≈0 乾淨分離;(b) neg-control pop 不滿足 reveal「首幀 collapsed」、
+  reveal 不滿足 pop「首==尾==identity」證閘非恆真;(c) **crux argmax 良定義** 每件全域 max>1.05(光暈1.35/身體1.28/其餘1.18)且 burst τ<1 不被平台搶);
+  **R5 metric+dir+guards**((a) burst 排序 N 與 HIRES 一致;(b) **dir discriminator** reveal+lr 下 burst 序==x 排序≠件序 證 reveal 沿用 dir threading;
+  (c) guards reveal×nrip>1 與 reveal×span 過大皆 ValueError,build 與 gen_cascade 雙驗;(d) **端到端** build_spine --animate --cascade-reveal 產可載入 spine(cascade anim finite+首幀 collapsed))。
+  **回歸:check_readiness 0 RED / 68 GREEN**(新增 cap `cascade_reveal` L2 併入 `spine-anim-forge`,仍 HOLD;既有 cascade 閘 validate_cascade/dir/count/span/dir_vector 逐一 PASS 證 pop 路徑逐位元不變)。
+  **關鍵發現**:①**cascade 有兩條正交軸**——「波方向/散佈/段數」(J-5..J-14 動哪件何時)與「**單件運動基元**(pop vs reveal)」(J-15 動每件做什麼),前十候選全在第一軸、J-15 是**第一個動第二軸**;
+  ②**reveal 入場波首幀非 identity → 介面契約與其他主秀 beat 不同**(尾可接 Loop、首不可),是刻意的入場/揭幕語意(唯一首非 identity 的主秀 beat,單件 gen_reveal 早已如此,J-15 是其跨件版);
+  ③**overshoot 峰是讓「依序現身序可量」的關鍵設計**(解掉尾端 identity 平台對 argmax 的擾動);④**一般化靠特例逐位元等價釘住**(reveal=False≡pop,呼應 J-6 lr/rl≡0°/180°、L-7 等值向量≡scalar)。
+  **honest boundary**:用 reveal/pop(及哪個 beat 該入場)仍屬美術手感(A 類 PROPOSAL,本閘只新增一個確定性運動基元+其跨件入場波);入場包絡窗為量級選擇;reveal 與 count(nrip)互斥、與 span 相容但上界更緊;
+  無改任何 pop 生成/產線值(reveal=False 逐位元不變);單一真值資產。見 `knowledge/s1-cascade-reveal.md`。
 - **S1 cascade 波方向 凸包最短邊 geo source:短邊⟂長邊 + extremal-MIN 擾動敏感(里程碑,2026-10-10 run 002,candidate J-14)** —
   承 (J-13):J-7..J-13 七 geo source 方向取自 質心→最遠件 / PCA 主次軸 / diameter / 凸包最長邊 / OBB 長次軸。本次新增**第八個確定性幾何 source**
   `"hull_shortest_edge"` = 件中心**凸包最短邊**(相鄰兩頂點中連線**最短**者)方向,字典序定號 —— 波沿件群外廓**最短的那條直邊**橫掃(vs `hull_longest_edge` 沿最長邊)。
@@ -1512,7 +1537,14 @@
 >   新增**第八個**確定性幾何 source `"hull_shortest_edge"`:件中心**凸包最短邊**(相鄰兩頂點中連線**最短**者)方向,字典序定號。比照 pca→pca_minor、obb_major→obb_minor 的「換幾何特徵」(同凸包、同 tie-break,J-11 的 max→min)。
 >   **最鋒利 crux(vs hull_longest_edge)**:非正方矩形外廓下最短邊**⟂**最長邊(`(0,1)`⟂`(1,0)`,asset-independent);robot short 序 `[1,0,3,2,4]`≠long 序 `[3,0,1,2,4]`。**honest 核心洞見**:extremal-MIN≠extremal-MAX 的穩健性——取最大線段(longest)對近共線頂點穩健、取最小(shortest)敏感(矩形+2 近角件 short 擺動 45° vs long 0°)→ 選最小 vs 選最大非對稱操作。
 >   `_hull_longest_edge_dir(shortest=True)`(shortest=False 逐位元同 J-11)+`derive_cascade_dir source=hull_shortest_edge`+`_CASCADE_GEO_SOURCES` 加(前七 source 逐位元不變);`build_spine --cascade-dir geo:hull_shortest_edge`;`validate_cascade_dir_hull_shortest_edge.py` 5AC PASS(最短/最長邊由閘以 scipy.spatial.ConvexHull 獨立重算)。
->   **續**(擇一,皆自主):更多確定性幾何 source(最小**周長**外接矩形軸 vs 最小面積(⚠️ 最小周長矩形**未必與凸包邊共線** → 需掃凸包每邊內部臨界角,不能只用旋轉卡尺;比 obb_major 複雜,風險較高)/ 加權質心 / 周長加權方向)、讓 genre 先驗庫建議「用哪個 geo source」(provenance 之上再加一層選擇規則,最終手感仍 A 類);或回 crossfade 線(L-7 之續)、charge 蓄力深度隨檔位、S5 rig 真值(C/資源類);
+> **(J-15) ~~cascade 入場波變體(每件 collapsed→依序 burst 現身,entrance vs pop)~~ ✅ 完成(2026-10-10 run 003,candidate J-15,`cascade_reveal` L2,見上里程碑)** ——
+>   **跳出 J-8..J-14 的「再加一個 geo 方向 source」treadmill**(J-14 自己已標註「hull_shortest_edge 擾動敏感→多數情況 longest/obb 更實用」,方向軸邊際價值遞減):改動**另一條正交軸**。
+>   cascade 至此一直是 **pop 波**(J-5..J-14 只動波的**方向/散佈/段數**=哪件何時);J-15 新增 **reveal 入場波**=第一個動**單件運動基元**(每件做什麼)的候選:
+>   每件 collapsed→依序 burst 現身→停在 identity(pop「閃一下全程可見」vs reveal「冒出來/揭幕」,**首幀非 identity** 乾淨鑑別)。`gen_cascade(reveal=)`+`_gen_cascade_reveal`+`cascade_reveal` 旗標線程(mirror twist_volume)+`build_spine --cascade-reveal`;
+>   `validate_cascade_reveal.py` 5AC PASS(R2 burst argmax 依 phase 遞增、R3 首 collapsed/尾 identity crux、R4c overshoot 峰解掉尾端 identity 平台對 argmax 的擾動、R5 reveal 沿用 dir threading + nrip/span 守衛 + 端到端)。
+>   **續**(擇一,皆自主):(J-15a) reveal × cascade_dir(入場方向用幾何 geo source,如 lr/co/geo:pca)的 AC(機制已通,補專項驗);(J-15b) reveal × tier 幅度(入場 overshoot 隨檔位遞增,比照 J);(J-15c) **其他單件運動基元接 cascade**(把 hit/combo/wobble 錯開成跨件波,如 cascade 的 pop→wobble 波);
+>   或回更早的開放線:crossfade(L-7 之續:genre 建議每接點 xf)、charge 蓄力深度/hold 隨檔位、(G-1) `--rig`×pivot per-bone 去重、S5 rig 真值(C/資源類);
+>   (舊)更多確定性幾何 source(最小**周長**外接矩形軸 vs 最小面積(⚠️ 最小周長矩形**未必與凸包邊共線** → 需掃凸包每邊內部臨界角,不能只用旋轉卡尺;比 obb_major 複雜,風險較高)/ 加權質心 / 周長加權方向)、讓 genre 先驗庫建議「用哪個 geo source」(provenance 之上再加一層選擇規則,最終手感仍 A 類);或回 crossfade 線(L-7 之續)、charge 蓄力深度隨檔位、S5 rig 真值(C/資源類);
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。
 > ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 52 GREEN**。見上里程碑。

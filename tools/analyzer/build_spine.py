@@ -190,7 +190,7 @@ def shelf_pack(sizes, pad=2, max_w=2048):
 
 def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False, rig=False,
           deform=False, pivot_rotate=False, scale_pivot=False, shear_pivot=False, tier_variants=False,
-          twist_volume=False, cascade_dir=None,
+          twist_volume=False, cascade_dir=None, cascade_reveal=False,
           deform_src=("assets/main_draw.json", "image/curtain_left", "image/curtain_left")):
     os.makedirs(out_dir, exist_ok=True)
     parts_dir = os.path.join(out_dir, "_parts")
@@ -334,7 +334,7 @@ def build(psd_path, out_dir, genre="slot_bigwin", weighted=False, animate=False,
                                                   tier_twist_cycles=ttc, tier_charge_cycles=tchg,
                                                   tier_cascade_ripples=tcr,
                                                   tier_cascade_span=tcs, twist_volume=twist_volume,
-                                                  cascade_dir=cdir)
+                                                  cascade_dir=cdir, cascade_reveal=cascade_reveal)
         if (pivot_rotate or scale_pivot or shear_pivot) and not rig:
             # candidate 0i:件繞**關節 pivot** 轉而非件中心(keyframe 級,不動骨架)。
             # 延伸 G-3:`--scale-pivot` 再把 `scale` 也補償(M=R·S)→ 件繞關節 pivot **旋轉+縮放**。
@@ -430,11 +430,15 @@ def main():
                          "po 件序/auto 查 genre 建議。J-6 一般化:給**角度(度,如 90)**或**向量 'ux,uy'(如 '1,1')**→ "
                          "相位依件中心在該方向投影排序(lr/rl 即 0°/180° 特例)。J-7:**geo**(或 geo:SOURCE)→ 方向向量"
                          "**由件幾何導出**(質心→最遠件),隨資產自適應。預設件序 byte-identical;需 --animate")
+    ap.add_argument("--cascade-reveal", dest="cascade_reveal", action="store_true",
+                    help="J-15:cascade 改用**入場波**(每件 collapsed→依序 burst 現身,首幀非 identity、尾 identity);"
+                         "入場序== --cascade-dir 的 phase 序。預設 off=pop 波(byte-identical);需 --animate")
     a = ap.parse_args()
     out = a.out or os.path.join("specs", safe(os.path.splitext(os.path.basename(a.psd))[0]) + "_spine")
     s = build(a.psd, out, a.genre, weighted=a.weighted, animate=a.animate, rig=a.rig, deform=a.deform,
               pivot_rotate=a.pivot_rotate, scale_pivot=a.scale_pivot, shear_pivot=a.shear_pivot,
-              tier_variants=a.tier_variants, twist_volume=a.twist_volume, cascade_dir=a.cascade_dir)
+              tier_variants=a.tier_variants, twist_volume=a.twist_volume, cascade_dir=a.cascade_dir,
+              cascade_reveal=a.cascade_reveal)
     print(json.dumps(s, ensure_ascii=False, indent=2))
 
 

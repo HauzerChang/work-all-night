@@ -1,15 +1,20 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-10 run 002(S1 candidate (J-14):cascade 波方向 凸包最短邊 geo source —— 短邊⟂長邊 + extremal-MIN 擾動敏感)。
-> 67 閘全綠(66 + 新 `cascade_dir_hull_shortest_edge`,0 RED,無 GREEN→RED)。** 承 J-7..J-13 八 geo source(質心→最遠件/PCA 主次軸/
-> diameter/凸包最長邊/OBB 長次軸/**凸包最短邊**):凸包最短邊=外廓**最短**相鄰邊,比照 pca→pca_minor、obb→obb_minor 的「換幾何特徵」
-> (同凸包、同 tie-break,J-11 的 max→min)。crux:非正方矩形下最短邊**⟂**最長邊(`(0,1)`⟂`(1,0)`,asset-independent);robot
-> short 序 `[1,0,3,2,4]`≠long 序 `[3,0,1,2,4]`。**honest 核心洞見:extremal-MIN≠extremal-MAX 的穩健性**——取最大線段(longest)
-> 對近共線頂點穩健、取最小線段(shortest)敏感(矩形+2 近角件 short 擺動 45° vs long 0°)→ 選最小 vs 選最大非對稱操作。全 additive:
-> `_hull_longest_edge_dir` 加 `shortest=True`(max→min,`shortest=False` 逐位元同 J-11),前七 source 路徑逐位元不變。
-> `validate_cascade_dir_hull_shortest_edge.py` 5AC PASS(最短/最長邊由閘以 scipy ConvexHull 獨立重算)。
-> cap `cascade_dir_hull_shortest_edge` L2 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s1-cascade-dir-hull-shortest-edge.md`。
+> **最新:2026-10-10 run 003(S1 candidate (J-15):cascade 入場波變體 —— 每件 collapsed→依序 burst 現身,entrance vs pop,首幀非 identity)。
+> 68 閘全綠(67 + 新 `cascade_reveal`,0 RED,無 GREEN→RED)。** **跳出 J-8..J-14「再加一個 geo 方向 source」treadmill**(方向軸邊際價值
+> 遞減,J-14 自標 hull_shortest_edge 多數情況 longest/obb 更實用):改動 cascade 的**另一條正交軸——單件運動基元**。cascade 至此(J-5..J-14)
+> 一直是 **pop 波**(每件恆 identity、依序短暫放大再回 identity),只動波的方向/散佈/段數(哪件何時);J-15 新增 **reveal 入場波**=第一個動
+> **單件運動基元**(每件做什麼):每件 collapsed→依序 burst 現身→停在 identity(pop「閃一下全程可見」vs reveal「冒出來/揭幕」,**首幀非
+> identity** 乾淨鑑別)。全 additive:`gen_cascade(reveal=False)` 新增參數(reveal=False 逐位元同 pop)+ `_gen_cascade_reveal` 單件入場包絡;
+> `cascade_reveal` 旗標線程(mirror twist_volume)+ `build_spine --cascade-reveal`。crux(處理「多件 collapse 疊加對 argmax 的擾動」):
+> 每件 burst 有唯一 overshoot 峰(peak>1)→ argmax 唯一落 burst 時刻(不被尾端 identity 平台搶)→ 跨件現身序可量。
+> `validate_cascade_reveal.py` 5AC PASS(R2 burst argmax 依 phase 遞增 [0.22..0.76]、R3 首 collapsed/尾 identity crux、R4c argmax 良定義、
+> R5 reveal 沿用 dir threading + nrip/span 守衛 + 端到端)。cap `cascade_reveal` L2 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s1-cascade-reveal.md`。
+>
+> (前一里程碑 2026-10-10 run 002:S1 candidate (J-14):cascade 波方向 凸包最短邊 geo source —— 短邊⟂長邊 + extremal-MIN 擾動敏感,
+> 67 閘全綠 + 新 `cascade_dir_hull_shortest_edge`。凸包最短邊=外廓最短相鄰邊,比照 pca→pca_minor、obb→obb_minor 的「換幾何特徵」
+> (同凸包、同 tie-break,J-11 的 max→min);非正方矩形下最短邊⟂最長邊;extremal-MIN≠extremal-MAX 的穩健性。見 `knowledge/s1-cascade-dir-hull-shortest-edge.md`。)
 >
 > (前一里程碑 2026-10-09 run 002:S1 candidate (J-12):cascade 波方向 OBB 長軸 geo source —— 旋轉卡尺,
 > 65 閘全綠 + 新 `cascade_dir_obb`。OBB 最小化矩形面積 vs pca 最小化方差,質量偏一側方向不同、asset-independent;

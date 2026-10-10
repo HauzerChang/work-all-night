@@ -732,6 +732,18 @@ BLOCKS = [
                      "SE4 真實 robot 端到端最短邊投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip;**crux robot 上 short pop 序≠long pop 序(differs_long=True)**/"
                      "SE5 metric==scipy 最短邊 多佈局逐位元|**各向同性** 正方 pca raise 而 hull_shortest_edge 確定性回(0,1)件序無關|守衛件重合/單件/空件/未知 source→ValueError)。"
                      "**geo source 增 hull_shortest_edge(外廓最短邊,⟂最長邊、extremal-MIN 擾動敏感);honest:用 hull_shortest_edge/hull_longest_edge/obb_*/farthest_pair/pca*/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
+            CAP("cascade_reveal", "cascade 入場波變體:每件 collapsed→依序 burst 現身(entrance vs pop,首幀非 identity)(J-15,新增 reveal 運動基元)", "L2",
+                "python3 tools/analyzer/validate_cascade_reveal.py", "pipeline",
+                note="承 (J-5..J-14):cascade 一直是 **pop 波**(每件恆 identity、依序短暫放大再回 identity,首尾皆 identity);J-5..J-14 只動波的**方向/散佈/段數**,未動**單件運動基元**。J-15 新增 reveal **入場波**:把單件運動由 pop 脈衝換成 **reveal 入場**(collapsed→蓄勢→overshoot burst→阻尼回穩 identity,現身後停在 identity)。這是一條與 pop 語意不同的跨件波——pop「一件接一件閃一下(全程可見)」vs reveal「一件接一件冒出來(揭幕/入場)」。入場序沿用 cascade_dir 決定的 phase 序(哪件何時),故與方向/散佈軸正交。"
+                     "**crux(處理『多件 collapse 疊加對 argmax 的擾動』)**:若單件只是 collapsed hold→升到 identity 平台,argmax(scaleX) 會被尾端 identity 平地搶走、量不到現身時刻 → 跨件現身序不可靠。設計讓每件 burst 有**唯一 overshoot 峰**(peak>1,現身後只回 1.0)→ argmax 唯一落在 burst 時刻 → 跨件現身序以 per-bone argmax 可靠量得(R4c 固化:每件全域 max>1.0+MARGIN 且落在 τ<1)。"
+                     "全 additive:gen_cascade 新增 reveal= 參數(reveal=False 逐位元同 pop)+ _gen_cascade_reveal 單件入場包絡;_build_beat/build_animations/build_spine 加 cascade_reveal 旗標(mirror twist_volume);build_spine --cascade-reveal。reveal 為一次性入場 → nrip 必須 1(與 count 互斥),span 上界更緊(CASCADE_LEAD+span+0.24<1 → span≲0.60)。"
+                     "validate_cascade_reveal.py 5AC PASS(R1 present+backward-compat:reveal build 產每 cascade beat finite/有 bone・cascade_reveal=False 逐位元同 pop(零回歸)・reveal=True 下非 cascade 主秀 beat 逐位元不變/"
+                     "R2 crux reveal ordering:各件 burst 時刻(argmax scaleX)依 phase(件序)嚴格遞增 [0.22,0.355,0.49,0.625,0.76]+散佈 0.54≥門檻(仍一道有序入場波)/"
+                     "R3 crux entrance interface:首幀所有件 collapsed(scaleX≈0.02 且 alpha≈0,非 identity)+尾幀所有件 identity(scaleX≈1 且 alpha≈1→可接 Loop)+現身後停在 identity(不回 collapse)/"
+                     "R4 reveal vs pop+neg-ctrl:(a)crux 同一 beat pop 首幀 scaleX==1/alpha==1 vs reveal 首幀 scaleX≈0.02/alpha≈0 乾淨分離 (b)neg-control pop 不滿足 reveal『首幀 collapsed』、reveal 不滿足 pop『首==尾==identity』(證閘非恆真) (c)crux argmax 良定義 每件全域 max>1.05 且 burst τ<1(不被平台搶)/"
+                     "R5 metric+dir+guards:(a)burst 排序 N 與 HIRES 一致 (b)dir discriminator reveal+lr 下 burst 序==x 排序≠件序(reveal 沿用 dir threading) (c)guards reveal×nrip>1 與 reveal×span 過大皆 ValueError(build 與 gen 雙驗) (d)端到端 build_spine --animate --cascade-reveal 產可載入 spine(cascade anim finite+首幀 collapsed))。"
+                     "**關鍵發現:①cascade 的『波方向/散佈/段數』與『單件運動基元(pop vs reveal)』是兩條正交軸——前者(J-5..J-14)動哪件何時、後者(J-15)動每件做什麼;②reveal 入場波的首幀非 identity 使它與其他主秀 beat 的介面契約不同(尾可接 Loop、首不可),是刻意的入場語意;③overshoot 峰是讓『依序現身序可量』的關鍵設計(解掉尾端 identity 平台對 argmax 的擾動)**。"
+                     "honest:用 reveal/pop 皆屬美術手感(A 類 PROPOSAL,本閘只新增一個運動基元 + 其跨件入場波);入場包絡窗為量級選擇;無改任何 pop 生成/產線值(reveal=False 逐位元不變);單一真值資產。cap cascade_reveal L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

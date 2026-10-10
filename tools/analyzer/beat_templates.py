@@ -340,7 +340,7 @@ CASCADE_LEAD = 0.16
 CASCADE_SPAN = 0.54
 
 
-def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1, span=None):
+def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1, span=None, reveal=False):
     """跨件錯開波中的**單件** pop(依 phase 錯開)。回傳 (bone_timelines, slot_timelines)。
 
     每件 scale 包絡(絕對 τ,單一 sweep 中心 c=LEAD+phase*SPAN):
@@ -365,12 +365,31 @@ def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1, span=
     **crux(與單件 count 的差異)**:combo/wobble/squash/twist 的 count 是**單件內**極值數(同一件連幾下);
     cascade 的 nrip 是**跨件波掃幾道**(段數落在**跨件時序**通道)。故 count 簽章需同時驗:① 每件 pop nrip 次
     (單件峰數);② 每個 sweep 內各件峰時刻仍依件序遞增(跨件排序在每道波皆保住)。事後幅度 amplify 只能同比
-    放大既有 pop、**加不出第二道 sweep**(拓樸=gen 時決定的關鍵幀窗;比照 combo/wobble 的段數重生成)。"""
+    放大既有 pop、**加不出第二道 sweep**(拓樸=gen 時決定的關鍵幀窗;比照 combo/wobble 的段數重生成)。
+
+    `reveal`(candidate J-15)= **跨件入場波變體**(entrance / reveal wave)。預設 `False` → 上述 **pop 波**
+    (逐位元向後相容)。`True` → 每件**起始 collapsed**(scale≈0 + alpha 0,隱形),依 phase **依序 burst 現身**
+    (collapsed → 蓄勢 hold → overshoot burst → 阻尼回穩 identity),現身後**保持 identity 到結尾**。
+    與 pop 的分別(入場 vs 脈衝):① **首幀非 identity**(所有件 τ=0 皆 collapsed,pop 首幀為 identity);
+    ② 現身後**停在 identity**(一次性入場,不回落;pop 峰後回 identity 可再 pop);③ 尾幀 identity(介面:
+    尾==setup → 入場波後可接 Loop,同其他主秀 beat 的尾端契約;**首端** collapsed 故**不**可接在 Loop 之後,
+    是刻意的入場語意)。入場次序**== pop 的 phase 次序**(第一相位件先現身),故 cascade_dir(J-5/J-6/J-7..)決定
+    的「哪件何時」對 reveal 完全沿用。**crux(argmax 擾動的處理)**:每件 scale 於 burst 時有**唯一 overshoot 峰**
+    (peak>1,現身後只回到 1.0 hold)→ 該件 `argmax(scale)` 落在其 burst 時刻(不被尾端 identity 平台搶走)→
+    跨件現身序可用 per-bone argmax 可靠量得(多件同時 collapse 於 τ=0 的值平台不干擾,因各件 timeline 獨立且峰唯一)。
+    reveal 是**一次性入場**(單道波):`nrip` 必須為 1(否則 ValueError);`span` 仍控跨件散佈(上界更緊:
+    末件 burst 回穩窗須落在 τ<1,故 `CASCADE_LEAD+span+0.24<1` → span≲0.60)。"""
     T = DUR["cascade"]
     peak = _PEAK.get(role, 1.18)
     p = max(0.0, min(1.0, phase))
     n = max(1, int(nrip))
     sp = CASCADE_SPAN if span is None else float(span)   # J-4:跨件散佈幅度(None → base 0.54,byte-identical)
+    if reveal:
+        # candidate J-15:入場波(collapsed→依序 burst→identity)。單道波,nrip 必須 1。
+        if n != 1:
+            raise ValueError(
+                "gen_cascade(reveal=True) is a one-time entrance: nrip must be 1 (got {})".format(n))
+        return _gen_cascade_reveal(role, side_sign, T, peak, p, sp)
     w = 1.0 / n                                   # 每個 sweep 窗壓縮比(nrip==1 → 1.0 → byte-identical)
     centers = [(k + CASCADE_LEAD + p * sp) / n for k in range(n)]
     b, s = {}, {}
@@ -403,6 +422,48 @@ def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1, span=
         rot += [(T, 0.0)]
         s["color"] = _color(col)
         b["rotate"] = _rot(rot)
+    return b, s
+
+
+# candidate J-15 — cascade reveal wave 單件入場包絡的 τ 窗(相對 burst 中心 c 的偏移)。
+REVEAL_COLLAPSE = 0.020   # collapsed scale(隱形,同 gen_reveal 單件 reveal 的藏匿值)
+
+
+def _gen_cascade_reveal(role, side_sign, T, peak, p, sp):
+    """candidate J-15:跨件入場波中的**單件** reveal(依 phase 錯開現身)。回傳 (bone_tl, slot_tl)。
+
+    現身中心 `c = CASCADE_LEAD + p*sp`(== 單 sweep pop 的中心 → 入場序 == pop 的 phase 序);每件:
+      scale: COLLAPSE(藏)→ hold COLLAPSE 到輪到它 → **overshoot burst**(peak>1,唯一峰)→ 0.95 → 1.02 → 1.0 → hold 1.0。
+      alpha: 0(藏)→ 0(hold)→ 1(burst 時亮)→ hold 1。
+    首幀 collapsed(scale≈0+alpha 0,非 identity)、尾幀 identity(scale 1+alpha 1)。
+    burst 的 overshoot 使每件 `argmax(scale)` 唯一落在其現身時刻(不被尾端 identity 平台搶走)→ 跨件現身序可量。
+    上界守衛:末件回穩窗 c+0.24 須 <1 → `CASCADE_LEAD+sp+0.24<1`(sp≲0.60),否則 ValueError。"""
+    c = CASCADE_LEAD + p * sp
+    if c + 0.24 >= 1.0:
+        raise ValueError(
+            "gen_cascade(reveal): settle window overflows (c+0.24={:.3f}≥1; CASCADE_LEAD+span+0.24<1 "
+            "required → span≲0.60, got span={:.3f})".format(c + 0.24, sp))
+    b, s = {}, {}
+    # scale 入場包絡:前導 collapsed hold → burst overshoot → 阻尼回穩 identity → 保持 identity。
+    env = [(0.00, REVEAL_COLLAPSE),
+           (c - 0.12, REVEAL_COLLAPSE), (c - 0.02, REVEAL_COLLAPSE),
+           (c + 0.06, peak),
+           (c + 0.12, 0.950), (c + 0.18, 1.020), (c + 0.24, 1.000),
+           (1.00, 1.000)]
+    b["scale"] = _scale_frames(T, env)
+    # alpha 淡入:collapsed 期全透明,burst 起亮後保持(首尾:0 → 1)。所有 role 皆淡入(collapsed = 隱形)。
+    s["color"] = _color([(0.00 * T, 0.0), ((c - 0.02) * T, 0.0),
+                         ((c + 0.06) * T, 1.0), (1.00 * T, 1.0)])
+    if role == "limb":
+        # 末梢:內收藏 → burst 時甩出 → 阻尼回正(現身後停在 0)。
+        b["rotate"] = _rot([(0.00 * T, side_sign * 20.0), ((c - 0.02) * T, side_sign * 20.0),
+                            ((c + 0.06) * T, -side_sign * 8.0), ((c + 0.16) * T, side_sign * 3.0),
+                            ((c + 0.24) * T, 0.0), (T, 0.0)])
+    elif role == "特效":
+        # 特效:反向預備藏 → burst 時甩亮 → 阻尼回正。
+        b["rotate"] = _rot([(0.00 * T, -24.0), ((c - 0.02) * T, -24.0),
+                            ((c + 0.06) * T, 10.0), ((c + 0.18) * T, -4.0),
+                            ((c + 0.24) * T, 0.0), (T, 0.0)])
     return b, s
 
 
