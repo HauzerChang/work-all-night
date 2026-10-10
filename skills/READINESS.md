@@ -1,14 +1,15 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-10 run 001(S1 candidate (J-13):cascade 波方向 最小面積包圍矩形(OBB)次軸 geo source —— 短邊⟂長軸)。
-> 66 閘全綠(65 + 新 `cascade_dir_obb_minor`,0 RED,無 GREEN→RED)。** 承 J-7..J-12 七 geo source(質心→最遠件/PCA 主軸/
-> PCA 次主軸/diameter/凸包最長邊/OBB 長軸/**OBB 次軸**):OBB 次軸=最小面積盒**短邊**、與 `obb_major` **正交**(|dot|≈0)→
-> 一條真正不同的波(robot minor 序 `[1,3,0,2,4]`≠major 序 `[1,2,0,4,3]`);vs pca_minor 質量偏一側(L 形 22.89°/flag 21.42°)
-> 方向不同、asset-independent;退化守衛沿 OBB 家族共用(obb/pca raise 而 fp/hle 回值)。全 additive:`_obb_major_axis_dir`
-> 加 `minor=True`(次軸=長軸轉 90° + 同一符號規則,`minor=False` 逐位元同 J-12),前六 source 路徑逐位元不變。
-> `validate_cascade_dir_obb_minor.py` 5AC PASS(OBB 次軸由閘以 scipy ConvexHull+自寫卡尺獨立重算且⟂長軸)。
-> cap `cascade_dir_obb_minor` L2 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s1-cascade-dir-obb-minor.md`。
+> **最新:2026-10-10 run 002(S1 candidate (J-14):cascade 波方向 凸包最短邊 geo source —— 短邊⟂長邊 + extremal-MIN 擾動敏感)。
+> 67 閘全綠(66 + 新 `cascade_dir_hull_shortest_edge`,0 RED,無 GREEN→RED)。** 承 J-7..J-13 八 geo source(質心→最遠件/PCA 主次軸/
+> diameter/凸包最長邊/OBB 長次軸/**凸包最短邊**):凸包最短邊=外廓**最短**相鄰邊,比照 pca→pca_minor、obb→obb_minor 的「換幾何特徵」
+> (同凸包、同 tie-break,J-11 的 max→min)。crux:非正方矩形下最短邊**⟂**最長邊(`(0,1)`⟂`(1,0)`,asset-independent);robot
+> short 序 `[1,0,3,2,4]`≠long 序 `[3,0,1,2,4]`。**honest 核心洞見:extremal-MIN≠extremal-MAX 的穩健性**——取最大線段(longest)
+> 對近共線頂點穩健、取最小線段(shortest)敏感(矩形+2 近角件 short 擺動 45° vs long 0°)→ 選最小 vs 選最大非對稱操作。全 additive:
+> `_hull_longest_edge_dir` 加 `shortest=True`(max→min,`shortest=False` 逐位元同 J-11),前七 source 路徑逐位元不變。
+> `validate_cascade_dir_hull_shortest_edge.py` 5AC PASS(最短/最長邊由閘以 scipy ConvexHull 獨立重算)。
+> cap `cascade_dir_hull_shortest_edge` L2 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s1-cascade-dir-hull-shortest-edge.md`。
 >
 > (前一里程碑 2026-10-09 run 002:S1 candidate (J-12):cascade 波方向 OBB 長軸 geo source —— 旋轉卡尺,
 > 65 閘全綠 + 新 `cascade_dir_obb`。OBB 最小化矩形面積 vs pca 最小化方差,質量偏一側方向不同、asset-independent;

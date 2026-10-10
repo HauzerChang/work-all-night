@@ -718,6 +718,20 @@ BLOCKS = [
                      "OM4 真實 robot 端到端 OBB 次軸投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip;**crux robot 上 obb_minor pop 序≠obb_major pop 序(differs_major=True)**/"
                      "OM5 metric==scipy+卡尺 OBB 次軸 多佈局逐位元且⟂長軸|**正方守衛** obb_minor 與 pca_minor 皆 raise(判據不同)而 fp/hle 確定性回值|守衛件重合/單件/空件/未知 source→ValueError)。"
                      "**geo source 增 obb_minor(最緊盒短軸,⟂長軸的另一條確定性波,有正方退化守衛);honest:用 obb_minor/obb_major/hull_longest_edge/farthest_pair/pca/pca_minor/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
+            CAP("cascade_dir_hull_shortest_edge", "cascade 波方向 凸包最短邊 geo source,短邊⟂長邊(非正方矩形)+ extremal-MIN 擾動敏感(J-14,新增 geo source=hull_shortest_edge)", "L2",
+                "python3 tools/analyzer/validate_cascade_dir_hull_shortest_edge.py", "pipeline",
+                note="承 (J-7..J-13):七者方向取自質心→最遠件 / PCA 主/次軸 / diameter / 凸包最長邊 / OBB 長/次軸。J-14 新增 geo source=\"hull_shortest_edge\":用件中心**凸包最短邊**(相鄰兩頂點中連線**最短**者)方向,字典序確定性定號。同一個凸包、同一套 tie-break,只把 hull_longest_edge 的 max 換成 min(比照 pca→pca_minor、obb_major→obb_minor 的「換幾何特徵」)。語意=波沿件群外廓**最短的直邊**橫掃。"
+                     "**最鋒利 crux(vs hull_longest_edge,最相近/同一機制)**:非正方矩形外廓下最短邊**⟂**最長邊(短側⟂長側,|dot|≈0,asset-independent,SE3a);一般凸包下兩者方向不同(robot 上 36°,SE4 short 序 [1,0,3,2,4]≠long 序 [3,0,1,2,4])。"
+                     "**honest(extremal-MIN 擾動敏感,SE3c)**:最長邊由外廓**最大**線段定出對近共線頂點擾動穩健;最短邊由**最小**線段定出→一旦出現極短邊(矩形+2 近角件)方向大幅擺動(short swing 45° vs long swing 0°)。此不對稱是 extremal-MIN 相對 extremal-MAX 選擇子的固有性質(誠實標明非 bug)。"
+                     "**hull-only(與 longest/fp 共有)**:只由凸包頂點決定→移凸包內部件不改方向(SE3b short 逐位元不變、cf 轉 28.07°);**無各向同性守衛**(正方 pca raise 而 hull_shortest_edge 確定性回(0,1),SE5b)。"
+                     "**正確性 crux**:== 閘獨立 scipy.spatial.ConvexHull **最短**邊(套同一字典序 tie-break 逐位元);方向=字典序較小端點→較大端點(件序無關)。"
+                     "新增 _hull_longest_edge_dir(shortest=True)(max→min;shortest=False 逐位元同 J-11)+ derive_cascade_dir source=hull_shortest_edge + _CASCADE_GEO_SOURCES 加 hull_shortest_edge(前七 source 路徑逐位元不變);build_spine --cascade-dir geo:hull_shortest_edge。"
+                     "validate_cascade_dir_hull_shortest_edge.py 5AC PASS(SE1 present+backward-compat+**零回歸**(pca/pca_minor/farthest_pair/hull_longest_edge/obb_major/obb_minor 路徑逐位元不變・geo 預設==centroid_farthest・derive(.,hull_longest_edge)==閘獨立 scipy 最長邊(證 shortest=False 不變)・derive 各 source==閘獨立重算)/"
+                     "SE2 **crux 最短邊正確+件序無關+符號確定** (a)hull_shortest_edge==閘獨立 scipy ConvexHull 最短邊逐位元(多佈局) (b)非對稱&正方所有排列逐位元同一帶號向量 (c)沿 x 鏡射→y 分量符號翻轉/"
+                     "SE3 **crux 價值** (a)非正方矩形短邊⟂長邊(|dot|=0,閘獨立 scipy 雙確認) (b)hull-only 內部件不變(short 逐位元不變、cf 轉 28°) (c)extremal-MIN 擾動敏感(short swing 45°、long 穩健 0°,閘獨立 scipy 雙確認)/"
+                     "SE4 真實 robot 端到端最短邊投影序嚴格遞增+最遠投影最後 pop+仍跨件波+首尾 identity+dir⟂nrip;**crux robot 上 short pop 序≠long pop 序(differs_long=True)**/"
+                     "SE5 metric==scipy 最短邊 多佈局逐位元|**各向同性** 正方 pca raise 而 hull_shortest_edge 確定性回(0,1)件序無關|守衛件重合/單件/空件/未知 source→ValueError)。"
+                     "**geo source 增 hull_shortest_edge(外廓最短邊,⟂最長邊、extremal-MIN 擾動敏感);honest:用 hull_shortest_edge/hull_longest_edge/obb_*/farthest_pair/pca*/centroid_farthest 仍 PROPOSAL(A 類)、單一真值資產(防固化),與 anim-forge 同 HOLD**"),
         ],
     },
 ]

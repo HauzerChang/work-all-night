@@ -10,6 +10,33 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 波方向 凸包最短邊 geo source:短邊⟂長邊 + extremal-MIN 擾動敏感(里程碑,2026-10-10 run 002,candidate J-14)** —
+  承 (J-13):J-7..J-13 七 geo source 方向取自 質心→最遠件 / PCA 主次軸 / diameter / 凸包最長邊 / OBB 長次軸。本次新增**第八個確定性幾何 source**
+  `"hull_shortest_edge"` = 件中心**凸包最短邊**(相鄰兩頂點中連線**最短**者)方向,字典序定號 —— 波沿件群外廓**最短的那條直邊**橫掃(vs `hull_longest_edge` 沿最長邊)。
+  比照 `pca`→`pca_minor`、`obb_major`→`obb_minor` 的「換幾何特徵」:**同一個**凸包、同一套端點對字典序 tie-break,只把 J-11 的 `max(edge_lens)` 換成 `min`(長↔短)。
+  延續 J-7→J-13 方向軸 provenance 精煉,**不加任何新正交軸類、不改 J-6 投影機制**(導出向量後仍走 `("proj",vec)`)。**做了什麼(全 additive,
+  `centroid_farthest`/`pca`/`pca_minor`/`farthest_pair`/`hull_longest_edge`/`obb_major`/`obb_minor` 路徑**皆逐位元不變**,`_hull_longest_edge_dir(shortest=False)` 逐位元同 J-11)**:
+  ①`gen_animations._hull_longest_edge_dir(...,shortest=False)` 加 `shortest` 參數:`shortest=True` 時最長邊選法改為最短邊(`best_d=min(edge_lens)`、tie 條件 `d<=best_d+tol`),
+  其餘凸包/符號/定向完全相同;`shortest=False` 重構為先算 `edge_lens` 再 `max`,與 J-11 同值 → 逐位元不變。②`derive_cascade_dir` 加分支 `source=="hull_shortest_edge"`;`_CASCADE_GEO_SOURCES` 加 `"hull_shortest_edge"`。
+  ③`_normalize_cascade_dir`/`_cascade_phase_of`/`build_spine --cascade-dir geo:hull_shortest_edge` **無須改碼**(走 J-7 既有 `("geo",src)` 解析)。④新閘
+  `validate_cascade_dir_hull_shortest_edge.py`(J-14,5 AC;最短/最長邊**由閘以 `scipy.spatial.ConvexHull` 獨立重算**、套同一字典序 tie-break;diameter/PCA 亦獨立重算)。
+  **5 AC 全 PASS**:**SE1** present+backward-compat+**零回歸**(hull_shortest_edge 產每 cascade beat finite/有 bone・非 cascade 逐位元同 base・po==None・`geo` 預設==
+  `("geo","centroid_farthest")`・**六 source 皆逐位元不變**・**`derive(.,"hull_longest_edge")`==閘獨立 scipy 最長邊**(證 `shortest=False` 不變)・各 derive==閘獨立重算);
+  **SE2 crux 最短邊正確性+件序無關+符號確定**((a) ==閘獨立 scipy ConvexHull 最短邊逐位元(robot/quad/rect/scalene_tri/scatter);(b) 非對稱&正方(四邊並列)所有排列皆 1 個 distinct 帶號向量;
+  (c) 沿 x 鏡射→y 分量符號翻轉);**SE3 crux 價值**((a) **非正方矩形短邊⟂長邊** `(0,1)`⟂`(1,0)` |dot|=0 **asset-independent**(矩形邊長短交替)+閘獨立雙確認;
+  (b) **hull-only 內部件不變** 移內部件 `(2,2)→(12,2)` short 逐位元不變、cf 轉 28.07°;(c) **extremal-MIN 擾動敏感(honest 核心洞見)** 矩形+2 近角件造極短邊 → **short 擺動 45° 而 long 穩健 0°**,閘獨立雙確認);
+  **SE4 端到端(robot)**(`build_animations(cascade_dir=("geo","hull_shortest_edge"))` 峰時刻依最短邊投影鍵(vec=`(0.979,0.205)`)嚴格遞增・最遠投影最後 pop・仍跨件波≥0.30・
+  首尾 identity・特效 slot alpha=1・dir⟂nrip;**crux robot 上 short pop 序 `[1,0,3,2,4]`≠long 序 `[3,0,1,2,4]`**(外廓非矩形,夾 36°));**SE5 metric+守衛**
+  ((a) ==scipy 最短邊多佈局逐位元;(b) **各向同性** 正方 pca→ValueError 而 hull_shortest_edge 確定性回 `(0,1)` 件序無關(極值型無各向同性守衛);
+  (c) 守衛 件重合/單件/空件/未知 source 直接 & 經 build→ValueError、`("geo","hull_shortest_edge")` 經 build 可用)。**端到端 `build_spine --animate --cascade-dir geo:hull_shortest_edge`
+  產可載入 Spine 素材**。**回歸:check_readiness 0 RED / 67 GREEN**(新增 cap `cascade_dir_hull_shortest_edge` L2 併入 `spine-anim-forge`,仍 HOLD;J-8..J-13 既有 cascade gate
+  逐一 GREEN 證七 source 路徑逐位元不變)。**關鍵發現**:①**「換幾何特徵」(長↔短)在凸包邊族成立**(繼 pca/obb 之後第三對「同一幾何物件換取較大/較小特徵」的確定性波);
+  ②**extremal-MIN ≠ extremal-MAX 的穩健性**——取最大線段(longest/diameter)對近共線頂點穩健、取最小線段(shortest)敏感 → **選最小 vs 選最大不是對稱操作**
+  (本 run 最有價值洞見,以矩形+近角擾動 asset-independent 量化);③**矩形外廓下短邊⟂長邊是 asset-independent crux**,一般凸包只是方向不同不保證正交;
+  ④**hull-only 不變性是外廓族(short/long/fp)共有** → 內部件 crux 分外廓族與 cf/pca、不分外廓族內部;⑤**幾何量閘底線=閘獨立重算**(scipy 凸包+同一 tie-break;
+  零回歸以 `derive==scipy 最長邊` 逐位元釘住)。**honest boundary**:用 `hull_shortest_edge`/`hull_longest_edge`/`obb_*`/`farthest_pair`/`pca*`/`centroid_farthest`
+  (或手感常數)仍屬美術手感(A 類 PROPOSAL,本閘只新增一個**確定性**幾何 source);**hull_shortest_edge 擾動敏感 → 多數情況 longest/obb 更實用,其價值在揭示 min/max 不對稱**;
+  `MIN_ROT`/`STABLE_MAX`/`ALIGN_MAX` 為量級選擇;無改任何生成/產線值(全 additive);單一真值資產。見 `knowledge/s1-cascade-dir-hull-shortest-edge.md`。
 - **S1 cascade 波方向 最小面積包圍矩形(OBB)次軸 geo source:短邊方向⟂長軸(里程碑,2026-10-10 run 001,candidate J-13)** —
   承 (J-12):J-7..J-12 六 geo source 方向取自 質心→最遠件 / PCA 主軸 / PCA 次主軸 / diameter(最遠對)/ 凸包最長邊 / OBB 長軸。本次新增**第七個確定性幾何 source**
   `"obb_minor"` = 件中心**最小面積包圍矩形(OBB)次軸**(**短邊**方向,與 `obb_major` **正交**)—— 波沿件群**最緊包圍盒的短邊**橫掃(vs obb_major 沿長邊)。
@@ -1481,7 +1508,11 @@
 >   新增**第六個**確定性幾何 source `"obb_major"`:件中心**最小面積包圍矩形(OBB)長軸**(旋轉卡尺求面積最小外接矩形、取較長邊)方向,字典序定號。**最鋒利 crux(vs pca)**:OBB 最小化矩形**面積** vs pca 最小化**方差**→質量偏一側(L 形 22.89°/flag 21.42°)方向不同、asset-independent;最小矩形**必與某凸包邊共線**但未必最長邊(vs hle 斜四邊形 26.57°);**有正方退化守衛**(obb/pca raise 而 fp/hle 回值)。`_obb_major_axis_dir`(monotone chain+旋轉卡尺)+`derive_cascade_dir source=obb_major`+`_CASCADE_GEO_SOURCES` 加(前五 source 逐位元不變);`validate_cascade_dir_obb.py` 5AC PASS(OBB 由閘以 scipy+卡尺獨立重算)。
 > **(J-13) ~~擴充 geo `source`:obb_minor(最小面積包圍矩形次軸,⟂長軸)~~ ✅ 完成(2026-10-10 run 001,candidate J-13,`cascade_dir_obb_minor` L2,見上里程碑)** ——
 >   新增**第七個**確定性幾何 source `"obb_minor"`:件中心**最小面積包圍矩形(OBB)次軸**(短邊方向,與 `obb_major` **正交**)方向,字典序定號。比照 pca→pca_minor:同一個最小面積矩形、同一套 tie-break,只把導出軸由較長邊換成**較短邊**(長軸轉 90°+同一符號規則)。**最鋒利 crux(vs obb_major)**:⟂(|dot|≈0)→一條真正不同的波(robot minor 序 `[1,3,0,2,4]`≠major 序 `[1,2,0,4,3]`);**vs pca_minor**:面積≠方差,質量偏一側 L 形 22.89°/flag 21.42°(asset-independent);退化守衛沿 OBB 家族共用。`_obb_major_axis_dir` 加 `minor=True`(minor=False 逐位元同 J-12)+`derive_cascade_dir source=obb_minor`+`_CASCADE_GEO_SOURCES` 加(前六 source 逐位元不變);`validate_cascade_dir_obb_minor.py` 5AC PASS(次軸由閘以 scipy+卡尺獨立重算且⟂長軸)。
->   **續**(擇一,皆自主):更多確定性幾何 source(最小**周長**外接矩形軸 vs 最小面積 / 加權質心 / 凸包**最短**邊 / 周長加權方向)、讓 genre 先驗庫建議「用哪個 geo source」(provenance 之上再加一層選擇規則,最終手感仍 A 類);或回 crossfade 線(L-7 之續)、charge 蓄力深度隨檔位、S5 rig 真值(C/資源類);
+> **(J-14) ~~擴充 geo `source`:hull_shortest_edge(凸包最短邊,⟂最長邊)~~ ✅ 完成(2026-10-10 run 002,candidate J-14,`cascade_dir_hull_shortest_edge` L2,見上里程碑)** ——
+>   新增**第八個**確定性幾何 source `"hull_shortest_edge"`:件中心**凸包最短邊**(相鄰兩頂點中連線**最短**者)方向,字典序定號。比照 pca→pca_minor、obb_major→obb_minor 的「換幾何特徵」(同凸包、同 tie-break,J-11 的 max→min)。
+>   **最鋒利 crux(vs hull_longest_edge)**:非正方矩形外廓下最短邊**⟂**最長邊(`(0,1)`⟂`(1,0)`,asset-independent);robot short 序 `[1,0,3,2,4]`≠long 序 `[3,0,1,2,4]`。**honest 核心洞見**:extremal-MIN≠extremal-MAX 的穩健性——取最大線段(longest)對近共線頂點穩健、取最小(shortest)敏感(矩形+2 近角件 short 擺動 45° vs long 0°)→ 選最小 vs 選最大非對稱操作。
+>   `_hull_longest_edge_dir(shortest=True)`(shortest=False 逐位元同 J-11)+`derive_cascade_dir source=hull_shortest_edge`+`_CASCADE_GEO_SOURCES` 加(前七 source 逐位元不變);`build_spine --cascade-dir geo:hull_shortest_edge`;`validate_cascade_dir_hull_shortest_edge.py` 5AC PASS(最短/最長邊由閘以 scipy.spatial.ConvexHull 獨立重算)。
+>   **續**(擇一,皆自主):更多確定性幾何 source(最小**周長**外接矩形軸 vs 最小面積(⚠️ 最小周長矩形**未必與凸包邊共線** → 需掃凸包每邊內部臨界角,不能只用旋轉卡尺;比 obb_major 複雜,風險較高)/ 加權質心 / 周長加權方向)、讓 genre 先驗庫建議「用哪個 geo source」(provenance 之上再加一層選擇規則,最終手感仍 A 類);或回 crossfade 線(L-7 之續)、charge 蓄力深度隨檔位、S5 rig 真值(C/資源類);
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
 > **(G-1) `--rig`×`--pivot-rotate`/`--scale-pivot`/`--shear-pivot` per-bone 語意去重**。
 > ✅ **(ENV) pre-existing RED 已修**(2026-10-01 run 001,candidate ENV-fix):`validate_analyzer_award.py` ④ 由嚴格相等改**召回**(`award⊆proposed`)+ 主秀 beat 誠實列 `beats_proposal_only` + `--selftest` 負對照。**check_readiness 現 0 RED / 52 GREEN**。見上里程碑。

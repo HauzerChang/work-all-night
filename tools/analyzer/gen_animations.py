@@ -248,7 +248,7 @@ _CASCADE_DIRS = {"lr", "rl", "co", "oc", "po"}
 # 由件實際幾何導出(質心→最遠件),隨資產自適應,不再寫死。導出後仍走 **J-6 的投影排序(同機制)**,故 J-7
 # **不是新正交軸**,是**方向軸取值的來源**(provenance):J-5 空間化→J-6 連續化→J-7 自動化,三者逐步移除人手指定。
 _CASCADE_GEO_SOURCES = {"centroid_farthest", "pca", "pca_minor", "farthest_pair", "hull_longest_edge",
-                        "obb_major", "obb_minor"}
+                        "hull_shortest_edge", "obb_major", "obb_minor"}
 _CASCADE_GEO_DEFAULT = "centroid_farthest"
 
 
@@ -347,8 +347,15 @@ def _farthest_pair_dir(centers, tol=1e-9):
     return (dx / L, dy / L)
 
 
-def _hull_longest_edge_dir(centers, tol=1e-9):
+def _hull_longest_edge_dir(centers, tol=1e-9, shortest=False):
     """candidate (J-11) — 件中心**凸包最長邊**方向單位向量 `(ux, uy)`,確定性、件序無關。
+    candidate (J-14):`shortest=True` 時改取**凸包最短邊**(相鄰兩頂點中連線**最短**者) —— 同一個凸包、
+    同一套端點對字典序 tie-break,只把「最長邊」換成「最短邊」(max→min)。`shortest=False`(預設)
+    **= J-11 原路徑逐位元不變**。語意 = 波沿件群外廓**最短的那條直邊**橫掃(vs 最長邊延掃)。
+    **crux vs hull_longest_edge**:非正方矩形外廓下最短邊⟂最長邊(短側⟂長側);一般凸包下兩者方向不同。
+    **honest(極值-MIN 的擾動敏感性)**:最長邊由外廓**最大**線段定出,對靠近共線的凸包頂點擾動穩健;
+    最短邊由**最小**線段定出 —— 一旦出現「幾近共線」的凸包頂點(產生一條極短邊),最短邊方向會大幅擺動
+    (最長邊不受影響)。此不對稱是 extremal-MIN 選擇子相對 extremal-MAX 的固有性質(見閘 SE3c,誠實回報)。
 
     凸包最長邊 = 件中心凸包上**彼此相鄰的兩頂點**中連線最長者。方向沿這條最長的**輪廓邊界線段**掃 =
     波沿「件群外廓最長的那條直邊」橫掃。這是**另一條確定性幾何方向**,與既有四者的幾何基礎皆不同:
@@ -395,19 +402,20 @@ def _hull_longest_edge_dir(centers, tol=1e-9):
         upper.append(p)
     hull = lower[:-1] + upper[:-1]                 # CCW 凸包頂點(去除重複的接點)
     m = len(hull)
-    # 最長邊長度(相鄰頂點,環狀);m==2(共線 / 兩件)時唯一邊被遍歷兩次,無害。
-    best_d = -1.0
-    for i in range(m):
-        a, b = hull[i], hull[(i + 1) % m]
-        best_d = max(best_d, math.hypot(a[0] - b[0], a[1] - b[1]))
+    # 邊長(相鄰頂點,環狀);m==2(共線 / 兩件)時唯一邊被遍歷兩次,無害。
+    # `shortest=False`:取最長邊(J-11 原路徑);`shortest=True`:取最短邊(J-14,max→min)。
+    edge_lens = [math.hypot(hull[i][0] - hull[(i + 1) % m][0], hull[i][1] - hull[(i + 1) % m][1])
+                 for i in range(m)]
+    best_d = min(edge_lens) if shortest else max(edge_lens)
     if best_d <= 1e-9:
         raise ValueError("derive_cascade_dir(hull_longest_edge): degenerate geometry (parts coincide → zero edge)")
-    # 並列最長(對稱佈局)→ 以端點對的座標字典序取唯一代表(件序無關)。
+    # 並列(對稱佈局,如正方四邊並列)→ 以端點對的座標字典序取唯一代表(件序無關)。
     best_pair = None
     for i in range(m):
         a, b = hull[i], hull[(i + 1) % m]
         d = math.hypot(a[0] - b[0], a[1] - b[1])
-        if d >= best_d - tol:
+        tie = (d <= best_d + tol) if shortest else (d >= best_d - tol)
+        if tie:
             cand = (a, b) if a <= b else (b, a)
             if best_pair is None or cand < best_pair:
                 best_pair = cand
@@ -551,6 +559,13 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
         (常是凸包**對角線**),longest edge 是**相鄰**頂點的最長外廓線段 → 凸四邊形下兩者方向不同
         (見 `_hull_longest_edge_dir`)。同屬極值型 → **移動凸包內部件不改方向**、**無各向同性守衛**;
         相異件數<2 / 件重合 → ValueError。
+      "hull_shortest_edge"(J-14):件中心**凸包最短邊**(相鄰兩頂點中連線**最短**者)方向,字典序定號。
+        同一個凸包、同一套 tie-break,只把 `hull_longest_edge` 的 max 換成 min(比照 `pca`→`pca_minor`、
+        `obb_major`→`obb_minor` 的「換幾何特徵」)。語意 = 波沿件群外廓**最短的那條直邊**橫掃。**與
+        hull_longest_edge 的 crux**:非正方矩形外廓下最短邊⟂最長邊(短側⟂長側);一般凸包下方向不同。
+        同屬極值型 → **移動凸包內部件不改方向**、**無各向同性守衛**。**honest(extremal-MIN 擾動敏感)**:
+        最短邊對「幾近共線的凸包頂點(極短邊)」敏感 → 方向可大幅擺動(最長邊穩健,閘 SE3c 誠實回報)。
+        相異件數<2 / 件重合 → ValueError。
       "obb_major"(J-12):件中心**最小面積包圍矩形(OBB)長軸**(旋轉卡尺求面積最小外接矩形,取其較長邊),
         字典序定號。語意 = 波沿件群**最緊包圍盒的長邊**橫掃。**與 pca 的 crux**:OBB 最小化矩形**面積**、
         pca 最小化**方差** → 質量偏一側(右三角 / L 形)兩者方向不同(見 `_obb_major_axis_dir`)。**與
@@ -583,6 +598,8 @@ def derive_cascade_dir(centers, source="centroid_farthest"):
         return _farthest_pair_dir(centers)
     if source == "hull_longest_edge":
         return _hull_longest_edge_dir(centers)
+    if source == "hull_shortest_edge":
+        return _hull_longest_edge_dir(centers, shortest=True)
     if source == "obb_major":
         return _obb_major_axis_dir(centers)
     if source == "obb_minor":
