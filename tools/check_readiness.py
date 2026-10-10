@@ -744,6 +744,18 @@ BLOCKS = [
                      "R5 metric+dir+guards:(a)burst 排序 N 與 HIRES 一致 (b)dir discriminator reveal+lr 下 burst 序==x 排序≠件序(reveal 沿用 dir threading) (c)guards reveal×nrip>1 與 reveal×span 過大皆 ValueError(build 與 gen 雙驗) (d)端到端 build_spine --animate --cascade-reveal 產可載入 spine(cascade anim finite+首幀 collapsed))。"
                      "**關鍵發現:①cascade 的『波方向/散佈/段數』與『單件運動基元(pop vs reveal)』是兩條正交軸——前者(J-5..J-14)動哪件何時、後者(J-15)動每件做什麼;②reveal 入場波的首幀非 identity 使它與其他主秀 beat 的介面契約不同(尾可接 Loop、首不可),是刻意的入場語意;③overshoot 峰是讓『依序現身序可量』的關鍵設計(解掉尾端 identity 平台對 argmax 的擾動)**。"
                      "honest:用 reveal/pop 皆屬美術手感(A 類 PROPOSAL,本閘只新增一個運動基元 + 其跨件入場波);入場包絡窗為量級選擇;無改任何 pop 生成/產線值(reveal=False 逐位元不變);單一真值資產。cap cascade_reveal L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("cascade_wobble", "cascade 晃動波變體:每件依序阻尼 shearX 晃起→回穩(第一個把 shear 通道錯開成跨件波)(J-15c,新增 wobble 運動基元)", "L2",
+                "python3 tools/analyzer/validate_cascade_wobble.py", "pipeline",
+                note="承 (J-15):cascade 的單件運動基元至此有 pop(scale 脈衝,J-5..J-14)與 reveal(scale+alpha 入場,J-15)兩種,皆走 **scale 通道**。J-15c 新增**第三個**運動基元 wobble **晃動波**:把單件運動換成 `gen_wobble` 的**純 shearX 阻尼振盪**(每件 shearX 自 0 依序晃起 A→−rA→+r²A→−r³A 再回穩 0)。這是**第一個把 `shear` 通道錯開成跨件波**的 cascade(前面所有 cascade 皆 scale/rotate/color 通道)→ 證實 J-15『跨件時序軸 × 單件運動基元軸』兩正交軸**可組任意通道的運動基元**(scale→shear)。晃起序沿用 cascade_dir 決定的 phase 序(哪件何時),與方向/散佈軸正交;與 reveal 互斥(皆換單件運動基元)。"
+                     "**crux(跨件晃起序可量)**:每件 shearX 的**首個極值**(幅度 A,阻尼下最大)唯一落在其晃起中心 c=CASCADE_LEAD+phase*SPAN → per-bone argmax(|shearX|) 可靠量得跨件晃起序(後續極值阻尼遞減,不搶首極值)。與 pop/reveal 乾淨鑑別:①單件運動基元走 shear 通道(無 scale 脈衝) ②首尾皆 shearX=0(兩端 identity → 兩端可接 Loop,同 pop;reveal 首端 collapsed 不可接)。"
+                     "全 additive:gen_cascade 新增 wobble= 參數(wobble=False 逐位元同 pop)+ _gen_cascade_wobble 單件晃動包絡;_build_beat/build_animations/build_spine 加 cascade_wobble 旗標(mirror cascade_reveal);build_spine --cascade-wobble。wobble 為一次性單道波 → nrip 必須 1,span 上界同 reveal(CASCADE_LEAD+span+0.24<1 → span≲0.60),與 reveal 互斥。"
+                     "validate_cascade_wobble.py 5AC PASS(W1 present+backward-compat:wobble build 產每 cascade beat finite/有 bone・cascade_wobble=False 逐位元同 pop(零回歸)・wobble=True 下非 cascade 主秀 beat 逐位元不變/"
+                     "W2 crux wobble ordering:各件晃起時刻(argmax |shearX|)依 phase(件序)嚴格遞增 [0.16,0.295,0.43,0.565,0.7]+散佈 0.54≥門檻(仍一道有序晃動波)/"
+                     "W3 crux shear primitive:每件運動基元走 shear 通道(有 shear timeline・shearX 阻尼振盪 變號≥3 且相繼極值 |值| 嚴格遞減 如 16→−8→4→−2)且無 scale 脈衝(scaleX 全程 identity)・首尾 shearX==0(兩端可接 Loop)/"
+                     "W4 wobble vs pop/reveal:(a)crux 同一 beat pop 走 scale(shearX≡0)vs wobble 走 shear(scaleX≡identity)乾淨分離 (b)neg-control pop 不滿足 wobble shearX 阻尼振盪、wobble 不滿足 reveal『首幀 collapsed』(證閘非恆真) (c)vs reveal wobble 首幀 shearX==0/scaleX==identity 非 collapsed → 三種單件運動基元彼此乾淨分離/"
+                     "W5 metric+dir+guards:(a)晃起排序 N 與 HIRES 一致 (b)dir discriminator wobble+lr 下晃起序==x 排序≠件序(wobble 沿用 dir threading) (c)guards wobble×nrip>1 / wobble×span 過大 / wobble×reveal 同開 皆 ValueError(build 與 gen 雙驗) (d)端到端 build_spine --animate --cascade-wobble 產可載入 spine(cascade anim finite+含 shear+首尾 shearX=0))。"
+                     "**關鍵發現:①cascade 的『單件運動基元』軸可承載任意 transform 通道——pop/reveal 走 scale,wobble 走 shear,是第一個進跨件波的 shear 通道;②pop 與 wobble 皆『首尾 identity 兩端可接 Loop』(介面相同)但走不同通道(scale vs shear),reveal 則首端 collapsed 不可接——介面契約由運動基元本身決定;③跨件晃起序用 argmax(|shearX|) 量(首極值阻尼下最大,唯一落晃起中心),與 reveal 用 argmax(scaleX)/pop 用峰時刻同屬 per-bone argmax 範式**。"
+                     "honest:用 pop/reveal/wobble(哪個 beat 該晃)皆屬美術手感(A 類 PROPOSAL,本閘只新增一個確定性運動基元 + 其跨件晃動波);晃起包絡窗/阻尼比沿用 gen_wobble 的量級選擇;無改任何 pop 生成/產線值(wobble=False 逐位元不變);單一真值資產。cap cascade_wobble L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

@@ -709,7 +709,7 @@ def _cascade_phase_of(valid, bone_of, cx, cy, cascade_dir):
 
 
 def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade_span=None,
-                cascade_dir=None, cascade_reveal=False):
+                cascade_dir=None, cascade_reveal=False, cascade_wobble=False):
     """把單一 beat 的每件 role 具體化為 anim dict(bones/slots timelines)。
 
     cat 依語意分派運動基元;`count`(J-2 combo 峰數 / G-4''' wobble 振盪段數 / G-4'''''-c squash 擠壓段數 /
@@ -724,7 +724,10 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade
     相位由件中心在該方向的**投影**排序(lr/rl 為 θ=0°/180° 投影特例)。與 count/span/深度三軸正交(只重排哪件何時 pop)。
     cascade(_PHASE_AWARE)另依相位來源帶入相位。
     `cascade_reveal`(J-15):只對 cascade(_PHASE_AWARE)生效 = 入場波變體(每件 collapsed→依序 burst 現身);
-    False(預設)→ pop 波(byte-identical)。與 count(nrip)互斥(reveal 為一次性入場 nrip=1),與 span/dir 正交。"""
+    False(預設)→ pop 波(byte-identical)。與 count(nrip)互斥(reveal 為一次性入場 nrip=1),與 span/dir 正交。
+    `cascade_wobble`(J-15c):只對 cascade(_PHASE_AWARE)生效 = 晃動波變體(每件依序阻尼 shearX 晃起→回穩);
+    False(預設)→ pop 波(byte-identical)。單件運動基元走 **shear 通道**(pop 走 scale、reveal 走 scale+alpha)。
+    與 count(nrip)互斥(一次性單道波 nrip=1),與 span/dir 正交;與 cascade_reveal **互斥**(皆換單件運動基元)。"""
     bones_tl, slots_tl = {}, {}
     limb_seen = 0
     # 跨件時序類別(cascade)需先知道**有效件**總數以配相位;先過濾出真正有 bone 的件。
@@ -753,13 +756,14 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade
             # candidate J-4:cascade 另吃 `cascade_span`=一道 sweep 內各件峰時刻的散佈幅度(檔位相依)。
             # 兩者皆 None → 生成器自身預設(nrip=1、span=CASCADE_SPAN → golden 單 sweep byte-identical)。
             phase = phase_of[pi]
-            if count is None and cascade_span is None and not cascade_reveal:
+            if count is None and cascade_span is None and not cascade_reveal and not cascade_wobble:
                 b, sdict = _DISPATCH[cat](role, side_sign, radial, phase)   # golden pop,byte-identical
             else:
                 nrip = 1 if count is None else count      # span-only 變體 → nrip 回預設 1(單道波,散佈可變)
-                # J-15:cascade_reveal=True → 入場波(reveal=True 時 nrip 須 1,由生成器守衛);False → pop(byte-identical)
+                # J-15:cascade_reveal=True → 入場波;J-15c:cascade_wobble=True → 晃動波(shear 通道);
+                # 兩者各須 nrip=1(生成器守衛)、互斥;皆 False → pop(byte-identical)。
                 b, sdict = _DISPATCH[cat](role, side_sign, radial, phase, nrip, cascade_span,
-                                          reveal=cascade_reveal)
+                                          reveal=cascade_reveal, wobble=cascade_wobble)
         elif cat in _COUNT_AWARE_CATS:
             # 段數(檔位相依):combo 峰數 / wobble 振盪段數。count is None → 生成器自身預設(golden)。
             # G-4''''''-vol:twist 專屬 vol_conserve(等向補償 scale → 體積守恆);其餘類別不吃此 kwarg。
@@ -785,7 +789,7 @@ def _build_beat(beat, cat, bone_of, cx, cy, count=None, twist_vol=False, cascade
 def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None,
                      tier_wobble_cycles=None, tier_squash_cycles=None, tier_twist_cycles=None,
                      tier_charge_cycles=None, tier_cascade_ripples=None, tier_cascade_span=None,
-                     twist_volume=False, cascade_dir=None, cascade_reveal=False):
+                     twist_volume=False, cascade_dir=None, cascade_reveal=False, cascade_wobble=False):
     """回傳 animations dict(beat 名為 key)。
 
     tier_gains(candidate J):`{tier: gain}` 時,對**主秀** beat(cat∈MAIN_SHOW_CATS)
@@ -822,6 +826,10 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
     cascade_reveal(J-15):True → cascade 由 **pop 波**換成 **入場波**(每件 collapsed→依序 burst 現身,首幀非 identity、
     尾幀 identity)。入場序 == cascade_dir 決定的 phase 序;與 count(nrip)互斥(入場為一次性,nrip=1)、與 span/dir 正交。
     False(預設)→ pop 波(byte-identical)。對所有 cascade clip(base 與檔位變體)一致套用;非 cascade 類別不受影響。
+    cascade_wobble(J-15c):True → cascade 由 **pop 波**換成 **晃動波**(每件依序阻尼 shearX 晃起→回穩,
+    單件運動基元走 **shear 通道**;首尾皆 identity,兩端可接 Loop)。晃起序 == cascade_dir 決定的 phase 序;
+    與 count(nrip)互斥(一次性單道波 nrip=1)、與 span/dir 正交、與 cascade_reveal 互斥(皆換單件運動基元)。
+    False(預設)→ pop 波(byte-identical)。對所有 cascade clip(base 與檔位變體)一致套用;非 cascade 類別不受影響。
 
     皆 None/False(預設)→ 逐位元同舊行為(向後相容;base combo 恆 3 峰、base wobble/squash/twist 恆 4 段、base charge 恆 1 階、base cascade 恆 1 道波 span=0.54 相位件序、twist 無 scale)。"""
     # COUNT_AWARE(單件段數)+ cascade(跨件波掃次數,_PHASE_AWARE)→ 對應的 {tier: count} 映射
@@ -843,7 +851,7 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
         name = beat["beat"]
         cat = beat_category(name)
         anim = _build_beat(beat, cat, bone_of, cx, cy, twist_vol=twist_volume, cascade_dir=cascade_dir,
-                           cascade_reveal=cascade_reveal)
+                           cascade_reveal=cascade_reveal, cascade_wobble=cascade_wobble)
         anims[name] = anim
         # candidate J:主秀 beat 依檔位增益產幅度差異化變體(In/Loop/Out 檔位無關,不產)
         if tier_gains and cat in _MAIN_SHOW_CATS:
@@ -867,7 +875,7 @@ def build_animations(skeleton, storyboard, tier_gains=None, tier_combo_hits=None
                     # twist 另帶 twist_vol → 重生成的變體也掛體積守恆 scale(段數×幅度×守恆三效正交)。
                     variant = _build_beat(beat, cat, bone_of, cx, cy, count=cnt,
                                           twist_vol=twist_volume, cascade_span=csp, cascade_dir=cascade_dir,
-                                          cascade_reveal=cascade_reveal)
+                                          cascade_reveal=cascade_reveal, cascade_wobble=cascade_wobble)
                     anims["{}__{}".format(name, tier)] = _amplify_anim(variant, g, coupled=coupled, twist_vol=tv)
                 else:
                     anims["{}__{}".format(name, tier)] = _amplify_anim(anim, g, coupled=coupled, twist_vol=tv)

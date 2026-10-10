@@ -10,6 +10,25 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **S1 cascade 晃動波變體:每件依序阻尼 shearX 晃起→回穩(第一個把 shear 錯開成跨件波)(里程碑,2026-10-10 run 004,candidate J-15c)** —
+  承 (J-15):cascade 的**單件運動基元**至此有 **pop**(scale 脈衝,J-5..J-14)與 **reveal**(scale+alpha 入場,J-15)兩種,**皆走 scale 通道**。本次新增**第三個**運動基元 **wobble 晃動波**:
+  把單件運動換成 `gen_wobble` 的**純 shearX 阻尼振盪**——每件 shearX 自 identity(0)起,依 phase **依序晃起**(`A→−rA→+r²A→−r³A` 4 遞減交替極值),再回穩到 0。
+  **價值 crux(不是又一個 geo 方向 source)**:這是**第一個把 `shear` 通道錯開成跨件波**的 cascade(前面所有 cascade 皆 scale/rotate/color 通道)→ 證實 J-15『跨件時序軸 × 單件運動基元軸』
+  兩正交軸**可承載任意 transform 通道的運動基元**(scale→shear),運動基元軸不綁定特定通道。晃起序沿用 cascade_dir(J-5/J-6/J-7..)的 phase 序,與方向/散佈軸正交;與 reveal 互斥(皆換單件運動基元)。
+  **做了什麼(全 additive,pop 路徑逐位元不變)**:①`gen_cascade(..., wobble=False)` 新增參數(wobble=False 逐位元同 pop;wobble=True 委派 `_gen_cascade_wobble`,一次性單道波 nrip 須 1、與 reveal 互斥)。
+  ②`_gen_cascade_wobble`:單件晃動包絡(晃起中心 `c=CASCADE_LEAD+p*sp`、4 遞減交替 shearX 極值壓進 `[c, c+0.24]`、前後補 identity;上界 `c+0.24<1` → sp≲0.60,同 reveal)。
+  ③`_build_beat`/`build_animations`/`build_spine` 加 `cascade_wobble` 旗標(mirror `cascade_reveal`);`build_spine --cascade-wobble`。④新閘 `validate_cascade_wobble.py`(J-15c,5 AC)。
+  **crux(跨件晃起序可量)**:每件 shearX 的**首個極值**幅度 A(阻尼下最大,後續 rA/r²A/r³A 遞減)唯一落晃起中心 c → per-bone `argmax(|shearX|)` 可靠量得跨件晃起序,與 pop 用峰時刻、reveal 用 argmax(scaleX) 同屬 **per-bone argmax 範式**(只是量的通道不同)。
+  **5 AC 全 PASS**(真實 robot 骨架):**W1** present+backward-compat(wobble build 產每 cascade beat finite/有 bone・**cascade_wobble=False 逐位元同 pop(零回歸)**・非 cascade 主秀 beat(7)逐位元不變);
+  **W2 crux wobble ordering**(各件晃起時刻 argmax|shearX| 依 phase 嚴格遞增 `[0.16,0.295,0.43,0.565,0.70]`+散佈 0.54≥門檻);
+  **W3 crux shear primitive**(每件走 shear 通道・shearX 阻尼振盪 變號≥3 且相繼極值 |值| 嚴格遞減 如身體 `14→−7→3.5→−1.75`・**無 scale 脈衝**(scaleX 全程 identity)・**首尾 shearX==0**(兩端可接 Loop));
+  **W4 wobble vs pop/reveal**((a)同一 beat pop 走 scale(shearX≡0)vs wobble 走 shear(scaleX≡identity)乾淨分離 (b)neg-control pop 不滿足 wobble 阻尼振盪、wobble 不滿足 reveal「首幀 collapsed」證閘非恆真 (c)vs reveal wobble 首幀 shearX==0/scaleX==identity 非 collapsed → **三種單件運動基元彼此乾淨分離**);
+  **W5 metric+dir+guards**((a)晃起排序 N 與 HIRES 一致 (b)**dir discriminator** wobble+lr 下晃起序==x 排序≠件序 (c)guards wobble×nrip>1 / wobble×span 過大 / wobble×reveal 同開 皆 ValueError(build 與 gen 雙驗) (d)端到端 build_spine --animate --cascade-wobble 產可載入 spine 含 shear+首尾 shearX=0)。
+  **回歸:check_readiness 0 RED / 69 GREEN**(新增 cap `cascade_wobble` L2 併入 `spine-anim-forge`,仍 HOLD;既有 cascade 閘逐一 PASS 證 pop 路徑逐位元不變)。
+  **關鍵發現**:①**cascade 的「單件運動基元」軸可承載任意 transform 通道**——pop/reveal 走 scale,wobble 走 shear,是第一個進跨件波的 shear 通道(運動基元軸不綁定特定通道,是一條真正通用的軸);
+  ②**介面契約由運動基元本身決定非 cascade 決定**(pop/wobble 兩端 identity 可接 Loop 但走不同通道、reveal 首端 collapsed 不可接);③**per-bone argmax 範式跨通道通用**(pop 量 scaleX 峰/reveal 量 argmax(scaleX)/wobble 量 argmax(|shearX|));④**一般化靠特例逐位元等價釘住**(wobble=False≡pop,呼應 reveal=False≡pop、J-6 lr/rl≡0°/180°、L-7 等值向量≡scalar)。
+  **honest boundary**:用 pop/reveal/wobble(哪個 beat 該晃)仍屬美術手感(A 類 PROPOSAL,本閘只新增一個確定性運動基元+其跨件晃動波);晃起窗/阻尼比沿用 gen_wobble 量級;無改任何 pop 生成/產線值(wobble=False 逐位元不變);單一真值資產。
+  ⚠️ **排程元觀察**:J-8..J-15c 連續 8 run 皆 cascade 微變體,**邊際價值遞減**;高槓桿下一步全阻塞在使用者資源(見下「未解問題」)。見 `knowledge/s1-cascade-wobble.md`。
 - **S1 cascade 入場波變體:每件 collapsed→依序 burst 現身(entrance vs pop,首幀非 identity)(里程碑,2026-10-10 run 003,candidate J-15)** —
   承 (J-5..J-14):cascade 至此一直是 **pop 波**(每件恆 identity、依序短暫放大再回 identity,首尾皆 identity);J-5..J-14 十個候選**只動波的方向/散佈/段數**,
   **從未動單件運動基元**。本次新增 **reveal 入場波**(第一個動「單件運動基元」的候選):把單件運動由「pop 脈衝」換成「reveal 入場」——每件**起始 collapsed**
@@ -1542,7 +1561,11 @@
 >   cascade 至此一直是 **pop 波**(J-5..J-14 只動波的**方向/散佈/段數**=哪件何時);J-15 新增 **reveal 入場波**=第一個動**單件運動基元**(每件做什麼)的候選:
 >   每件 collapsed→依序 burst 現身→停在 identity(pop「閃一下全程可見」vs reveal「冒出來/揭幕」,**首幀非 identity** 乾淨鑑別)。`gen_cascade(reveal=)`+`_gen_cascade_reveal`+`cascade_reveal` 旗標線程(mirror twist_volume)+`build_spine --cascade-reveal`;
 >   `validate_cascade_reveal.py` 5AC PASS(R2 burst argmax 依 phase 遞增、R3 首 collapsed/尾 identity crux、R4c overshoot 峰解掉尾端 identity 平台對 argmax 的擾動、R5 reveal 沿用 dir threading + nrip/span 守衛 + 端到端)。
->   **續**(擇一,皆自主):(J-15a) reveal × cascade_dir(入場方向用幾何 geo source,如 lr/co/geo:pca)的 AC(機制已通,補專項驗);(J-15b) reveal × tier 幅度(入場 overshoot 隨檔位遞增,比照 J);(J-15c) **其他單件運動基元接 cascade**(把 hit/combo/wobble 錯開成跨件波,如 cascade 的 pop→wobble 波);
+> **(J-15c) ~~其他單件運動基元接 cascade(wobble 晃動波)~~ ✅ 完成(2026-10-10 run 004,candidate J-15c,`cascade_wobble` L2,見上里程碑)** ——
+>   承 J-15:cascade 單件運動基元至此 pop(J-5..J-14)/reveal(J-15)**皆走 scale 通道**;J-15c 新增**第三個**運動基元 **wobble 晃動波**=把單件運動換成 `gen_wobble` 的**純 shearX 阻尼振盪**(每件依序晃起 `A→−rA→+r²A→−r³A` 再回穩 0)。
+>   **價值 crux**:**第一個把 `shear` 通道錯開成跨件波**的 cascade(前面皆 scale/rotate/color)→ 證運動基元軸**可承載任意 transform 通道**(scale→shear),不綁定特定通道。`gen_cascade(wobble=)`+`_gen_cascade_wobble`+`cascade_wobble` 旗標(mirror cascade_reveal)+`build_spine --cascade-wobble`;
+>   `validate_cascade_wobble.py` 5AC PASS(W2 晃起 argmax|shearX| 依 phase 遞增 `[0.16..0.70]`、W3 shear 阻尼振盪+無 scale 脈衝+首尾 shearX=0 兩端可接 Loop、W4 三運動基元 pop/reveal/wobble 彼此分離、W5 dir threading+守衛 wobble×{nrip>1,span 過大,reveal}→ValueError+端到端)。
+>   **續**(擇一,皆自主):(J-15a) reveal × cascade_dir(入場方向用幾何 geo source)的 AC;(J-15b) reveal/wobble × tier 幅度(晃起 shear 峰/入場 overshoot 隨檔位遞增,比照 J);(J-15d) 更多單件運動基元接 cascade(hit/combo/squash/twist 錯開成跨件波,通道已證可任選);
 >   或回更早的開放線:crossfade(L-7 之續:genre 建議每接點 xf)、charge 蓄力深度/hold 隨檔位、(G-1) `--rig`×pivot per-bone 去重、S5 rig 真值(C/資源類);
 >   (舊)更多確定性幾何 source(最小**周長**外接矩形軸 vs 最小面積(⚠️ 最小周長矩形**未必與凸包邊共線** → 需掃凸包每邊內部臨界角,不能只用旋轉卡尺;比 obb_major 複雜,風險較高)/ 加權質心 / 周長加權方向)、讓 genre 先驗庫建議「用哪個 geo source」(provenance 之上再加一層選擇規則,最終手感仍 A 類);或回 crossfade 線(L-7 之續)、charge 蓄力深度隨檔位、S5 rig 真值(C/資源類);
 > **(G-4'''''-charge-amp) charge 的蓄力深度(floor)或 hold 長度隨檔位(另一條 charge 軸,與階數正交)**;或 **charge 以空間/幾何決定首階方向(比照 cascade J-5)**;
@@ -1565,6 +1588,16 @@
   見上里程碑 candidate ENV-fix + `knowledge/s1-analyzer-storyboard-recall-gate.md`。**提醒仍成立**:`check_readiness.py` 不呼叫
   `sys.exit` 故總是 exit 0,判 RED 須看各閘 `閘:GREEN/RED`,不能用 exit code。
 - ❓ 排程頻率未定(使用者尚未決定)。
+- ⚠️ **[排程元觀察,2026-10-10 run 004] S1 cascade 線已達邊際價值遞減,高槓桿下一步全阻塞在使用者資源(C/資源類)**:
+  J-8..J-15c **連續 8 個 run** 都在 cascade 的微變體——J-8..J-14 加 geo 方向 source(J-14 自己已標「hull_shortest_edge
+  擾動敏感、多數情況 longest/obb 更實用」=方向軸飽和)、J-15/J-15c 擴運動基元(reveal/wobble)。每個都 5 AC PASS、
+  全 additive、零回歸,是**紮實但邊際的**客觀能力累積;check_readiness 仍 0 RED。**問題在:真正高槓桿的下一步全部需要
+  使用者提供資源,排程無法自決**:(a) **S5→L3** 唯一硬缺口 = 第二個含多肢體接觸縫+藝術家 pivot 的分層/rig 檔;
+  (b) **S4**(切圖+補圖)最大槓桿 = 分層 PSD(無 GPU 下平面圖自動拆件+補繪基本做不到);(c) **S1 影片輸入分析器**
+  需一支 benchmark 影片;(d) **spine_inspector 實機 round-trip** 需改網路政策解 CDN 403 或提供離線 spine-webgl。
+  **建議使用者擇一**:① 提供上述任一資源以解鎖高槓桿線;② 重新指定排程方向(編 `STATE.md` 下一步或 `PLAN.md`);
+  ③ 若認為 cascade 微變體累積仍有價值則維持現狀(排程會繼續產 J-15d.. 等 additive 變體)。排程續跑無技術阻塞,
+  此為**價值/方向判斷**(RULES C 類里程碑審查),非 BLOCKED。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
 - ℹ️ spine_inspector 實機 round-trip 需瀏覽器自動化(headless),尚未設置。

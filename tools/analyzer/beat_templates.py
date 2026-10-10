@@ -340,7 +340,8 @@ CASCADE_LEAD = 0.16
 CASCADE_SPAN = 0.54
 
 
-def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1, span=None, reveal=False):
+def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1, span=None,
+                reveal=False, wobble=False):
     """跨件錯開波中的**單件** pop(依 phase 錯開)。回傳 (bone_timelines, slot_timelines)。
 
     每件 scale 包絡(絕對 τ,單一 sweep 中心 c=LEAD+phase*SPAN):
@@ -378,18 +379,39 @@ def gen_cascade(role, side_sign=1.0, radial=(0.0, 0.0), phase=0.0, nrip=1, span=
     (peak>1,現身後只回到 1.0 hold)→ 該件 `argmax(scale)` 落在其 burst 時刻(不被尾端 identity 平台搶走)→
     跨件現身序可用 per-bone argmax 可靠量得(多件同時 collapse 於 τ=0 的值平台不干擾,因各件 timeline 獨立且峰唯一)。
     reveal 是**一次性入場**(單道波):`nrip` 必須為 1(否則 ValueError);`span` 仍控跨件散佈(上界更緊:
-    末件 burst 回穩窗須落在 τ<1,故 `CASCADE_LEAD+span+0.24<1` → span≲0.60)。"""
+    末件 burst 回穩窗須落在 τ<1,故 `CASCADE_LEAD+span+0.24<1` → span≲0.60)。
+
+    `wobble`(candidate J-15c)= **跨件晃動波變體**(wobble wave)。預設 `False` → 上述 **pop 波**
+    (逐位元向後相容)。`True` → 把單件運動基元由「scale pop 脈衝」換成「**阻尼 shearX 晃動**」(= `gen_wobble`
+    的純 shear 運動基元),依 phase **依序晃起**:每件 shearX 自 identity(0)起,輪到它時爆出一串**遞減交替**的
+    shearX 極值(阻尼振盪,同 wobble 的 A→−rA→+r²A→−r³A),再回穩到 0。與 pop/reveal 的 crux:
+    ① **單件運動基元走 shear 通道**(pop 走 scale、reveal 走 scale+alpha;wobble 走純 shearX)—— 這是**第一個
+    把 shear 錯開成跨件波**的 cascade,前面所有 cascade 皆 scale/rotate/color 通道;② **首尾皆 identity**
+    (shearX=0,**兩端**皆可接 Loop,同 pop;reveal 首端 collapsed 不可接)。晃起次序 **== pop 的 phase 次序**
+    (c=CASCADE_LEAD+p*SPAN),故 cascade_dir(J-5/J-6/J-7..)決定的「哪件何時」對 wobble 完全沿用。
+    **crux(跨件晃起序可量)**:每件 shearX 的**首個極值**(幅度 A,阻尼下最大)唯一落在其晃起中心 c →
+    per-bone `argmax(|shearX|)` 可靠量得跨件晃起序(後續極值阻尼遞減,不會搶走首極值)。wobble 亦為**一次性
+    單道波**:`nrip` 必須為 1(否則 ValueError);`span` 仍控跨件散佈(上界同 reveal:`CASCADE_LEAD+span+0.24<1`
+    → span≲0.60)。reveal 與 wobble **互斥**(皆換單件運動基元,不可同開)。"""
     T = DUR["cascade"]
     peak = _PEAK.get(role, 1.18)
     p = max(0.0, min(1.0, phase))
     n = max(1, int(nrip))
     sp = CASCADE_SPAN if span is None else float(span)   # J-4:跨件散佈幅度(None → base 0.54,byte-identical)
+    if reveal and wobble:
+        raise ValueError("gen_cascade: reveal and wobble are mutually exclusive single-part primitives")
     if reveal:
         # candidate J-15:入場波(collapsed→依序 burst→identity)。單道波,nrip 必須 1。
         if n != 1:
             raise ValueError(
                 "gen_cascade(reveal=True) is a one-time entrance: nrip must be 1 (got {})".format(n))
         return _gen_cascade_reveal(role, side_sign, T, peak, p, sp)
+    if wobble:
+        # candidate J-15c:晃動波(identity→依序阻尼 shearX 晃起→identity)。單道波,nrip 必須 1。
+        if n != 1:
+            raise ValueError(
+                "gen_cascade(wobble=True) is a one-time wobble wave: nrip must be 1 (got {})".format(n))
+        return _gen_cascade_wobble(role, side_sign, T, p, sp)
     w = 1.0 / n                                   # 每個 sweep 窗壓縮比(nrip==1 → 1.0 → byte-identical)
     centers = [(k + CASCADE_LEAD + p * sp) / n for k in range(n)]
     b, s = {}, {}
@@ -464,6 +486,39 @@ def _gen_cascade_reveal(role, side_sign, T, peak, p, sp):
         b["rotate"] = _rot([(0.00 * T, -24.0), ((c - 0.02) * T, -24.0),
                             ((c + 0.06) * T, 10.0), ((c + 0.18) * T, -4.0),
                             ((c + 0.24) * T, 0.0), (T, 0.0)])
+    return b, s
+
+
+# candidate J-15c — cascade wobble wave 單件晃起包絡的 τ 窗(相對晃起中心 c 的偏移)。
+# 4 個遞減交替 shearX 極值(同 gen_wobble golden 4 極值的阻尼比),壓進一個緊窗(末極值回穩 c+0.24<1)。
+CASCADE_WOBBLE_OFFS = (0.00, 0.08, 0.16, 0.24)   # 各極值相對 c 的 τ 偏移(回穩在 c+0.24)
+
+
+def _gen_cascade_wobble(role, side_sign, T, p, sp):
+    """candidate J-15c:跨件晃動波中的**單件** wobble(依 phase 錯開晃起)。回傳 (bone_tl, slot_tl)。
+
+    晃起中心 `c = CASCADE_LEAD + p*sp`(== 單 sweep pop 的中心 → 晃起序 == pop 的 phase 序);每件:
+      shearX: 0(identity)→ hold 0 到輪到它 → +A →(阻尼)−rA → +r²A → −r³A → 0(回穩 identity)。
+    運動基元 = `gen_wobble` 的**純 shearX 阻尼振盪**(A=role 峰值×side_sign,r=WOBBLE_DAMP),
+    只是把 4 極值壓進晃起窗 [c, c+0.24] 並前後補 identity(0)。首尾皆 shearX=0(兩端可接 Loop)。
+    **crux**:首極值幅度 A(阻尼下最大)落在 c → `argmax(|shearX|)` 唯一落晃起時刻 → 跨件晃起序可量。
+    上界守衛:末極值回穩窗 c+0.24 須 <1 → `CASCADE_LEAD+sp+0.24<1`(sp≲0.60),否則 ValueError(同 reveal)。"""
+    c = CASCADE_LEAD + p * sp
+    last = c + CASCADE_WOBBLE_OFFS[-1]
+    if last >= 1.0:
+        raise ValueError(
+            "gen_cascade(wobble): settle window overflows (c+0.24={:.3f}≥1; CASCADE_LEAD+span+0.24<1 "
+            "required → span≲0.60, got span={:.3f})".format(last, sp))
+    A = _WOBBLE_SHEAR.get(role, 12.0) * side_sign
+    r = WOBBLE_DAMP
+    amps = [A, -r * A, r * r * A, -r * r * r * A]      # 遞減交替極值(阻尼振盪,同 gen_wobble)
+    b, s = {}, {}
+    # shearX 包絡:前導 identity(0)hold 到晃起中心 → 4 個遞減交替極值 → 回穩 identity(0)。
+    env = [(0.00, 0.0), (c - 0.06, 0.0)]
+    for off, a in zip(CASCADE_WOBBLE_OFFS, amps):
+        env.append((c + off, a))
+    env += [(1.00, 0.0)]
+    b["shear"] = [{"time": round(tau * T, 4), "x": round(sx, 4), "y": 0.0} for (tau, sx) in env]
     return b, s
 
 

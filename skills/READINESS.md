@@ -1,16 +1,22 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-10 run 003(S1 candidate (J-15):cascade 入場波變體 —— 每件 collapsed→依序 burst 現身,entrance vs pop,首幀非 identity)。
-> 68 閘全綠(67 + 新 `cascade_reveal`,0 RED,無 GREEN→RED)。** **跳出 J-8..J-14「再加一個 geo 方向 source」treadmill**(方向軸邊際價值
-> 遞減,J-14 自標 hull_shortest_edge 多數情況 longest/obb 更實用):改動 cascade 的**另一條正交軸——單件運動基元**。cascade 至此(J-5..J-14)
-> 一直是 **pop 波**(每件恆 identity、依序短暫放大再回 identity),只動波的方向/散佈/段數(哪件何時);J-15 新增 **reveal 入場波**=第一個動
-> **單件運動基元**(每件做什麼):每件 collapsed→依序 burst 現身→停在 identity(pop「閃一下全程可見」vs reveal「冒出來/揭幕」,**首幀非
-> identity** 乾淨鑑別)。全 additive:`gen_cascade(reveal=False)` 新增參數(reveal=False 逐位元同 pop)+ `_gen_cascade_reveal` 單件入場包絡;
-> `cascade_reveal` 旗標線程(mirror twist_volume)+ `build_spine --cascade-reveal`。crux(處理「多件 collapse 疊加對 argmax 的擾動」):
-> 每件 burst 有唯一 overshoot 峰(peak>1)→ argmax 唯一落 burst 時刻(不被尾端 identity 平台搶)→ 跨件現身序可量。
-> `validate_cascade_reveal.py` 5AC PASS(R2 burst argmax 依 phase 遞增 [0.22..0.76]、R3 首 collapsed/尾 identity crux、R4c argmax 良定義、
-> R5 reveal 沿用 dir threading + nrip/span 守衛 + 端到端)。cap `cascade_reveal` L2 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s1-cascade-reveal.md`。
+> **最新:2026-10-10 run 004(S1 candidate (J-15c):cascade 晃動波變體 —— 每件依序阻尼 shearX 晃起→回穩,第一個把 shear 錯開成跨件波)。
+> 69 閘全綠(68 + 新 `cascade_wobble`,0 RED,無 GREEN→RED)。** 承 J-15:cascade 單件運動基元至此 pop(J-5..J-14)/reveal(J-15)**皆走 scale
+> 通道**;J-15c 新增**第三個**運動基元 **wobble 晃動波**=把單件運動換成 `gen_wobble` 的**純 shearX 阻尼振盪**(每件依序晃起 `A→−rA→+r²A→−r³A`
+> 再回穩 0)。**價值 crux(不是又一個 geo 方向 source)**:這是**第一個把 `shear` 通道錯開成跨件波**的 cascade(前面皆 scale/rotate/color)→ 證
+> 運動基元軸**可承載任意 transform 通道**(scale→shear)、不綁定特定通道。全 additive:`gen_cascade(wobble=False)` 新增參數(wobble=False 逐位元
+> 同 pop)+ `_gen_cascade_wobble` 單件晃動包絡 + `cascade_wobble` 旗標(mirror cascade_reveal)+ `build_spine --cascade-wobble`。crux(晃起序可量):
+> 每件首極值幅度 A(阻尼下最大)唯一落晃起中心 → per-bone argmax(|shearX|) 可靠量得(同 pop 峰/reveal argmax(scaleX) 的 per-bone argmax 範式)。
+> `validate_cascade_wobble.py` 5AC PASS(W2 晃起依 phase 遞增 [0.16..0.70]、W3 shear 阻尼振盪+無 scale 脈衝+首尾 shearX=0 兩端可接 Loop、
+> W4 pop/reveal/wobble 三運動基元分離、W5 dir threading + 守衛 wobble×{nrip>1,span 過大,reveal}→ValueError + 端到端)。cap `cascade_wobble` L2
+> 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s1-cascade-wobble.md`。
+> ⚠️ **排程元觀察(C 類,供使用者判斷)**:J-8..J-15c 連續 8 run 皆 cascade 微變體,邊際價值遞減;高槓桿下一步(S5 多 rig 真值 / S4 分層 PSD /
+> S1 影片輸入 / spine_inspector 實機)全阻塞在使用者資源。建議使用者提供資源或改排程方向,詳見 `STATE.md`「未解問題 / 阻塞」。
+>
+> (前一里程碑 2026-10-10 run 003:S1 candidate (J-15):cascade 入場波變體 —— 每件 collapsed→依序 burst 現身,entrance vs pop,首幀非 identity,
+> 68 閘全綠 + 新 `cascade_reveal`。跳出 J-8..J-14 geo 方向 source treadmill,改動 cascade 的另一條正交軸=單件運動基元(pop→reveal);
+> reveal 每件 burst 有唯一 overshoot 峰→argmax 唯一落 burst 時刻→跨件現身序可量。見 `knowledge/s1-cascade-reveal.md`。)
 >
 > (前一里程碑 2026-10-10 run 002:S1 candidate (J-14):cascade 波方向 凸包最短邊 geo source —— 短邊⟂長邊 + extremal-MIN 擾動敏感,
 > 67 閘全綠 + 新 `cascade_dir_hull_shortest_edge`。凸包最短邊=外廓最短相鄰邊,比照 pca→pca_minor、obb→obb_minor 的「換幾何特徵」
