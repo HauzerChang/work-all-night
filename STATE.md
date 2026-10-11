@@ -1598,6 +1598,15 @@
   **建議使用者擇一**:① 提供上述任一資源以解鎖高槓桿線;② 重新指定排程方向(編 `STATE.md` 下一步或 `PLAN.md`);
   ③ 若認為 cascade 微變體累積仍有價值則維持現狀(排程會繼續產 J-15d.. 等 additive 變體)。排程續跑無技術阻塞,
   此為**價值/方向判斷**(RULES C 類里程碑審查),非 BLOCKED。
+- 🔴 **[排程決策,2026-10-11 run 001] 本 run 刻意「不」產第 9 個 cascade 微變體(J-15d),改為確認健康 + 正式升級通知使用者 + HOLD**:
+  這是**連續第 2 個 run** 確認上述邊際價值遞減(run 004 已記錄為 C 類,但未送手機通知;使用者至今未回應/未改方向)。
+  依 RULES「停止條件:連續 2 次無實質新進展 → 避免空轉燒額度」與「C 類里程碑審查」精神,再產一個已自認邊際的 J-15d
+  會直接牴觸 run 004 的判斷並白燒額度,故本 run **不製造 fake-progress**,而是:(1) 跑 check_readiness 確認 repo 健康(見本次 log);
+  (2) **用 PushNotification 送出 C 類決策給使用者**(本 run 的實質交付 = 讓決策確實送達,不再只寫進沒人看的 STATE);
+  (3) 進入 **soft-HOLD**:在使用者回應(提供資源 / 改方向 / 明確要求繼續產 cascade 變體)前,後續排程 run 應**安靜續跑健康檢查即可、不再每 run 重送通知、不再堆疊 J-15x**。
+  **解除條件**:使用者擇一 ——(A) 提供高槓桿資源(多肢體 rig 檔 / 分層 PSD / benchmark 影片 / 放行 CDN 或離線 spine-webgl);
+  (B) 編輯 `STATE.md` 下一步或 `PLAN.md` 重新指定方向;(C) 明示「cascade 微變體仍有價值,請繼續」→ 則恢復產 J-15d..。
+  專案狀態維持 `ACTIVE`(技術上無硬阻塞,隨時可依使用者指示恢復推進),僅方向上 soft-HOLD。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
 - ℹ️ spine_inspector 實機 round-trip 需瀏覽器自動化(headless),尚未設置。
