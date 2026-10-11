@@ -6,7 +6,24 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> ⏸ **AWAITING USER DIRECTION(C 類里程碑/方向審查,2026-10-11 run 001)** — 技術上非 BLOCKED,排程仍可跑;
+> 但 **J-8..J-15c 連續 8 run 皆 cascade 微變體、邊際價值遞減**,所有高槓桿下一步全阻塞在**使用者資源**
+> (S5→L3 第二份 rig 真值 / S4 分層 PSD / S1 benchmark 影片 / spine_inspector CDN 403 網路政策)。
+> **本 run 刻意不產第 9 個 cascade 變體(J-15d)**,改依 RULES C 類把方向決策升級給使用者(已發通知)。
+> 使用者回覆前,排程**預設繼續 HOLD 於此**(不再空轉產 additive 微變體);詳見下方「未解問題 / 阻塞」第一條。
+> 使用者可擇一:① 提供上述任一資源解鎖高槓桿線;② 編 `STATE.md`「下一步動作」/`PLAN.md` 重新指定方向;
+> ③ 明確表示 cascade 微變體仍有價值 → 排程恢復產 J-15d..。
+
 ## 目前階段
+
+- **⏸ 方向審查:主排程升級 C 類決策、暫停 cascade 微變體treadmill(里程碑,2026-10-11 run 001)** —
+  本 run 接手後完整讀 RULES/PLAN/STATE/CLAUDE + log 最近數筆,確認 run 004(J-15c)已把「cascade 線邊際價值遞減 +
+  高槓桿全阻塞於使用者資源」寫進 STATE/log,並建議升級給使用者。但該建議僅在**無人看的檔案裡**。
+  **本 run 的判斷**:身為排程 routine,此刻最高價值行動 = 依 RULES **C 類**(里程碑/方向審查)+ 停止條件
+  (「連續執行無實質新進展→避免空轉燒額度」),**不再產第 9 個 cascade additive 變體**,而是**把方向決策實際送到
+  使用者面前**(PushNotification 推播 + 本 STATE 頂部 banner)。未改任何程式碼(0 diff to tools/),repo 健康沿用
+  run 004 記錄的 **check_readiness 0 RED / 69 GREEN**(本 run 未重跑全套閘:無碼變更,重跑只為確認不變狀態反而燒額度,
+  與本次升級宗旨相違——誠實標明)。**下一步見頂部 banner**:等使用者方向;若使用者要求恢復,next action 清單仍完整可接。
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
@@ -1588,6 +1605,10 @@
   見上里程碑 candidate ENV-fix + `knowledge/s1-analyzer-storyboard-recall-gate.md`。**提醒仍成立**:`check_readiness.py` 不呼叫
   `sys.exit` 故總是 exit 0,判 RED 須看各閘 `閘:GREEN/RED`,不能用 exit code。
 - ❓ 排程頻率未定(使用者尚未決定)。
+- 🔔 **[已升級給使用者,2026-10-11 run 001] 上述元觀察已正式送達使用者**:本 run 不再產 cascade 微變體,
+  改依 RULES C 類經 **PushNotification 推播**(+ STATE 頂部 banner)把「是否提供高槓桿資源 / 重新指定方向 /
+  維持 cascade 累積」三選項決策送到使用者面前。**使用者回覆前排程 HOLD 於此**(停止條件:避免連續無實質進展空轉燒額度)。
+  以下為原始元觀察(維持供參):
 - ⚠️ **[排程元觀察,2026-10-10 run 004] S1 cascade 線已達邊際價值遞減,高槓桿下一步全阻塞在使用者資源(C/資源類)**:
   J-8..J-15c **連續 8 個 run** 都在 cascade 的微變體——J-8..J-14 加 geo 方向 source(J-14 自己已標「hull_shortest_edge
   擾動敏感、多數情況 longest/obb 更實用」=方向軸飽和)、J-15/J-15c 擴運動基元(reveal/wobble)。每個都 5 AC PASS、
