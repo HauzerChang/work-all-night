@@ -79,6 +79,8 @@
 
 - [S1 端到端 → 可載入 Spine 素材(SkelToJson)](s1-build-spine-end-to-end.md) — **規格→實際素材端到端打通**:`build_spine.py` 串 analyze_target+psd_slice+generate_mesh_v2 → Spine 3.8 json+atlas+png;`validate_build.py` round-trip(重建 setup pose==原圖)對 robot(5件)/Symbol_Ww(18件)**全 PASS**(MAE 0.03/0.24、0 孤兒、0 未解析)。誠實界定:只驗靜態幾何/貼圖編碼,動畫 keyframe/mesh 變形/關節 pivot 屬後續。
 
+- [固化成果 — `spine-asset-forge` 備成 skill 套件](skill-package-spine-asset-forge.md) — **2026-10-11 run 001(非 cascade 決策)**:把已達 L3 READY 的 asset-forge 區塊依 `skills/README.md` §6 備成自包含 skill 套件 `skills/spine-asset-forge/`(SKILL.md v0.1.0 + 9 支扁平化管線工具 + references)。**刻意跳出 J-8..J-15c cascade 微變體 treadmill**,改做 policy 明定該由自驅 session 做、卻一直沒做的高價值缺口。套件**實跑驗證**:robot/Symbol_Ww round-trip 皆 overall_pass、`--weighted` 產完整 skeleton;check_readiness 0 RED。扁平化關鍵:`sys.path.insert(dirname(__file__))` 讓同目錄 bare import 自解析、`../mesh_gen` insert 變無害。⚠️ 是否 sync 到使用者帳號屬 C 類、需使用者拍板(已 PushNotification)。
+
 - [S1 平圖流程 + 分鏡先驗庫](s1-flat-pipeline-and-priors.md) — **(A) 平圖(未分層)自動拆件 baseline**(純 CPU):真值召回閘(壓平 PSD 對比已知圖層)顯示同材質/重疊角色 **0/5、0/18 語意召回**,只有「不相連塊」可靠(正對照 3/3)→ 量化佐證 PSD-first。**(B) 分鏡先驗庫**:`slot_bigwin`(Award)、`slot_reveal`(main_draw)覆蓋率皆 **1.0**;+ 2 個未驗證類型明標。修 2 bug:decomposability 反向誤判(重校準為 fg_components 主導)、動畫名分類子字串誤判(`end∈legend`,改整 token+後綴優先)。
 
 - [S3 weighted mesh 變形評估器](s3-weighted-deform-evaluator.md) — **補上 deform_eval 只驗 unweighted 的缺口**:Python 重現 Spine 3.8 bone world transform + weighted skinning + timeline 取樣,對 Award 3 個機器人 weighted mesh 逐真實動畫量化自交/翻面/塌陷。`validate_weighted_deform.py` 三道校驗全 PASS(setup 自一致、藝術家不透明件 si=0、負對照放大分離 amp4 藝術家 si=0/打亂 si=54)。修 1 bug(scale timeline 缺 channel 預設應為 1 非 0)+ 相對面積 degeneracy(避免 big-win scale-from-0 誤判)。發現軟性加成件(光暈)容許重疊 → pass/fail 需依 attachment 語意分類。是 BBW 權重生成(候選 2)的前置閘。

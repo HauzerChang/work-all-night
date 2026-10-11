@@ -1,7 +1,14 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-10 run 004(S1 candidate (J-15c):cascade 晃動波變體 —— 每件依序阻尼 shearX 晃起→回穩,第一個把 shear 錯開成跨件波)。
+> **最新:2026-10-11 run 001(固化成果,非 cascade):把 L3 READY 的 `spine-asset-forge` 區塊備成 skill 套件
+> `skills/spine-asset-forge/`(SKILL.md v0.1.0 + 9 支自包含管線工具 + references)。刻意跳出 J-8..J-15c cascade 微變體 treadmill,
+> 改做 `skills/README.md` §6 明定該由自驅 session 做的高價值缺口(repo 備好套件;sync 到帳號屬 C 類、需使用者拍板)。
+> 自包含套件實跑驗證:robot_parts/Symbol_Ww round-trip 皆 `overall_pass: true`(MAE 0.031/0.236、0 孤兒)、`--weighted` 產完整 skeleton。
+> check_readiness 仍 0 RED;`spine-asset-forge` L3 → READY ✅(本 run 不動 `tools/`,零回歸)。已打包 skill:`spine-mesh-doctor`(v0.1.0)、
+> `spine-asset-forge`(v0.1.0)。⚠️ 兩者是否 sync 到使用者帳號需使用者拍板(見 `STATE.md` 未解問題,已 PushNotification 通知)。見 `knowledge/skill-package-spine-asset-forge.md`。**
+>
+> (前一里程碑 2026-10-10 run 004:S1 candidate (J-15c):cascade 晃動波變體 —— 每件依序阻尼 shearX 晃起→回穩,第一個把 shear 錯開成跨件波)。
 > 69 閘全綠(68 + 新 `cascade_wobble`,0 RED,無 GREEN→RED)。** 承 J-15:cascade 單件運動基元至此 pop(J-5..J-14)/reveal(J-15)**皆走 scale
 > 通道**;J-15c 新增**第三個**運動基元 **wobble 晃動波**=把單件運動換成 `gen_wobble` 的**純 shearX 阻尼振盪**(每件依序晃起 `A→−rA→+r²A→−r³A`
 > 再回穩 0)。**價值 crux(不是又一個 geo 方向 source)**:這是**第一個把 `shear` 通道錯開成跨件波**的 cascade(前面皆 scale/rotate/color)→ 證

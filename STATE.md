@@ -10,6 +10,24 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **固化成果:`spine-asset-forge` 區塊打包成 skill 套件(里程碑,2026-10-11 run 001,非 cascade)** —
+  **刻意跳出 J-8..J-15c 的 cascade 微變體 treadmill**(前一 run 004 已標記為邊際價值遞減、RULES C 類待使用者判斷)。
+  本 run 改做**真正高槓桿且可自主**的事:把已達 **L3 READY** 門檻的 `spine-asset-forge` 區塊(目標圖/分層 PSD → 可載入 Spine 靜態素材)
+  依 `skills/README.md` §6 的人機邊界(**repo 只負責「備好」`skills/<id>/` 套件;打包/sync 到使用者帳號屬 C 類里程碑、需使用者拍板**)
+  **備好為自包含 skill 套件** `skills/spine-asset-forge/`(SKILL.md v0.1.0 + 9 支自包含管線工具於 `assets/` + `references/pipeline.md`)。
+  **為何做這個**:READINESS 矩陣早已顯示此區塊跨過 skill 化門檻(2026-10-01 analyzer `gen` 閘 RED→GREEN 後),但一直只有 `spine-mesh-doctor` 被打包、
+  `spine-asset-forge` 遲未備套件 → 這是**非 cascade、非資源阻塞、policy 明定該由自驅 session 做**的高價值缺口。
+  **做了什麼(全 additive,不動 `tools/`)**:①`cp` 靜態管線依賴閉包 9 檔到 `skills/spine-asset-forge/assets/`
+  (`build_spine`/`validate_build`/`analyze_target`/`genre_priors`/`psd_slice`/`generate_mesh_v2`/`generate_weighted_mesh`/`weighted_deform_eval`/`atlas_crop`);
+  各檔原用 `sys.path.insert(0, dirname(__file__))` → **扁平化到單一 assets/ 後 bare import 自解析**(`../mesh_gen` insert 變無害 no-op)。
+  ②寫 `SKILL.md`(觸發詞、能力邊界誠實表、用法、產出結構、round-trip 判讀、Spine 3.8 地雷、回歸指令);③寫 `references/pipeline.md`(座標契約/atlas/mesh uv/weighted/round-trip 數學)。
+  **驗收(自包含套件實跑,非只複製檔)**:(a) 從 `assets/` 跑 `build_spine robot_parts.psd` → `validate_build` **`overall_pass: true`**(premult MAE 0.031、0 孤兒);
+  (b) 第二真實標的 `Symbol_Ww.psd`(18 件)**`overall_pass: true`**(MAE 0.236、0 孤兒)→ 多標的 L3;(c) `--weighted` 路徑產完整 skeleton(json+atlas+png+build_meta);
+  (d) 以 cwd=skill 根、SKILL.md 文件用法 `python3 assets/build_spine.py <psd> --out <dir>` 實跑 PASS;(e) `analyze_target` 直出五段規格。
+  **回歸:check_readiness 0 RED;`spine-asset-forge` L3 → READY ✅**(fresh 確認,與打包前一致;本 run 不動 `tools/`,對既有閘零回歸)。
+  **⚠️ 待使用者拍板(RULES C 類)**:套件已「備好」,但**是否 sync 到使用者的 skill 系統/帳號屬使用者層級動作**,需使用者決定(見下「未解問題」與 PushNotification)。
+  **關鍵決策**:面對「續產 J-15d cascade 變體(邊際)vs 做別的高價值自主事」,選後者——固化一條已 READY 的真正交付成果(素材鍛造),
+  而非在 HOLD 的 anim-forge 區塊(運動基元為手感先驗、未達 L3、policy 明定不打包)再疊第 9 個微變體。見 `knowledge/skill-package-spine-asset-forge.md`。
 - **S1 cascade 晃動波變體:每件依序阻尼 shearX 晃起→回穩(第一個把 shear 錯開成跨件波)(里程碑,2026-10-10 run 004,candidate J-15c)** —
   承 (J-15):cascade 的**單件運動基元**至此有 **pop**(scale 脈衝,J-5..J-14)與 **reveal**(scale+alpha 入場,J-15)兩種,**皆走 scale 通道**。本次新增**第三個**運動基元 **wobble 晃動波**:
   把單件運動換成 `gen_wobble` 的**純 shearX 阻尼振盪**——每件 shearX 自 identity(0)起,依 phase **依序晃起**(`A→−rA→+r²A→−r³A` 4 遞減交替極值),再回穩到 0。
@@ -1598,6 +1616,13 @@
   **建議使用者擇一**:① 提供上述任一資源以解鎖高槓桿線;② 重新指定排程方向(編 `STATE.md` 下一步或 `PLAN.md`);
   ③ 若認為 cascade 微變體累積仍有價值則維持現狀(排程會繼續產 J-15d.. 等 additive 變體)。排程續跑無技術阻塞,
   此為**價值/方向判斷**(RULES C 類里程碑審查),非 BLOCKED。
+  - **↳ [2026-10-11 run 001 回應]** 本 run **不再疊 cascade 變體**,改做前一 run 未提的**第四個自主選項 ④**:固化已 READY 的成果——
+    把 `spine-asset-forge` 區塊備成 skill 套件 `skills/spine-asset-forge/`(見上里程碑)。這是**非 cascade、非資源阻塞、policy(`skills/README.md` §6)明定該由自驅 session 做**
+    的高價值缺口,消化掉一條本可自主卻一直沒做的線。**但上述 ①②③ 的核心決策仍未解、仍需使用者**:高槓桿線(S5/S4/影片/實機)依舊全阻塞在使用者資源,
+    且**新增一個 C 類待拍板**:`spine-asset-forge`(與既有 `spine-mesh-doctor`)**是否要 sync 到使用者的 skill 系統**(sync 屬帳號層級、需人決定)。
+    **已透過 PushNotification 將此 C 類里程碑審查送達使用者**(前一 run 只寫進本檔、未實際通知)。下一 run 若仍無使用者輸入:可再固化
+    `spine-mesh-doctor`/`spine-weighted-forge`/`spine-mesh-weaver` 等其他 READY 區塊的套件備好度檢查,但**應避免回到 cascade 微變體 treadmill**;
+    若 READY 區塊套件都已備妥且使用者仍未回應,則近「連續無實質新進展」停止條件,宜標記並等使用者。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
 - ℹ️ spine_inspector 實機 round-trip 需瀏覽器自動化(headless),尚未設置。
