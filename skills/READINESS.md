@@ -1,7 +1,18 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-10 run 004(S1 candidate (J-15c):cascade 晃動波變體 —— 每件依序阻尼 shearX 晃起→回穩,第一個把 shear 錯開成跨件波)。
+> **最新:2026-10-11 run 001 —— 打包里程碑(非新能力;跳出 J-8..J-15c 的 cascade 微變體 treadmill)。**
+> 本次**不新增任何能力軸/閘**,改做一件長期被忽略的 SOP 動作:把**已達 skill 化門檻卻從未打包**的區塊備好套件。
+> 69 閘維持全綠、0 RED。readiness 矩陣顯示 **3 區塊達門檻**:`spine-mesh-doctor`(已打包)、
+> **`spine-asset-forge`(本次打包,自 2026-10-01 達門檻起被忽略 10 天)**、`spine-weighted-forge`(下一 run 打包)。
+> 本 run 產出 `skills/spine-asset-forge/`(SKILL.md v0.1.0 + references/pipeline_and_spec.md),採 **repo 錨定式**
+> (非 vendored:端到端閉包 23 模組且含每 run 都在改的活躍核心 gen_animations/tier_variants/beat_templates,
+> 凍結會數天內漂移——見 SKILL.md「為什麼是 repo 錨定式」)。L3 round-trip 閘即跑即綠(premult_rgb_mae 0.031 / alpha 0.0 / 無孤兒)。
+> **C 類里程碑回報**:(a) spine-asset-forge 套件已備好,待使用者拍板是否 sync 成帳號 skill;
+> (b) 排程仍困在使用者資源缺口(S5 多 rig 真值 / S4 分層 PSD / S1 影片 / inspector CDN),詳見 `STATE.md`「未解問題」。
+>
+> ---
+> **(前一里程碑)2026-10-10 run 004(S1 candidate (J-15c):cascade 晃動波變體 —— 每件依序阻尼 shearX 晃起→回穩,第一個把 shear 錯開成跨件波)。
 > 69 閘全綠(68 + 新 `cascade_wobble`,0 RED,無 GREEN→RED)。** 承 J-15:cascade 單件運動基元至此 pop(J-5..J-14)/reveal(J-15)**皆走 scale
 > 通道**;J-15c 新增**第三個**運動基元 **wobble 晃動波**=把單件運動換成 `gen_wobble` 的**純 shearX 阻尼振盪**(每件依序晃起 `A→−rA→+r²A→−r³A`
 > 再回穩 0)。**價值 crux(不是又一個 geo 方向 source)**:這是**第一個把 `shear` 通道錯開成跨件波**的 cascade(前面皆 scale/rotate/color)→ 證

@@ -10,6 +10,18 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **打包里程碑:備好 `spine-asset-forge` skill 套件(跳出 cascade 微變體 treadmill,做長期被忽略的 SOP 動作)(里程碑,2026-10-11 run 001)** —
+  承 run 004 的**排程元觀察**(J-8..J-15c 連續 8 run cascade 微變體、邊際價值遞減、高槓桿線全阻塞在使用者資源):本次**刻意不再加第 9 個 cascade 變體**,改做一件
+  `prompts/run.md` 步驟 4.5 與 `skills/README.md` §6 **明文要求、卻被忽略 10 天**的動作——把**已達 skill 化門檻卻從未打包**的區塊備好套件。
+  `check_readiness.py` 顯示 **3 區塊達門檻**:`spine-mesh-doctor`(早已打包)、**`spine-asset-forge`(自 2026-10-01 analyzer gen 閘 RED→GREEN 起達門檻、至今未打包)**、
+  `spine-weighted-forge`(亦達門檻、未打包)。本次產出 **`skills/spine-asset-forge/`**(`SKILL.md` v0.1.0 + `references/pipeline_and_spec.md`)。
+  **做了什麼(純新增,0 行程式碼改動 → 69 閘維持全綠/0 RED)**:①SKILL.md:frontmatter(觸發詞 + 輸入契約 + Requires)+ 四能力成熟度邊界表(analyze_target/psd_slice/generate_mesh_v2 L2 + build_spine L3)
+  + 四段產線圖 + 用法 + round-trip 閘判讀 + 誠實未涵蓋(animation/weighted/rig 走別區塊)+ SemVer/回歸政策。②references:五段規格格式 + 各步輸出 + mesh v2 strip 設計 + round-trip 判讀。
+  **關鍵工程判斷(為何 repo 錨定式而非 vendored)**:`build_spine` 端到端閉包達 **23 個本地模組**,且含 `gen_animations`/`tier_variants`/`beat_templates` 等**本排程幾乎每次都在改**的活躍核心
+  → 若比照 `spine-mesh-doctor` 凍結複製進 `assets/`,會**數天內與 repo 漂移**,違反單一真值來源。故採 repo 錨定(SKILL.md+references 固化契約,回歸以 `check_readiness.py` 對 repo 實跑)。
+  **自我驗證**:L3 round-trip 閘即跑即綠(`build_spine assets/robot_parts.psd` + `validate_build` → premult_rgb_mae 0.031 / alpha_mae 0.0 / orphan 0.0,全 pass);SKILL.md frontmatter YAML 合法;0 RED 維持。
+  **C 類里程碑回報(已發通知)**:(a) spine-asset-forge 套件已備好、待使用者拍板是否 sync 成帳號 skill(sync 屬帳號層級動作,repo 只負責備套件);(b) 排程仍困在使用者資源缺口。
+  **下一步**:下一 run 比照備好 `spine-weighted-forge` 套件(亦達門檻;注意其 BBW 生成器已由 L0 升 L2,README §3 的舊「禁止打包」範例已過時,現可打包)。見 `log/2026-10-11-001.md`。
 - **S1 cascade 晃動波變體:每件依序阻尼 shearX 晃起→回穩(第一個把 shear 錯開成跨件波)(里程碑,2026-10-10 run 004,candidate J-15c)** —
   承 (J-15):cascade 的**單件運動基元**至此有 **pop**(scale 脈衝,J-5..J-14)與 **reveal**(scale+alpha 入場,J-15)兩種,**皆走 scale 通道**。本次新增**第三個**運動基元 **wobble 晃動波**:
   把單件運動換成 `gen_wobble` 的**純 shearX 阻尼振盪**——每件 shearX 自 identity(0)起,依 phase **依序晃起**(`A→−rA→+r²A→−r³A` 4 遞減交替極值),再回穩到 0。
@@ -1361,6 +1373,17 @@
 
 ## 下一步動作 (next action)
 
+> **★ 最優先(2026-10-11 run 001 設定)=打包第二個達門檻區塊 `spine-weighted-forge`**:
+> 比照本次 `spine-asset-forge`,備好 `skills/spine-weighted-forge/`(SKILL.md + references)。
+> 該區塊四能力 `weighted_deform_eval`(L2 eval)/`bbw_weights`(L2 gen)/`interior_sampling`(L2 gen)/
+> `weighted_end2end`(L3 pipeline)現全 GREEN(`skills/README.md` §3 的舊「BBW 生成器 L0 禁止打包」範例已過時)。
+> 誠實邊界:軟性件(光暈極端 reveal)權重未追平、合成 fixture 非藝術家真值——寫進 SKILL.md「已知限制」。
+> 打包同屬 repo 錨定式(weighted 產線亦依 build_spine 閉包)。完成後**三個達門檻區塊全備好套件**,
+> 一次性 C 類回報使用者拍板是否 sync。**這比再加任何 cascade/crossfade 變體更高槓桿**(把累積的 GREEN 能力變成可交付物)。
+>
+> 之後若仍無使用者資源/方向:見下「未解問題」的 C 類待辦;純自主可做項皆屬 cascade/crossfade/pivot 微變體
+> treadmill(STATE 已判邊際價值遞減),除非使用者指定方向,否則**優先打包 > 再加變體**。
+
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -1598,6 +1621,11 @@
   **建議使用者擇一**:① 提供上述任一資源以解鎖高槓桿線;② 重新指定排程方向(編 `STATE.md` 下一步或 `PLAN.md`);
   ③ 若認為 cascade 微變體累積仍有價值則維持現狀(排程會繼續產 J-15d.. 等 additive 變體)。排程續跑無技術阻塞,
   此為**價值/方向判斷**(RULES C 類里程碑審查),非 BLOCKED。
+- 🆕 **[2026-10-11 run 001] 打包決策待使用者拍板(C 類)**:本 run 跳出 cascade treadmill,改做被忽略的 SOP 動作——
+  已備好 `skills/spine-asset-forge/` 套件(下一 run 再備 `spine-weighted-forge`)。**三個區塊達 skill 化門檻**
+  (mesh-doctor 已打包、asset-forge 本次、weighted-forge 待)。**sync 成帳號可觸發 skill 屬使用者帳號層級動作,需人拍板**
+  (repo 只負責備套件;見 `skills/README.md` §6)。→ **請使用者決定:是否把這些備好的 skill 套件 sync?** 這是把
+  專案累積的 69 個 GREEN 能力轉成**可交付物**的關鍵一步,比繼續累積 cascade 變體高槓桿。此為 C 類,非 BLOCKED。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
 - ℹ️ spine_inspector 實機 round-trip 需瀏覽器自動化(headless),尚未設置。
