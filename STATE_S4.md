@@ -7,6 +7,8 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 204(2026-10-12)**:排程觸發。檢查皆無變化(無人工 decision、無 result.png、無 codex 資訊、無額度更新),**無新工作塊**,不重複通知。見 `log/s4-2026-10-12-204.md`。
+>
 > **chunk 201(2026-10-12)**:排程觸發。檢查皆無變化,**無新工作塊**,不重複通知。仍等 chunk 200 所列四項使用者回覆。見 `log/s4-2026-10-12-201.md`。
 >
 > **chunk 203(2026-10-12)**:免 API key 方案A 完成(`s4_gptfill_package.py` make/ingest,已用假結果驗證流程與漂移偵測)。等使用者在 ChatGPT 桌面版手動補 demo 包並回傳 result.png;方案B 待 `codex --version` 資訊。
