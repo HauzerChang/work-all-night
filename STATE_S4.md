@@ -9,6 +9,10 @@
 
 > **chunk 201(2026-10-12)**:排程觸發。檢查皆無變化,**無新工作塊**,不重複通知。仍等 chunk 200 所列四項使用者回覆。見 `log/s4-2026-10-12-201.md`。
 >
+> **使用者授權(2026-10-12)**:`OPENAI_API_KEY` 已設於 myCloudEnv,預檢三項 OK(`s4_openai_check.py`)。使用者**暫不設硬上限**,
+> 先用幾天觀察 `s4_data/openai_usage.jsonl` 與 OpenAI 後台用量再決定。在使用者給上限前,本排程**自設保守預設**:
+> 每個 session 生成式呼叫 ≤ 6 次、`quality=low`、不跑掃參;每次實際呼叫後必須在 log 記錄累計次數。使用者回覆具體上限後以其為準。
+>
 > **chunk 200(2026-10-12)**:使用者已回覆五項裁決(見 `log/s4-2026-10-12-200.md`):人工分割工具已交付(`s4_manual_cut.html`,`--contour manual`)、
 > hair_front/候選15 對照圖已交付(`tools/mesh_gen/s4_data/user_review/`)、API key 指引已寫(`knowledge/s4-gptfill-api-key-setup.md`)、排程頻率維持。
 > **下一步等使用者**:回傳人工 `decision_manual.json`;hair_front 邊界;key + 呼叫上限(收到才做候選17);候選15 是否恢復。
