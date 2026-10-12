@@ -74,6 +74,13 @@
       一條指令同時驗「runtime 可載入 / editor 可匯入 / loop 閉合 / stiffness / deform si / C1」。
       **AC**：對一支 2.0 生成的大獎動畫，一鍵輸出全維度 pass/fail + 量化指標。
 
+### ⚙️ 排程 scope 邊界（2026-10-12 使用者確認）
+- **排程環境 = 純 CPU、無 Cocos Creator、無 ffmpeg GPU**。排程**只推進純 CPU 可自主驗收的部分**：
+  Phase **B / C / D 全部**，以及 E 的 **E1–E3**（bundle / 改 SKILL.md / 跑 readiness + 重 zip）。
+- **Cocos MCP 即時預覽、ffmpeg 影片抽幀、spine_inspector 實機 round-trip = 使用者端完成**（排程不碰、不 block）。
+  驗收改用純 CPU 替代：spine-webgl 無頭載入檢查 + `validator_v1`/`validator_v2` 雙真值閘 + 幾何量化，
+  Cocos 視覺確認留最後交付給使用者。**排程遇到需 Cocos/ffmpeg 的步驟 → 標記「待使用者端」跳過，不停等。**
+
 ### Phase E — 打包升版 & 交付（里程碑 / C 類拍板）
 - [ ] **E1**：生成碼 bundle 進 `assets/`（self-contained，滿足 G5）；移除對 repo `tools/` 的硬相依。
 - [ ] **E2**：改寫 `SKILL.md` → **2.0.0**（新增軸寫進核心能力表 + 觸發詞 + Changelog），更新 `INSTALL.md`。
