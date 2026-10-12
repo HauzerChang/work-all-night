@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spine 動作檢視器 · lula v9</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c2230; --line:#2a3240;
+    --txt:#e4e9f0; --dim:#8b98ab; --accent:#4fd1c5; --accent2:#f6ad55;
+    --bad:#fc8181; --good:#68d391;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:13px/1.5 "Segoe UI",-apple-system,"Noto Sans TC",sans-serif;background:var(--bg);color:var(--txt);height:100vh;overflow:hidden}
+  #app{display:grid;grid-template-columns:236px 1fr 272px;grid-template-rows:44px 1fr 116px;height:100vh}
+
+  header{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+  header h1{font-size:14px;margin:0;font-weight:600;letter-spacing:.3px}
+  header h1 span{color:var(--accent)}
+  .spacer{flex:1}
+  .rt{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim)}
+  select,button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px 8px;font:inherit;font-size:12px;cursor:pointer}
+  button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  button:disabled{opacity:.4;cursor:default}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--bad);flex:none}
+  .dot.on{background:var(--good)}
+
+  aside{background:var(--panel);overflow-y:auto;border-right:1px solid var(--line)}
+  aside.right{border-right:none;border-left:1px solid var(--line)}
+  .sec{padding:10px 12px;border-bottom:1px solid var(--line)}
+  .sec h2{font-size:10px;text-transform:uppercase;letter-spacing:.9px;color:var(--dim);margin:0 0 8px}
+
+  #layerList{display:flex;flex-direction:column;gap:2px}
+  .lyr{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:5px;cursor:pointer;border:1px solid transparent}
+  .lyr:hover{background:var(--panel2)}
+  .lyr.sel{background:#1e3a38;border-color:var(--accent)}
+  .lyr input{accent-color:var(--accent);margin:0;flex:none;cursor:pointer}
+  .lyr b{font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+  .lyr.sel b{color:var(--accent)}
+  .lyr.off b{color:#5f6b7d;text-decoration:line-through}
+  .lyr button{border:none;background:none;padding:0 2px;color:var(--dim);font-size:11px;flex:none}
+  .lyr button:hover{color:var(--accent)}
+  .lyr button.x:hover{color:var(--bad)}
+  .lyrNote{font-size:10px;color:#5f6b7d;margin-top:6px;line-height:1.5}
+
+  #animList{display:flex;flex-direction:column;gap:1px}
+  .anim{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;cursor:pointer;border:1px solid transparent}
+  .anim:hover{background:var(--panel2)}
+  .anim.sel{background:#1e3a38;border-color:var(--accent);color:var(--accent)}
+  .anim b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .anim i{font-style:normal;color:var(--dim);font-size:11px;flex:none;font-variant-numeric:tabular-nums}
+  .anim.sel i{color:var(--accent)}
+  .grp{font-size:10px;color:var(--accent2);text-transform:uppercase;letter-spacing:.7px;margin:8px 0 3px;padding-left:2px}
+
+  main{position:relative;background:
+    linear-gradient(45deg,#151a21 25%,transparent 25%,transparent 75%,#151a21 75%),
+    linear-gradient(45deg,#151a21 25%,#12161c 25%,#12161c 75%,#151a21 75%);
+    background-size:22px 22px;background-position:0 0,11px 11px;overflow:hidden}
+  main.plain{background:#12161c}
+  main.light{background:#d8dee8}
+  canvas{display:block;width:100%;height:100%}
+  #drop{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:30px;background:rgba(14,17,22,.94);z-index:5}
+  #drop.hide{display:none}
+  #drop.over{background:rgba(31,58,56,.96);outline:2px dashed var(--accent);outline-offset:-14px}
+  #drop .big{font-size:15px;font-weight:600}
+  #drop .sm{color:var(--dim);max-width:430px;line-height:1.7;font-size:12px}
+  #drop code{background:var(--panel2);padding:1px 5px;border-radius:3px;color:var(--accent);font-size:11px}
+  #err{position:absolute;left:12px;right:12px;bottom:12px;background:#3b1d1d;border:1px solid var(--bad);color:#ffd7d7;padding:9px 12px;border-radius:6px;font-size:12px;display:none;z-index:6;white-space:pre-wrap}
+  #hud{position:absolute;top:9px;left:11px;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;pointer-events:none;text-shadow:0 1px 3px #000}
+
+  footer{grid-column:1/-1;background:var(--panel);border-top:1px solid var(--line);padding:9px 14px;display:flex;flex-direction:column;gap:8px}
+  .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .ctl{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim)}
+  input[type=range]{width:112px;accent-color:var(--accent)}
+  #scrub{flex:1;min-width:180px;accent-color:var(--accent2)}
+  label.chk{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dim);cursor:pointer;user-select:none}
+  label.chk input{accent-color:var(--accent);margin:0}
+  .val{color:var(--txt);font-variant-numeric:tabular-nums;min-width:34px;display:inline-block}
+
+  table{width:100%;border-collapse:collapse;font-size:11.5px}
+  td{padding:3px 0;vertical-align:top}
+  td:first-child{color:var(--dim)}
+  td:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+  .cmp{display:grid;grid-template-columns:1fr auto auto;gap:3px 8px;font-size:11.5px;align-items:center}
+  .cmp .h{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim);text-align:right}
+  .cmp .h:first-child{text-align:left}
+  .cmp .k{color:var(--dim)}
+  .cmp .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+  .cmp .b{text-align:right;font-variant-numeric:tabular-nums;color:#5f6b7d}
+  .flag{font-size:10px;padding:1px 5px;border-radius:3px;margin-left:5px}
+  .flag.w{background:#432b16;color:var(--accent2)}
+  .flag.g{background:#1a3a28;color:var(--good)}
+  .note{font-size:10.5px;color:#6b7889;line-height:1.6;margin-top:8px}
+  .bar{height:4px;background:var(--panel2);border-radius:2px;overflow:hidden;margin-top:3px}
+  .bar>div{height:100%;background:var(--accent)}
+  .empty{color:#5f6b7d;font-size:11.5px;padding:2px 0}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Spine 動作檢視器 <span>· lula v9</span></h1>
+    <div class="rt">
+      <span class="dot" id="rtDot"></span>
+      <span id="rtTxt">載入 runtime…</span>
+    </div>
+    <select id="rtSel" title="切換 Spine runtime 版本">
+      <option value="3.8">Spine 3.8（Cocos 2.4）</option>
+      <option value="4.1">Spine 4.1（Cocos 3.x）</option>
+    </select>
+    <button id="btnRtFile" title="從本機載入 spine-webgl.js">本機 runtime…</button>
+    <div class="spacer"></div>
+    <button id="btnFit">重新置中</button>
+    <button id="btnBg">背景</button>
+    <button id="btnLoad">加入檔案…</button>
+    <button id="btnClear" disabled>全部清除</button>
+    <input type="file" id="file" multiple accept=".json,.skel,.atlas,.txt,.png,.jpg,.webp,.js" hidden>
+    <input type="file" id="rtFile" accept=".js" hidden>
+  </header>
+
+  <aside>
+    <div class="sec" id="layerSec" style="display:none">
+      <h2>圖層</h2>
+      <div id="layerList"></div>
+      <div class="lyrNote">所有<b>👁 開著的圖層會同時原位重疊顯示</b>，可直接對位。點名稱＝切換作用中圖層（只決定下方面板控制誰，<b>絕不影響顯示</b>）；👁＝該層顯示開關；↑↓ 前後順序（列表越上面畫越上層）；⌖＝位置歸零；🗑 點兩下才移除。<br>畫面上直接拖曳角色可暫時移開再 ⌖ 歸位；Shift＋拖曳或拖空白處＝平移視角。</div>
+    </div>
+    <div class="sec">
+      <h2>動作清單</h2>
+      <div class="lyrNote" style="margin:0 0 6px">點動作＝在目前圖層播放預覽；按 <b>➕</b>＝把該動作變成一個<b>獨立圖層</b>，多個動作可同時原位重疊播放來對位。</div>
+      <div id="animList"><div class="empty">尚未載入骨架</div></div>
+    </div>
+    <div class="sec" id="skinSec" style="display:none">
+      <h2>Skin</h2>
+      <select id="skinSel" style="width:100%"></select>
+    </div>
+    <div class="sec" id="attSec" style="display:none">
+      <h2>Attachment 切換</h2>
+      <label class="chk" style="margin-bottom:6px" title="勾選＝每幀重套手動選擇（模擬程式 setAttachment 常駐切換）；取消＝只套一次，動畫的換圖 key 會在 loop 重播時蓋回去（正是生產環境會踩的坑）">
+        <input type="checkbox" id="attLock" checked>手動優先（覆蓋動畫換圖 key）
+      </label>
+      <input id="attFilter" placeholder="過濾 slot…" style="width:100%;margin-bottom:6px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:5px;padding:4px 8px;font:inherit;font-size:12px">
+      <div id="attCtl" style="display:flex;flex-direction:column;gap:5px"></div>
+      <button id="attReset" style="margin-top:8px;width:100%">全部還原動畫控制</button>
+    </div>
+  </aside>
+
+  <main id="stage">
+    <canvas id="cv"></canvas>
+    <div id="hud"></div>
+    <div id="drop">
+      <div class="big">把 Spine 檔案拖進來</div>
+      <div class="sm">
+        一次選齊三種：<code>.json</code> 或 <code>.skel</code>（骨架）、<code>.atlas</code>（圖集描述）、
+        以及 atlas 內指定的 <code>.png</code> 貼圖。<br>
+        整個資料夾拖進來也可以，會自動配對。<br>
+        <b>可以放多組骨架</b>：一次拖多套、含多個子資料夾的整包、或分多次拖，
+        每個骨架檔（依所在資料夾配對 atlas／貼圖）各成一個可開關的圖層。
+      </div>
+      <div class="sm" style="color:#5f6b7d">
+        檔案只在你的瀏覽器裡讀取，不會上傳到任何地方。<br>
+        若右上角顯示 runtime 載入失敗，把 <code>spine-webgl.js</code> 一起拖進來就行。
+      </div>
+    </div>
+    <div id="err"></div>
+  </main>
+
+  <aside class="right">
+    <div class="sec">
+      <h2>骨架體檢</h2>
+      <div class="cmp" id="stats">
+        <div class="empty" style="grid-column:1/-1">尚未載入骨架</div>
+      </div>
+      <div class="note" id="statNote"></div>
+    </div>
+    <div class="sec">
+      <h2>Attachment 組成</h2>
+      <table id="att"><tr><td class="empty">—</td></tr></table>
+    </div>
+    <div class="sec">
+      <h2>Mesh / 權重分布</h2>
+      <div id="meshSum" class="empty">—</div>
+      <table id="meshTbl"></table>
+      <div class="note" id="wHist"></div>
+      <table id="boneLoad"></table>
+    </div>
+  </aside>
+
+  <footer>
+    <div class="row">
+      <button id="btnPlay" disabled>▶ 播放</button>
+      <label class="chk"><input type="checkbox" id="loop" checked>Loop</label>
+      <input type="range" id="scrub" min="0" max="1000" value="0" step="1" disabled>
+      <span class="val" id="tTxt">0.00s</span>
+    </div>
+    <div class="row">
+      <div class="ctl">速度 <input type="range" id="speed" min="0" max="200" value="100"><span class="val" id="spTxt">1.00×</span></div>
+      <div class="ctl">混合 <input type="range" id="mix" min="0" max="60" value="12"><span class="val" id="mixTxt">0.12s</span></div>
+      <label class="chk"><input type="checkbox" id="dBone">骨骼</label>
+      <label class="chk"><input type="checkbox" id="dMesh">Mesh</label>
+      <label class="chk"><input type="checkbox" id="dHull">Hull</label>
+      <label class="chk"><input type="checkbox" id="dBox">碰撞框</label>
+      <label class="chk"><input type="checkbox" id="dClip">Clipping</label>
+      <label class="chk"><input type="checkbox" id="pma" checked>預乘 Alpha</label>
+    </div>
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   Spine 動作檢視器（多圖層版）
+   純前端；檔案用 FileReader 在本機讀取，不外傳。
+   Runtime 由 CDN 載入（3.8 或 4.1），三個鏡像依序 fallback。
+   每載入一組（.json/.skel + .atlas + 貼圖）就成為一個圖層，
+   可獨立開關顯示、調整前後順序、單獨移除。
+   左側動作清單／Skin／Attachment 與右側體檢面板永遠對
+   「作用中圖層」操作。
+   ============================================================ */
+
+const RUNTIMES = {
+  '3.8': [
+    'https://cdn.jsdelivr.net/gh/EsotericSoftware/spine-runtimes@3.8/spine-ts/build/spine-webgl.js',
+    'https://cdn.statically.io/gh/EsotericSoftware/spine-runtimes/3.8/spine-ts/build/spine-webgl.js',
+    'https://raw.githack.com/EsotericSoftware/spine-runtimes/3.8/spine-ts/build/spine-webgl.js'
+  ],
+  '4.1': [
+    'https://unpkg.com/@esotericsoftware/spine-webgl@4.1.24/dist/iife/spine-webgl.js',
+    'https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-webgl@4.1.24/dist/iife/spine-webgl.js'
+  ]
+};
+
+/* dj_cat 基準：本次 EDM Mania 2 runtime 實測值，供對照用 */
+const BASELINE = {
+  label:'dj_cat',
+  bones:105, slots:64, anims:16, attach:177, ik:4, tc:21, timelines:3562, pages:1, deform:0
+};
+
+const $ = id => document.getElementById(id);
+const stage=$('stage'), cv=$('cv'), dropEl=$('drop'), errEl=$('err');
+
+let gl, renderer, spineNS, rtReady=false, rtVersion=null;
+
+/* 圖層：{name, skeleton, state, skelData, atlasObj, curAnim, curDur, visible, attOverrides}
+   layers[0] 最先畫（最底層），越後面越上層。 */
+let layers=[], active=null;
+/* 下面四個 global 永遠鏡射 active 圖層，讓既有面板程式碼不用改 */
+let skeleton=null, state=null, skelData=null, atlasObj=null;
+let playing=true, lastT=0, curAnim=null, curDur=0, scrubbing=false;
+let camX=0, camY=0, camZoom=1, fitZoom=1;
+let bgMode=0;
+
+/* ---------- 錯誤顯示 ---------- */
+function showErr(msg){ errEl.textContent=msg; errEl.style.display='block'; }
+function clearErr(){ errEl.style.display='none'; }
+
+/* ---------- 載入 runtime（多鏡像 fallback） ---------- */
+async function loadRuntime(ver){
+  rtReady=false; $('rtDot').classList.remove('on'); $('rtTxt').textContent='載入 runtime…';
+  // 卸掉舊的 global，避免版本混用
+  try{ delete window.spine; }catch(e){ window.spine=undefined; }
+  document.querySelectorAll('script[data-spine]').forEach(s=>s.remove());
+
+  let lastErr=null;
+  for(const url of RUNTIMES[ver]){
+    try{
+      const s=document.createElement('script');
+      s.dataset.spine='1';
+      await new Promise((res,rej)=>{
+        s.src=url; s.async=true;
+        s.onload=res; s.onerror=()=>rej(new Error(url));
+        document.head.appendChild(s);
+      });
+      if(!window.spine) throw new Error('script 載入了但沒有 spine global：'+url);
+      spineNS = window.spine;
+      rtVersion = ver;
+      rtReady = true;
+      $('rtDot').classList.add('on');
+      $('rtTxt').textContent = 'Spine '+ver+' 就緒';
+      clearErr();
+      initGL();
+      return true;
+    }catch(e){ lastErr=e; }
+  }
+  $('rtTxt').textContent='runtime 載入失敗';
+  showErr(
+    '無法從 CDN 載入 Spine '+ver+' runtime（試過 '+RUNTIMES[ver].length+' 個鏡像）。\n\n'+
+    '兩種解法，選一個：\n'+
+    '① 按右上角「本機 runtime…」，選一份 spine-webgl.js。\n'+
+    '   官方 runtime 壓縮檔裡的路徑是 spine-ts/build/spine-webgl.js\n'+
+    '   （spine-runtimes repo 的 3.8 分支或 4.1 分支都有）。\n'+
+    '② 把 spine-webgl.js 放到跟這個 HTML 同一層資料夾，重新整理即可自動抓。'
+  );
+  // 同層目錄的 spine-webgl.js 當最後一道自動 fallback
+  try{
+    const s=document.createElement('script');
+    s.dataset.spine='1'; s.src='spine-webgl.js';
+    await new Promise((res,rej)=>{ s.onload=res; s.onerror=()=>rej(); document.head.appendChild(s); });
+    if(window.spine){ adoptRuntime(ver); return true; }
+  }catch(e){}
+  return false;
+}
+
+/* 接受一份已注入的 spine global */
+function adoptRuntime(verLabel){
+  spineNS=window.spine; rtVersion=verLabel; rtReady=true;
+  $('rtDot').classList.add('on');
+  $('rtTxt').textContent='Spine '+verLabel+' 就緒';
+  clearErr();
+  initGL();
+}
+
+/* 從本機檔案載入 runtime */
+async function loadRuntimeFromFile(file){
+  try{
+    const code=await readAs(file,'text');
+    try{ delete window.spine; }catch(e){ window.spine=undefined; }
+    document.querySelectorAll('script[data-spine]').forEach(s=>s.remove());
+    const blob=new Blob([code],{type:'text/javascript'});
+    const url=URL.createObjectURL(blob);
+    const s=document.createElement('script'); s.dataset.spine='1'; s.src=url;
+    await new Promise((res,rej)=>{ s.onload=res; s.onerror=()=>rej(new Error('script 執行失敗')); document.head.appendChild(s); });
+    URL.revokeObjectURL(url);
+    if(!window.spine) throw new Error('這個檔案沒有定義 spine global，確認選的是 spine-webgl.js');
+    // 從 global 猜版本標籤
+    const guess = (window.spine.webgl && window.spine.webgl.SceneRenderer) ? '3.8' : '4.x';
+    adoptRuntime(guess + '（本機）');
+    return true;
+  }catch(e){
+    showErr('本機 runtime 載入失敗：'+(e.message||e));
+    return false;
+  }
+}
+
+/* ---------- WebGL / renderer ---------- */
+function webglNS(){
+  // 3.8 把 WebGL 類別放在 spine.webgl，4.x 直接攤平在 spine 下
+  return (spineNS.webgl && spineNS.webgl.SceneRenderer) ? spineNS.webgl : spineNS;
+}
+
+let frameStarted=false;
+function initGL(){
+  resize();
+  gl = gl || cv.getContext('webgl',{alpha:true,premultipliedAlpha:false})
+          || cv.getContext('experimental-webgl',{alpha:true});
+  if(!gl){ showErr('這個瀏覽器沒有可用的 WebGL。'); return; }
+  const W = webglNS();
+  renderer = new W.SceneRenderer(cv, gl);   // 切換 runtime 時重建
+  if(!frameStarted){ frameStarted=true; requestAnimationFrame(frame); }
+}
+
+function resize(){
+  const r = stage.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  cv.width = Math.max(1, Math.round(r.width*dpr));
+  cv.height = Math.max(1, Math.round(r.height*dpr));
+  if(gl) gl.viewport(0,0,cv.width,cv.height);
+}
+new ResizeObserver(resize).observe(stage);
+
+/* ---------- 檔案處理 ---------- */
+function readAs(file, how){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onload=()=>res(fr.result);
+    fr.onerror=()=>rej(new Error('讀不到 '+file.name));
+    how==='text' ? fr.readAsText(file) : fr.readAsArrayBuffer(file);
+  });
+}
+function loadImage(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{ res(img); };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('圖片解不開 '+file.name)); };
+    img.src=url;
+  });
+}
+
+/* 去掉路徑與副檔名，用來配對骨架↔atlas */
+function stem(n){
+  return n.split('/').pop()
+          .replace(/\.(json|skel|txt)$/i,'')
+          .replace(/\.atlas$/i,'');
+}
+/* 檔案的相對路徑（拖資料夾時由 collect() 記在 _relpath）與所在資料夾 */
+function fpath(f){ return f._relpath || f.webkitRelativePath || f.name; }
+function dirOf(p){ return p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : ''; }
+
+async function handleFiles(fileList){
+  const files=[...fileList];
+  if(!files.length) return;
+
+  // 混在裡面的 spine-webgl.js 直接當 runtime 用
+  const rtJs = files.find(f=>/\.js$/i.test(f.name));
+  if(rtJs && !rtReady){
+    const ok = await loadRuntimeFromFile(rtJs);
+    if(!ok) return;
+  }
+  if(!rtReady){ showErr('runtime 還沒就緒。等一下再試，或按右上角「本機 runtime…」載入 spine-webgl.js。'); return; }
+  clearErr();
+
+  const skelFiles  = files.filter(f=>/\.(json|skel)$/i.test(f.name));
+  const atlasFiles = files.filter(f=>/\.(atlas|txt)$/i.test(f.name));
+  const imgFiles   = files.filter(f=>/\.(png|jpg|jpeg|webp)$/i.test(f.name));
+
+  if(!skelFiles.length)  return showErr('少了骨架檔：需要至少一個 .json 或 .skel');
+  if(!atlasFiles.length) return showErr('少了圖集描述檔：需要 .atlas（有時副檔名是 .atlas.txt）');
+  if(!imgFiles.length)   return showErr('少了貼圖：需要 atlas 裡指定的 .png / .jpg');
+
+  // 貼圖池：以「資料夾/檔名」為主鍵，純檔名當備援（不同資料夾的同名貼圖不互蓋）
+  const imgMap={};
+  try{
+    for(const f of imgFiles){
+      const img = await loadImage(f);
+      imgMap[fpath(f)] = img;
+      if(!(f.name in imgMap)) imgMap[f.name] = img;   // 備援：先到先得
+    }
+  }catch(e){ return showErr(e.message||String(e)); }
+
+  // 每個骨架檔（.json 或 .skel）都各成一個圖層，不去重 —— 方便同檔雙格式對照
+  // 每個骨架檔配一個 atlas → 一個圖層（同資料夾優先配對）
+  const hadLayers = layers.length>0;
+  const beforeKeys = new Set(layers.map(l=>l.key));
+  const errs=[];
+  for(const sf of skelFiles){
+    const s = stem(sf.name), sd = dirOf(fpath(sf));
+    const inDir = atlasFiles.filter(a=>dirOf(fpath(a))===sd);
+    const af = inDir.find(a=>stem(a.name)===s)
+            || inDir.find(a=>stem(a.name).startsWith(s)||s.startsWith(stem(a.name)))
+            || (inDir.length===1 ? inDir[0] : null)
+            || atlasFiles.find(a=>stem(a.name)===s)
+            || (atlasFiles.length===1 ? atlasFiles[0] : null);
+    if(!af){ errs.push(fpath(sf)+'：找不到配得上的 .atlas（同資料夾內也沒有）'); continue; }
+    try{ await loadOne(sf, af, imgMap); }
+    catch(e){
+      console.error(e);
+      errs.push(fpath(sf)+'：'+(e.message||e));
+    }
+  }
+  if(errs.length){
+    const hint = errs.some(m=>/version/i.test(m))
+      ? '\n\n看起來是 runtime 版本不合 — 用右上角切換 3.8 / 4.1 再試。' : '';
+    showErr('部分載入失敗：\n'+errs.join('\n')+hint);
+  }
+  if(layers.length){
+    dropEl.classList.add('hide');
+    $('btnClear').disabled=false; $('btnPlay').disabled=false; $('scrub').disabled=false;
+    // 有「新」圖層加入就重新取景把所有可見圖層框進同一畫面；
+    // 純粹重載既有檔案（原地更新）則不動相機與定位
+    const addedNew = layers.some(l=>!beforeKeys.has(l.key));
+    if(!hadLayers || addedNew) fitView();
+  }
+  $('file').value='';
+}
+
+/* 載入一組骨架＋atlas，成為一個新圖層 */
+async function loadOne(skelFile, atlasFile, imgMap){
+  const atlasText = await readAs(atlasFile,'text');
+  const atlasDir = dirOf(fpath(atlasFile));
+  const W = webglNS();
+  const missing = [];
+  const texFor = path=>{
+    const base = String(path).split('/').pop();
+    // 先找 atlas 同資料夾的貼圖，再退回純檔名
+    const img = imgMap[(atlasDir?atlasDir+'/':'')+base] || imgMap[base] || imgMap[path];
+    if(!img){ missing.push(base); return new W.GLTexture(gl, document.createElement('canvas')); }
+    return new W.GLTexture(gl, img);
+  };
+
+  // 3.8：建構子收 textureLoader。4.x：先建 atlas，再逐頁 setTexture。
+  let atlas;
+  if(spineNS.webgl && spineNS.webgl.SceneRenderer){
+    atlas = new spineNS.TextureAtlas(atlasText, texFor);
+  }else{
+    atlas = new spineNS.TextureAtlas(atlasText);
+    for(const p of atlas.pages){
+      const t = texFor(p.name);
+      p.setTexture ? p.setTexture(t) : (p.texture = t);
+    }
+  }
+  if(missing.length){
+    showErr('atlas 需要這些貼圖但沒找到，畫面會缺圖：\n' + [...new Set(missing)].join(', '));
+  }
+
+  const loader = new spineNS.AtlasAttachmentLoader(atlas);
+  let data;
+  if(/\.skel$/i.test(skelFile.name)){
+    const buf = new Uint8Array(await readAs(skelFile,'buf'));
+    data = new spineNS.SkeletonBinary(loader).readSkeletonData(buf);
+  }else{
+    const txt = await readAs(skelFile,'text');
+    data = new spineNS.SkeletonJson(loader).readSkeletonData(JSON.parse(txt));
+  }
+
+  // 身分＝完整相對路徑（不同資料夾的同名 skeleton.json 各自是獨立圖層）
+  const key = fpath(skelFile);
+  const skelDir = dirOf(key);
+  const parent = skelDir ? skelDir.split('/').pop() : '';
+  const ext = (skelFile.name.match(/\.(json|skel)$/i)||['',''])[1].toLowerCase();
+  let dispName = stem(skelFile.name);
+  const clash = n => layers.some(l=>l.key!==key && l.name===n);
+  // 名字撞到別的圖層時：先加副檔名（json/skel 對照），再加上層資料夾名
+  if(clash(dispName)) dispName = dispName+'.'+ext;
+  if(clash(dispName) && parent) dispName = parent+'/'+dispName;
+  else if(parent && /^(skeleton|spine|char|export)$/i.test(stem(skelFile.name)))
+    dispName = parent+'/'+dispName;
+
+  const L = {
+    key,
+    name: dispName,
+    atlasObj: atlas,
+    skelData: data,
+    skeleton: new spineNS.Skeleton(data),
+    state: null,
+    curAnim: null, curDur: 0,
+    visible: true,
+    x: 0, y: 0,          // 拖曳定位偏移（世界座標）
+    attOverrides: {}
+  };
+  const sd = new spineNS.AnimationStateData(data);
+  sd.defaultMix = +$('mix').value/100;
+  L.state = new spineNS.AnimationState(sd);
+  L.skeleton.setToSetupPose();
+  L.skeleton.updateWorldTransform();
+
+  // 同路徑檔案重新載入＝原地更新該圖層，保留拖曳定位／顯示狀態／順序
+  const idx = layers.findIndex(l=>l.key===L.key);
+  if(idx>=0){
+    const old = layers[idx];
+    L.x=old.x; L.y=old.y; L.visible=old.visible;
+    L.skeleton.x=L.x; L.skeleton.y=L.y;
+    layers[idx]=L;
+  }else{
+    // 新圖層一律載在原點（0,0），與其他圖層依各自輸出座標原位重疊 —— 對位用
+    layers.push(L);
+  }
+  setActive(L);
+  if(data.animations.length) play(data.animations[0].name);
+}
+
+/* ---------- 圖層管理 ---------- */
+function setActive(L){
+  active = L;
+  skeleton=L.skeleton; state=L.state; skelData=L.skelData; atlasObj=L.atlasObj;
+  curAnim=L.curAnim; curDur=L.curDur;
+  buildLayerList();
+  buildAnimList();
+  buildSkins();
+  buildStats();
+  buildAttachmentPanel();
+  [...document.querySelectorAll('.anim')].forEach(el=>el.classList.toggle('sel', el.dataset.name===curAnim));
+}
+
+function removeLayer(L){
+  const i=layers.indexOf(L);
+  if(i>=0) layers.splice(i,1);
+  if(!layers.length){ reset(); return; }
+  if(L===active) setActive(layers[layers.length-1]);
+  else buildLayerList();
+}
+
+function moveLayer(L, dir){   // dir=+1 → 晚畫（更上層）
+  const i=layers.indexOf(L), j=i+dir;
+  if(i<0 || j<0 || j>=layers.length) return;
+  [layers[i],layers[j]]=[layers[j],layers[i]];
+  buildLayerList();
+}
+
+function buildLayerList(){
+  const sec=$('layerSec'), box=$('layerList');
+  if(!layers.length){ sec.style.display='none'; box.innerHTML=''; return; }
+  sec.style.display='block';
+  box.innerHTML='';
+  // 列表由上到下 = 畫面由上層到底層（像繪圖軟體）
+  [...layers].reverse().forEach(L=>{
+    const d=document.createElement('div');
+    d.className='lyr'+(L===active?' sel':'')+(L.visible?'':' off');
+    // 顯示開關：明確的眼睛按鈕，跟切換動作分開，誤觸也一眼看得出來
+    const eye=document.createElement('button');
+    eye.textContent=L.visible?'👁':'✕'; eye.title='顯示 / 隱藏（只影響這一層，跟切換無關）';
+    eye.style.cssText='width:24px;flex:none';
+    eye.onclick=e=>{ e.stopPropagation(); L.visible=!L.visible;
+      eye.textContent=L.visible?'👁':'✕'; d.classList.toggle('off',!L.visible); };
+    const b=document.createElement('b'); b.textContent=L.name;
+    b.title=L.name+'（點一下＝設為作用中圖層，不會隱藏其他層）';
+    const grp=document.createElement('span');
+    grp.style.cssText='display:flex;gap:5px;flex:none;margin-left:8px;align-items:center';
+    const up=document.createElement('button'); up.textContent='↑'; up.title='往上層移';
+    up.onclick=e=>{ e.stopPropagation(); moveLayer(L,+1); };
+    const dn=document.createElement('button'); dn.textContent='↓'; dn.title='往下層移';
+    dn.onclick=e=>{ e.stopPropagation(); moveLayer(L,-1); };
+    const pos=document.createElement('button'); pos.textContent='⌖';
+    pos.title='位置歸零回原位（目前偏移 '+Math.round(L.x)+', '+Math.round(L.y)+'）';
+    pos.onclick=e=>{ e.stopPropagation(); L.x=0; L.y=0; pos.title='位置歸零回原位（目前偏移 0, 0）'; };
+    // 移除要點兩下確認，避免誤刪
+    const x=document.createElement('button'); x.className='x'; x.textContent='🗑'; x.title='移除圖層（再點一下確認）';
+    let arm=null;
+    x.onclick=e=>{ e.stopPropagation();
+      if(arm){ clearTimeout(arm); removeLayer(L); return; }
+      x.textContent='確定?'; x.style.color='var(--bad)';
+      arm=setTimeout(()=>{ arm=null; x.textContent='🗑'; x.style.color=''; },1500);
+    };
+    grp.append(up,dn,pos,x);
+    d.onclick=()=>{ if(L!==active) setActive(L); };
+    d.append(eye,b,grp);
+    box.appendChild(d);
+  });
+}
+
+/* 把某個動作生成一個獨立圖層（同骨架的新實例），與其他圖層同時播放、原位重疊 */
+function addAnimLayer(src, animName){
+  const key = src.key.split('#')[0]+'#'+animName;
+  const ex = layers.find(l=>l.key===key);
+  if(ex){ setActive(ex); return; }   // 已存在就只切換過去
+  const data = src.skelData;
+  const L = {
+    key,
+    name: src.name.split(' · ')[0]+' · '+animName,
+    atlasObj: src.atlasObj,
+    skelData: data,
+    skeleton: new spineNS.Skeleton(data),
+    state: null,
+    curAnim: null, curDur: 0,
+    visible: true,
+    x: 0, y: 0,
+    attOverrides: {}
+  };
+  const sd = new spineNS.AnimationStateData(data);
+  sd.defaultMix = +$('mix').value/100;
+  L.state = new spineNS.AnimationState(sd);
+  L.skeleton.setToSetupPose();
+  L.skeleton.updateWorldTransform();
+  layers.push(L);
+  setActive(L);
+  play(animName);
+}
+
+/* ---------- 動作清單（自動依前綴分組；對作用中圖層） ---------- */
+function buildAnimList(){
+  const box=$('animList'); box.innerHTML='';
+  const anims=skelData.animations;
+  if(!anims.length){ box.innerHTML='<div class="empty">這個骨架沒有動畫</div>'; return; }
+  const src = active;   // ➕ 按鈕綁定建清單當下的圖層
+
+  // 用底線第一段當分組鍵，只有在能分出 2 組以上時才分組
+  const groups=new Map();
+  for(const a of anims){
+    const k = a.name.includes('_') ? a.name.split('_')[0] : '_';
+    if(!groups.has(k)) groups.set(k,[]);
+    groups.get(k).push(a);
+  }
+  const useGroups = groups.size>1 && groups.size<anims.length;
+
+  const addItem=a=>{
+    const d=document.createElement('div');
+    d.className='anim'; d.dataset.name=a.name;
+    d.innerHTML='<b></b><i>'+a.duration.toFixed(2)+'s</i>';
+    d.querySelector('b').textContent=a.name;
+    // ➕：把這個動作變成一個獨立圖層，跟其他圖層同時播放（對位用）
+    const add=document.createElement('button');
+    add.textContent='➕'; add.title='把這個動作加成獨立圖層，與其他圖層同時顯示';
+    add.style.cssText='border:none;background:none;padding:0 2px;font-size:11px;flex:none;color:var(--dim)';
+    add.onclick=e=>{ e.stopPropagation(); addAnimLayer(src, a.name); };
+    d.appendChild(add);
+    d.onclick=()=>play(a.name);
+    box.appendChild(d);
+  };
+
+  if(useGroups){
+    for(const [k,list] of groups){
+      const h=document.createElement('div');
+      h.className='grp'; h.textContent = k==='_' ? '其他' : k;
+      box.appendChild(h);
+      list.forEach(addItem);
+    }
+  }else{
+    anims.forEach(addItem);
+  }
+}
+
+function buildSkins(){
+  const sec=$('skinSec'), sel=$('skinSel');
+  const skins=skelData.skins||[];
+  if(skins.length<=1){ sec.style.display='none'; return; }
+  sec.style.display='block';
+  sel.innerHTML='';
+  skins.forEach(s=>{ const o=document.createElement('option'); o.value=s.name; o.textContent=s.name; sel.appendChild(o); });
+  if(skeleton.skin) sel.value=skeleton.skin.name;
+  sel.onchange=()=>{
+    skeleton.setSkinByName(sel.value);
+    skeleton.setSlotsToSetupPose();
+    buildStats();
+  };
+}
+
+/* ---------- 播放（對作用中圖層） ---------- */
+function play(name){
+  if(!active || !active.state) return;
+  const a=active.skelData.findAnimation(name);
+  active.curAnim=name;             curAnim=name;
+  active.curDur=a?a.duration:0;    curDur=active.curDur;
+  active.state.setAnimation(0, name, $('loop').checked);
+  playing=true; $('btnPlay').textContent='⏸ 暫停';
+  [...document.querySelectorAll('.anim')].forEach(el=>el.classList.toggle('sel', el.dataset.name===name));
+}
+
+/* ---------- 體檢數據 ---------- */
+function attachmentKind(a){
+  if(!a) return 'other';
+  if(a.triangles && a.vertices) return a.bones ? 'weightedMesh' : 'mesh';
+  if(a.lengths && a.vertices)   return 'path';
+  if(a.endSlot!==undefined)     return 'clipping';
+  if(a.vertices && !a.triangles)return 'boundingBox';
+  if(a.width!==undefined && a.height!==undefined) return 'region';
+  return 'other';
+}
+
+function auditSkeleton(){
+  const rd=skelData;
+  const counts={};
+  let total=0;
+  for(const sk of (rd.skins||[])){
+    const bag = sk.attachments || {};
+    for(const k in bag) for(const kk in bag[k]){
+      const t=attachmentKind(bag[k][kk]);
+      counts[t]=(counts[t]||0)+1; total++;
+    }
+  }
+  let depth=0;
+  for(const b of rd.bones){ let d=0,p=b.parent; while(p){d++;p=p.parent} if(d>depth)depth=d; }
+  let timelines=0, deform=0;
+  for(const a of (rd.animations||[])){
+    const tl=a.timelines||[];
+    timelines+=tl.length;
+    for(const t of tl) if(t.frameVertices||(t.vertices&&t.slotIndex!==undefined)) deform++;
+  }
+  const pages=(atlasObj&&atlasObj.pages)||[];
+  return {
+    bones:rd.bones.length, depth,
+    slots:rd.slots.length,
+    anims:(rd.animations||[]).length,
+    skins:(rd.skins||[]).length,
+    ik:(rd.ikConstraints||[]).length,
+    tc:(rd.transformConstraints||[]).length,
+    pc:(rd.pathConstraints||[]).length,
+    attach:total, counts, timelines, deform,
+    pages:pages.length,
+    pageSizes:pages.map(p=>{
+      const t=p.texture, w=(t&&(t.getImage?(t.getImage().width):t.width))||p.width||0;
+      const h=(t&&(t.getImage?(t.getImage().height):t.height))||p.height||0;
+      return w+'×'+h;
+    }),
+    ver:rd.version||'?'
+  };
+}
+
+function buildStats(){
+  const a=auditSkeleton();
+  const B=BASELINE;
+  const rows=[
+    ['bones', a.bones+' <span style="color:#5f6b7d">/d'+a.depth+'</span>', B.bones, a.bones>B.bones*1.6],
+    ['slots', a.slots, B.slots, a.slots>B.slots*1.6],
+    ['animations', a.anims, B.anims, false],
+    ['attachments', a.attach, B.attach, a.attach>B.attach*1.6],
+    ['IK', a.ik, B.ik, false],
+    ['transform', a.tc, B.tc, false],
+    ['path', a.pc, '0', a.pc>0],
+    ['timelines', a.timelines, B.timelines, a.timelines>B.timelines*1.6],
+    ['deform 時間軸', a.deform, B.deform, a.deform>0],
+    ['atlas 張數', a.pages, B.pages, a.pages>2]
+  ];
+  let html='<div class="h">項目</div><div class="h">本骨架</div><div class="h">dj_cat</div>';
+  for(const [k,v,b,warn] of rows){
+    html+='<div class="k">'+k+'</div>';
+    html+='<div class="v">'+v+(warn?'<span class="flag w">高</span>':'')+'</div>';
+    html+='<div class="b">'+b+'</div>';
+  }
+  $('stats').innerHTML=html;
+
+  const notes=[];
+  if(active) notes.push('圖層：'+active.name);
+  notes.push('Spine 格式 '+a.ver+'　atlas '+(a.pageSizes.join(' / ')||'—'));
+  if(a.deform>0) notes.push('⚠ 有 '+a.deform+' 條 deform（自由變形）時間軸。這是 spine 最貴的一類，且會讓 Cocos 的 SHARED_CACHE 模式失效。dj_cat 是 0 條，次級運動全走 transform constraint。');
+  else notes.push('✓ 零 deform 時間軸，與 dj_cat 同樣的取捨，可安全使用 cache 模式。');
+  if(a.pages>2) notes.push('⚠ atlas 分了 '+a.pages+' 張，每張都是一次額外 draw call 切換。dj_cat 單張 1638×396 就撐完整隻角色。');
+  const region=a.counts.region||0;
+  if(a.attach>0){
+    const pct=Math.round(region/a.attach*100);
+    notes.push('純 region attachment 占 '+pct+'%（dj_cat 是 83%）。比例越高越便宜。');
+  }
+  $('statNote').innerHTML=notes.map(n=>'<div style="margin-bottom:6px">'+n+'</div>').join('');
+
+  const order=['region','mesh','weightedMesh','clipping','boundingBox','path','other'];
+  const labels={region:'region',mesh:'mesh',weightedMesh:'weighted mesh',clipping:'clipping',boundingBox:'碰撞框',path:'path',other:'其他'};
+  let t='';
+  for(const k of order){
+    const n=a.counts[k]; if(!n) continue;
+    const pct=Math.round(n/a.attach*100);
+    t+='<tr><td>'+labels[k]+'</td><td>'+n+' <span style="color:#5f6b7d">'+pct+'%</span>'
+      +'<div class="bar"><div style="width:'+pct+'%"></div></div></td></tr>';
+  }
+  $('att').innerHTML = t || '<tr><td class="empty">—</td></tr>';
+  buildMeshPanel();
+}
+
+/* ---------- Attachment 切換（對作用中圖層；覆蓋設定存在圖層上） ---------- */
+function slotAttachmentMap(){
+  const map = {};
+  skelData.slots.forEach((sd, si) => {
+    const names = new Set();
+    for(const sk of (skelData.skins||[])){
+      const bag = sk.attachments && sk.attachments[si];
+      if(bag) for(const k in bag) names.add(k);
+    }
+    if(names.size) map[sd.name] = [...names].sort();
+  });
+  return map;
+}
+
+function applyOverridesFor(L){
+  for(const sn in L.attOverrides){
+    const slot = L.skeleton.findSlot(sn);
+    if(!slot) continue;
+    const name = L.attOverrides[sn];
+    if(name === null){ slot.setAttachment(null); continue; }
+    try{
+      const att = L.skeleton.getAttachment(slot.data.index, name);
+      if(att) slot.setAttachment(att);
+    }catch(e){}
+  }
+}
+function applyOverrides(){ if(active) applyOverridesFor(active); }
+
+function buildAttachmentPanel(){
+  const map = slotAttachmentMap();
+  const box = $('attCtl');
+  box.innerHTML = '';
+  const ov = active.attOverrides;
+  // 可切換（>1 個 attachment）置頂
+  const entries = Object.entries(map).sort((a,b)=>(b[1].length-a[1].length)||a[0].localeCompare(b[0]));
+  for(const [sn, names] of entries){
+    const row = document.createElement('div');
+    row.dataset.slot = sn.toLowerCase();
+    row.style.cssText = 'display:flex;flex-direction:column;gap:2px';
+    const lab = document.createElement('div');
+    lab.style.cssText = 'font-size:11px;color:'+(names.length>1?'var(--accent2)':'var(--dim)')+
+                        ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    lab.textContent = sn + (names.length>1 ? '　('+names.length+')' : '');
+    const sel = document.createElement('select');
+    sel.style.width = '100%';
+    sel.innerHTML = '<option value="__anim__">（動畫控制）</option><option value="__none__">（隱藏）</option>'
+      + names.map(n=>'<option>'+n+'</option>').join('');
+    const cur = ov[sn];
+    sel.value = cur===undefined ? '__anim__' : (cur===null ? '__none__' : cur);
+    sel.onchange = () => {
+      if(sel.value === '__anim__'){ delete ov[sn]; }
+      else { ov[sn] = sel.value === '__none__' ? null : sel.value; }
+      applyOverrides();               // 未鎖定時至少套一次（動畫 key 可能隨後蓋回）
+    };
+    row.appendChild(lab); row.appendChild(sel);
+    box.appendChild(row);
+  }
+  $('attSec').style.display = 'block';
+  $('attFilter').dispatchEvent(new Event('input'));
+}
+
+$('attFilter').oninput = e => {
+  const q = e.target.value.trim().toLowerCase();
+  [...$('attCtl').children].forEach(r => {
+    r.style.display = (!q || r.dataset.slot.includes(q)) ? '' : 'none';
+  });
+};
+$('attReset').onclick = () => {
+  if(!active) return;
+  active.attOverrides = {};
+  [...$('attCtl').querySelectorAll('select')].forEach(s => s.value = '__anim__');
+  skeleton.setSlotsToSetupPose();
+};
+
+/* ---------- Mesh / 權重分布 ---------- */
+function buildMeshPanel(){
+  let reg=0, mw=0, mu=0;
+  const rows=[], infHist={1:0,2:0,3:0,4:0}, boneLoad={};
+  for(const sk of (skelData.skins||[])){
+    const bag=sk.attachments||{};
+    for(const k in bag) for(const kk in bag[k]){
+      const a=bag[k][kk]; if(!a) continue;
+      const kind=attachmentKind(a);
+      if(kind==='region'){ reg++; continue; }
+      if(kind!=='mesh' && kind!=='weightedMesh') continue;
+      if(!a.bones){
+        mu++;
+        rows.push({n:kk, v:(a.worldVerticesLength||a.vertices.length)/2, b:0, avg:0});
+        continue;
+      }
+      mw++;
+      const used=new Set(), infs=[];
+      for(let i=0;i<a.bones.length;){
+        const c=a.bones[i++]; infs.push(c);
+        for(let j=0;j<c;j++){
+          const bi=a.bones[i++]; used.add(bi);
+          const bn=skelData.bones[bi] && skelData.bones[bi].name;
+          if(bn) boneLoad[bn]=(boneLoad[bn]||0)+1;
+        }
+      }
+      infs.forEach(c=>{ const b=Math.min(c,4); infHist[b]=(infHist[b]||0)+1; });
+      rows.push({n:kk, v:infs.length, b:used.size,
+                 avg:+(infs.reduce((s,x)=>s+x,0)/infs.length).toFixed(2)});
+    }
+  }
+  $('meshSum').className='';
+  $('meshSum').style.cssText='font-size:11.5px;color:var(--dim);margin-bottom:6px';
+  $('meshSum').textContent=`region ${reg} ｜ 加權 mesh ${mw} ｜ 無權重 mesh ${mu}`;
+
+  rows.sort((x,y)=>y.v-x.v);
+  let t='<tr><td style="color:#5f6b7d">mesh</td><td style="text-align:right;color:#5f6b7d">頂點/骨/均影響</td></tr>';
+  for(const r of rows.slice(0,14)){
+    const warn = r.b>0 && r.avg<1.6 ? ' <span class="flag w">硬</span>' : '';
+    t+=`<tr><td style="overflow:hidden;text-overflow:ellipsis;max-width:130px">${r.n}</td>`+
+       `<td style="text-align:right">${r.v} / ${r.b} / ${r.avg||'—'}${warn}</td></tr>`;
+  }
+  if(rows.length>14) t+=`<tr><td class="empty" colspan="2">…共 ${rows.length} 個 mesh</td></tr>`;
+  $('meshTbl').innerHTML = rows.length? t : '';
+
+  const tot=Object.values(infHist).reduce((s,x)=>s+x,0);
+  if(tot){
+    let h='<div style="margin-bottom:4px;color:var(--dim)">頂點影響數分布（'+tot+' 加權頂點）</div>';
+    for(const k of [1,2,3,4]){
+      const n=infHist[k]||0, pct=Math.round(n/tot*100);
+      h+=`<div style="display:flex;gap:6px;align-items:center;margin:2px 0">`+
+         `<span style="width:18px;flex:none">${k===4?'4+':k}骨</span>`+
+         `<div class="bar" style="flex:1;margin:0"><div style="width:${pct}%"></div></div>`+
+         `<span style="width:52px;text-align:right;flex:none">${n}（${pct}%）</span></div>`;
+    }
+    $('wHist').innerHTML=h;
+    const top=Object.entries(boneLoad).sort((x,y)=>y[1]-x[1]).slice(0,8);
+    $('boneLoad').innerHTML='<tr><td style="color:#5f6b7d">承重骨 TOP8</td><td style="text-align:right;color:#5f6b7d">影響頂點數</td></tr>'
+      + top.map(([n,c])=>`<tr><td>${n}</td><td style="text-align:right">${c}</td></tr>`).join('');
+  }else{
+    $('wHist').innerHTML=''; $('boneLoad').innerHTML='';
+  }
+}
+
+/* ---------- 相機：框住所有可見圖層 ---------- */
+function fitView(){
+  const vis = layers.filter(l=>l.visible);
+  if(!vis.length) return;
+  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  for(const L of vis){
+    L.skeleton.x=L.x; L.skeleton.y=L.y;   // 保留拖曳定位
+    L.skeleton.setToSetupPose();
+    L.skeleton.updateWorldTransform();
+    const off=new spineNS.Vector2(), size=new spineNS.Vector2();
+    try{ L.skeleton.getBounds(off,size,[]); }catch(e){ size.x=size.y=400; off.x=off.y=-200; }
+    if(!(size.x>0)||!(size.y>0)){ size.x=size.y=400; off.x=off.y=-200; }
+    minX=Math.min(minX, off.x);        minY=Math.min(minY, off.y);
+    maxX=Math.max(maxX, off.x+size.x); maxY=Math.max(maxY, off.y+size.y);
+  }
+  const w=maxX-minX, h=maxY-minY;
+  const pad=1.18;
+  fitZoom = Math.max(w*pad/cv.width, h*pad/cv.height);
+  camZoom = fitZoom;
+  camX = minX + w/2;
+  camY = minY + h/2;
+}
+
+/* ---------- 主迴圈 ---------- */
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt = lastT ? Math.min((now-lastT)/1000, 0.1) : 0;
+  lastT = now;
+  if(!renderer) return;
+
+  gl.clearColor(0,0,0,0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  if(!layers.length){ return; }
+
+  const sp = +$('speed').value/100;
+  const lock = $('attLock').checked;
+  for(const L of layers){
+    if(!L.visible) continue;
+    if(playing && !scrubbing){
+      L.state.update(dt*sp);
+      L.state.apply(L.skeleton);
+    }
+    if(lock) applyOverridesFor(L);   // 手動優先：每幀蓋過動畫換圖 key
+    L.skeleton.x=L.x; L.skeleton.y=L.y;   // 套用拖曳定位
+    L.skeleton.updateWorldTransform();
+  }
+
+  const cam=renderer.camera;
+  cam.position.x=camX; cam.position.y=camY;
+  cam.viewportWidth = cv.width*camZoom;
+  cam.viewportHeight= cv.height*camZoom;
+  cam.update();
+
+  const pma=$('pma').checked;
+  renderer.begin();
+  for(const L of layers) if(L.visible) renderer.drawSkeleton(L.skeleton, pma);
+  const dbg=renderer.skeletonDebugRenderer;
+  if(dbg && active && active.visible){
+    dbg.drawBones=$('dBone').checked;
+    dbg.drawRegionAttachments=false;
+    dbg.drawBoundingBoxes=$('dBox').checked;
+    dbg.drawMeshHull=$('dHull').checked;
+    dbg.drawMeshTriangles=$('dMesh').checked;
+    dbg.drawPaths=false;
+    dbg.drawClipping=$('dClip').checked;
+    dbg.drawSkeletonXY=$('dBone').checked;
+    const any=$('dBone').checked||$('dBox').checked||$('dHull').checked||$('dMesh').checked||$('dClip').checked;
+    if(any) renderer.drawSkeletonDebug(active.skeleton, pma, []);   // debug 線只畫作用中圖層
+  }
+  renderer.end();
+
+  // HUD + scrub（對作用中圖層）
+  const tr = active && active.state.tracks && active.state.tracks[0];
+  if(tr && active.curDur>0){
+    const t = tr.trackTime % active.curDur;
+    if(!scrubbing) $('scrub').value = Math.round(t/active.curDur*1000);
+    $('tTxt').textContent = t.toFixed(2)+'s / '+active.curDur.toFixed(2)+'s';
+  }
+  const vis=layers.filter(l=>l.visible).length;
+  $('hud').textContent = (active ? active.name+'　'+(active.curAnim||'') : '')
+    + (layers.length>1 ? '　['+vis+'/'+layers.length+' 圖層]' : '')
+    + (active && (active.x||active.y) ? '　pos '+Math.round(active.x)+','+Math.round(active.y) : '')
+    + '　zoom ' + (fitZoom/camZoom).toFixed(2) + '×';
+}
+
+/* ---------- 互動 ---------- */
+$('rtSel').onchange = e => { reset(); loadRuntime(e.target.value); };
+$('btnRtFile').onclick = ()=> $('rtFile').click();
+$('rtFile').onchange = e => { if(e.target.files[0]) loadRuntimeFromFile(e.target.files[0]); };
+
+$('btnLoad').onclick = ()=> $('file').click();
+$('file').onchange = e => handleFiles(e.target.files);
+
+$('btnClear').onclick = reset;
+function reset(){
+  layers=[]; active=null;
+  skeleton=null; state=null; skelData=null; atlasObj=null;
+  curAnim=null; curDur=0;
+  buildLayerList();
+  $('animList').innerHTML='<div class="empty">尚未載入骨架</div>';
+  $('stats').innerHTML='<div class="empty" style="grid-column:1/-1">尚未載入骨架</div>';
+  $('statNote').innerHTML='';
+  $('att').innerHTML='<tr><td class="empty">—</td></tr>';
+  $('meshSum').className='empty'; $('meshSum').style.cssText=''; $('meshSum').textContent='—';
+  $('meshTbl').innerHTML=''; $('wHist').innerHTML=''; $('boneLoad').innerHTML='';
+  $('attCtl').innerHTML=''; $('attFilter').value=''; $('attSec').style.display='none';
+  $('skinSec').style.display='none';
+  $('hud').textContent='';
+  $('tTxt').textContent='0.00s';
+  $('btnClear').disabled=true; $('btnPlay').disabled=true; $('scrub').disabled=true;
+  $('file').value='';
+  dropEl.classList.remove('hide');
+  clearErr();
+}
+
+$('btnPlay').onclick = ()=>{
+  playing=!playing;
+  $('btnPlay').textContent = playing ? '⏸ 暫停' : '▶ 播放';
+};
+$('btnFit').onclick = fitView;
+$('btnBg').onclick = ()=>{
+  bgMode=(bgMode+1)%3;
+  stage.classList.toggle('plain', bgMode===1);
+  stage.classList.toggle('light', bgMode===2);
+};
+
+$('loop').onchange = ()=>{ if(active && active.curAnim) play(active.curAnim); };
+$('speed').oninput = e => $('spTxt').textContent = (e.target.value/100).toFixed(2)+'×';
+$('mix').oninput = e => {
+  $('mixTxt').textContent = (e.target.value/100).toFixed(2)+'s';
+  for(const L of layers) L.state.data.defaultMix = e.target.value/100;
+};
+
+const scrub=$('scrub');
+scrub.addEventListener('pointerdown',()=>scrubbing=true);
+scrub.addEventListener('pointerup',()=>scrubbing=false);
+scrub.addEventListener('input',()=>{
+  if(!active||!active.curDur) return;
+  const t = scrub.value/1000*active.curDur;
+  const tr = active.state.tracks && active.state.tracks[0];
+  if(tr){ tr.trackTime=t; active.state.apply(active.skeleton); active.skeleton.updateWorldTransform(); }
+  $('tTxt').textContent = t.toFixed(2)+'s / '+active.curDur.toFixed(2)+'s';
+});
+
+/* 滾輪縮放 / 拖曳平移 */
+stage.addEventListener('wheel', e=>{
+  if(!layers.length) return;
+  e.preventDefault();
+  camZoom *= (e.deltaY>0 ? 1.1 : 1/1.1);
+  camZoom = Math.max(fitZoom*0.05, Math.min(fitZoom*20, camZoom));
+},{passive:false});
+
+/* 拖曳：壓在圖層上＝移動該圖層（並設為作用中）；壓在空白處或按著 Shift＝平移視角 */
+let dragging=false, dragLayer=null, lastX=0, lastY=0;
+
+function screenToWorld(e){
+  const r=cv.getBoundingClientRect();
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const px=(e.clientX-r.left)*dpr, py=(e.clientY-r.top)*dpr;
+  return {
+    x: camX + (px - cv.width/2)*camZoom,
+    y: camY - (py - cv.height/2)*camZoom
+  };
+}
+
+/* 從最上層往下找，回傳點到的可見圖層 */
+function hitLayer(wx, wy){
+  const off=new spineNS.Vector2(), size=new spineNS.Vector2();
+  for(let i=layers.length-1; i>=0; i--){
+    const L=layers[i];
+    if(!L.visible) continue;
+    try{ L.skeleton.getBounds(off,size,[]); }catch(e){ continue; }
+    if(!(size.x>0)||!(size.y>0)) continue;
+    if(wx>=off.x && wx<=off.x+size.x && wy>=off.y && wy<=off.y+size.y) return L;
+  }
+  return null;
+}
+
+stage.addEventListener('pointerdown', e=>{
+  if(e.target.closest('#drop')) return;
+  dragging=true; lastX=e.clientX; lastY=e.clientY;
+  stage.setPointerCapture(e.pointerId);
+  dragLayer=null;
+  if(!e.shiftKey && layers.length){
+    const w=screenToWorld(e);
+    const L=hitLayer(w.x, w.y);
+    if(L){
+      dragLayer=L;
+      if(L!==active) setActive(L);
+      stage.style.cursor='move';
+    }
+  }
+});
+stage.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const dx=(e.clientX-lastX)*camZoom*dpr;
+  const dy=(e.clientY-lastY)*camZoom*dpr;
+  if(dragLayer){ dragLayer.x += dx; dragLayer.y -= dy; }
+  else { camX -= dx; camY += dy; }
+  lastX=e.clientX; lastY=e.clientY;
+});
+stage.addEventListener('pointerup', e=>{ dragging=false; dragLayer=null; stage.style.cursor=''; });
+
+/* 拖放 */
+['dragenter','dragover'].forEach(ev=>stage.addEventListener(ev, e=>{
+  e.preventDefault(); dropEl.classList.remove('hide'); dropEl.classList.add('over');
+}));
+stage.addEventListener('dragleave', e=>{
+  if(e.relatedTarget && stage.contains(e.relatedTarget)) return;
+  dropEl.classList.remove('over');
+  if(layers.length) dropEl.classList.add('hide');
+});
+stage.addEventListener('drop', async e=>{
+  e.preventDefault();
+  dropEl.classList.remove('over');
+  const items=e.dataTransfer.items;
+  let files=[];
+  if(items && items.length && items[0].webkitGetAsEntry){
+    const entries=[...items].map(i=>i.webkitGetAsEntry()).filter(Boolean);
+    files = await collect(entries);
+  }else{
+    files=[...e.dataTransfer.files];
+  }
+  if(!files.length && layers.length) dropEl.classList.add('hide');
+  handleFiles(files);
+});
+
+/* 遞迴收集資料夾內容（記下相對路徑；readEntries 一次最多回 100 筆，要讀到空為止） */
+async function collect(entries){
+  const out=[];
+  async function walk(entry){
+    if(entry.isFile){
+      await new Promise(res=>entry.file(f=>{
+        try{ f._relpath = String(entry.fullPath||f.name).replace(/^\//,''); }catch(e){}
+        out.push(f); res();
+      }, res));
+    }else if(entry.isDirectory){
+      const rd=entry.createReader();
+      while(true){
+        const batch=await new Promise(res=>rd.readEntries(res, ()=>res([])));
+        if(!batch.length) break;
+        for(const e of batch) await walk(e);
+      }
+    }
+  }
+  for(const e of entries) await walk(e);
+  return out;
+}
+
+/* 鍵盤 */
+document.addEventListener('keydown', e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+  if(e.code==='Space'){ e.preventDefault(); $('btnPlay').click(); }
+  if(e.key==='f'||e.key==='F') fitView();
+  if(e.key==='Tab' && layers.length>1){   // Tab 循環切換作用中圖層
+    e.preventDefault();
+    const i=layers.indexOf(active);
+    setActive(layers[(i+1)%layers.length]);
+  }
+  if((e.key==='ArrowDown'||e.key==='ArrowUp') && skelData){
+    e.preventDefault();
+    const list=[...document.querySelectorAll('.anim')];
+    const i=list.findIndex(el=>el.classList.contains('sel'));
+    const n=list.length; if(!n) return;
+    const j=(i + (e.key==='ArrowDown'?1:-1) + n) % n;
+    play(list[j].dataset.name);
+    list[j].scrollIntoView({block:'nearest'});
+  }
+});
+
+/* 啟動 */
+loadRuntime('3.8');
+</script>
+</body>
+</html>

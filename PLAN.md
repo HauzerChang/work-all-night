@@ -14,11 +14,19 @@
 讓 AI 能從「目標影片」反推出資產與綁定需求，並自主完成切圖 / 補圖 / mesh / 骨架，
 產出貼近影片的 Spine 動畫，使用者只在三個關鍵點介入(定契約、岔路決策、里程碑審查)。
 
+## 🟢 現行排程主線(2026-10-12 使用者拍板)：spine-ai-editor 2.0
+
+> 四能力底層(S1/S3/S5)已累積紮實且各配評估器(69 閘 0 RED);cascade 線達邊際飽和。
+> 使用者指示排程**改以「產出 spine-ai-editor 2.0」為主**:把 repo 的確定性生成引擎 + 評估器紀律,
+> 併進既有 `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`),成為可交付的整合 skill。
+> **路線圖 = `skills/spine-ai-editor/MERGE_PLAN_2.0.md`(Phase A..E,每 run 一個有界 chunk)**。
+> 這等同把「三階段」的第 3 階段(整合成 pipeline/可交付)具體化成一個明確產物。
+
 ## 三階段(專案層級)
 
 1. **可視化檢視/編輯工具** — ✅ 已完成(`spine_inspector.html`，含 `window.spineTool` Phase-2 API)。
-2. **用工具鍛鍊四能力** — 切圖 / 補圖 / 新增編輯 mesh / 骨架設計，每項用工具的視覺+量化 API 自主驗收。⬅ **目前在這裡**
-3. **整合成 pipeline** — 影片 → 需求規格 → 自主迭代 → 逼近目標影片。
+2. **用工具鍛鍊四能力** — ✅ 底層能力到位(S1 生成庫 / S3 mesh+weighted / S5 rig,各配評估器);轉為被 2.0 併入的素材庫。
+3. **整合成 pipeline / 可交付 skill** — ⬅ **目前在這裡 = spine-ai-editor 2.0**(見上方主線)。
 
 ## 能力路線圖 S1–S5(依「槓桿 ÷ 難度」排序，來自鍛鍊計畫)
 

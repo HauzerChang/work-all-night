@@ -8,7 +8,13 @@
 
 ## 目前階段
 
-**專案三階段：第 2 階段(用工具鍛鍊四能力)。**
+> 🟢 **方向變更(2026-10-12 使用者拍板,解除 soft-HOLD)**:排程主線改為
+> **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
+> `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
+> `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**;下一個 run 從該檔 Phase 清單挑第一個未打勾的 chunk(B1)推進。
+> cascade 微變體線**停產**(J-8..J-15c 已飽和,見下「未解問題」);S1/S3/S5 底層能力轉為「被 2.0 併入的素材庫」。
+
+**專案三階段:第 2→3 階段(用工具鍛鍊四能力 → 整合成可交付 pipeline/skill)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
 - **S1 cascade 晃動波變體:每件依序阻尼 shearX 晃起→回穩(第一個把 shear 錯開成跨件波)(里程碑,2026-10-10 run 004,candidate J-15c)** —
   承 (J-15):cascade 的**單件運動基元**至此有 **pop**(scale 脈衝,J-5..J-14)與 **reveal**(scale+alpha 入場,J-15)兩種,**皆走 scale 通道**。本次新增**第三個**運動基元 **wobble 晃動波**:
@@ -1361,6 +1367,15 @@
 
 ## 下一步動作 (next action)
 
+> 🟢 **現行主線(2026-10-12 起):spine-ai-editor 2.0**。
+> **下一個 run 做 `skills/spine-ai-editor/MERGE_PLAN_2.0.md` 的 Phase B1(橋接閘)** ——
+> 寫 `tools/analyzer/validate_v2_bridge.py`,把 repo 生成的一支最單純 cascade big-win beat 跑過
+> v1.3.0 `skills/spine-ai-editor/assets/validator_v1.py`。**AC**:0 error(含末鍵 curve 地雷 #12 檢查)、
+> loop 閉合無問題、附帶輸出 stiffness。先證「G1 末鍵拔除 + G2 雙真值驗收」可機械化,再逐 chunk 搬更多生成器。
+> B1 之後照 B2→B3→B4→C→D→E 順序(清單在 merge plan;每 run 一個 chunk,完成在該檔打勾)。
+>
+> 以下為舊的「S1/S3/S5 底層能力」進度(仍有效,現轉為**被 2.0 併入的素材庫**,非獨立推進目標):
+
 **S3 已推廣到全部 4 個 mesh(里程碑,2026-06-26)**:整合 AC 跑 curtain_left/right + shadow/shadow2。
 - **v1(散點 Delaunay)不通用**:靜態 IoU 高但 curtain_right(19 si)/shadow(64 si)真實 deform 自交。
 - **v2(strip)通用**:4 mesh 全 deform 乾淨;`rows=10,cols=3`(30v)IoU 全過藝術家基準 → 設為 v2 預設。
@@ -1598,7 +1613,11 @@
   **建議使用者擇一**:① 提供上述任一資源以解鎖高槓桿線;② 重新指定排程方向(編 `STATE.md` 下一步或 `PLAN.md`);
   ③ 若認為 cascade 微變體累積仍有價值則維持現狀(排程會繼續產 J-15d.. 等 additive 變體)。排程續跑無技術阻塞,
   此為**價值/方向判斷**(RULES C 類里程碑審查),非 BLOCKED。
-- 🔴 **[排程決策,2026-10-11 run 001] 本 run 刻意「不」產第 9 個 cascade 微變體(J-15d),改為確認健康 + 正式升級通知使用者 + HOLD**:
+- ✅ **[已解除 2026-10-12] soft-HOLD 由使用者拍板解除(選項 B:重新指定方向)**:使用者指示「接下來的排程先以
+  spine-ai-editor 2.0 的產出為主」。新主線 = 把 repo 生成引擎 + 評估器併進 `spine-ai-editor v1.3.0`(已 import 到
+  `skills/spine-ai-editor/`),路線圖見 `skills/spine-ai-editor/MERGE_PLAN_2.0.md`。cascade 微變體線停產。
+  下方原 🔴 soft-HOLD 記錄保留供追溯:
+- 🔴 **[排程決策,2026-10-11 run 001](已於 2026-10-12 解除,見上) 本 run 刻意「不」產第 9 個 cascade 微變體(J-15d),改為確認健康 + 正式升級通知使用者 + HOLD**:
   這是**連續第 2 個 run** 確認上述邊際價值遞減(run 004 已記錄為 C 類,但未送手機通知;使用者至今未回應/未改方向)。
   依 RULES「停止條件:連續 2 次無實質新進展 → 避免空轉燒額度」與「C 類里程碑審查」精神,再產一個已自認邊際的 J-15d
   會直接牴觸 run 004 的判斷並白燒額度,故本 run **不製造 fake-progress**,而是:(1) 跑 check_readiness 確認 repo 健康(見本次 log);
