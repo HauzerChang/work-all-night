@@ -9,6 +9,9 @@
 
 > **chunk 201(2026-10-12)**:排程觸發。檢查皆無變化,**無新工作塊**,不重複通知。仍等 chunk 200 所列四項使用者回覆。見 `log/s4-2026-10-12-201.md`。
 >
+> **chunk 202(2026-10-12)**:候選15 已落地(預設 combined)。API 煙霧測試被 429 `credit_balance_exhausted` 擋下:key/連線正常,**API 帳戶需儲值**;
+> 成功呼叫累計 0。使用者儲值後重跑 `s4_openai_smoke.py`。見 `log/s4-2026-10-12-202.md`。
+>
 > **使用者授權(2026-10-12)**:`OPENAI_API_KEY` 已設於 myCloudEnv,預檢三項 OK(`s4_openai_check.py`)。使用者**暫不設硬上限**,
 > 先用幾天觀察 `s4_data/openai_usage.jsonl` 與 OpenAI 後台用量再決定。在使用者給上限前,本排程**自設保守預設**:
 > 每個 session 生成式呼叫 ≤ 6 次、`quality=low`、不跑掃參;每次實際呼叫後必須在 log 記錄累計次數。使用者回覆具體上限後以其為準。

@@ -70,3 +70,10 @@ PASS 案例逐位元/逐案例不倒退才落地)。
   比較表,約需 3~4 分鐘)。
 - 未修改:`tools/mesh_gen/inpaint_eval.py`(production `estimate_alpha_taper` 維持
   min_ring=20、median,因為沒有候選修法達到零回歸門檻)。
+
+## 候選15 落地(2026-10-12,使用者裁決「恢復」)
+
+`inpaint_eval.estimate_alpha_taper` 新增 `method` 參數,**預設 `"combined"`(候選D:方向濾波 cos>0.5 + p90)**,`"median"` 保留舊行為供回歸對照。
+驗證:(1) 新預設與候選D 參考實作 138 案例逐像素一致(0 mismatch);(2) 1233 案例完整掃描重現 13 fixed / 9 newly broken、mean_mae 2.668→1.978、n_mae_gt_20 39→35;
+(3) `inpaint_eval.py` 在機器人右手/身體上校準 `pass: true`、notes 空。已知 trade-off(使用者接受):9 例(光暈/臉部陰影 edge circle)壓線惡化到 20~25。
+對照圖:`tools/mesh_gen/s4_taper_compare_montage.py`。

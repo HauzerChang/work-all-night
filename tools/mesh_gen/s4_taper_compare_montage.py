@@ -49,14 +49,14 @@ def row(materials, key, old_mae, new_mae, tag):
     ah = holed[..., 3].astype(np.float64)
     box = crop_box(mask)
     outs = []
-    for est_fn in (estimate_alpha_taper, estimate_combined):
+    for est_fn in (lambda a, m: estimate_alpha_taper(a, m, method='median'), estimate_alpha_taper):
         est = est_fn(holed[..., 3], mask)
         a = ah.copy(); a[mask] = est[mask]
         outs.append(a)
     gta = gt[..., 3].astype(np.float64)
     ims = [render(gta, mask, box, tint=True), render(ah, mask, box, tint=True),
            render(outs[0], mask, box, tint=True), render(outs[1], mask, box, tint=True)]
-    labels = ["ground truth (red=hole)", "holed", f"production MAE={old_mae:.1f}", f"candidate-D MAE={new_mae:.1f}"]
+    labels = ["ground truth (red=hole)", "holed", f"old(median) MAE={old_mae:.1f}", f"new(default) MAE={new_mae:.1f}"]
     w = sum(i.width for i in ims) + 10 * 5
     h = max(i.height for i in ims) + 44
     canvas = Image.new("RGB", (w, h), (24, 24, 28))
@@ -75,8 +75,8 @@ def main():
     ap.add_argument("-n", type=int, default=4)
     a = ap.parse_args()
     materials = load_materials()
-    old = sweep(materials, estimate_alpha_taper)
-    new = sweep(materials, estimate_combined)
+    old = sweep(materials, lambda a, m: estimate_alpha_taper(a, m, method='median'))
+    new = sweep(materials, estimate_alpha_taper)
     def uniq(keys):
         seen, out = set(), []
         for k in keys:

@@ -179,7 +179,7 @@ def diagnose_case(materials, mat, mode, shape, frac, seed, aspect=1.0, angle=Non
     high = gvals > 50.0
     print(f"  low-grad(<2) samples: {low.sum()}, mean dist-to-bg={d_to_bg[low].mean() if low.any() else float('nan'):.2f}")
     print(f"  high-grad(>50) samples: {high.sum()}, mean dist-to-bg={d_to_bg[high].mean() if high.any() else float('nan'):.2f}")
-    old_mae = mae_in_mask(estimate_alpha_taper(alpha_holed, mask), gt[..., 3], mask)
+    old_mae = mae_in_mask(estimate_alpha_taper(alpha_holed, mask, method='median'), gt[..., 3], mask)
     new_mae = mae_in_mask(estimate_combined(alpha_holed, mask), gt[..., 3], mask)
     print(f"  mae: production(median)={old_mae:.3f}  candidate-D(direction+p90)={new_mae:.3f}")
 
@@ -240,7 +240,7 @@ def main():
 
     if args.sweep:
         t0 = time.time()
-        rows_old = sweep(materials, estimate_alpha_taper)
+        rows_old = sweep(materials, lambda a, m: estimate_alpha_taper(a, m, method='median'))
         print(f"production sweep done in {time.time()-t0:.1f}s, n={len(rows_old)}")
         t0 = time.time()
         rows_pct = sweep(materials, estimate_percentile)

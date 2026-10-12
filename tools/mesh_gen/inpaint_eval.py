@@ -161,7 +161,7 @@ def fill_random(rgba_holed, gt, mask, seed=1):
     return out
 
 
-def estimate_alpha_taper(alpha_holed, mask, min_ring=20, debug=None):
+def estimate_alpha_taper(alpha_holed, mask, min_ring=20, debug=None, method="combined", cos_thresh=0.5, pct=90):
     """洞區 alpha 漸縮估計(距離場×局部量測寬度),取代「洞內強制拉滿不透明」。
 
     背景(見 knowledge/s4-inpaint-evaluator.md「額外發現」):`edge` 洞跨出真實輪廓時,強制
@@ -196,6 +196,14 @@ def estimate_alpha_taper(alpha_holed, mask, min_ring=20, debug=None):
     崩壞的失敗模式(如 `右手` edge 小洞 alpha_mae 115.6、`光暈` 特定橢圓 interior 洞 alpha_mae
     ~100),`min_ring` 對這批案例沒有效果(样本數本身不小,不是本函式要解的「小樣本統計不穩」
     問題)——列為候選 14,見同一份 knowledge 文件,本次不修。
+
+    `method`(候選 15,2026-10-12 使用者裁決恢復並採用候選 D,見
+    knowledge/s4-inpaint-alpha-taper-candidate14.md):
+    - `"combined"`(預設):環內樣本先做方向濾波(梯度方向須與「離開背景」方向 cos>`cos_thresh`
+      對齊;濾完不足 5 筆則不濾),再取 `pct`(預設 p90)而非中位數。1233 案例:13 例大幅修好
+      (如右手 edge 115.6→2.6),9 例壓線新增輕微 fail(光暈/臉部陰影 edge circle,10~19→20~25);
+      mean_mae 2.668→1.978。**非零回歸**,為使用者明確接受的 trade-off。
+    - `"median"`:舊行為(候選 13 的 production),保留供回歸對照。
     """
     known = ~mask
     bg_known = (alpha_holed <= 8) & known
@@ -214,7 +222,26 @@ def estimate_alpha_taper(alpha_holed, mask, min_ring=20, debug=None):
     used_fallback = ring_count < min_ring
     if used_fallback:
         ring = fringe_known
-    local_grad = float(np.median(grad[ring])) if ring.sum() else 255.0
+    if method == "median":
+        local_grad = float(np.median(grad[ring])) if ring.sum() else 255.0
+    elif method == "combined":
+        ry, rx = np.nonzero(ring)
+        gvals = grad[ry, rx]
+        if bg_known.any() and len(ry):
+            _, bg_ind = ndimage.distance_transform_edt(~bg_known, return_distances=True, return_indices=True)
+            dy = (ry - bg_ind[0][ry, rx]).astype(np.float64)
+            dx = (rx - bg_ind[1][ry, rx]).astype(np.float64)
+            n = np.sqrt(dy ** 2 + dx ** 2) + 1e-9
+            gy = ndimage.sobel(a_fill, axis=0) / 8.0
+            gx = ndimage.sobel(a_fill, axis=1) / 8.0
+            cos_align = (gy[ry, rx] * dy / n + gx[ry, rx] * dx / n) / (gvals + 1e-9)
+            keep = cos_align > cos_thresh
+        else:
+            keep = np.ones(len(ry), dtype=bool)
+        sel = gvals[keep] if keep.sum() >= 5 else gvals
+        local_grad = float(np.percentile(sel, pct)) if len(sel) else 255.0
+    else:
+        raise ValueError(f"unknown method {method!r}")
     ell = 255.0 / max(local_grad, 1.0)
 
     if debug is not None:
