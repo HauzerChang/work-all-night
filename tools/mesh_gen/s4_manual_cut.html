@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><title>S4 人工分割輔助工具</title>
+<style>
+:root{--bg:#12151a;--panel:#1a1f27;--p2:#20262f;--bd:#2c3340;--tx:#dde3ec;--mu:#8b95a5;--ac:#4f9dff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.5 -apple-system,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif}
+header{padding:8px 14px;border-bottom:1px solid var(--bd);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+h1{font-size:15px;margin:0}main{display:flex;gap:12px;padding:12px;align-items:flex-start}
+.panel{background:var(--panel);border:1px solid var(--bd);border-radius:8px;padding:10px}
+.side{width:250px;flex-shrink:0;max-height:92vh;overflow:auto}
+.btn{background:var(--p2);border:1px solid var(--bd);color:var(--tx);padding:4px 9px;border-radius:5px;cursor:pointer;font-size:12px}
+.btn:hover{border-color:var(--ac)}.btn.on{background:#1c3253;border-color:var(--ac);color:#fff}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:5px 0}.hint{color:var(--mu);font-size:11px}
+.part{padding:5px 7px;border:1px solid var(--bd);border-radius:5px;margin-bottom:4px;cursor:pointer;display:flex;gap:6px;align-items:center}
+.part.sel{background:#1c3253;border-color:var(--ac)}.sw{width:10px;height:10px;border-radius:2px}
+#wrap{position:relative;display:inline-block;background:repeating-conic-gradient(#3a3a3a 0% 25%,#2c2c2c 0% 50%) 50%/16px 16px;overflow:hidden;border-radius:6px}
+canvas{display:block}#ov{position:absolute;left:0;top:0;cursor:crosshair}
+input[type=range]{width:120px}input[type=text]{width:100%;background:var(--p2);border:1px solid var(--bd);color:var(--tx);border-radius:4px;padding:3px 6px}
+</style></head><body>
+<header><h1>S4 人工分割輔助工具</h1>
+<span class="hint">逐部件手繪遮罩 → 匯出決策檔(含 mask)→ <code>s4_decompose_cut.py --contour manual</code> 裁切</span></header>
+<main>
+<div class="panel side">
+ <div class="row"><input type="file" id="fImg" accept="image/*" style="display:none"><button class="btn" onclick="fImg.click()">載入原圖</button>
+ <input type="file" id="fDec" accept=".json" style="display:none"><button class="btn" onclick="fDec.click()">載入決策檔/建議檔</button></div>
+ <div class="hint">決策檔可用 bbox_px 或 bbox_pct;若含 mask_png 會還原。可直接載入 assets/*.suggestions.json 當起點。</div>
+ <hr style="border-color:var(--bd)">
+ <div class="hint">部件(點選後在右側畫布編輯其遮罩)</div><div id="parts"></div>
+ <div class="row"><button class="btn" id="addPart">+ 新增部件</button><button class="btn" id="delPart">刪除</button></div>
+ <input type="text" id="pname" placeholder="選中部件的 id">
+ <hr style="border-color:var(--bd)">
+ <button class="btn" id="export" style="background:#1c3253;border-color:var(--ac)">匯出決策檔 .json</button>
+ <div class="hint" id="status"></div>
+</div>
+<div class="col"><div class="panel">
+ <div class="row" id="tools"></div>
+ <div class="row"><span class="hint">筆刷</span><input type="range" id="size" min="1" max="80" value="14"><span id="sizeV" class="hint">14</span>
+  <span class="hint">魔術棒容差</span><input type="range" id="tol" min="1" max="120" value="28"><span id="tolV" class="hint">28</span>
+  <span class="hint">縮放</span><input type="range" id="zoom" min="50" max="400" value="100"><span id="zoomV" class="hint">100%</span></div>
+ <div class="row"><button class="btn" id="undo">復原 (Ctrl+Z)</button><button class="btn" id="clear">清空此部件</button>
+  <button class="btn" id="fromBox">以框填滿</button><button class="btn" id="inv">反轉</button>
+  <label class="hint"><input type="checkbox" id="showOthers" checked> 顯示其他部件</label>
+  <label class="hint"><input type="checkbox" id="showMask" checked> 顯示此遮罩</label></div>
+ <div class="hint">加選/減選模式皆適用於:筆刷、套索(點多邊形頂點,雙擊或點起點封閉)、魔術棒(點擊區域)。右鍵 = 暫時反向。</div>
+</div>
+<div class="panel" style="overflow:auto;max-width:78vw;max-height:80vh"><div id="wrap"><canvas id="cv"></canvas><canvas id="ov"></canvas></div></div>
+</div></main>
+<script>
+const $=id=>document.getElementById(id);
+const COLORS=["#ff5d6c","#3ecf6a","#4f9dff","#f5b53c","#b07cff","#2fd6d6","#ff8f4f","#d65fd6"];
+let img=null,W=0,H=0,srcData=null,parts=[],sel=-1,tool="brush",mode="add",undoStack=[],lasso=[],drawing=false,last=null,scale=1,hover=null;
+const cv=$("cv"),ov=$("ov"),ctx=cv.getContext("2d"),octx=ov.getContext("2d");
+const TOOLS=[["brush","筆刷"],["lasso","套索"],["wand","魔術棒"],["pan","(無)"]];
+function buildTools(){$("tools").innerHTML="";TOOLS.slice(0,3).forEach(([k,n])=>{const b=document.createElement("button");b.className="btn"+(tool===k?" on":"");b.textContent=n;b.onclick=()=>{tool=k;lasso=[];buildTools();draw()};$("tools").appendChild(b)});
+ [["add","＋加選"],["sub","－減選"]].forEach(([k,n])=>{const b=document.createElement("button");b.className="btn"+(mode===k?" on":"");b.textContent=n;b.onclick=()=>{mode=k;buildTools()};$("tools").appendChild(b)})}
+buildTools();
+function mk(id,bbox){const m=document.createElement("canvas");m.width=W;m.height=H;return{id,bbox:bbox||null,mask:m,color:COLORS[parts.length%COLORS.length]}}
+function loadImage(f){const u=URL.createObjectURL(f);const i=new Image();i.onload=()=>{img=i;W=i.naturalWidth;H=i.naturalHeight;
+ for(const c of [cv,ov])c.width=W,c.height=H;const t=document.createElement("canvas");t.width=W;t.height=H;const tc=t.getContext("2d");tc.drawImage(i,0,0);srcData=tc.getImageData(0,0,W,H);
+ parts.forEach(p=>{const o=p.mask;p.mask=document.createElement("canvas");p.mask.width=W;p.mask.height=H;p.mask.getContext("2d").drawImage(o,0,0)});
+ setZoom();draw();list()};i.src=u}
+$("fImg").onchange=e=>e.target.files[0]&&loadImage(e.target.files[0]);
+$("fDec").onchange=async e=>{const f=e.target.files[0];if(!f)return;if(!img){alert("請先載入原圖");return}
+ const d=JSON.parse(await f.text());parts=[];
+ for(const p of d.parts||[]){let bb=p.bbox_px;if(!bb&&p.bbox_pct)bb=[p.bbox_pct[0]*W/100,p.bbox_pct[1]*H/100,p.bbox_pct[2]*W/100,p.bbox_pct[3]*H/100].map(Math.round);
+  const q=mk(p.id||p.label||("part"+parts.length),bb);q.label=p.label;q.extra={confidence:p.confidence,notes:p.notes,points:p.points};
+  if(p.mask_png){await new Promise(r=>{const i=new Image();i.onload=()=>{q.mask.getContext("2d").drawImage(i,0,0);r()};i.src=p.mask_png})}
+  parts.push(q)}
+ sel=parts.length?0:-1;list();draw();$("status").textContent="已載入 "+parts.length+" 個部件"};
+function setZoom(){scale=$("zoom").value/100;$("zoomV").textContent=$("zoom").value+"%";for(const c of [cv,ov]){c.style.width=W*scale+"px";c.style.height=H*scale+"px"}}
+$("zoom").oninput=setZoom;$("size").oninput=()=>$("sizeV").textContent=$("size").value;$("tol").oninput=()=>$("tolV").textContent=$("tol").value;
+function list(){const el=$("parts");el.innerHTML="";parts.forEach((p,i)=>{const d=document.createElement("div");d.className="part"+(i===sel?" sel":"");
+ const n=maskArea(p);d.innerHTML=`<span class="sw" style="background:${p.color}"></span><span style="flex:1">${p.id}</span><span class="hint">${n?n+"px":"空"}</span>`;
+ d.onclick=()=>{sel=i;undoStack=[];$("pname").value=p.id;list();draw()};el.appendChild(d)});if(sel>=0)$("pname").value=parts[sel].id}
+function maskArea(p){const d=p.mask.getContext("2d").getImageData(0,0,W,H).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>127)n++;return n}
+$("pname").onchange=()=>{if(sel>=0){parts[sel].id=$("pname").value;list()}};
+$("addPart").onclick=()=>{if(!img)return;parts.push(mk("part_"+parts.length));sel=parts.length-1;undoStack=[];list();draw()};
+$("delPart").onclick=()=>{if(sel<0)return;parts.splice(sel,1);sel=parts.length?0:-1;list();draw()};
+function cur(){return sel>=0?parts[sel]:null}
+function snap(){const p=cur();if(!p)return;undoStack.push(p.mask.getContext("2d").getImageData(0,0,W,H));if(undoStack.length>30)undoStack.shift()}
+$("undo").onclick=undo;function undo(){const p=cur();if(!p||!undoStack.length)return;p.mask.getContext("2d").putImageData(undoStack.pop(),0,0);list();draw()}
+$("clear").onclick=()=>{const p=cur();if(!p)return;snap();p.mask.getContext("2d").clearRect(0,0,W,H);list();draw()};
+$("fromBox").onclick=()=>{const p=cur();if(!p||!p.bbox)return;snap();const c=p.mask.getContext("2d");c.fillStyle="#fff";const[b0,b1,b2,b3]=p.bbox;c.fillRect(b0,b1,b2-b0,b3-b1);list();draw()};
+$("inv").onclick=()=>{const p=cur();if(!p)return;snap();const c=p.mask.getContext("2d");const id=c.getImageData(0,0,W,H);for(let i=3;i<id.data.length;i+=4){id.data[i]=id.data[i]>127?0:255;id.data[i-3]=id.data[i-2]=id.data[i-1]=255}c.putImageData(id,0,0);list();draw()};
+function pos(e){const r=ov.getBoundingClientRect();return[(e.clientX-r.left)/scale,(e.clientY-r.top)/scale]}
+function effMode(e){return (e.button===2||e.buttons===2)?(mode==="add"?"sub":"add"):mode}
+function paint(c,m,fn){c.save();if(m==="sub")c.globalCompositeOperation="destination-out";c.fillStyle="#fff";fn(c);c.restore()}
+function stroke(a,b,m){const c=cur().mask.getContext("2d");const r=$("size").value/2;paint(c,m,x=>{const n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/(r/2)));
+ for(let i=0;i<=n;i++){const t=i/n,px=a[0]+(b[0]-a[0])*t,py=a[1]+(b[1]-a[1])*t;x.beginPath();x.arc(px,py,r,0,7);x.fill()}})}
+function wand(x,y,m){const p=cur(),tol=+$("tol").value,d=srcData.data,x0=Math.round(x),y0=Math.round(y);if(x0<0||y0<0||x0>=W||y0>=H)return;
+ const bb=p.bbox;const idx=(X,Y)=>(Y*W+X)*4,si=idx(x0,y0),sr=d[si],sg=d[si+1],sb=d[si+2];
+ const seen=new Uint8Array(W*H),st=[x0,y0],out=new Uint8ClampedArray(W*H*4);let cnt=0;
+ while(st.length){const Y=st.pop(),X=st.pop();if(X<0||Y<0||X>=W||Y>=H)continue;const k=Y*W+X;if(seen[k])continue;seen[k]=1;
+  if(bb&&(X<bb[0]||X>=bb[2]||Y<bb[1]||Y>=bb[3])&&$("limitBox")&&$("limitBox").checked)continue;
+  const i=k*4;if(d[i+3]<10)continue;if(Math.abs(d[i]-sr)+Math.abs(d[i+1]-sg)+Math.abs(d[i+2]-sb)>tol*3/1.0*0.5+tol)continue;
+  out[i]=out[i+1]=out[i+2]=255;out[i+3]=255;cnt++;st.push(X+1,Y,X-1,Y,X,Y+1,X,Y-1)}
+ const t=document.createElement("canvas");t.width=W;t.height=H;t.getContext("2d").putImageData(new ImageData(out,W,H),0,0);
+ const c=p.mask.getContext("2d");c.save();c.globalCompositeOperation=m==="sub"?"destination-out":"source-over";c.drawImage(t,0,0);c.restore();$("status").textContent="魔術棒選取 "+cnt+" px"}
+function closeLasso(m){if(lasso.length<3){lasso=[];return}const c=cur().mask.getContext("2d");paint(c,m,x=>{x.beginPath();lasso.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.closePath();x.fill()});lasso=[];list();draw()}
+ov.oncontextmenu=e=>e.preventDefault();
+ov.onmousedown=e=>{if(!cur())return;const p=pos(e),m=effMode(e);
+ if(tool==="brush"){snap();drawing=true;last=p;stroke(p,p,m);draw()}
+ else if(tool==="wand"){snap();wand(p[0],p[1],m);list();draw()}
+ else if(tool==="lasso"){if(!lasso.length)snap();if(lasso.length>2&&Math.hypot(p[0]-lasso[0][0],p[1]-lasso[0][1])<8/scale){closeLasso(m);return}lasso.push(p);draw()}};
+ov.ondblclick=e=>{if(tool==="lasso"&&lasso.length>2){lasso.pop();closeLasso(effMode(e))}};
+ov.onmousemove=e=>{hover=pos(e);if(drawing){const p=hover;stroke(last,p,effMode(e));last=p}draw()};
+window.onmouseup=()=>{if(drawing){drawing=false;list()}};
+window.onkeydown=e=>{if((e.ctrlKey||e.metaKey)&&e.key==="z"){e.preventDefault();undo()}if(e.key==="Escape"){lasso=[];draw()}};
+function tint(m,color,alpha){const t=document.createElement("canvas");t.width=W;t.height=H;const c=t.getContext("2d");c.drawImage(m,0,0);c.globalCompositeOperation="source-in";c.fillStyle=color;c.fillRect(0,0,W,H);octx.globalAlpha=alpha;octx.drawImage(t,0,0);octx.globalAlpha=1}
+function draw(){if(!img)return;ctx.clearRect(0,0,W,H);ctx.drawImage(img,0,0);octx.clearRect(0,0,W,H);
+ if($("showOthers").checked)parts.forEach((p,i)=>{if(i!==sel)tint(p.mask,p.color,.35)});
+ const p=cur();if(p){if($("showMask").checked)tint(p.mask,p.color,.55);
+  if(p.bbox){octx.strokeStyle=p.color;octx.setLineDash([6,4]);octx.lineWidth=1.5/scale;octx.strokeRect(p.bbox[0],p.bbox[1],p.bbox[2]-p.bbox[0],p.bbox[3]-p.bbox[1]);octx.setLineDash([])}}
+ if(lasso.length){octx.strokeStyle="#fff";octx.lineWidth=1.5/scale;octx.beginPath();lasso.forEach((q,i)=>i?octx.lineTo(q[0],q[1]):octx.moveTo(q[0],q[1]));if(hover)octx.lineTo(hover[0],hover[1]);octx.stroke();
+  lasso.forEach(q=>{octx.fillStyle="#fff";octx.fillRect(q[0]-2/scale,q[1]-2/scale,4/scale,4/scale)})}
+ if(tool==="brush"&&hover){octx.strokeStyle="#fff";octx.lineWidth=1/scale;octx.beginPath();octx.arc(hover[0],hover[1],$("size").value/2,0,7);octx.stroke()}}
+$("showOthers").onchange=$("showMask").onchange=draw;
+function bboxOfMask(p){const d=p.mask.getContext("2d").getImageData(0,0,W,H).data;let x0=W,y0=H,x1=-1,y1=-1;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(d[(y*W+x)*4+3]>127){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+ return x1<0?null:[x0,y0,x1+1,y1+1]}
+$("export").onclick=()=>{if(!img){$("status").textContent="請先載入圖片";return}
+ const out={source_image:"",image_size:[W,H],generated_by:"s4_manual_cut.html (人工分割)",parts:[]};
+ for(const p of parts){const mb=bboxOfMask(p);const e={id:p.id,label:p.label||p.id,confidence:"manual",notes:(p.extra&&p.extra.notes)||"",
+   bbox_px:mb||p.bbox||[0,0,0,0]};if(p.extra&&p.extra.points)e.points=p.extra.points;
+  if(mb){e.mask_png=p.mask.toDataURL("image/png")}out.parts.push(e)}
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:"application/json"}));a.download="decision_manual.json";a.click();
+ $("status").textContent="已匯出 "+out.parts.length+" 個部件(有遮罩:"+out.parts.filter(p=>p.mask_png).length+")"};
+const lb=document.createElement("label");lb.className="hint";lb.innerHTML='<input type="checkbox" id="limitBox" checked> 魔術棒限制在部件框內';$("tools").parentNode.insertBefore(lb,$("tools").nextSibling);
+</script></body></html>

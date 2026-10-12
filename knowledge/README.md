@@ -605,3 +605,6 @@
   head/sash_train的points、重跑完整20部件`--contour sam --eval`)顯示兩者不需點
   提示就自動修正(`auto_reselected:true`),其餘18部件`sam_info`除多一個
   `auto_reselected:false`欄位外逐位元相同。已改動`s4_sam_segment.py`生產代碼。
+
+- `s4-manual-cut-tool.md` — 人工分割輔助工具(`s4_manual_cut.html` + `--contour manual`)。
+- `s4-gptfill-api-key-setup.md` — gpt-image-2 API key 設定指引(含 `s4_openai_check.py` 免費預檢)。

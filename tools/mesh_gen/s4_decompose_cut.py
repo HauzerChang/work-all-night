@@ -92,6 +92,20 @@ def cut(image_path, decision_path, out_dir, contour="rect", sam_checkpoint=None,
                     f"part '{p.get('id')}' SAM分割low_confidence(框內{sam_info['fg_ratio_in_box']:.0%}"
                     f"被判定前景,可能是框本身沒貼近目標物件,不代表分割結果可信)")
 
+        if contour == "manual":
+            mask_b64 = p.get("mask_png")
+            if not mask_b64:
+                warnings.append(f"part '{p.get('id')}' 無 mask_png,退回矩形(manual 模式)")
+            else:
+                import base64, io
+                raw = mask_b64.split(",", 1)[-1]
+                m_img = Image.open(io.BytesIO(base64.b64decode(raw))).convert("RGBA")
+                if m_img.size != (W, H):
+                    m_img = m_img.resize((W, H), Image.NEAREST)
+                sub_mask = (np.array(m_img.split()[-1])[y0:y1, x0:x1] > 127)
+                r, g, b, a = crop.split()
+                crop = Image.merge("RGBA", (r, g, b, Image.fromarray(np.array(a) * sub_mask.astype(np.uint8))))
+
         pid = p.get("id") or f"part_{i}"
         safe = pid.replace("/", "__")
         fn = f"{i:02d}_{safe}.png"
@@ -164,8 +178,8 @@ def main():
     ap.add_argument("decision", help="s4_decompose_assist.html 匯出的決策檔 JSON")
     ap.add_argument("-o", "--out", required=True, help="輸出目錄(部件 PNG + manifest.json)")
     ap.add_argument("--eval", action="store_true", help="裁切後跑自驗閘並印報告")
-    ap.add_argument("--contour", choices=["rect", "sam"], default="rect",
-                     help="rect=純矩形(預設);sam=MobileSAM box-prompted語意分割找不規則輪廓")
+    ap.add_argument("--contour", choices=["rect", "sam", "manual"], default="rect",
+                     help="rect=純矩形(預設);manual=用 s4_manual_cut.html 手繪的 mask_png;sam=MobileSAM box-prompted語意分割找不規則輪廓")
     ap.add_argument("--sam-checkpoint", default=None, help="MobileSAM權重路徑(預設見 s4_sam_segment.py)")
     ap.add_argument("--sam-src", default=None, help="mobile_sam 原始碼路徑(非pip套件,需另外git clone)")
     a = ap.parse_args()
