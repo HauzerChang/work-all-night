@@ -121,6 +121,9 @@
 <script>
 /* Spine Inspector (Spine 3.8). Render: official spine-webgl (spine.webgl.*). Panels: local JSON parse. Phase-2 API: window.spineTool.* */
 const SPINE_CDNS = [
+  // Local vendored runtime first — lets the inspector run fully offline (e.g. sandboxed /
+  // scheduled envs where CDNs are blocked by egress policy). See vendor/README.md.
+  "vendor/spine-webgl-3.8.75.js",
   "https://cdn.jsdelivr.net/gh/EsotericSoftware/spine-runtimes@3.8/spine-ts/build/spine-webgl.js",
   "https://cdn.jsdelivr.net/gh/EsotericSoftware/spine-runtimes@3.8/spine-ts/build/spine-player.js",
   "https://esotericsoftware.com/files/spine-ts/3.8/spine-webgl.js",

@@ -10,6 +10,28 @@
 
 **專案三階段：第 2 階段(用工具鍛鍊四能力)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **(INFRA) 離線 spine-webgl 3.8 + 無頭實機驗證 harness(里程碑,2026-10-12 run 001)** —
+  **刻意不產第 9 個 cascade 微變體**(承 2026-10-11 run 001 的 soft-HOLD:J-8..J-15c 連 8 run cascade 微變體邊際遞減),
+  改**解 soft-HOLD 列的四阻塞之一**:spine_inspector 實機 round-trip。發現其**離線半是可自助的**——CDN(jsDelivr/cdnjs/
+  esotericsoftware)全被 egress policy 擋 403、npm `@esotericsoftware/spine-webgl` 僅不相容的 4.x,**但** session git proxy
+  直通 GitHub 匿名 read → 從 `EsotericSoftware/spine-runtimes` 分支 `3.8` sparse+shallow 取官方 **spine-webgl 3.8.75**
+  (422KB,sha256 `4b108bad…c3aa5`)vendored 進 `vendor/spine-webgl-3.8.75.js`。**做了什麼**:①vendored runtime + `vendor/README.md`
+  (來源/授權/sha);②`spine_inspector.html` 的 `SPINE_CDNS` 最前加本地路徑(CDN fallback 保留給使用者端);③新 `tools/live_inspect/live_inspect.js`
+  (自足無頭 harness:自建 temp serve dir symlink inspector+vendor+assets、起 http、Chromium+Playwright 驅動 `window.spineTool`、
+  等 `ready()` 印 JSON;`--probe` 掃動畫量 `getMeshBounds`;缺 playwright/chromium → exit 2 清楚訊息可 fallback)+ README。
+  **實機量測全吻合**(真 3.8.75 runtime 載 main_draw 含貼圖,`assets/main_draw.png` 已在 repo):spine=**3.8.99**・
+  **28 bones/40 slots/9 anims**・hasTexture=true・4 mesh(curtain_left/right 21v24tri hull16、shadow/shadow2 共用 region 12/10/12)
+  **與 CLAUDE.md/解析報告逐項吻合**;`getMeshBounds("image/curtain_left")` 隨 `main_draw_close`(dur 0.667)**真變形**
+  (f=0–0.50 w≈645 h≈616 → **f=0.75 w≈372 h≈535 窗簾闔上** → f=1 復原回 Loop);log 確認載的是**本地 vendored runtime** 非 CDN。
+  **價值 crux(不是 cascade 變體)**:把「真值渲染器」接進自驗迴圈——過去 S1 評估器(`deform_eval`/`validate_against_real`)
+  全是 Spine 3.8 deform/pose 數學的 **Python 重寫**,從未能在排程/沙箱環境跑**真 spine-webgl runtime** 比對(CDN 403)。
+  **回歸:check_readiness 0 RED / 69 GREEN(未動任何 validator/產線碼;純新增 vendor+tool+inspector 本地優先一行)**。
+  **關鍵發現**:①**egress 擋 CDN 不等於擋一切**——package registry(npm/pypi)與 GitHub 匿名 git read 在 proxy noProxy 直通,
+  第三方前端資產可經 GitHub build 分支取得;②**3.8 runtime 不在任何 CDN/npm 可得管道**(npm 只有 4.x,格式不相容),唯一是 GitHub `3.8` 分支;
+  ③**真值級驗證缺口已接通**(下一步:真 runtime `getMeshBounds`/`getWorldVertices` vs Python `deform_eval` 交叉驗證)。
+  **honest boundary**:3.8.75 runtime 對 3.8.99 資產(3.8.x 線內相容,非逐位元同使用者端 editor 版);swiftshader 軟體 GL 下
+  `screenshot` 像素可能次像素差(幾何量測不受影響);vendored 檔是第三方 build 二進位,不進任何 validator 真值、僅供跑工具;
+  probe 目前 5 點粗掃會錯過部分動畫變形窗。見 `knowledge/infra-offline-spine-webgl-live-harness.md`。
 - **S1 cascade 晃動波變體:每件依序阻尼 shearX 晃起→回穩(第一個把 shear 錯開成跨件波)(里程碑,2026-10-10 run 004,candidate J-15c)** —
   承 (J-15):cascade 的**單件運動基元**至此有 **pop**(scale 脈衝,J-5..J-14)與 **reveal**(scale+alpha 入場,J-15)兩種,**皆走 scale 通道**。本次新增**第三個**運動基元 **wobble 晃動波**:
   把單件運動換成 `gen_wobble` 的**純 shearX 阻尼振盪**——每件 shearX 自 identity(0)起,依 phase **依序晃起**(`A→−rA→+r²A→−r³A` 4 遞減交替極值),再回穩到 0。
@@ -1607,9 +1629,19 @@
   **解除條件**:使用者擇一 ——(A) 提供高槓桿資源(多肢體 rig 檔 / 分層 PSD / benchmark 影片 / 放行 CDN 或離線 spine-webgl);
   (B) 編輯 `STATE.md` 下一步或 `PLAN.md` 重新指定方向;(C) 明示「cascade 微變體仍有價值,請繼續」→ 則恢復產 J-15d..。
   專案狀態維持 `ACTIVE`(技術上無硬阻塞,隨時可依使用者指示恢復推進),僅方向上 soft-HOLD。
+- ✅ **[2026-10-12 run 001] soft-HOLD 四阻塞之一「spine_inspector 實機 round-trip」已自助解除(離線 spine-webgl)**:
+  run 001 把此阻塞歸為「需放行 CDN 或使用者提供離線 spine-webgl」,但本 run 發現**離線半可自助**——CDN(jsDelivr/cdnjs/
+  esotericsoftware)全被 egress policy 擋 403、npm 僅不相容的 4.x,**但** session git proxy 直通 GitHub 匿名 read →
+  從 `EsotericSoftware/spine-runtimes` 分支 `3.8` 取官方 **spine-webgl 3.8.75** vendored 進 `vendor/`。inspector 本地優先載、
+  新 `tools/live_inspect/live_inspect.js`(Chromium+Playwright 無頭驅動 `window.spineTool`)**完全離線**實機驗:實測 spine=3.8.99・
+  28 bones/40 slots/9 anims・hasTexture=true・4 mesh 拓樸吻合資產、`getMeshBounds(curtain_left)` 隨 `main_draw_close` 真變形。
+  **這不是 cascade 變體,是解真阻塞+接通真值渲染器**(過去 S1 評估器全是 3.8 數學 Python 重寫,無法在排程環境跑真 runtime 比對)。
+  → **其餘三阻塞(多肢體 rig 檔 / 分層 PSD / benchmark 影片)仍需使用者;soft-HOLD 方向判斷未變**,但實機驗證線已可自驅。
+  見 `knowledge/infra-offline-spine-webgl-live-harness.md`、`tools/live_inspect/README.md`。
 - ✅ `main_draw.png`(2023×1896,含 alpha)已收進 `assets/`;texture/IoU 已解鎖。atlas 切圖工具見 `tools/mesh_gen/atlas_crop.py`。
 - ❓ 切圖/補圖(S4)最大槓桿是「能否要到分層 PSD」— 屬使用者層級決策。
-- ℹ️ spine_inspector 實機 round-trip 需瀏覽器自動化(headless),尚未設置。
+- ✅ **spine_inspector 實機 round-trip 已設置**(`tools/live_inspect/`,headless Chromium,離線 vendored runtime);
+  下一步 = 真 runtime `getMeshBounds`/`getWorldVertices` vs Python `deform_eval` 交叉驗證(本 repo 最大驗證缺口)。
 
 ## 進度摘要 (progress log)
 
