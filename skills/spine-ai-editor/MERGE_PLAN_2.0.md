@@ -50,10 +50,13 @@
 - [x] STATE/PLAN 改向、解除 soft-HOLD。
 
 ### Phase B — 生成庫併接（核心升級，逐 chunk）
-- [ ] **B1 橋接閘**：寫 `tools/analyzer/validate_v2_bridge.py`——把 repo 生成的一支動畫
-      （先用最單純的 cascade big-win beat）跑過 v1.3.0 `validator_v1`。
-      **AC**：0 error（含末鍵 curve 檢查）、loop 閉合無問題、輸出一併回報 stiffness。
-      先證 G1/G2 可機械化，再談搬更多生成器。
+- [x] **B1 橋接閘**（2026-10-12 run 002 ✅）：`tools/analyzer/validate_v2_bridge.py`——repo 最單純 cascade
+      big-win beat →（G1）`strip_last_frame_curves` →（G2）subprocess 呼叫**真正的** v1.3.0 `validator_v1`。
+      **5 AC 全 PASS**：0 error（含末鍵 curve 檢查）、loop 閉合 0 問題、stiffness=50.49 可量、
+      **負對照**（注入末鍵 curve + 破壞 loop 皆被抓）證閘非恆真。**關鍵發現**：repo `_bez` 只 curve
+      `frames[:-1]`，單 beat 生成本就無末鍵 curve（G1 拔 0 條）→ **地雷 #12 的真正風險在序列
+      compose/crossfade（B4）/ 統一閘（D1），不在單 beat**。回歸 0 RED（新增 cap `v2_bridge` L2）。
+      見 `knowledge/s2-v2-bridge-b1.md`。
 - [ ] **B2 cascade/pop/wobble/twist 生成進 skill**：把生成函式整理成 `assets/gen_lib/`（或過渡期
       references 指向 repo tools），補一節 SOP 到 `references/animation_patch_patterns.md`（Pattern 12+）。
       **AC**：用 skill 流程生成一個大獎 cascade beat → `validator_v1` clean → 在 `spine-viewer.html` 可載入播放。

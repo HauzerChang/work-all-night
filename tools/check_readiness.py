@@ -756,6 +756,13 @@ BLOCKS = [
                      "W5 metric+dir+guards:(a)晃起排序 N 與 HIRES 一致 (b)dir discriminator wobble+lr 下晃起序==x 排序≠件序(wobble 沿用 dir threading) (c)guards wobble×nrip>1 / wobble×span 過大 / wobble×reveal 同開 皆 ValueError(build 與 gen 雙驗) (d)端到端 build_spine --animate --cascade-wobble 產可載入 spine(cascade anim finite+含 shear+首尾 shearX=0))。"
                      "**關鍵發現:①cascade 的『單件運動基元』軸可承載任意 transform 通道——pop/reveal 走 scale,wobble 走 shear,是第一個進跨件波的 shear 通道;②pop 與 wobble 皆『首尾 identity 兩端可接 Loop』(介面相同)但走不同通道(scale vs shear),reveal 則首端 collapsed 不可接——介面契約由運動基元本身決定;③跨件晃起序用 argmax(|shearX|) 量(首極值阻尼下最大,唯一落晃起中心),與 reveal 用 argmax(scaleX)/pop 用峰時刻同屬 per-bone argmax 範式**。"
                      "honest:用 pop/reveal/wobble(哪個 beat 該晃)皆屬美術手感(A 類 PROPOSAL,本閘只新增一個確定性運動基元 + 其跨件晃動波);晃起包絡窗/阻尼比沿用 gen_wobble 的量級選擇;無改任何 pop 生成/產線值(wobble=False 逐位元不變);單一真值資產。cap cascade_wobble L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("v2_bridge", "spine-ai-editor 2.0 B1 橋接閘:repo cascade beat → v1.3.0 validator_v1(G1+G2 機械化)", "L2",
+                "python3 tools/analyzer/validate_v2_bridge.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase B1(排程主線=產出 spine-ai-editor 2.0 的前提 chunk):把 repo 確定性生成器輸出跑過使用者既有 skill 的**編輯器真值閘** validator_v1。"
+                     "repo 69 閘只驗 runtime(spine-webgl)可載入;validator_v1 另驗 **editor 可匯入(末鍵 curve=地雷 #12 AIOOBE crash)+ loop 閉合 + stiffness**。B1 證兩套品質閘接縫可機械化:生成 cascade big-win beat →(G1)strip_last_frame_curves →(G2)validator_v1。"
+                     "5AC PASS(B1-1 生成器產 cascade beat 組成 schema 合法完整 Spine JSON(v0 0 error)/B1-2 過 G1 後 validator_v1 **0 error**(含末鍵 curve 檢查)/B1-3 cascade loop 閉合 0 問題(pop 波首尾 identity)/B1-4 stiffness 有限可量(50.49)/"
+                     "B1-5 **負對照**:(a)注入末鍵 curve → validator_v1 抓到 editor-crash error 再 strip 修好 (b)破壞首尾 identity → loop 閉合抓到開環 → 證閘非恆真)。"
+                     "**關鍵發現:repo `_bez` 只 curve frames[:-1],單 beat 生成本就無末鍵 curve(G1 拔 0 條)→ repo 生成器的 editor 相容性在單 beat 層級已乾淨;G1 的真正風險在序列 compose/crossfade(B4 再驗)**。honest:本閘只驗最單純單 beat;多 beat 序列的末鍵 curve 風險與雙真值合成閘留 B4/D1。cap v2_bridge L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

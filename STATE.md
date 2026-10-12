@@ -11,11 +11,31 @@
 > 🟢 **方向變更(2026-10-12 使用者拍板,解除 soft-HOLD)**:排程主線改為
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
-> `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**;下一個 run 從該檔 Phase 清單挑第一個未打勾的 chunk(B1)推進。
+> `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,2026-10-12 run 002)。下一個 run 做 B2**
+> (把 cascade/pop/wobble/twist 生成函式整理進 `assets/gen_lib/` 或過渡期 references 指向 repo tools,
+> 補 SOP 到 `references/animation_patch_patterns.md`;AC=skill 流程生一個大獎 cascade beat → validator_v1 clean
+> → `spine-viewer.html` 可載入播放。⚠️ viewer 載入屬使用者端,排程用 validator_v1 clean + 無頭 spine-webgl 等價驗)。
 > cascade 微變體線**停產**(J-8..J-15c 已飽和,見下「未解問題」);S1/S3/S5 底層能力轉為「被 2.0 併入的素材庫」。
 
 **專案三階段:第 2→3 階段(用工具鍛鍊四能力 → 整合成可交付 pipeline/skill)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **2.0 Phase B1 橋接閘:repo cascade beat → v1.3.0 `validator_v1`(G1+G2 機械化)(里程碑,2026-10-12 run 002)** —
+  排程主線(產出 spine-ai-editor 2.0)的 **B 階段前提 chunk**。問題:2.0 要併 repo 生成引擎進使用者既有 skill,但兩套閘驗的東西不同——
+  **repo 69 閘只驗 runtime(spine-webgl)可載入**;v1.3.0 `validator_v1` 另驗 **editor 可匯入(末鍵 curve=地雷 #12 AIOOBE crash)+ loop 閉合 + stiffness**。
+  MERGE_PLAN 的 **G2(雙真值驗收)** 要求 2.0 輸出「遊戲能播 **且** 編輯器能匯入」。B1 在搬任何生成器**之前**,先機械化證明這條接縫可自動化。
+  **做了什麼(純新增檔,無改任何生成/產線值)**:`tools/analyzer/validate_v2_bridge.py` —— repo 最單純 cascade big-win beat
+  (`G.build_animations` 真實 robot 件序)組成 schema 合法完整 Spine JSON →(G1)`curve_tools.strip_last_frame_curves` →
+  (G2)subprocess 呼叫**真正的** `skills/.../validator_v1.py --metric --loop-anims cascade`,解析 error/loop/stiffness。
+  **5 AC 全 PASS**:**B1-1** 生成器產 cascade beat(5 bone/1 effect slot 光暈)組 v0 0 schema error;**B1-2** 過 G1 後 validator_v1 **valid 0 error**(含末鍵 curve 檢查);
+  **B1-3** cascade pop 波首尾 identity → loop 閉合 **0 問題**;**B1-4** stiffness=**50.49** 有限可量;
+  **B1-5 負對照**(a)注入末鍵 curve → validator_v1 抓到 editor-crash error(明確指 AIOOBE/`strip_last_frame_curves()`)再 strip 修好
+  (b)破壞 scale 末鍵值 → loop 閉合抓到 `b_光暈.scale.x: open loop 1.0 != 1.5` → 證閘**非恆真**。
+  **回歸 check_readiness 0 RED / 70 GREEN**(新增 cap `v2_bridge` L2 pipeline 併入 `spine-anim-forge` 仍 HOLD)。
+  **關鍵發現**:①**repo 生成器在單 beat 層級本就 editor 乾淨**——`gen_animations._bez` 只對 `frames[:-1]` 寫 curve(末鍵永不帶 curve)→ 單 beat **G1 拔 0 條**;
+  **地雷 #12「遊戲能播但編輯器炸」的真正風險不在單 beat 生成,而在序列 compose/crossfade/loop(前段尾幀 outgoing curve 可能變某 timeline 末鍵)→ G1 的真正戰場是 B4 與 D1,不是單 beat**(釘住後面 chunk 的驗收重點);
+  ②**兩套閘接縫可機械化**成一條可重跑機讀閘,G2 不必人工開 Spine editor(validator_v1 末鍵 curve 檢查=地雷 #12 程式化代理);③負對照證閘有牙(會因 repo 輸出不乾淨而 FAIL)。
+  **honest boundary**:本閘只驗最單純單 beat(cascade pop);多 beat 序列末鍵 curve 風險 + reveal(首幀 collapsed,loop 閉合本不該過)介面差異留 B4/D1;Cocos 實機 round-trip/視覺確認=使用者端(排程 scope 邊界)。見 `knowledge/s2-v2-bridge-b1.md`。
 - **S1 cascade 晃動波變體:每件依序阻尼 shearX 晃起→回穩(第一個把 shear 錯開成跨件波)(里程碑,2026-10-10 run 004,candidate J-15c)** —
   承 (J-15):cascade 的**單件運動基元**至此有 **pop**(scale 脈衝,J-5..J-14)與 **reveal**(scale+alpha 入場,J-15)兩種,**皆走 scale 通道**。本次新增**第三個**運動基元 **wobble 晃動波**:
   把單件運動換成 `gen_wobble` 的**純 shearX 阻尼振盪**——每件 shearX 自 identity(0)起,依 phase **依序晃起**(`A→−rA→+r²A→−r³A` 4 遞減交替極值),再回穩到 0。
