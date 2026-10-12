@@ -50,10 +50,14 @@
 - [x] STATE/PLAN 改向、解除 soft-HOLD。
 
 ### Phase B — 生成庫併接（核心升級，逐 chunk）
-- [ ] **B1 橋接閘**：寫 `tools/analyzer/validate_v2_bridge.py`——把 repo 生成的一支動畫
-      （先用最單純的 cascade big-win beat）跑過 v1.3.0 `validator_v1`。
-      **AC**：0 error（含末鍵 curve 檢查）、loop 閉合無問題、輸出一併回報 stiffness。
-      先證 G1/G2 可機械化，再談搬更多生成器。
+- [x] **B1 橋接閘**（2026-10-12 完成 ✅）：`tools/analyzer/validate_v2_bridge.py`——把 repo 生成的
+      最單純 cascade big-win beat（pop 波）跑過 v1.3.0 `validator_v1`。**5 AC 全 PASS**（exit 0）：
+      V1 包成完整 Spine 3.8 JSON（slots/skins 由件自動導出）、**V2 validator_v1 rc==0 / 0 error（含末鍵 curve editor 檢查）**、
+      V3 loop_closure_report==[]（pop 波首尾 identity 可接 Loop）、**V4 負對照**（注 curve 進末鍵→rc==1 被擋、
+      `strip_last_frame_curves` 後→rc==0，證 G1 機械化 + 閘有牙）、V5 stiffness 可量=49.84（advisory）。
+      **關鍵事實**：repo `_bez` 只碰 `frames[:-1]`、`EASE=0.25∈[0,1]` → **生成天生 G1-safe**（地雷 #12 免費規避）。
+      新 cap `v2_bridge_validator_v1` 併入新區塊 `spine-ai-editor-2.0`（check_readiness，仍 HOLD）。
+      見 `knowledge/ai-editor-2.0-b1-bridge.md`。G1/G2 已可機械化,後續搬生成器(B2+)皆可複用此橋接閘守門。
 - [ ] **B2 cascade/pop/wobble/twist 生成進 skill**：把生成函式整理成 `assets/gen_lib/`（或過渡期
       references 指向 repo tools），補一節 SOP 到 `references/animation_patch_patterns.md`（Pattern 12+）。
       **AC**：用 skill 流程生成一個大獎 cascade beat → `validator_v1` clean → 在 `spine-viewer.html` 可載入播放。

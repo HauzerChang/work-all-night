@@ -758,6 +758,28 @@ BLOCKS = [
                      "honest:用 pop/reveal/wobble(哪個 beat 該晃)皆屬美術手感(A 類 PROPOSAL,本閘只新增一個確定性運動基元 + 其跨件晃動波);晃起包絡窗/阻尼比沿用 gen_wobble 的量級選擇;無改任何 pop 生成/產線值(wobble=False 逐位元不變);單一真值資產。cap cascade_wobble L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
+    {
+        "id": "spine-ai-editor-2.0",
+        "title": "spine-ai-editor 2.0 合併(repo 生成引擎 + 評估器紀律 併進 v1.3.0)",
+        "target_skill": "HOLD:MERGE_PLAN_2.0 Phase B..E 逐 chunk 推進;達 E 前(未 self-contained 打包 + 雙真值全軸)不升版",
+        "caps": [
+            CAP("v2_bridge_validator_v1", "Phase B1 橋接閘:repo 生成 cascade beat → v1.3.0 validator_v1(G1 末鍵 curve + G2 雙真值)", "L2",
+                "python3 tools/analyzer/validate_v2_bridge.py", "eval",
+                note="MERGE_PLAN_2.0 的第一個有界 chunk:證明本 repo 確定性生成引擎(gen_animations)產出的動畫能無痛通過使用者既有 "
+                     "spine-ai-editor v1.3.0 的 validator_v1(= runtime 可載入 **且** editor 可匯入 **且** loop 閉合 **且** stiffness 可量),"
+                     "把兩道硬性護欄機械化、可回歸:G1(末鍵 curve 必拔,地雷 #12 editor AIOOBE)+ G2(雙真值驗收)。"
+                     "**關鍵事實(本閘釘住):repo 的 gen_animations._bez 只對 frames[:-1] 下緊湊 bezier(末鍵永不帶 curve)、EASE=0.25∈[0,1] "
+                     "→ repo 生成天生 G1-safe**。主體=最單純 cascade big-win beat(pop 波,合成 5 件 self-contained fixture,不依賴 PSD;"
+                     "cascade 跨件簽章真實性由 validate_cascade 覆蓋,本閘只驗『生成→v1.3.0 閘』橋接)。5AC PASS"
+                     "(V1 generate+wrap 包成完整 Spine 3.8 skeleton JSON(含 slots/skins.default 由件自動導出)+ round-trip+有限/"
+                     "V2 validator_v1 clean:rc==0、0 error(含末鍵 curve editor 檢查)/"
+                     "V3 loop closure:loop_closure_report==[](pop 波每 bone 首尾 identity、首鍵 0 末鍵 dur → 可插 Loop 間)/"
+                     "V4 editor 閘有牙+G1 負對照:(a)原生末鍵 0 curve(strip 回 0)(b)人工注 curve 進末鍵→validator_v1 rc==1 點名末鍵 curve(閘非恆真)"
+                     "(c)strip_last_frame_curves 後 rc==0(G1 機械化修復)/V5 stiffness 可量 49.84(advisory,不設閾值——手感主觀=使用者/A類))。"
+                     "honest:cascade pop 波的運動基元/節拍仍屬美術手感(A 類);stiffness 無閾值;fixture 為合成件(跨件真實性另閘覆蓋);"
+                     "尚未搬生成器進 skill(B2+)、未 self-contained 打包(E);本 chunk 只證 G1/G2 可機械化。cap L2 eval,新區塊 spine-ai-editor-2.0(HOLD)"),
+        ],
+    },
 ]
 
 LADDER = {"L0": 0, "L1": 1, "L2": 2, "L3": 3, "L4": 4}

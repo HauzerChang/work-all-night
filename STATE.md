@@ -16,6 +16,18 @@
 
 **專案三階段:第 2→3 階段(用工具鍛鍊四能力 → 整合成可交付 pipeline/skill)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **spine-ai-editor 2.0 — Phase B1 橋接閘(里程碑,2026-10-12 run 002)** — MERGE_PLAN_2.0 的第一個有界 chunk。
+  新閘 `tools/analyzer/validate_v2_bridge.py`:把 repo 確定性生成引擎(`gen_animations`)產出的最單純 cascade big-win beat(pop 波)
+  **包成完整 Spine 3.8 skeleton JSON** 後,**真的跑過** v1.3.0 的 `validator_v1`(runtime 可載入 **且** editor 可匯入 **且**
+  loop 閉合 **且** stiffness 可量)。**兩道硬性併接護欄 G1(末鍵 curve 必拔,地雷 #12)+ G2(雙真值驗收)已機械化、可回歸**。
+  **關鍵事實(本閘釘住)**:repo 的 `gen_animations._bez` 只對 `frames[:-1]` 下緊湊 bezier(末鍵永不帶 curve)、
+  `EASE=0.25∈[0,1]` → **repo 生成天生 G1-safe**(地雷 #12 免費規避),2.0 併接不需改任何既有生成器就滿足 editor 契約。
+  **5 AC 全 PASS**(exit 0):V1 generate+wrap(slots/skins 由骨架件自動導出:fx 件的 slot color/alpha timeline 才有合法 slot 可引用)+ round-trip+有限/
+  **V2 validator_v1 clean**(rc==0、0 error,含末鍵 curve editor 檢查=G2)/V3 loop_closure_report==[](pop 波每 bone 首尾 identity、首鍵 0 末鍵 dur → 可插 Loop)/
+  **V4 editor 閘有牙+G1 負對照**((a)原生末鍵 0 curve(strip 回 0)(b)人工注 curve 進末鍵→`validator_v1` rc==1 點名末鍵 curve(閘非恆真)(c)`strip_last_frame_curves` 後→rc==0,G1 機械化修復)/
+  V5 stiffness 可量=49.84(advisory,不設閾值——手感主觀=使用者/A類)。fixture 用**合成 5 件骨架**(self-contained,不依賴 PSD;cascade 跨件簽章真實性由 `validate_cascade` 覆蓋,本閘只驗「生成→v1.3.0 閘」橋接)。
+  **回歸:check_readiness 0 RED / 70 GREEN**(新增 cap `v2_bridge_validator_v1` L2 eval,新區塊 `spine-ai-editor-2.0` 仍 HOLD)。
+  **honest boundary**:cascade 運動基元/節拍/stiffness 高低仍屬美術手感(A 類);fixture 合成件;尚未搬生成器進 skill(B2)、未 self-contained 打包(E);本 chunk 只證 G1/G2 可機械化。見 `knowledge/ai-editor-2.0-b1-bridge.md`。
 - **S1 cascade 晃動波變體:每件依序阻尼 shearX 晃起→回穩(第一個把 shear 錯開成跨件波)(里程碑,2026-10-10 run 004,candidate J-15c)** —
   承 (J-15):cascade 的**單件運動基元**至此有 **pop**(scale 脈衝,J-5..J-14)與 **reveal**(scale+alpha 入場,J-15)兩種,**皆走 scale 通道**。本次新增**第三個**運動基元 **wobble 晃動波**:
   把單件運動換成 `gen_wobble` 的**純 shearX 阻尼振盪**——每件 shearX 自 identity(0)起,依 phase **依序晃起**(`A→−rA→+r²A→−r³A` 4 遞減交替極值),再回穩到 0。
@@ -1367,12 +1379,22 @@
 
 ## 下一步動作 (next action)
 
-> 🟢 **現行主線(2026-10-12 起):spine-ai-editor 2.0**。
-> **下一個 run 做 `skills/spine-ai-editor/MERGE_PLAN_2.0.md` 的 Phase B1(橋接閘)** ——
-> 寫 `tools/analyzer/validate_v2_bridge.py`,把 repo 生成的一支最單純 cascade big-win beat 跑過
-> v1.3.0 `skills/spine-ai-editor/assets/validator_v1.py`。**AC**:0 error(含末鍵 curve 地雷 #12 檢查)、
-> loop 閉合無問題、附帶輸出 stiffness。先證「G1 末鍵拔除 + G2 雙真值驗收」可機械化,再逐 chunk 搬更多生成器。
-> B1 之後照 B2→B3→B4→C→D→E 順序(清單在 merge plan;每 run 一個 chunk,完成在該檔打勾)。
+> 🟢 **現行主線(2026-10-12 起):spine-ai-editor 2.0**。路線圖 = `skills/spine-ai-editor/MERGE_PLAN_2.0.md`
+> (Phase B..E,每 run 一個有界 chunk;完成在該檔打勾)。
+>
+> **✅ Phase B1(橋接閘)已完成(2026-10-12 run 002)**:`tools/analyzer/validate_v2_bridge.py` —— 把 repo
+> 生成的最單純 cascade big-win beat(pop 波)跑過 v1.3.0 `validator_v1`。**5 AC 全 PASS**(exit 0):
+> V1 包成完整 Spine 3.8 JSON(slots/skins 由件自動導出)、**V2 validator_v1 rc==0 / 0 error(含末鍵 curve editor 檢查=G2)**、
+> V3 loop_closure==[](pop 波首尾 identity 可接 Loop)、**V4 負對照**(注 curve 進末鍵→rc==1 被擋、`strip_last_frame_curves` 後→rc==0,
+> 證 **G1** 機械化 + 閘有牙)、V5 stiffness 可量=49.84(advisory,不設閾值)。**關鍵事實:repo `_bez` 只碰 `frames[:-1]`、
+> `EASE=0.25∈[0,1]` → 生成天生 G1-safe(地雷 #12 免費規避)**。回歸 **0 RED / 70 GREEN**(新增 cap `v2_bridge_validator_v1`
+> 於新區塊 `spine-ai-editor-2.0`,HOLD)。見 `knowledge/ai-editor-2.0-b1-bridge.md`。
+>
+> **下一個 run 做 Phase B2**:把 cascade/pop/wobble/twist 生成函式整理進 skill `assets/gen_lib/`
+> (或過渡期 references 指向 repo tools),補一節 SOP 到 `references/animation_patch_patterns.md`(Pattern 12+)。
+> **AC**:用 skill 流程生成一個大獎 cascade beat → 跑 `validate_v2_bridge`(或 `validator_v1`)clean →
+> 在 `assets/spine-viewer.html` 可載入播放(viewer 載入屬純 CPU 可驗;Cocos 實機留使用者端)。
+> B2 之後照 B3→B4→C→D→E 順序。
 >
 > 以下為舊的「S1/S3/S5 底層能力」進度(仍有效,現轉為**被 2.0 併入的素材庫**,非獨立推進目標):
 
