@@ -1,0 +1,20 @@
+{
+ "source": "jiuwei_yanlian_char_crop.png",
+ "src_size": [
+  460,
+  898
+ ],
+ "canvas": 1024,
+ "scale": 1.1403118040089086,
+ "offset": [
+  249,
+  0
+ ],
+ "hole_px": 8867,
+ "hole_bbox": [
+  464,
+  426,
+  571,
+  533
+ ]
+}

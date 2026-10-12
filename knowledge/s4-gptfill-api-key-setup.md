@@ -24,3 +24,10 @@
   每次呼叫記錄到 `tools/mesh_gen/s4_data/openai_usage.jsonl`(只記 metadata,不含 key/圖)。
 - 先定評分方式再擴大樣本(chunk 35 教訓:生成式輸出不適合沿用 CPU 版閘門)。
 - 請你在回覆裡給我一個**總呼叫次數或金額上限**,我會寫進 `STATE_S4.md` 當硬上限,超過即停。
+
+## 免 API key 路線(方案A,2026-10-12)
+
+ChatGPT 訂閱不含 API 額度(API 回 429 `credit_balance_exhausted` 即此情形)。改用 ChatGPT 桌面版手動補圖:
+`python3 tools/mesh_gen/s4_gptfill_package.py make <原圖> -o <資料夾> --circle cx,cy,r`(或 `--decision decision_manual.json --part bodice`)產資料包 →
+依資料夾內 `HOWTO.md` 在 ChatGPT 補圖 → `... ingest <資料夾> result.png` 收回(只採洞內、偵測洞外漂移)。範例資料包:`tools/mesh_gen/s4_data/gptfill_pkg_demo/`。
+方案B(本機 `codex exec` 橋接)待使用者提供 `codex --version`/登入狀態後再評估;Codex 憑證不放雲端環境。

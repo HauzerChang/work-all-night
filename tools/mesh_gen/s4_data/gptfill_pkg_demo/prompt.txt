@@ -1,0 +1,1 @@
+Fill the transparent (erased) area by seamlessly continuing the surrounding content. Match the existing style, colors, texture and lighting exactly. Do not change anything outside the erased area. Keep the image size and framing identical.
