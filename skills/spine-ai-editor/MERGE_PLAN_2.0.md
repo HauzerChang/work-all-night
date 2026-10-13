@@ -67,8 +67,19 @@
       （write_bigwin 寫檔→重讀 0 error；apply_g1=False 注入末鍵 curve 被抓、預設 apply_g1=True 乾淨；破壞 loop 被抓）。
       **AC（viewer 載入）= 使用者端**（排程 scope 邊界）；CPU 可自主部分（schema 合法 + editor 可匯入 + loop 閉合）已過。
       回歸 0 RED（新增 cap `b2_genlib` L2）。見 `knowledge/s2-v2-genlib-b2.md`。
-- [ ] **B3 繞關節 pivot 變換**：`pivot_rotation.py` 併進結構軸（補 `structural_expansion.md`）。
-      **AC**：limb 繞關節旋轉，pivot 殘差 < 門檻（repo 既有 7AC 可移植）；對照繞件中心的負對照。
+- [x] **B3 繞關節 pivot 變換**（2026-10-13 run 004 ✅）：repo 的 `pivot_rotation.py`（Δ=(M−I)(O−P)）包成
+      **skill 層級結構軸入口** `assets/gen_lib/pivot_about.py`（`apply_pivot_about` / `generate_bigwin_about_pivots`），
+      併進 `references/structural_expansion.md` **SOP E**（繞關節 pivot 的 keyframe 級變換：SOP A/B 動骨架結構
+      vs 本法不動骨架的互補解——bone 留件中心、補一條 translate，淨效果=件繞關節 pivot）。閘
+      `tools/analyzer/validate_b3_pivot.py` = **移植 repo 既有 7AC（`validate_pivot_rotation.py`）改經公開入口跑
+      + 另加 B1/B2 的 G2 編輯器真值紀律**。**7AC 全 PASS**（真值=Award 左手拆件世界輪廓 + `infer_pivots` 肩 pivot）：
+      B3-1 經入口補償後 pivot 不動點殘差<0.5px / B3-2 負對照（繞件中心）48.83px 漂移（比補償 4247×，閘非恆真）/
+      B3-3 件最遠點位移 94px（沒凍住）/ B3-4 θ=0 幀 Δ=0（setup/loop/In-Out 介面保 identity）/
+      B3-5 件點到 P 距離逐幀偏差<0.012px（真等距繞 P）/ B3-6 rotate 帶緊湊 bezier 緩動仍成立 /
+      **B3-7 端到端+G2**：B2 `generate_bigwin(cascade)` → B3 `apply_pivot_about(include_scale=True)` 繞合成關節 pivot →
+      finite+loop 無縫+生成 loop pivot 殘差 0.25px+負對照未補償 36px 漂移+**pivot 補償後整份 skeleton 過
+      `validator_v1` 0 error + loop 閉合 0**（密 rotate/scale/translate 鍵仍 editor 可匯入）。回歸 0 RED
+      （新增 cap `b3_pivot` L2）。見 `knowledge/s2-v2-pivot-b3.md`。
 - [ ] **B4 序列 compose/crossfade/loop（C1）**：接 v1.3.0 的 idle-loop 與多 beat 大獎序列。
       **AC**：相異 beat 接點 C1 連續閘通過；首尾可接 Loop；stiffness 不升。
 

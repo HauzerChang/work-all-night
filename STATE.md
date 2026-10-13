@@ -12,9 +12,16 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,2026-10-12 run 002)、B2 ✅(生成庫入口,2026-10-13 run 003)。下一個 run 做 B3**
-> (繞關節 pivot 變換 `pivot_rotation.py` 併進結構軸,補 `references/structural_expansion.md`;
-> AC=limb 繞關節旋轉 pivot 殘差 < 門檻(repo 既有 7AC 可移植)、對照繞件中心的負對照)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,2026-10-12 run 002)、B2 ✅(生成庫入口,2026-10-13 run 003)、
+> B3 ✅(繞關節 pivot 變換,2026-10-13 run 004)。下一個 run 做 B4**
+> (序列 compose/crossfade/loop(C1):接 v1.3.0 的 idle-loop 與多 beat 大獎序列;
+> AC=相異 beat 接點 C1 連續閘通過、首尾可接 Loop、stiffness 不升。
+> ⚠️ B1 釘住的重點:**末鍵 curve(地雷 #12)的真正風險在序列 compose/crossfade/loop,不在單 beat/單變換** → B4 是 G1 的真正戰場)。
+> **B3 做了什麼**:repo 的 pivot 補償引擎(`tools/analyzer/pivot_rotation.py`,`Δ=(M−I)(O−P)`)包成 **skill 層級結構軸入口**
+> `skills/spine-ai-editor/assets/gen_lib/pivot_about.py`(`apply_pivot_about`/`generate_bigwin_about_pivots`),併進
+> `references/structural_expansion.md` **SOP E**(繞關節 pivot 的 keyframe 級變換:SOP A/B 動骨架結構 vs 本法不動骨架的互補解)。
+> 閘 `tools/analyzer/validate_b3_pivot.py` = **移植 repo 既有 7AC(`validate_pivot_rotation.py`)改經公開入口跑 + 另加 B1/B2 的 G2 編輯器真值紀律**,
+> **7AC 全 PASS**(真值 Award 左手肩 pivot;B3-7 端到端:B2 生成 cascade → B3 繞 pivot(include_scale)→ pivot 補償後整份 skeleton 過 `validator_v1` 0 error + loop 閉合 0)。
 > **B2 做了什麼**:生成入口包成 `skills/spine-ai-editor/assets/gen_lib/make_beat.py`(`generate_bigwin`/`write_bigwin`
 > 公開 API + CLI + 內建 `DEMO_PARTS`;過渡期 import repo `tools/analyzer`,E1 再 bundle),補 `references/animation_patch_patterns.md`
 > **Pattern 12**(確定性大獎生成 SOP),閘 `tools/analyzer/validate_b2_genlib.py` **5 AC 全 PASS**(cascade/pop/wobble/twist 四種
@@ -23,6 +30,29 @@
 
 **專案三階段:第 2→3 階段(用工具鍛鍊四能力 → 整合成可交付 pipeline/skill)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **2.0 Phase B3 繞關節 pivot 變換:`pivot_about` 入口(Δ=(M−I)(O−P))併進結構軸(里程碑,2026-10-13 run 004)** —
+  排程主線(產出 spine-ai-editor 2.0)的 **B 階段第三 chunk**,承 B2(生成庫入口)。**問題**:MERGE_PLAN B3 要把 repo 累積的
+  **pivot 補償引擎**(`tools/analyzer/pivot_rotation.py`)併進 2.0 的**結構軸**,讓件能繞**關節 pivot** 而非件中心做變換(手臂繞肩、頭繞頸)。
+  **做了什麼(純新增檔+1 節文件,無改任何既有生成/產線值)**:①`skills/spine-ai-editor/assets/gen_lib/pivot_about.py` —— skill 層級公開入口
+  `apply_pivot_about`(就地把「件繞件中心」轉成「件繞關節 pivot」;整份 skeleton 自動推 `bone_origin` / 單支 anim 雙模式;wire G1)
+  + `generate_bigwin_about_pivots`(B2 生成 + B3 pivot 一步),委派 repo `pr.apply_pivots`(過渡期 import,E1 bundle);
+  ②`references/structural_expansion.md` 新增 **SOP E**(繞關節 pivot 的 keyframe 級變換)——明定與 SOP A/B(加 bone/reparent,**動骨架結構**)的
+  **互補定位**:本法 bone 留件中心、補一條 `translate` Δ=(M−I)(O−P),**淨效果=件繞關節 pivot 做同樣 rotate/scale/shear,骨架結構一字不動**;
+  θ=0&S=I 時 Δ=0 → setup/loop/In-Out 介面保 identity(B2 生成波無縫性不破)。
+  ③閘 `tools/analyzer/validate_b3_pivot.py` = **移植 repo 既有 7AC(`validate_pivot_rotation.py`)改經公開入口跑 + 另加 B1/B2 的 G2 編輯器真值紀律**
+  (repo 原閘只做純 Python 模擬,**未**驗 editor/loop)。**7AC 全 PASS**(真值=Award 機器人左手拆件世界輪廓 42 verts + `infer_pivots` 推得接觸縫肩 pivot,|O−P|=117.4px):
+  **B3-1** 經入口補償後 pivot 不動點幀間殘差 **<0.5px**;**B3-2 負對照**(繞件中心 O,不補償)pivot 漂移 **48.83px**(比補償 **4247×**)→ 閘非恆真;
+  **B3-3** 件最遠點位移 **94px**(沒凍住);**B3-4** θ=0 幀 Δ=0(<1e-6)介面保 identity;**B3-5** 件點到 P 距離逐幀偏差 **<0.012px**(真等距繞 P);
+  **B3-6** rotate 帶緊湊 bezier 緩動時 B3-1 仍成立(加密重取樣處理 curve);**B3-7 端到端+G2**:**B2 gen_lib `generate_bigwin(cascade)`**(效果骨 `b_光暈` 帶 rotate+scale pop 脈衝)
+  → **B3 入口 `apply_pivot_about(include_scale=True)`** 繞合成關節 pivot → (a)finite+時間嚴格遞增 (b)loop 端點相等(無縫) (c)生成 loop 上 pivot 殘差 **0.25px**
+  (d)負對照未補償 **36px** 漂移 (e)**G2 編輯器真值**:pivot 補償後整份 skeleton 過 `validator_v1` **0 error + loop 閉合 0**(密 rotate/scale/translate 鍵仍 editor 可匯入 + loop 閉合)。
+  **回歸 check_readiness 0 RED**(新增 cap `b3_pivot` L2 pipeline 併入 `spine-anim-forge` 仍 HOLD;block 分類不變)。
+  **關鍵發現**:①**「件繞關節 pivot 變換」有兩條互補路**——結構軸(加 bone/reparent,動骨架,永久最乾淨)vs **keyframe 級 Δ=(M−I)(O−P)**(不動骨架,適合不改結構/暫時試),2.0 兩條都收進結構軸文件擇一用;
+  ②**不動點對任意 bone local 仿射 M 成立**(純代數,不需 M 是旋轉/相似)→ 同一入口一路支援 rotate→scale→shear,θ=0&S=I 時 Δ=0 **自動保 B2 生成波的無縫性**;
+  ③**pivot 補償後的密通道仍過編輯器真值閘**(0 error + loop 閉合 0)→ 加密重取樣引入的大量線性鍵**不是新的 editor crash 面**(末鍵無 curve、首尾 Δ=0 閉合),與 B1「末鍵 curve 風險在序列 compose 非單 beat/單變換」一致;
+  ④**include_scale 要對齊實際動的通道**(`b_光暈` 同時有 rotate+scale,只補 rotate 會因未補償 scale 漂,M=R·S 才讓件真繞 pivot 旋轉+縮放)。
+  **honest boundary**:pivot(哪件繞哪個關節)=**上游 S5 rig 推斷的輸入**(本閘用真值 Award 肩 pivot 驗機制、合成 pivot 驗端到端);多件肢體鏈父子傳遞 / 非均勻 scale / `include_shear` 的端到端留後續 chunk;
+  過渡期相依 repo `tools/analyzer`(E1 self-contained bundle 後 standalone);Cocos 實機 round-trip=使用者端(排程 scope 邊界,用 validator_v1 無頭等價)。見 `knowledge/s2-v2-pivot-b3.md`。
 - **2.0 Phase B1 橋接閘:repo cascade beat → v1.3.0 `validator_v1`(G1+G2 機械化)(里程碑,2026-10-12 run 002)** —
   排程主線(產出 spine-ai-editor 2.0)的 **B 階段前提 chunk**。問題:2.0 要併 repo 生成引擎進使用者既有 skill,但兩套閘驗的東西不同——
   **repo 69 閘只驗 runtime(spine-webgl)可載入**;v1.3.0 `validator_v1` 另驗 **editor 可匯入(末鍵 curve=地雷 #12 AIOOBE crash)+ loop 閉合 + stiffness**。

@@ -219,6 +219,74 @@ for s in data["slots"]:
 
 ---
 
+## SOP E：繞關節 pivot 的 keyframe 級變換（**不動骨架結構**）
+
+> 2.0 Phase B3 併入。入口：`assets/gen_lib/pivot_about.py`（`apply_pivot_about` / `generate_bigwin_about_pivots`）。
+
+**前提**：某件（手臂 / 頭 / 配件）該**繞一個關節**（肩 / 頸 / 掛點）旋轉或縮放，但它的 bone 落在**件中心 O**，
+所以 `rotate` / `scale` 讓件繞**件中心**轉脹——對肢體不物理（手臂該繞肩伸、頭該繞頸轉）。
+
+SOP A/B 的解法是**動骨架結構**（把 bone 搬到關節、或 reparent）。本 SOP 提供**互補的 keyframe 級解法**：
+bone 留在件中心，額外補一條 `translate`，使**淨效果 = 件繞關節 pivot P 做同樣變換**，骨架結構一個字不動。
+兩者擇一：能改骨架就用 A/B（最乾淨）；不想動結構（怕破壞既有動畫 / 只是暫時試）就用 E。
+
+### 數學（剛體 / 仿射「繞任意點變換」分解，確定性、無 ML）
+
+設 bone setup 原點在 O（parent 座標），該幀的 bone local 2×2 線性部為 **M**
+（純旋轉 M = R(θ)；含縮放 M = R(θ)·diag(sx,sy)；含 shear 為真實 Spine local `R·shear·S`）。
+要讓貼在該 bone 的幾何繞 pivot **P** 做 M 變換，只需在原通道外加平移
+
+```
+Δ = (M − I)(O − P)
+```
+
+**不動點驗證**：pivot 的附著局部點 ℓ_P = P − O，套用後世界座標
+`(O + Δ) + M·(P − O) = O + (M − I)(O − P) + M·(P − O) = O + (P − O) = P`，對**任意 M** 皆成立。
+且對任意附著點 x：`world(x) − P = M·(x − P)` 精確成立（仿射保形）。
+**θ=0 且 S=I、shear=0 時 M=I → Δ=0** → setup / loop 端點 / In-Out 介面全保持 identity
+（B2 生成波的無縫性、candidate 0d 的無縫 In-Out 都不被破壞）。
+
+### 實作要點（為何要加密重取樣）
+
+Δ 對 θ、s **非線性**。若只在原 keyframe 放 Δ，兩幀之間 `translate` 線性內插 ≠ 真值，P 在**幀間**會漂。
+故把通道**加密重取樣**成均勻密網格（`dt` 秒，預設 1/60），rotate / scale / shear / translate **同一組時間點、皆線性鍵** →
+幀間內插一致，pivot 幀間殘差 ~ (1/8)|O−P|·(dθ_rad)² << 0.1px。已存在的 `translate`（如入場徑向歸位）會被**疊加**。
+
+### 用法
+
+```python
+from gen_lib.pivot_about import apply_pivot_about
+# (1) 整份 skeleton：bone_origin 自 bones setup x/y 自動推得；就地改 animations
+apply_pivot_about(skel, pivot_of={"b_arm_L": (350.0, 520.0)}, include_scale=True)
+#     include_scale=True → 件繞 pivot 旋轉+縮放（肢體從關節伸長，不是自身中心脹縮）
+#     include_shear=True → 真實 Spine local（含非均勻 scale / shear）一般仿射
+
+# (2) 單支 anim：需顯式給 bone_origin
+apply_pivot_about(anim, pivot_of={"b_hand": P}, bone_origin={"b_hand": O})
+
+# (3) B2 生成 + B3 pivot 一步到位
+from gen_lib.pivot_about import generate_bigwin_about_pivots
+skel, aname, report = generate_bigwin_about_pivots(
+    DEMO_PARTS, pivot_of={"b_arm_L": (120.0, 200.0)}, beat="cascade", include_scale=True)
+```
+
+**pivot P 從哪來**：P = 件該繞的關節點（parent 座標），由上游 **S5 rig 推斷**（`tools/rig/infer_pivots.py`
+的父子件接觸縫 pivot）或人工指定。pivot 準度 = 件輪廓保真（見 `knowledge/s5-rig-pivot-inference.md`）。
+
+### 不變式（違反就白做 / 破壞無縫）
+
+1. **O = bone setup 原點**（parent 座標）；非 rig 組裝時落**件中心**。`bone_origin` 給錯 → Δ 補錯、pivot 不在 P。
+2. **pivot 與件原點重合（<0.5px）→ 入口自動略過**（繞件中心即繞 pivot，免補多餘 translate）。
+3. **include_scale / include_shear 要對齊實際動的通道**：bone 有 scale 卻只補 rotate（M=R）→ scale 分量未補償、pivot 會漂。
+4. **G1 仍跑**：補償後通道皆密網格線性鍵（無 curve），入口仍過 `strip_last_frame_curves`（地雷 #12 防線）。
+
+### 驗收（B3 閘 `tools/analyzer/validate_b3_pivot.py`，7AC）
+
+移植 repo 既有 7AC（`validate_pivot_rotation.py`）改**經公開入口**跑，**另加 G2 編輯器真值**：
+pivot 補償後整份 skeleton 過 `validator_v1`（0 error + loop 閉合 0）——即件繞 pivot 變換後**遊戲能播且編輯器能匯入**。
+
+---
+
 ## 結構擴充後的 Cocos 推送特殊注意事項
 
 結構改變（加 bone / 改 slot.bone）後，Cocos 需要完整重新 import skeleton data：

@@ -778,6 +778,24 @@ BLOCKS = [
                      "**關鍵發現:『用 skill 生成 → 雙真值驗收』固化成對外契約(不再手搭 skeleton);4 beat 類型全過 editor 真值閘**。"
                      "honest:viewer/Cocos 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);過渡期相依 repo tools(E1 bundle);"
                      "哪個 beat 該用仍屬美術手感(A 類)。cap b2_genlib L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("b3_pivot", "spine-ai-editor 2.0 B3 繞關節 pivot 變換:pivot_about 入口(Δ=(M−I)(O−P))併進結構軸", "L2",
+                "python3 tools/analyzer/validate_b3_pivot.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase B3(承 B2):把 repo 的 pivot 補償引擎(tools/analyzer/pivot_rotation.py)包成 "
+                     "**skill 層級結構軸入口** `skills/spine-ai-editor/assets/gen_lib/pivot_about.py`(apply_pivot_about / "
+                     "generate_bigwin_about_pivots),併進 references/structural_expansion.md 的「SOP E:繞關節 pivot 的 keyframe 級變換」"
+                     "(SOP A/B 動骨架結構 vs 本法不動骨架的互補解:bone 留件中心、補一條 translate Δ=(M−I)(O−P),淨效果=件繞關節 pivot 變換)。"
+                     "validate_b3_pivot.py **移植 repo 既有 7AC(validate_pivot_rotation.py)改經公開入口跑 + 另加 B1/B2 的 G2 編輯器真值紀律**。"
+                     "7AC PASS(真值=Award 左手拆件世界輪廓 + infer_pivots 肩 pivot):B3-1 經入口補償後 pivot 不動點殘差<0.5px/"
+                     "B3-2 負對照(繞件中心)48.83px 漂移(比補償 4247×)證閘非恆真/B3-3 件最遠點位移 94px(沒凍住)/"
+                     "B3-4 θ=0 幀 Δ=0(setup/loop 端點/In-Out 介面保持 identity)/B3-5 件點到 P 距離逐幀偏差<0.012px(真等距繞 P)/"
+                     "B3-6 rotate 帶緊湊 bezier 緩動仍成立(加密重取樣處理 curve)/"
+                     "**B3-7 端到端+G2**:B2 gen_lib generate_bigwin(cascade) → B3 入口 apply_pivot_about(include_scale=True) 繞合成關節 pivot → "
+                     "finite+loop 端點相等(無縫)+生成 loop 上 pivot 殘差 0.25px+負對照未補償 36px 漂移+**pivot 補償後整份 skeleton 過 validator_v1 0 error + loop 閉合 0**"
+                     "(密 rotate/scale/translate 鍵仍 editor 可匯入 + loop 閉合)。"
+                     "**關鍵發現:『件繞關節 pivot 變換』有兩條互補路——結構軸(加 bone/reparent,動骨架)vs keyframe 級 Δ=(M−I)(O−P)(不動骨架);"
+                     "後者對任意 bone local 仿射 M 不動點成立,且 θ=0&S=I 時 Δ=0 自動保 B2 生成波的無縫性;pivot 補償後的密通道仍過編輯器真值閘(非新增 crash 面)**。"
+                     "honest:pivot(哪件繞哪個關節)=上游 S5 rig 推斷的輸入(本閘用真值 Award 肩 pivot 驗機制、合成 pivot 驗端到端);"
+                     "多件肢體鏈/非均勻 scale/shear 的端到端留後續;過渡期相依 repo tools(E1 bundle)。cap b3_pivot L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]
