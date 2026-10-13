@@ -10,3 +10,7 @@ from .make_beat import (  # noqa: F401
     generate_bigwin, write_bigwin, parts_from_psd,
     DEMO_PARTS, SUPPORTED_BEATS,
 )
+# B3 結構軸:繞關節 pivot 變換(見 pivot_rig.py / references/structural_expansion.md SOP E)。
+from .pivot_rig import (  # noqa: F401
+    apply_joint_pivots, bone_origins, pivot_delta,
+)

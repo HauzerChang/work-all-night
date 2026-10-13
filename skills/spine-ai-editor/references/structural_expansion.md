@@ -219,6 +219,57 @@ for s in data["slots"]:
 
 ---
 
+## SOP E：繞關節 pivot 變換（keyframe 面，**不動骨架結構**）
+
+> **結構面 vs keyframe 面**：SOP A/B 把 bone 搬到關節（改骨架）；SOP E 是**互補**解法——
+> bone 留在件中心，額外疊一條補償 `translate`，讓件**繞關節 pivot 動**而不加 bone、不 reparent。
+> 入口：`assets/gen_lib/pivot_rig.py :: apply_joint_pivots`（spine-ai-editor 2.0 Phase B3）。
+
+### 何時用 SOP E 而非 SOP A/B
+
+| 情境 | 選 |
+|---|---|
+| 生成器（gen_lib / build_animations）產的動畫，件繞**件中心**轉而非繞關節（手臂該繞肩、頭該繞頸） | **SOP E**（生成後一次補好，不動骨架） |
+| 部位有永久性結構缺陷（綁在大 bone 上、無獨立軸），多支動畫都要它獨立動 | **SOP A/B**（加 bone / reparent，一勞永逸） |
+| 想在 A/B 兩版（繞中心 vs 繞關節）間比較、或臨時試 pivot 位置 | **SOP E**（純 keyframe，可 diff/回滾，不碰骨架） |
+
+### 數學（確定性，見 `pivot_rig.py` docstring）
+
+設 bone setup 原點 **O**（parent 座標）、該幀 local 2×2 仿射 **M**（=R·scale·shear，Spine TRS 序）。
+要讓 pivot **P** 固定不動，疊平移 **Δ = (M − I)(O − P)**。
+- θ=0 且 scale=1、shear=0 → M=I → Δ=0 → **setup / loop 端點 / In-Out 介面保持 identity**（無縫不破）。
+- Δ 非線性 → 入口自動把通道**加密重取樣**成密網格（dt=1/60），rotate/scale/shear/translate 同格線性 → 幀間殘差 <0.1px。
+
+### 步驟
+
+```python
+from gen_lib.pivot_rig import apply_joint_pivots
+
+# skel: 已生成的大獎 skeleton（bones 帶 setup x,y = 件中心 O）
+# pivot_of: {bone_name: (Px, Py)} 關節 pivot（parent 座標，可由 tools/rig/infer_pivots 推得）
+pivots = {"b_左手": (shoulder_x, shoulder_y), "b_頭": (neck_x, neck_y)}
+
+# mode: "rotate"(只補 rotate) / "srt"(+scale) / "affine"(+shear)
+converted = apply_joint_pivots(skel, pivots, mode="rotate")
+# converted == {"Loop": ["b_左手", "b_頭"], ...}  每支 anim 被補償的 bone
+# 輸出已過 G1（末鍵 curve 必拔）；skel 就地被改（要 A/B 請先 deepcopy）
+```
+
+### 不變式（違反就破壞無縫 / editor 相容）
+
+1. **bone setup 原點 O 必須是該件在 parent 座標的真實原點**（非 rig 下 = 件中心；讀自 `skel["bones"]` 的 x,y）。
+2. **pivot P 與 O 重合（<0.5px）的 bone 自動略過**（繞件中心即繞 pivot，免疊多餘 translate）。
+3. **θ=0 幀 Δ=0 → 首尾 identity 的 loop 補償後仍首尾相等**（無縫可接 Loop）。
+4. **補償密網格無 curve 鍵（逐幀線性）→ 天生 editor 乾淨**；仍過 G1 攔住既有通道末鍵 curve（地雷 #12）。
+
+### 驗收（純 CPU，不靠肉眼）
+
+`python3 tools/analyzer/validate_b3_pivot.py` —— 5 AC：pivot 不動點殘差 <0.5px、繞件中心負對照 >>補償版、
+件最遠點確有位移 + 剛性等距、identity 介面 + bezier 容忍、端到端 **validator_v1 雙真值**（editor 可匯入 + loop 閉合）。
+Cocos 實機視覺確認留使用者端。
+
+---
+
 ## 結構擴充後的 Cocos 推送特殊注意事項
 
 結構改變（加 bone / 改 slot.bone）後，Cocos 需要完整重新 import skeleton data：

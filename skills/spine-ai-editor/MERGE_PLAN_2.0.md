@@ -67,8 +67,20 @@
       （write_bigwin 寫檔→重讀 0 error；apply_g1=False 注入末鍵 curve 被抓、預設 apply_g1=True 乾淨；破壞 loop 被抓）。
       **AC（viewer 載入）= 使用者端**（排程 scope 邊界）；CPU 可自主部分（schema 合法 + editor 可匯入 + loop 閉合）已過。
       回歸 0 RED（新增 cap `b2_genlib` L2）。見 `knowledge/s2-v2-genlib-b2.md`。
-- [ ] **B3 繞關節 pivot 變換**：`pivot_rotation.py` 併進結構軸（補 `structural_expansion.md`）。
-      **AC**：limb 繞關節旋轉，pivot 殘差 < 門檻（repo 既有 7AC 可移植）；對照繞件中心的負對照。
+- [x] **B3 繞關節 pivot 變換**（2026-10-13 run 004 ✅）：把 repo `pivot_rotation.py`（確定性「繞任意點
+      變換」Δ=(M−I)(O−P) keyframe 補償）抽成**結構軸 skill 入口** `assets/gen_lib/pivot_rig.py`
+      （`apply_joint_pivots` 公開 API；mode=rotate/srt/affine），讓「件繞件中心動 → 件繞關節 pivot 動」
+      成為可重用、**不動骨架結構**的 keyframe 面流程（補 `structural_expansion.md` **SOP E**，與 SOP A/B
+      結構面解法互補）。輸出過 G1；過渡期 import repo tools（E1 bundle）。閘 `tools/analyzer/validate_b3_pivot.py`
+      **5 AC 全 PASS**（真值=真實 Award 左手+`infer_pivots` 肩 pivot）：B3-1 經公開 API 左手繞肩 pivot 殘差
+      0.01px（<0.5，移植 AC1）/B3-2 繞件中心負對照 48.8px>>補償版（移植 AC2）/B3-3 件最遠點位移 94px+
+      剛性等距偏差 0.01px（移植 AC3/AC5）/B3-4 θ=0 Δ=0+bezier 緩動殘差 0.06px（移植 AC4/AC7）/
+      B3-5 端到端+**雙真值**：可載入 skeleton Loop limb rotate 經入口補償→有限+loop 無縫+生成 loop pivot
+      殘差 0.0003px+內建負對照未套用會動，且 **validator_v1 0 error（editor 可匯入）+loop 閉合 0 問題（G2）**
+      +G1 wired（apply_g1=False 注入末鍵 curve 被抓）。**關鍵發現**：結構軸有兩面——結構面（SOP A/B）與
+      keyframe 面（SOP E 繞 pivot），後者不動骨架即解肢體物理，且補償後輸出仍過 editor 雙真值；補償密網格
+      天生無 curve → editor 乾淨（呼應 B1/B2 單 beat G1 拔 0 條）。回歸 0 RED（新增 cap `b3_pivot` L2）。
+      見 `knowledge/s2-v2-pivot-b3.md`。
 - [ ] **B4 序列 compose/crossfade/loop（C1）**：接 v1.3.0 的 idle-loop 與多 beat 大獎序列。
       **AC**：相異 beat 接點 C1 連續閘通過；首尾可接 Loop；stiffness 不升。
 

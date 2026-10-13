@@ -778,6 +778,22 @@ BLOCKS = [
                      "**關鍵發現:『用 skill 生成 → 雙真值驗收』固化成對外契約(不再手搭 skeleton);4 beat 類型全過 editor 真值閘**。"
                      "honest:viewer/Cocos 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);過渡期相依 repo tools(E1 bundle);"
                      "哪個 beat 該用仍屬美術手感(A 類)。cap b2_genlib L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("b3_pivot", "spine-ai-editor 2.0 B3 結構軸:繞關節 pivot 變換 pivot_rig → 7AC 移植 + validator_v1 雙真值", "L2",
+                "python3 tools/analyzer/validate_b3_pivot.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase B3(承 B2):把 repo tools/analyzer/pivot_rotation.py(確定性「繞任意點變換」"
+                     "Δ=(M−I)(O−P) keyframe 補償)抽成**結構軸 skill 入口** `skills/spine-ai-editor/assets/gen_lib/pivot_rig.py`"
+                     "(apply_joint_pivots 公開 API;mode=rotate/srt/affine)。讓「件繞件中心動 → 件繞關節 pivot 動」成為可重用、"
+                     "不動骨架結構的 keyframe 面流程(補 structural_expansion.md SOP A/B 結構面解法的互補)。入口過渡期 import repo "
+                     "tools/analyzer(E1 self-contained bundle);輸出前過 G1(strip_last_frame_curves,補償密網格本就無 curve)。"
+                     "補 references/structural_expansion.md SOP E。validate_b3_pivot.py 5AC PASS(真值=真實 Award 左手+infer_pivots 肩 pivot):"
+                     "B3-1 經公開 API 左手繞肩 pivot 殘差 0.01px(<0.5,移植 AC1)/B3-2 繞件中心負對照 48.8px>>補償版(移植 AC2)/"
+                     "B3-3 件最遠點位移 94px+剛性等距偏差 0.01px(移植 AC3/AC5)/B3-4 θ=0 Δ=0+bezier 緩動殘差 0.06px(移植 AC4/AC7)/"
+                     "B3-5 端到端+雙真值:可載入 skeleton Loop limb rotate 經入口補償→有限+loop 無縫+生成 loop pivot 殘差 0.0003px+"
+                     "內建負對照未套用會動,且 **validator_v1 0 error(editor 可匯入)+loop 閉合 0 問題(G2 雙真值)**+G1 wired(apply_g1=False 注入末鍵 curve 被抓)。"
+                     "**關鍵發現:結構軸的 keyframe 面解法(繞關節 pivot)不動骨架即可解肢體物理,且補償後輸出仍過 editor 雙真值(G2);"
+                     "補償的密網格重取樣本就無 curve → 天生 editor 乾淨**。honest:pivot 來自 infer_pivots(S5 單真值資產);mode=srt/affine "
+                     "的 scale/shear 繞 pivot 由 pivot_rotation 既有 G-3/G-4 閘覆蓋,本 B3 閘以 rotate 為主路徑;過渡期相依 repo tools(E1 bundle);"
+                     "哪些件該繞哪個關節仍需 rig 真值(A 類/使用者資源)。cap b3_pivot L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]
