@@ -763,6 +763,21 @@ BLOCKS = [
                      "5AC PASS(B1-1 生成器產 cascade beat 組成 schema 合法完整 Spine JSON(v0 0 error)/B1-2 過 G1 後 validator_v1 **0 error**(含末鍵 curve 檢查)/B1-3 cascade loop 閉合 0 問題(pop 波首尾 identity)/B1-4 stiffness 有限可量(50.49)/"
                      "B1-5 **負對照**:(a)注入末鍵 curve → validator_v1 抓到 editor-crash error 再 strip 修好 (b)破壞首尾 identity → loop 閉合抓到開環 → 證閘非恆真)。"
                      "**關鍵發現:repo `_bez` 只 curve frames[:-1],單 beat 生成本就無末鍵 curve(G1 拔 0 條)→ repo 生成器的 editor 相容性在單 beat 層級已乾淨;G1 的真正風險在序列 compose/crossfade(B4 再驗)**。honest:本閘只驗最單純單 beat;多 beat 序列的末鍵 curve 風險與雙真值合成閘留 B4/D1。cap v2_bridge L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("b2_genlib", "spine-ai-editor 2.0 B2 生成庫入口:gen_lib(cascade/pop/wobble/twist)→ v1.3.0 validator_v1", "L2",
+                "python3 tools/analyzer/validate_b2_genlib.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase B2(承 B1):把 B1 臨時組 skeleton 的流程抽成**可重用的 skill 入口** "
+                     "`skills/spine-ai-editor/assets/gen_lib/make_beat.py`(generate_bigwin/write_bigwin 公開 API),"
+                     "並涵蓋 4 種大獎單件運動基元 cascade/pop/wobble/twist。入口過渡期 import repo tools/analyzer(G5 的 "
+                     "self-contained bundle 留 E1);輸出前一律過 G1(strip_last_frame_curves)。另補 references/animation_patch_patterns.md "
+                     "Pattern 12(確定性大獎生成 SOP)。validate_b2_genlib.py 5AC PASS"
+                     "(B2-1 經公開 API 產 cascade beat 組 schema 合法完整 Spine JSON(v0 0 error,非臨時腳本)/"
+                     "B2-2 cascade/pop/wobble/twist 四種皆經同一入口 → validator_v1 0 error(含末鍵 curve 地雷 #12 檢查)/"
+                     "B2-3 四 beat loop 閉合 0 問題(皆首尾 identity)/B2-4 每 beat stiffness 有限可量(cascade 16.46/wobble 62.16/twist 107.05)/"
+                     "B2-5 roundtrip+G1+負對照:write_bigwin 寫檔→重讀→0 error(端到端到可載入檔)・apply_g1=False 注入末鍵 curve 被抓・"
+                     "入口預設 apply_g1=True 輸出乾淨・破壞首尾 identity 被 loop 閉合抓 → 證閘非恆真且 G1 確為入口一環)。"
+                     "**關鍵發現:『用 skill 生成 → 雙真值驗收』固化成對外契約(不再手搭 skeleton);4 beat 類型全過 editor 真值閘**。"
+                     "honest:viewer/Cocos 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);過渡期相依 repo tools(E1 bundle);"
+                     "哪個 beat 該用仍屬美術手感(A 類)。cap b2_genlib L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

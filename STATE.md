@@ -12,10 +12,13 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,2026-10-12 run 002)。下一個 run 做 B2**
-> (把 cascade/pop/wobble/twist 生成函式整理進 `assets/gen_lib/` 或過渡期 references 指向 repo tools,
-> 補 SOP 到 `references/animation_patch_patterns.md`;AC=skill 流程生一個大獎 cascade beat → validator_v1 clean
-> → `spine-viewer.html` 可載入播放。⚠️ viewer 載入屬使用者端,排程用 validator_v1 clean + 無頭 spine-webgl 等價驗)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,2026-10-12 run 002)、B2 ✅(生成庫入口,2026-10-13 run 003)。下一個 run 做 B3**
+> (繞關節 pivot 變換 `pivot_rotation.py` 併進結構軸,補 `references/structural_expansion.md`;
+> AC=limb 繞關節旋轉 pivot 殘差 < 門檻(repo 既有 7AC 可移植)、對照繞件中心的負對照)。
+> **B2 做了什麼**:生成入口包成 `skills/spine-ai-editor/assets/gen_lib/make_beat.py`(`generate_bigwin`/`write_bigwin`
+> 公開 API + CLI + 內建 `DEMO_PARTS`;過渡期 import repo `tools/analyzer`,E1 再 bundle),補 `references/animation_patch_patterns.md`
+> **Pattern 12**(確定性大獎生成 SOP),閘 `tools/analyzer/validate_b2_genlib.py` **5 AC 全 PASS**(cascade/pop/wobble/twist 四種
+> 皆過 validator_v1 0 error + loop 閉合 + stiffness + roundtrip/G1/負對照)。viewer 載入屬使用者端(scope 邊界),CPU 可自主部分已過。
 > cascade 微變體線**停產**(J-8..J-15c 已飽和,見下「未解問題」);S1/S3/S5 底層能力轉為「被 2.0 併入的素材庫」。
 
 **專案三階段:第 2→3 階段(用工具鍛鍊四能力 → 整合成可交付 pipeline/skill)。**
@@ -1388,11 +1391,11 @@
 ## 下一步動作 (next action)
 
 > 🟢 **現行主線(2026-10-12 起):spine-ai-editor 2.0**。
-> **下一個 run 做 `skills/spine-ai-editor/MERGE_PLAN_2.0.md` 的 Phase B1(橋接閘)** ——
-> 寫 `tools/analyzer/validate_v2_bridge.py`,把 repo 生成的一支最單純 cascade big-win beat 跑過
-> v1.3.0 `skills/spine-ai-editor/assets/validator_v1.py`。**AC**:0 error(含末鍵 curve 地雷 #12 檢查)、
-> loop 閉合無問題、附帶輸出 stiffness。先證「G1 末鍵拔除 + G2 雙真值驗收」可機械化,再逐 chunk 搬更多生成器。
-> B1 之後照 B2→B3→B4→C→D→E 順序(清單在 merge plan;每 run 一個 chunk,完成在該檔打勾)。
+> **下一個 run 做 `skills/spine-ai-editor/MERGE_PLAN_2.0.md` 的 Phase B3(繞關節 pivot 變換)** ——
+> 把 `tools/analyzer/pivot_rotation.py`(`Δ=(M−I)(O−P)`,rotate/scale/shear)併進結構軸,補 `references/structural_expansion.md`。
+> **AC**:limb 繞關節旋轉 pivot 殘差 < 門檻(repo 既有 7AC 可移植,見 `validate_pivot_rotation.py`/`validate_scale_pivot.py`/`validate_shear_pivot.py`);對照繞件中心的負對照。
+> **已完成**:B1 ✅(橋接閘 `validate_v2_bridge.py`,2026-10-12)、**B2 ✅**(生成庫入口 `assets/gen_lib/make_beat.py`
+> + Pattern 12 + `validate_b2_genlib.py` 5AC,2026-10-13)。B3 之後照 B4→C→D→E 順序(清單在 merge plan;每 run 一個 chunk,完成在該檔打勾)。
 >
 > 以下為舊的「S1/S3/S5 底層能力」進度(仍有效,現轉為**被 2.0 併入的素材庫**,非獨立推進目標):
 

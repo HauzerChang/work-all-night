@@ -359,3 +359,84 @@ assert not ct.loop_closure_report(anim_new, dur)
 或 `python validator_v1.py Main.json --metric`。
 經驗參考：linear 三角波 ~30+；ease+相位後 ~15；殘餘多來自美術自訂
 bezier（保留是對的）。時長放慢版數值天然更低，跨時長不要直接比。
+
+---
+
+# v2.0 新增：確定性大獎節拍生成（Pattern 12）
+
+> Pattern 1–11 是**手搭 / 修既有** timeline；Pattern 12 是**從零確定性生成**一支大獎主秀
+> 節拍（big-win beat），用 repo 併入的生成引擎（`gen_lib`），而非逐鍵手寫。來源：
+> spine-ai-editor 2.0 MERGE_PLAN Phase B2。閘：`tools/analyzer/validate_b2_genlib.py`（5 AC）。
+
+## 何時用 Pattern 12（vs 手搭）
+
+| 情境 | 用 |
+|---|---|
+| 既有角色要微調某個 idle / 修僵硬 | Pattern 1–11（手搭 / curve_tools） |
+| 要一支**大獎主秀節拍**（cascade 跨件波 / 單件 pop / shear 晃動 / 扭轉），件數多、要跨件錯開 | **Pattern 12（gen_lib 生成）** |
+| 要把多段接成序列 / crossfade / idle-loop | Phase B4（序列 compose，尚在併接） |
+
+## 4 種單件運動基元（`beat` 參數）
+
+- **cascade**：跨件錯開 **pop 波**——每件依序短暫放大再回 identity，首尾皆 identity（可接 Loop）。大獎揭幕最常用。
+- **pop**：cascade 的單件運動基元；以 cascade 預設波呈現（同 cascade）。
+- **wobble**：單件 **shear 阻尼晃動**（jelly），首尾 identity（可接 Loop）；果凍 / 彈性感。
+- **twist**：單件**反相雙軸 shear**（擰）；扭轉感。
+
+> cascade 另有兩個子模式（`cascade_reveal` 入場波 / `cascade_wobble` 晃動波），互斥；
+> `cascade_reveal` 首幀為 collapsed（入場語意），**不可接 Loop**（loop 閉合會報開環，屬預期）。
+
+## 生成 SOP（程式化）
+
+```python
+from gen_lib.make_beat import generate_bigwin, write_bigwin, DEMO_PARTS
+
+# 1. 準備拆件(每件 part / role / action);無 PSD 可用內建 DEMO_PARTS 示範
+parts = DEMO_PARTS                       # 或 parts_from_psd("robot_parts.psd","slot_bigwin")
+
+# 2. 生成一支大獎 cascade beat → 已過 G1(末鍵 curve 必拔),回傳完整 Spine skeleton dict
+skel, anim_name = generate_bigwin(parts, beat="cascade")   # 或 "wobble"/"twist"
+#    跨件波方向可選: cascade_dir="lr" / 角度 / ("geo","obb_major") …(見 gen_animations)
+
+# 3. 寫檔(或直接丟 dict 進 viewer)
+write_bigwin(parts, "bigwin.json", beat="cascade")
+```
+
+CLI 等價：
+
+```
+python3 assets/gen_lib/make_beat.py --beat cascade --out bigwin.json
+python3 assets/gen_lib/make_beat.py --self-test          # 內建 4 beat 快檢
+```
+
+## 寫檔前驗證清單（雙真值 G2）
+
+生成器**已內建 G1**（`generate_bigwin` 預設 `apply_g1=True`），但交付前仍跑 editor 真值閘：
+
+```
+# runtime(spine-webgl 無頭等價)+ editor 可匯入 + loop 閉合 + stiffness,一次驗:
+python3 validator_v1.py bigwin.json --metric --loop-anims cascade
+#   預期:RESULT: valid / 0 error / 0 loop warn / stiffness 有限
+#   ⚠️ 若 beat=cascade --cascade-reveal(入場波,首幀 collapsed)→ 不要把它列進 --loop-anims
+```
+
+或跑整組 5 AC（cascade/pop/wobble/twist 全驗 + 負對照）：
+
+```
+python3 tools/analyzer/validate_b2_genlib.py        # exit 0 = 全 PASS
+```
+
+## 設計原則與地雷
+
+- **G1（末鍵 curve 必拔）**：任何「要回 Spine editor」的輸出，`json.dump` 前必過
+  `curve_tools.strip_last_frame_curves()`（地雷 #12，runtime 不炸、editor 匯入 AIOOBE crash）。
+  `generate_bigwin` 已內建；手動組 timeline 時務必自己補。
+  **單 beat 下 repo `_bez` 只 curve `frames[:-1]`，故通常拔 0 條；真正風險在序列 compose/crossfade（B4）。**
+- **G3（不覆蓋美術原檔）**：`generate_bigwin` 從零生成一份新 skeleton；要加進既有角色請用
+  Pattern「加新動畫的標準步驟」把 `skel["animations"][name]` 併進既有檔，並防呆不覆蓋同名動畫。
+- **viewer / Cocos 實機載入 = 使用者端**：排程環境純 CPU 無 Cocos，用 `validator_v1`（spine-webgl
+  無頭等價）+ `validate_b2_genlib` 驗收;最終視覺確認在 `assets/spine-viewer.html` / Cocos（使用者端）。
+- **哪個 beat / 多爆 / 多快屬美術手感（A 類）**：生成器只給確定性結構（跨件錯開、阻尼振盪、
+  首尾 identity 介面），緩動美感與節拍選擇留使用者定奪。
+- **過渡期相依**：`gen_lib` 目前 import repo `tools/analyzer`（MERGE_PLAN 明列的過渡做法）；
+  Phase E1 會 bundle 進 `assets/` 成 self-contained，屆時純使用者端也能 standalone 跑。

@@ -57,9 +57,16 @@
       `frames[:-1]`，單 beat 生成本就無末鍵 curve（G1 拔 0 條）→ **地雷 #12 的真正風險在序列
       compose/crossfade（B4）/ 統一閘（D1），不在單 beat**。回歸 0 RED（新增 cap `v2_bridge` L2）。
       見 `knowledge/s2-v2-bridge-b1.md`。
-- [ ] **B2 cascade/pop/wobble/twist 生成進 skill**：把生成函式整理成 `assets/gen_lib/`（或過渡期
-      references 指向 repo tools），補一節 SOP 到 `references/animation_patch_patterns.md`（Pattern 12+）。
-      **AC**：用 skill 流程生成一個大獎 cascade beat → `validator_v1` clean → 在 `spine-viewer.html` 可載入播放。
+- [x] **B2 cascade/pop/wobble/twist 生成進 skill**（2026-10-13 run 003 ✅）：生成入口包成
+      `assets/gen_lib/make_beat.py`（`generate_bigwin`/`write_bigwin` 公開 API + CLI + 內建 `DEMO_PARTS`；
+      過渡期 import repo `tools/analyzer`，E1 再 bundle），補 `references/animation_patch_patterns.md`
+      **Pattern 12**（確定性大獎生成 SOP）。閘 `tools/analyzer/validate_b2_genlib.py` **5 AC 全 PASS**：
+      B2-1 經公開 API 產 cascade beat 組 schema 合法 JSON（非臨時腳本）/B2-2 cascade/pop/wobble/twist
+      四種皆 `validator_v1` **0 error**（含末鍵 curve 檢查）/B2-3 四 beat loop 閉合 0 問題/
+      B2-4 stiffness 可量（cascade 16.46/wobble 62.16/twist 107.05）/B2-5 roundtrip+G1+負對照
+      （write_bigwin 寫檔→重讀 0 error；apply_g1=False 注入末鍵 curve 被抓、預設 apply_g1=True 乾淨；破壞 loop 被抓）。
+      **AC（viewer 載入）= 使用者端**（排程 scope 邊界）；CPU 可自主部分（schema 合法 + editor 可匯入 + loop 閉合）已過。
+      回歸 0 RED（新增 cap `b2_genlib` L2）。見 `knowledge/s2-v2-genlib-b2.md`。
 - [ ] **B3 繞關節 pivot 變換**：`pivot_rotation.py` 併進結構軸（補 `structural_expansion.md`）。
       **AC**：limb 繞關節旋轉，pivot 殘差 < 門檻（repo 既有 7AC 可移植）；對照繞件中心的負對照。
 - [ ] **B4 序列 compose/crossfade/loop（C1）**：接 v1.3.0 的 idle-loop 與多 beat 大獎序列。
