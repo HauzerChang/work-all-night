@@ -778,6 +778,22 @@ BLOCKS = [
                      "**關鍵發現:『用 skill 生成 → 雙真值驗收』固化成對外契約(不再手搭 skeleton);4 beat 類型全過 editor 真值閘**。"
                      "honest:viewer/Cocos 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);過渡期相依 repo tools(E1 bundle);"
                      "哪個 beat 該用仍屬美術手感(A 類)。cap b2_genlib L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("b3_pivot_joint", "spine-ai-editor 2.0 B3 繞關節 pivot 變換入口:pivot_about_joint(零結構改動)→ 幾何不動點 + validator_v1 雙真值", "L2",
+                "python3 tools/analyzer/validate_b3_pivot.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase B3:把 repo 的確定性『繞任意點變換』(tools/analyzer/pivot_rotation.py,"
+                     "Δ=(M−I)(O−P))包成 skill 公開 API `skills/spine-ai-editor/assets/gen_lib/pivot_about_joint.py :: "
+                     "pivot_about_joint(mode=rotate/scale/affine)`,成為**結構軸的 keyframe 級互補解**(件繞關節 pivot 轉而非件中心,"
+                     "**零骨架改動**;與 structural_expansion SOP A–D 的『移 bone』互補)。補 references/structural_expansion.md SOP E。"
+                     "入口過渡期 import repo tools(E1 bundle);輸出過 G1(strip_last_frame_curves)。validate_b3_pivot.py 5AC PASS"
+                     "(B3-1 公開 API 把 demo limb Loop 轉繞 pivot 版・converts limb・通道有限/時間遞增/加密(3→31 鍵)/"
+                     "B3-2 真實 Award 左手繞肩 pivot 不動點殘差 0.0115px(< 0.5,移植 repo AC1 到 skill 路徑)/"
+                     "B3-3 負對照繞件中心漂 48.8px(比值 4247×)・補償版件最遠點仍動 94px(非凍住)/"
+                     "B3-4 θ=0 Δ=0・Loop 首尾 rotate/translate 端點相等(保持無縫 Loop 介面)/"
+                     "B3-5 editor 雙真值:補償後完整 skeleton 過 validator_v1 0 error+loop 閉合・負對照注入末鍵 curve 被抓・入口 G1 wired)。"
+                     "**關鍵發現:pivot 補償新增一條 dense translate 通道,B3-5 機械化證它不破壞 G2 雙真值(editor 可匯入)——這是 repo "
+                     "validate_pivot_rotation(7AC)沒驗的那層,也是『併進結構軸』的真正風險面**。"
+                     "honest:底層繞 pivot 7AC(剛性/bezier/端到端)見 validate_pivot_rotation;Cocos 實機=使用者端;過渡期相依 repo tools(E1 bundle);"
+                     "pivot 放哪(關節定位)仍屬 S5/美術(A 類)。cap b3_pivot_joint L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

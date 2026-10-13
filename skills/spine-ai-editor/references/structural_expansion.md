@@ -219,6 +219,73 @@ for s in data["slots"]:
 
 ---
 
+## SOP E：繞關節 pivot 的 keyframe 級解法（**零結構改動**）
+
+> **前提**：某件（limb/head）動畫期間 `rotate` 讓它繞**件中心**轉，但物理上該繞**關節**（手臂繞肩、頭繞頸）。
+> 這是「件該動、骨架抽象卻不到位」的徵兆——但有時你**不想**動骨架（避免 Cocos 完整重 import、避免改既有綁定）。
+
+`gen_animations` 產出的 `rotate` 讓 bone 繞**自身原點**轉。非 `--rig` 組裝時 bone 原點落在**件中心 O**，
+故 limb 的 `rotate` 會讓件繞 O 轉——對肢體不物理。兩條互補解法：
+
+| 解法 | 手段 | 代價 | 何時選 |
+|---|---|---|---|
+| **移 bone 到關節** | 結構改動（SOP A/B：加 bone / reparent，bone 原點搬到關節）| 改骨架 → Cocos 須完整重 import skeleton data | 該件長期需要正確旋轉軸、要進美術主檔 |
+| **繞 pivot 補償**（本 SOP E）| **純 keyframe**：bone 留件中心，額外加一條補償 `translate`，使淨效果=繞關節 pivot P 轉 | **零**結構改動，可純 patch、可 diff、可回滾 | 一次性/實驗性動作、不想碰骨架、快速驗證「繞對軸」的視覺差 |
+
+### 數學（確定性、無 ML）
+
+設 bone setup 原點在 **O**（parent 座標）、該幀 local 2×2 變換為 **M**（Spine TRS：`M = R(θ)·scale·shear`）。
+要讓「貼在該 bone、對應件關節 pivot」的局部點 ℓ_P = P−O 的**世界座標恆固定在 P**（對任意 θ、scale、shear）：
+
+```
+Δ = (M − I)(O − P)
+```
+
+把這個 Δ 當**額外的 translate** 疊到該 bone。不動點性質（純代數，對**任意 M** 成立）：
+
+```
+world(ℓ_P) = (O + Δ) + M·(P − O) = O + (M−I)(O−P) + M(P−O) = O + (P−O) = P   ∀ M
+```
+
+- **θ=0 且 scale=1、shear=0 → M=I → Δ=0**：setup / Loop 端點 / In-Out 介面**全保持 identity**（無縫性不被破壞；B1/B2 的 loop 閉合性質仍成立）。
+- 純旋轉（scale=I）退化為 `Δ=(R(θ)−I)(O−P)`；一般仿射（非均勻 scale / shear）公式不變。
+
+### ⚠️ 關鍵實作：**密網格重取樣**
+
+Δ 對 θ、s **非線性**。若只在原 rotate keyframe 放 Δ，兩幀之間 `translate` 線性內插 ≠ 真值 → pivot 在**幀間**漂。
+解法：把 rotate（及 scale/shear）通道**加密重取樣**成均勻密網格（`dt` 秒），rotate/translate 同格、同為線性鍵。
+幀間殘差 ~ `(1/8)|O−P|·(dθ_rad)²`，`dt=1/60` 下 **<< 0.1px**（實測 0.01px 級）。
+
+### 用法（skill 公開 API，過渡期 import repo tools；E1 後 self-contained）
+
+```python
+from gen_lib.pivot_about_joint import pivot_about_joint
+
+# anim 內「有 pivot」的 bone 會被**就地**轉成繞 pivot 版（回傳被轉的 bone 名）
+converted = pivot_about_joint(
+    anim,                                   # 單支 animation dict（就地改動！要存 A/B 先 deepcopy）
+    bone_origin={"b_左手": (Ox, Oy)},       # bone setup 原點（parent 座標 = 件中心 O）
+    pivot_of   ={"b_左手": (Px, Py)},       # 關節 pivot（如 tools/rig infer_pivots 推得的接觸縫）
+    mode="rotate",                          # "rotate"(0i) / "scale"(R·S) / "affine"(含 shear)
+)   # apply_g1=True（預設）→ 輸出前拔末鍵 curve（地雷 #12）
+```
+
+- **pivot 來源**：`tools/rig/infer_pivots.py`（S5，確定性接觸縫 pivot 推斷）或手量關節座標。
+- **mode**：`rotate`=只補償 rotate（件繞 pivot 旋轉，scale 不動）；`scale`=R·S（繞 pivot 旋轉+縮放，如手臂從肩伸長）；`affine`=真實 Spine local 含 shear/非均勻 scale。
+- **不變式**：pivot≈件中心（<0.5px）的 bone 自動跳過（繞件中心即繞 pivot，免贅餘 translate）；已存在的 `translate`（如 In 的徑向歸位）會被**疊加**，兩種位移語意共存。
+
+### 驗收（純 CPU，`tools/analyzer/validate_b3_pivot.py`，5 AC 全 PASS）
+
+- **B3-2 pivot-fixed**：真實 Award 左手繞肩 pivot，補償後不動點殘差 **0.0115px**（< 0.5）。
+- **B3-3 負對照**：不補償（繞件中心）漂 **48.8px**（比值 4247×）；補償版件最遠點仍動 94px（沒凍住）。
+- **B3-4 無縫**：θ=0 Δ=0、Loop 首尾 rotate/translate 端點相等。
+- **B3-5 editor 雙真值**：補償後 skeleton 過 v1.3.0 `validator_v1`（0 error、editor 可匯入）+ loop 閉合；負對照注入末鍵 curve 被抓。
+- 底層繞 pivot 數學的完整 7 AC（含剛性、bezier 容忍）見 repo `tools/analyzer/validate_pivot_rotation.py`。
+
+> **Cocos 差異**：SOP E **不改骨架**，故**不需**本檔「結構擴充後 Cocos 推送」那套完整重 import——補償後的動畫是純 timeline 改動，走一般動畫 patch 推送即可。
+
+---
+
 ## 結構擴充後的 Cocos 推送特殊注意事項
 
 結構改變（加 bone / 改 slot.bone）後，Cocos 需要完整重新 import skeleton data：

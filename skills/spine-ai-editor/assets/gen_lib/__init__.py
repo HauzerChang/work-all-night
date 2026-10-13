@@ -10,3 +10,6 @@ from .make_beat import (  # noqa: F401
     generate_bigwin, write_bigwin, parts_from_psd,
     DEMO_PARTS, SUPPORTED_BEATS,
 )
+from .pivot_about_joint import (  # noqa: F401  Phase B3:繞關節 pivot 變換(結構軸 keyframe 級互補解)
+    pivot_about_joint, demo_limb_loop, SUPPORTED_MODES,
+)

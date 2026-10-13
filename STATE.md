@@ -12,13 +12,19 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,2026-10-12 run 002)、B2 ✅(生成庫入口,2026-10-13 run 003)。下一個 run 做 B3**
-> (繞關節 pivot 變換 `pivot_rotation.py` 併進結構軸,補 `references/structural_expansion.md`;
-> AC=limb 繞關節旋轉 pivot 殘差 < 門檻(repo 既有 7AC 可移植)、對照繞件中心的負對照)。
-> **B2 做了什麼**:生成入口包成 `skills/spine-ai-editor/assets/gen_lib/make_beat.py`(`generate_bigwin`/`write_bigwin`
-> 公開 API + CLI + 內建 `DEMO_PARTS`;過渡期 import repo `tools/analyzer`,E1 再 bundle),補 `references/animation_patch_patterns.md`
-> **Pattern 12**(確定性大獎生成 SOP),閘 `tools/analyzer/validate_b2_genlib.py` **5 AC 全 PASS**(cascade/pop/wobble/twist 四種
-> 皆過 validator_v1 0 error + loop 閉合 + stiffness + roundtrip/G1/負對照)。viewer 載入屬使用者端(scope 邊界),CPU 可自主部分已過。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot 變換,2026-10-13 run 004)。下一個 run 做 B4**
+> (序列 compose/crossfade/loop(C1):接 v1.3.0 idle-loop 與多 beat 大獎序列;
+> AC=相異 beat 接點 C1 連續閘通過、首尾可接 Loop、stiffness 不升。
+> ⚠️ B1 已釘住:**地雷 #12 末鍵 curve 的真正戰場在 B4/D1 的序列接點,不在單 beat** → B4 的 G1 驗收是重點)。
+> **B3 做了什麼**:把 repo `tools/analyzer/pivot_rotation.py`(繞關節 pivot 變換,`Δ=(M−I)(O−P)`)包成 skill 公開 API
+> `skills/spine-ai-editor/assets/gen_lib/pivot_about_joint.py`(`pivot_about_joint(mode=rotate/scale/affine)`),成為**結構軸的
+> keyframe 級互補解**(件繞關節 pivot 轉而非件中心,**零骨架改動**;與 `references/structural_expansion.md` SOP A–D「移 bone」互補)
+> → 補該檔 **SOP E**。閘 `tools/analyzer/validate_b3_pivot.py` **5 AC 全 PASS**(truth=real-Award):B3-1 公開 API 把 demo limb
+> Loop 轉繞 pivot 版(加密 3→31 鍵)/**B3-2** 真實 Award 左手繞肩 pivot 不動點殘差 **0.0115px**(< 0.5,移植 repo AC1)/
+> B3-3 負對照繞件中心漂 48.8px(比值 4247×)+件最遠點仍動 94px/B3-4 θ=0 Δ=0・Loop 端點相等(無縫)/**B3-5 editor 雙真值**:
+> 補償後 skeleton 過 validator_v1 0 error+loop 閉合・負對照注入末鍵 curve 被抓・入口 G1 wired。**關鍵:pivot 補償新增一條
+> dense translate 通道,B3-5 證它不破壞 G2(editor 可匯入)——這是 repo 7AC(validate_pivot_rotation)沒驗的那層**。
+> 見 `knowledge/s2-v2-pivot-joint-b3.md`。
 > cascade 微變體線**停產**(J-8..J-15c 已飽和,見下「未解問題」);S1/S3/S5 底層能力轉為「被 2.0 併入的素材庫」。
 
 **專案三階段:第 2→3 階段(用工具鍛鍊四能力 → 整合成可交付 pipeline/skill)。**

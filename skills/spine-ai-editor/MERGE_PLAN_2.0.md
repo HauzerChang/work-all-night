@@ -67,8 +67,16 @@
       （write_bigwin 寫檔→重讀 0 error；apply_g1=False 注入末鍵 curve 被抓、預設 apply_g1=True 乾淨；破壞 loop 被抓）。
       **AC（viewer 載入）= 使用者端**（排程 scope 邊界）；CPU 可自主部分（schema 合法 + editor 可匯入 + loop 閉合）已過。
       回歸 0 RED（新增 cap `b2_genlib` L2）。見 `knowledge/s2-v2-genlib-b2.md`。
-- [ ] **B3 繞關節 pivot 變換**：`pivot_rotation.py` 併進結構軸（補 `structural_expansion.md`）。
-      **AC**：limb 繞關節旋轉，pivot 殘差 < 門檻（repo 既有 7AC 可移植）；對照繞件中心的負對照。
+- [x] **B3 繞關節 pivot 變換**（2026-10-13 run 004 ✅）：`pivot_rotation.py` 包成 skill 公開 API
+      `assets/gen_lib/pivot_about_joint.py`（`pivot_about_joint(mode=rotate/scale/affine)`），成為結構軸的
+      **keyframe 級互補解**（件繞關節 pivot 轉而非件中心，**零骨架改動**；與 `structural_expansion.md`
+      SOP A–D「移 bone」互補）→ 補該檔 **SOP E**。閘 `tools/analyzer/validate_b3_pivot.py` **5 AC 全 PASS**：
+      B3-1 公開 API 把 demo limb Loop 轉繞 pivot 版（converts limb／通道有限／時間遞增／加密 3→31 鍵）／
+      **B3-2** 真實 Award 左手繞肩 pivot 不動點殘差 **0.0115px**（< 0.5，移植 repo AC1 到 skill 路徑）／
+      B3-3 負對照繞件中心漂 48.8px（比值 4247×）+件最遠點仍動 94px（非凍住）／B3-4 θ=0 Δ=0・Loop 首尾端點相等
+      （無縫介面）／**B3-5 editor 雙真值**：補償後 skeleton 過 validator_v1 0 error+loop 閉合・負對照注入末鍵 curve
+      被抓・入口 G1 wired。**關鍵：pivot 補償新增一條 dense translate 通道，B3-5 證它不破壞 G2（editor 可匯入）——
+      repo 7AC 沒驗的那層**。回歸 0 RED（新增 cap `b3_pivot_joint` L2）。見 `knowledge/s2-v2-pivot-joint-b3.md`。
 - [ ] **B4 序列 compose/crossfade/loop（C1）**：接 v1.3.0 的 idle-loop 與多 beat 大獎序列。
       **AC**：相異 beat 接點 C1 連續閘通過；首尾可接 Loop；stiffness 不升。
 
