@@ -792,6 +792,20 @@ BLOCKS = [
                      "B3-5 對 B2 pop beat scale bone include_scale=True 繞 pivot 縮放(ℓ_P 殘差 0.0004px + 非 pivot 點動 11.2px,接回 B2)+ bezier 緩動仍 fixed-point 0.0596px(repo AC7)+ 守衛 pivot≈原點/未知 bone 跳過)。"
                      "**關鍵發現:密網格重取樣把繞 pivot 補償輸出成純線性鍵 → 地雷 #12 天生不觸發(editor-safe);結構軸的 keyframe 級解法(不動骨架)與 structural_expansion 的動骨架解法互補;scale-about-pivot 把 B3 接回 B2 大獎 beat**。"
                      "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);關節 pivot 放哪(肩/頸)屬 S5/美術(A 類),本閘用接觸縫真值 + 合成 pivot;單一真值資產。cap b3_pivot L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("b4_sequence", "spine-ai-editor 2.0 B4 序列組合入口:gen_lib.sequence(compose/crossfade/loop)→ v1.3.0 validator_v1(序列層雙真值 = G1 真正戰場)", "L2",
+                "python3 tools/analyzer/validate_b4_sequence.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase B4(承 B1/B2/B3):把 repo 跨 beat 序列組合(compose_sequence/crossfade_sequence + C1 判準)"
+                     "抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/sequence.py`(compose_bigwin_sequence/crossfade_bigwin_sequence/compose_idle_loop/write_sequence),"
+                     "在**序列層**機械化驗 G2 雙真值(遊戲能播 且 編輯器能匯入)+ 相異 beat 接點 C1 + loop 閉合 + stiffness。"
+                     "**B1 指名序列 compose/crossfade 才是 G1 的真正戰場;B4 以實測關掉這假設**。validate_b4_sequence.py 5AC PASS"
+                     "(B4-1 compose/crossfade 公開 API 產單一 composed 序列動畫(schema 合法 v0 0 error)/"
+                     "B4-2 compose 與 crossfade 多 beat 序列皆過 validator_v1 **0 error**(含末鍵 curve 地雷 #12 檢查)=雙真值 G2;序列層末鍵 curve **實測 0**"
+                     "(compose 去重丟前者尾幀=`_bez` 必乾淨的末幀、crossfade 重取樣成純線性)→ 此家族**結構上 editor-safe**/"
+                     "B4-3 純接續 is_c1_continuous_sequence=False(C0 全 0 無縫但接點 C1 kink 15~114)、crossfade+smoothstep is_c1_crossfade_sequence=True(接點閉式 kink 0)、linear=False(證 C1 斜坡才是鑑別子)/"
+                     "B4-4 Loop beat is_c1_loopable=True + Loop×2 序列 loop 閉合 0 問題(首尾可接 Loop)+ crossfade stiffness 3.98 ≤ compose 29.53(stiffness 不升反降)/"
+                     "B4-5 write_sequence 寫檔→重讀 0 error + 注入接點末鍵 curve → validator_v1 抓到 editor-crash + 預設 G1 乾淨 + 破壞 Loop 閉合抓到開環(閘非恆真))。"
+                     "**關鍵發現:compose 接點去重『丟前者尾幀、留後者首幀』結構上保證末鍵永遠乾淨(`_bez` 從不 curve 末鍵);crossfade 純線性重取樣亦然 → 地雷 #12 在此生成器家族天生不觸發,且 crossfade 反而降 stiffness(7×)**。"
+                     "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);beat 排序 / 哪些接點該平滑 / xf 多長屬美術手感(A 類);過渡期 import repo tools/analyzer(E1 bundle);單一真值資產。cap b4_sequence L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

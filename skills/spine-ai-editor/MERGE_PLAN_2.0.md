@@ -79,8 +79,19 @@
       繞 pivot 縮放（ℓ_P 殘差 0.0004px，**接回 B2**）+ bezier 緩動 fixed-point 0.0596px（AC7）+ 守衛 pivot≈原點/未知 bone 跳過。
       **關鍵發現**：密網格重取樣把補償輸出成純線性鍵 → 地雷 #12 天生不觸發（editor-safe）；結構軸有 SOP A 動骨架 / SOP E 動 keyframe
       兩互補解法；scale-about-pivot 同一入口把 B3 接回 B2。回歸 0 RED（新增 cap `b3_pivot` L2）。見 `knowledge/s2-v2-pivot-b3.md`。
-- [ ] **B4 序列 compose/crossfade/loop（C1）**：接 v1.3.0 的 idle-loop 與多 beat 大獎序列。
-      **AC**：相異 beat 接點 C1 連續閘通過；首尾可接 Loop；stiffness 不升。
+- [x] **B4 序列 compose/crossfade/loop（C1）**（2026-10-14 run 005 ✅）：把 repo 跨 beat 序列組合
+      （`compose_sequence`/`crossfade_sequence` + C1 判準）抽成 skill 入口
+      `assets/gen_lib/sequence.py`（`compose_bigwin_sequence`/`crossfade_bigwin_sequence`/`compose_idle_loop`/
+      `build_beat_library`/`write_sequence` + CLI），在**序列層**機械化驗 G2 雙真值。閘
+      `tools/analyzer/validate_b4_sequence.py` **5 AC 全 PASS**：B4-1 公開 API 產單一 composed 序列（schema 合法）/
+      B4-2 compose 與 crossfade 多 beat 序列皆過 `validator_v1` **0 error**（含末鍵 curve 地雷 #12 檢查），
+      序列層末鍵 curve **實測 0**/B4-3 純接續 `is_c1_continuous_sequence`=False（C0 無縫但接點 C1 kink 15~114）、
+      crossfade+smoothstep=True（閉式 kink 0）、linear=False/B4-4 Loop `is_c1_loopable`=True + Loop×2 loop 閉合 0 問題
+      （首尾可接 Loop）+ crossfade stiffness 3.98 ≤ compose 29.53（stiffness 不升反降）/B4-5 roundtrip + 注入接點末鍵
+      curve 被抓 + 破壞 Loop 閉合被抓（閘非恆真）。**關鍵發現：B1 指名「序列才是 G1 真正戰場」被實測關掉——compose
+      去重「丟前者尾幀」（`_bez` 必乾淨的 clip 末幀）+ crossfade 純線性重取樣 → 此生成器家族**結構上 editor-safe**，
+      G1 拔 0 條；且 crossfade+C1 斜坡不但消接點 kink 還降 stiffness（~7×）。** 回歸 0 RED（新增 cap `b4_sequence` L2）。
+      見 `knowledge/s2-v2-sequence-b4.md`。
 
 ### Phase C — mesh / rig 併接
 - [ ] **C1 mesh 生成 + 變形自交閘**：`generate_mesh_v2` + `deform_eval` 併進結構軸

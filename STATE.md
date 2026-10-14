@@ -12,10 +12,16 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot 變換/結構軸,2026-10-14 run 004)。下一個 run 做 B4**
-> (序列 compose/crossfade/loop,C1:接 v1.3.0 idle-loop 與多 beat 大獎序列;
-> AC=相異 beat 接點 C1 連續閘通過、首尾可接 Loop、stiffness 不升。
-> **⚠️ 這裡才是 G1 的真正戰場**——B1 洞見:序列自接點的 outgoing curve 可能變某 timeline 末鍵 → 地雷 #12)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,2026-10-14 run 005)。B 階段全部完成。下一個 run 做 Phase C(mesh/rig 併接)的 C1**
+> (mesh 生成 + 變形自交閘:`generate_mesh_v2` + `deform_eval` 併進結構軸;AC=對 robot/curtain 件生成 strip mesh、真實 deform si=0)。
+> **B4 做了什麼**:把 repo 跨 beat 序列組合(`compose_sequence`/`crossfade_sequence` + C1 判準)抽成 skill 入口
+> `skills/spine-ai-editor/assets/gen_lib/sequence.py`(`compose_bigwin_sequence`/`crossfade_bigwin_sequence`/`compose_idle_loop`/`build_beat_library`/`write_sequence` + CLI),
+> 在**序列層**機械化驗 G2 雙真值。閘 `tools/analyzer/validate_b4_sequence.py` **5 AC 全 PASS**(B4-1 公開 API 產單一 composed 序列動畫(schema 合法)/
+> B4-2 compose 與 crossfade 多 beat 序列皆過 validator_v1 **0 error**(含末鍵 curve 地雷 #12 檢查)=雙真值 G2,序列層末鍵 curve **實測 0**(compose 去重丟前者尾幀=`_bez` 必乾淨的 clip 末幀、crossfade 重取樣成純線性)/
+> B4-3 純接續 `is_c1_continuous_sequence`=False(C0 全 0 無縫但接點 C1 kink 15~114)、crossfade+smoothstep=True(接點閉式 kink 0)、linear=False(證 C1 斜坡才是鑑別子)/
+> B4-4 Loop `is_c1_loopable`=True + Loop×2 序列 loop 閉合 0 問題(首尾可接 Loop)+ crossfade stiffness 3.98 ≤ compose 29.53(stiffness 不升反降 ~7×)/
+> B4-5 write_sequence 寫檔→重讀 0 error + 注入接點末鍵 curve 被 validator_v1 抓(AIOOBE)+ 預設 G1 乾淨 + 破壞 Loop 閉合抓到開環(閘非恆真))。
+> **關鍵發現**:**B1 指名「序列 compose/crossfade 才是 G1 真正戰場」被實測關掉**——compose 接點去重「丟前者尾幀、留後者首幀」結構上保證末鍵永遠乾淨(`_bez` 從不 curve clip 末鍵,且此「無損回切方向」同時是「editor-safe 方向」),crossfade 純線性重取樣亦然 → 地雷 #12 在此生成器家族(兩組合路徑)**結構上不觸發**,G1 拔 0 條;crossfade+C1 斜坡不但消接點 kink 還**降** stiffness(7×)。迭代踩雷:validator_v1 的 `--metric` 與 loop 檢查共用 `--loop-anims` 過濾 → 大獎一次性序列不傳 --loop-anims 以取 stiffness。回歸 0 RED(新增 cap `b4_sequence` L2)。見 `knowledge/s2-v2-sequence-b4.md`。
 > **B3 做了什麼**:把 repo `pivot_rotation.py`(`Δ=(M−I)(O−P)`,繞任意點旋轉/縮放/剪切的確定性分解)抽成 skill 入口
 > `skills/spine-ai-editor/assets/gen_lib/pivot_axis.py`(`apply_joint_pivots`/`bone_origins_from_skel`)——**不動骨架結構**,
 > 只在既有動畫上疊補償 translate,使件繞**關節 pivot**(肩/頸)轉(肢體動畫物理正確的前提)。補 `references/structural_expansion.md` **SOP E**
