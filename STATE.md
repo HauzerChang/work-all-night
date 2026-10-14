@@ -12,9 +12,18 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,2026-10-12 run 002)、B2 ✅(生成庫入口,2026-10-13 run 003)。下一個 run 做 B3**
-> (繞關節 pivot 變換 `pivot_rotation.py` 併進結構軸,補 `references/structural_expansion.md`;
-> AC=limb 繞關節旋轉 pivot 殘差 < 門檻(repo 既有 7AC 可移植)、對照繞件中心的負對照)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot 變換/結構軸,2026-10-14 run 004)。下一個 run 做 B4**
+> (序列 compose/crossfade/loop,C1:接 v1.3.0 idle-loop 與多 beat 大獎序列;
+> AC=相異 beat 接點 C1 連續閘通過、首尾可接 Loop、stiffness 不升。
+> **⚠️ 這裡才是 G1 的真正戰場**——B1 洞見:序列自接點的 outgoing curve 可能變某 timeline 末鍵 → 地雷 #12)。
+> **B3 做了什麼**:把 repo `pivot_rotation.py`(`Δ=(M−I)(O−P)`,繞任意點旋轉/縮放/剪切的確定性分解)抽成 skill 入口
+> `skills/spine-ai-editor/assets/gen_lib/pivot_axis.py`(`apply_joint_pivots`/`bone_origins_from_skel`)——**不動骨架結構**,
+> 只在既有動畫上疊補償 translate,使件繞**關節 pivot**(肩/頸)轉(肢體動畫物理正確的前提)。補 `references/structural_expansion.md` **SOP E**
+> (keyframe 級繞關節 + SOP A 動骨架 vs SOP E 動 keyframe 選用表);`make_beat.py` 加 `generate_idle`/`IDLE_DEMO_PARTS`
+> (limb 走 rotate,繞關節典型來源),`generate_bigwin` 逐位元不變(B2 零回歸)。閘 `tools/analyzer/validate_b3_pivot.py` **5 AC 全 PASS**
+> (對映 repo 既有 7 AC + 新增雙真值 G2:B3-1 入口+被轉 bone 恰為給 pivot 的 limb+轉後 validator_v1 0 error/B3-2 真實 Award 左手繞肩殘差 0.0115px/
+> B3-3 繞件中心負對照 48.8px(4247×)+最遠點動 94.3px+剛性 0.0115px/B3-4 θ=0 Δ=0 無縫+loop 閉合 0 問題/B3-5 對 B2 pop beat 繞 pivot 縮放 ℓ_P 殘差 0.0004px 接回 B2+bezier 0.0596px+守衛)。
+> **關鍵發現**:密網格重取樣把補償輸出成純線性鍵 → 地雷 #12 天生不觸發(editor-safe);結構軸有 SOP A 動骨架 / SOP E 動 keyframe 兩互補解法;scale-about-pivot 同一入口把 B3 接回 B2。回歸 0 RED(新增 cap `b3_pivot` L2)。見 `knowledge/s2-v2-pivot-b3.md`。
 > **B2 做了什麼**:生成入口包成 `skills/spine-ai-editor/assets/gen_lib/make_beat.py`(`generate_bigwin`/`write_bigwin`
 > 公開 API + CLI + 內建 `DEMO_PARTS`;過渡期 import repo `tools/analyzer`,E1 再 bundle),補 `references/animation_patch_patterns.md`
 > **Pattern 12**(確定性大獎生成 SOP),閘 `tools/analyzer/validate_b2_genlib.py` **5 AC 全 PASS**(cascade/pop/wobble/twist 四種

@@ -87,6 +87,16 @@ DEMO_PARTS = [
 # "pop" 是 cascade 的單件運動基元 → 以 cascade 預設波呈現。wobble/twist 為單件 shear 基元。
 SUPPORTED_BEATS = ("cascade", "pop", "wobble", "twist")
 
+# idle/Loop demo 件(B3 繞關節 pivot 變換的典型來源)。**role 用英文**(body/head/limb/特效):
+# 大獎 cascade 對所有件一視同仁,idle Loop 則依 role 給不同通道(limb 走 **rotate** 擺盪 → 可繞關節 pivot)。
+IDLE_DEMO_PARTS = [
+    {"part": "body",  "role": "body", "action": "主秀"},
+    {"part": "head",  "role": "head", "action": "主秀"},
+    {"part": "arm_L", "role": "limb", "action": "主秀"},
+    {"part": "arm_R", "role": "limb", "action": "主秀"},
+    {"part": "光暈",   "role": "特效", "action": "主秀"},
+]
+
 
 def parts_from_psd(psd_path, genre="slot_bigwin", beat_source="Loop"):
     """(過渡期)從分層 PSD 反推拆件清單,取某 beat 的 parts(預設 Loop 的主秀件序)。
@@ -158,6 +168,35 @@ def generate_bigwin(parts, beat="cascade", cascade_dir=None,
         for a in skel["animations"].values():
             ct.strip_last_frame_curves(a)
     return skel, beat_name
+
+
+def generate_idle(parts, apply_g1=True):
+    """產一支 idle/Loop beat(body 呼吸、**limb 擺盪 rotate**、head 點頭、特效 alpha 脈動),
+    回傳 (skeleton_dict, "Loop")。**已過 G1**。
+
+    與大獎 beat(`generate_bigwin`)的關鍵差異:大獎 cascade 對所有件一視同仁(scale/shear 脈衝),
+    idle Loop 依 **role** 給不同通道——**limb 走 rotate 通道** → 這正是 **繞關節 pivot 變換**
+    (`pivot_axis.apply_joint_pivots`,MERGE_PLAN Phase B3)的典型來源:手臂該繞肩轉、頭該繞頸轉,
+    非 rig 下 bone 落件中心,須 keyframe 級補償 Δ=(M−I)(O−P) 才物理。
+
+    parts    : [{"part","role","action"} ...];**role 須用英文** body/head/limb/特效
+               (大獎 beat 不分 role,故 DEMO_PARTS 用中文 role;idle 依 role → 用 IDLE_DEMO_PARTS)。
+    apply_g1 : True(預設)→ 輸出前拔末鍵 curve(地雷 #12)。
+    """
+    G, ct = _wire_repo_tools()
+    if not parts:
+        raise ValueError("parts 不可為空")
+    skel = _assemble_skeleton(parts)
+    storyboard = {"beats": [{"beat": "Loop", "desc": "B3 gen_lib idle",
+                             "parts": [{"part": p["part"], "role": p["role"], "action": "主秀"}
+                                       for p in parts]}]}
+    gen_skel = {"skeleton": skel["skeleton"], "bones": skel["bones"]}
+    anims = G.build_animations(gen_skel, storyboard)
+    skel["animations"] = anims
+    if apply_g1:
+        for a in skel["animations"].values():
+            ct.strip_last_frame_curves(a)
+    return skel, "Loop"
 
 
 def write_bigwin(parts, out_path, beat="cascade", **opts):

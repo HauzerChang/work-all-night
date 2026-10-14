@@ -778,6 +778,20 @@ BLOCKS = [
                      "**關鍵發現:『用 skill 生成 → 雙真值驗收』固化成對外契約(不再手搭 skeleton);4 beat 類型全過 editor 真值閘**。"
                      "honest:viewer/Cocos 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);過渡期相依 repo tools(E1 bundle);"
                      "哪個 beat 該用仍屬美術手感(A 類)。cap b2_genlib L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("b3_pivot", "spine-ai-editor 2.0 B3 繞關節 pivot 變換入口(結構軸):pivot_axis → 幾何真值 + v1.3.0 validator_v1(雙真值)", "L2",
+                "python3 tools/analyzer/validate_b3_pivot.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase B3(承 B1/B2):把 repo `pivot_rotation.py`(Δ=(M−I)(O−P),繞任意點旋轉/縮放/剪切的確定性分解)"
+                     "抽成 skill 層級入口 `skills/spine-ai-editor/assets/gen_lib/pivot_axis.py :: apply_joint_pivots`——"
+                     "**不動骨架結構**,只在既有動畫上疊補償 translate,使件繞**關節 pivot P**(非件中心 O)轉。補 references/structural_expansion.md SOP E。"
+                     "作用在 gen_lib 生成的動畫(generate_idle 的 limb rotate / generate_bigwin pop 的 scale)+ 真實 Award 左手→肩 pivot。"
+                     "過渡期 import repo tools/analyzer(E1 bundle);密網格重取樣=純線性鍵 → 本就 editor-safe,收尾仍過 G1。validate_b3_pivot.py 5AC PASS"
+                     "(B3-1 入口可呼叫 + 被轉 bone 恰為給 pivot 的 limb + 轉後 skel 過 validator_v1 0 error(含末鍵 curve 檢查)=雙真值 G2/"
+                     "B3-2 真實 Award 左手繞肩 pivot 殘差 0.0115px<0.5(repo AC1,經入口)/"
+                     "B3-3 繞件中心負對照 48.8px(ratio 4247×)+ 件最遠點位移 94.3px + 剛性 0.0115px(repo AC2/AC3/AC5)/"
+                     "B3-4 θ=0 Δ=0 無縫 + 轉後 idle 首尾相等 → validator_v1 loop 閉合 0 問題(repo AC4 + 雙真值)/"
+                     "B3-5 對 B2 pop beat scale bone include_scale=True 繞 pivot 縮放(ℓ_P 殘差 0.0004px + 非 pivot 點動 11.2px,接回 B2)+ bezier 緩動仍 fixed-point 0.0596px(repo AC7)+ 守衛 pivot≈原點/未知 bone 跳過)。"
+                     "**關鍵發現:密網格重取樣把繞 pivot 補償輸出成純線性鍵 → 地雷 #12 天生不觸發(editor-safe);結構軸的 keyframe 級解法(不動骨架)與 structural_expansion 的動骨架解法互補;scale-about-pivot 把 B3 接回 B2 大獎 beat**。"
+                     "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);關節 pivot 放哪(肩/頸)屬 S5/美術(A 類),本閘用接觸縫真值 + 合成 pivot;單一真值資產。cap b3_pivot L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

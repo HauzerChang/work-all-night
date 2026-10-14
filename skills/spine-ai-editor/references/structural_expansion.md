@@ -219,6 +219,69 @@ for s in data["slots"]:
 
 ---
 
+## SOP E：繞關節 pivot 變換（keyframe 級，**不動骨架**）
+
+> **與 SOP A/B 互補**：A/B 是「動骨架」（加 bone / reparent / transform mode）讓件繞關節轉，是結構性改動（改 `bones` 陣列）。
+> SOP E 提供**不動骨架結構**的 keyframe 級替代：只在既有動畫上多疊一條補償 `translate`，使貼在某 bone 的件
+> 淨效果 = 繞**關節 pivot P**（而非件中心 O）轉／縮／剪。適合「暫時想讓某件繞關節動、又不想改骨架 / 重 import」的情境。
+
+### 問題：非 rig 下件繞件中心轉，對肢體不物理
+
+`gen_animations` 產出的 limb `rotate` timeline 是「bone 繞自身原點旋轉」。非 `--rig` 組裝時 bone 原點落在**件中心 O**，
+故手臂的 `rotate` 會讓它繞**自身中心**轉——但手臂該繞**肩**、頭該繞**頸**。SOP A 的解法是把 bone 搬到關節（動骨架）；
+SOP E 則留 bone 在件中心，額外加補償平移。
+
+### 數學（剛體 / 仿射「繞任意點變換」分解，確定性、無 ML）
+
+設 bone 世界（parent 座標）線性部 **M**（真實 Spine 3.8 local：`M = R(θ)·shear·diag(sx,sy)`）。
+要讓 pivot 的附著局部點 `ℓ_P = P − O` 世界座標固定在 P，只需在原變換外加平移：
+
+```
+Δ = (M − I)(O − P)
+```
+
+驗證（不動點）：`world(ℓ_P) = (O + Δ) + M·(P − O) = O + (M−I)(O−P) + M(P−O) = O + (P−O) = P`，對**任意 M** 成立。
+`θ=0、s=1、shear=0` 時 `M=I → Δ=0` → **setup / loop 端點 / In-Out 介面全保持 identity**（無縫不被破壞）。
+
+### ⚠️ 實作雷點：Δ 對 θ 非線性 → 必須加密重取樣
+
+Δ 對 θ（及 s、shear）**非線性**。若只在原 rotate keyframe 放 Δ，兩幀之間 translate 線性內插 ≠ 真值，pivot 在**幀間**會漂。
+解法：把通道**加密重取樣**成均勻密網格（`dt`，預設 1/60 秒），rotate / scale / shear / translate 同格、皆線性鍵。
+幀間殘差 ~ `(1/8)|O−P|·(dθ_rad)²`，`dt=1/60` 下 << 0.1px（閘實測 Award 左手繞肩殘差 **0.0115px**）。
+
+> **副產物（editor 安全）**：密網格重取樣輸出為**純線性鍵（無 compact bezier）** → **地雷 #12（末鍵 curve → editor 匯入 AIOOBE crash）天生不觸發**。
+> 收尾仍過一次 `curve_tools.strip_last_frame_curves()` 保險（與生成入口同一條 G1 契約）。
+
+### 用法（skill 入口，MERGE_PLAN 2.0 Phase B3）
+
+```python
+from gen_lib.make_beat import generate_idle, IDLE_DEMO_PARTS
+from gen_lib.pivot_axis import apply_joint_pivots, bone_origins_from_skel
+
+skel, aname = generate_idle(IDLE_DEMO_PARTS)        # 來源:limb 走 rotate 的 idle（手臂擺盪）
+origins = bone_origins_from_skel(skel)              # 每 bone setup 原點 O（= 非 rig 下件中心）
+pivots  = {"b_arm_L": (origins["b_arm_L"][0], origins["b_arm_L"][1] + 120.0)}  # 肩 pivot（parent 座標）
+converted = apply_joint_pivots(skel, aname, pivots)   # 就地把 b_arm_L 轉成繞肩旋轉;回傳 ['b_arm_L']
+```
+
+- `include_scale=True`：按 `M=R·diag(sx,sy)` 補償 → 件**繞 pivot 旋轉＋縮放**（手臂從肩伸長，不是自身中心脹縮）。
+  可直接作用在 `generate_bigwin(..., beat="pop")` 的大獎 scale beat 上（把 B3 接回 B2）。
+- `include_shear=True`：按真實 Spine local `M=R·shear·S` 補償 → 件繞 pivot 做**一般仿射**（含 shear / 非均勻 scale）。
+- **守衛**：pivot 與件原點重合（<0.5px）的 bone 自動跳過（不加多餘 translate）；未在 `pivot_of` / skel 的 bone 不動。
+
+### SOP A（動骨架）vs SOP E（動 keyframe）怎麼選
+
+| 情境 | 選 |
+|---|---|
+| 件該繞關節動是**長期結構需求**，且會反覆用多支動畫 | **SOP A**（加 bone 到關節，一次到位、最乾淨） |
+| 只想**臨時**讓某件繞關節動、不想改骨架 / 重 import / 不想動既有綁定 | **SOP E**（純疊 keyframe，可 diff、可回滾） |
+| 件該繞關節**縮放 / 剪切**（非只旋轉），又不想改骨架 | **SOP E** `include_scale` / `include_shear` |
+| pivot 位置不確定、要快速試幾個候選 | **SOP E**（改一個 P 常數重跑，不動骨架） |
+
+> **關節 pivot P 放哪**（肩 / 頸 / 肘…）屬 S5 rig / 美術決策（A 類岔路）：可用 `tools/rig/infer_pivots`（父子件接觸縫）給草案，最終軸向精修留美術。
+
+---
+
 ## 結構擴充後的 Cocos 推送特殊注意事項
 
 結構改變（加 bone / 改 slot.bone）後，Cocos 需要完整重新 import skeleton data：

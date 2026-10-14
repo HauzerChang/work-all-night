@@ -1,8 +1,18 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-13 run 001(2.0 Phase B2 生成庫入口 —— `gen_lib`:cascade/pop/wobble/twist → v1.3.0 `validator_v1`)。
-> 71 閘全綠(70 + 新 `b2_genlib`,0 RED,無 GREEN→RED)。** 承 B1,把臨時組 skeleton 的流程抽成**可重用的 skill 入口**
+> **最新:2026-10-14 run 001(2.0 Phase B3 繞關節 pivot 變換 / 結構軸 —— `pivot_axis` → 幾何真值 + v1.3.0 `validator_v1` 雙真值)。
+> 72 閘全綠(71 + 新 `b3_pivot`,0 RED,無 GREEN→RED)。** 把 repo `pivot_rotation.py`(`Δ=(M−I)(O−P)`,繞任意點旋轉/縮放/剪切的
+> 確定性分解)抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/pivot_axis.py`(`apply_joint_pivots`/`bone_origins_from_skel`)——
+> **不動骨架結構**,只在既有動畫上疊補償 translate,使件繞**關節 pivot**(肩/頸)轉。補 `references/structural_expansion.md` **SOP E**
+> (keyframe 級繞關節 + SOP A 動骨架 vs SOP E 動 keyframe 選用表);`make_beat.py` 加 `generate_idle`/`IDLE_DEMO_PARTS`(limb 走 rotate),
+> `generate_bigwin` 逐位元不變(B2 零回歸)。`validate_b3_pivot.py` 5AC PASS(對映 repo 既有 7 AC + 新增雙真值 G2):B3-1 入口+被轉 bone 恰為
+> 給 pivot 的 limb+轉後 validator_v1 0 error(含末鍵 curve)/B3-2 真實 Award 左手繞肩殘差 0.0115px/B3-3 繞件中心負對照 48.8px(4247×)+
+> 最遠點動 94.3px+剛性 0.0115px/B3-4 θ=0 Δ=0 無縫+loop 閉合 0 問題/B3-5 對 B2 pop beat include_scale 繞 pivot 縮放 ℓ_P 殘差 0.0004px(接回 B2)+
+> bezier 0.0596px+守衛。**關鍵發現:密網格重取樣把補償輸出成純線性鍵 → 地雷 #12 天生不觸發(editor-safe);結構軸有 SOP A/E 兩互補解法;scale-about-pivot 接回 B2**。
+> Cocos/viewer 實機=使用者端(scope 邊界);關節 pivot 放哪屬 S5/美術(A 類)。cap `b3_pivot` L2 pipeline 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s2-v2-pivot-b3.md`。
+> ──(前里程碑)2026-10-13 run 001(2.0 Phase B2 生成庫入口 —— `gen_lib`:cascade/pop/wobble/twist → v1.3.0 `validator_v1`)。
+> 71 閘全綠(70 + 新 `b2_genlib`,0 RED,無 GREEN→RED)。 承 B1,把臨時組 skeleton 的流程抽成**可重用的 skill 入口**
 > `skills/spine-ai-editor/assets/gen_lib/make_beat.py`(`generate_bigwin`/`write_bigwin` 公開 API + CLI + 內建 `DEMO_PARTS`;
 > 過渡期 import repo `tools/analyzer`,E1 再 bundle),涵蓋 4 種大獎單件運動基元,輸出前內建 G1;補 `references/animation_patch_patterns.md`
 > **Pattern 12**(確定性大獎生成 SOP)。`validate_b2_genlib.py` 5AC PASS(B2-1 經公開 API 產 schema 合法 cascade beat(非臨時腳本)/
