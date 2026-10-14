@@ -235,8 +235,66 @@ for s in data["slots"]:
 
 ---
 
+## SOP E：繞關節 pivot 變換（keyframe 級，不動骨架結構）— B3
+
+**前提**：某件（手臂、頭、尾）在動畫裡是「繞**件中心**轉/縮/剪」，但物理上該「繞**關節**」
+（手臂該繞肩、頭該繞頸）。非 `--rig` 組裝時 bone 原點落在件中心 O，故 `rotate`/`scale`/`shear`
+timeline 會讓件繞件中心動 —— 不物理。
+
+**兩條解法**：
+- **結構解（SOP A/B）**：把 bone 搬到關節、重綁 slot → 動骨架。最乾淨，但改結構、要重 import。
+- **Keyframe 級互補解（本節）**：bone **留在件中心**，額外疊一條補償 `translate`，使**淨效果**=件繞
+  關節 pivot P 轉/縮/剪，**完全不動骨架結構**。適合「只想修某動畫的轉動中心、不想碰骨架」。
+
+### 數學（確定性，無 ML）
+
+設 bone setup 原點在 O（parent 座標）、該幀 local 2×2 變換 `M`（Spine TRS：`M = R(θ)·shear·diag(sx,sy)`）。
+要讓貼在該 bone 的幾何繞 pivot `P`（同 parent 座標）做同一變換、而 **P 為不動點**，只需加平移
+
+```
+Δ = (M − I)(O − P)
+```
+
+驗證：pivot 附著局部點 `ℓ_P = P − O`，套用後世界座標 `(O + Δ) + M·ℓ_P = O + (M−I)(O−P) + M(P−O) = P`（∀ M）。
+`θ=0 且 scale=1、shear=0` 時 `M=I → Δ=0` → **setup / loop 端點 / In-Out 介面全保持 identity**（無縫不破）。
+
+> ⚠️ `Δ(θ,s,shear)` 對參數**非線性** → 只在原 keyframe 放 Δ、兩幀間線性內插 ≠ 真值，pivot 幀間會漂。
+> 故把通道**加密重取樣**成均勻密網格（`dt≈1/60`），rotate/scale/shear/translate 同格皆線性 → 幀間一致，
+> 殘差 << 0.1px（實測）。既有 translate（如 In 的徑向歸位）會被**疊加**，兩種位移語意共存。
+
+### Skill 入口（B3，gen_lib）
+
+```python
+from gen_lib.make_beat import generate_bigwin, apply_pivot_rotation, DEMO_PARTS
+
+skel, aname = generate_bigwin(DEMO_PARTS, beat="cascade")   # 或既有角色 skeleton
+# pivots 鍵可用件名 / slot 名 / bone 名；值=關節 pivot（該 bone parent 座標，gen_lib 下即世界座標）
+apply_pivot_rotation(skel, {"arm_L": (Px, Py)}, include_scale=True)   # 就地改 skel
+#   include_scale=True  → 也讓 scale（cascade pop 脈衝）繞 pivot（手臂從肩伸長，不是自身脹縮）
+#   include_shear=True  → 也讓 shear（wobble/twist）繞 pivot（隱含 include_scale）
+#   純 rotate 擺動用預設（兩者 False）
+```
+
+### 不變式 / honest boundary
+
+1. **pivot P 與 bone 原點 O 必須同在「該 bone 的 parent 座標系」**。`gen_lib` 組出的 skeleton 所有 bone
+   都 parent 到 root，故 P 直接用 root（≈世界）座標；若 bone 另有非 root parent，須自備 `bone_origin`
+   與同系的 P。
+2. **pivot 位置本身**來自 S5 的 `infer_pivots`（人形接觸縫自動推；人臂繞肩殘差 0.0115px 實測）。
+   **非人形 pivot 仍需人微調**（A 類岔路，唯一卡死環節）。
+3. `apply_pivot_rotation` 輸出前自動過 **G1**（`strip_last_frame_curves`，地雷 #12）；pivot 加密只產純線性鍵
+   → 通常拔 0 條，但維持紀律。套用後仍過 **G2 雙真值**（validator_v1 0 error + loop 閉合，實測乾淨）。
+4. **與結構解互補、非互斥**：大改結構（新可動軸）用 SOP A/B；只修某動畫的轉動中心用本節。
+
+> 驗收閘：`tools/analyzer/validate_b3_pivot.py`（7 AC；真值=真實 Award 機器人左手 + 肩 pivot；
+> 含繞件中心負對照 ratio 4247 證閘非恆真 + 套 pivot 後 validator_v1 乾淨）。
+
+---
+
 ## 結語
 
 Spine 骨架擴充的精髓不是「加東西」而是「**用 bone hierarchy 表達視覺元件的獨立性**」。每個視覺單元（胸甲、頭、武器、配件）都應該有自己的可動軸。當你發現「某個部位該動但沒辦法」就是骨架抽象沒做夠的訊號。
+
+而當「可動軸已經在對的件上、只是轉動中心不對」時，**不必動骨架**——用 SOP E 的 keyframe 級 pivot 補償即可（手臂繞肩、頭繞頸）。結構解與 keyframe 解互補：前者給新自由度，後者修既有自由度的中心。
 
 **Patch 化 SOP 的好處**：每次擴充都是可 diff、可重跑、可回滾的 Python 腳本。改錯就 git revert 重來。

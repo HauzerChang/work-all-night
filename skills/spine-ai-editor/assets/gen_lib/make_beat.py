@@ -169,6 +169,78 @@ def write_bigwin(parts, out_path, beat="cascade", **opts):
     return out_path, aname
 
 
+# --------------------------------------------------------------------- 結構軸:繞關節 pivot 變換(B3)
+def _resolve_pivot_bones(skel, pivots):
+    """把 `pivots` 的鍵(件名 / slot 名 / bone 名)解析成 {bone_name: (Px,Py)}。
+
+    鍵優先序:bone 名 → slot 名(slot["bone"])→ "b_"+safe(件名)。找不到對應 bone 就報清楚錯誤。"""
+    G, _ = _wire_repo_tools()
+    bone_names = {b["name"] for b in skel.get("bones", [])}
+    slot_to_bone = {s["name"]: s["bone"] for s in skel.get("slots", [])}
+    out = {}
+    for key, P in pivots.items():
+        if key in bone_names:
+            bone = key
+        elif key in slot_to_bone:
+            bone = slot_to_bone[key]
+        elif ("b_" + G.safe(key)) in bone_names:
+            bone = "b_" + G.safe(key)
+        else:
+            raise ValueError(
+                "pivot 鍵 {!r} 對不到任何 bone(既非 bone 名、slot 名,也非 b_safe(件名))。"
+                "可用 bone={}".format(key, sorted(bone_names)))
+        out[bone] = (float(P[0]), float(P[1]))
+    return out
+
+
+def _bone_origin_from_skel(skel):
+    """從 skel["bones"] 推每個 bone 的 setup 原點(parent 座標)= (x, y)。root 不列入。
+
+    ⚠️ 前提:pivot P 與 bone 原點須同在**該 bone 的 parent 座標系**。gen_lib 組出的 skeleton
+    所有 bone 都 parent 到 root,故 P 用 root(≈世界)座標即可;若 bone 另有非 root parent,
+    呼叫端須自備 bone_origin 與同系的 P(見 references/structural_expansion.md 的 honest boundary)。"""
+    return {b["name"]: (float(b.get("x", 0.0)), float(b.get("y", 0.0)))
+            for b in skel.get("bones", []) if b.get("name") != "root"}
+
+
+def apply_pivot_rotation(skel, pivots, anim_names=None, bone_origin=None,
+                         include_scale=False, include_shear=False,
+                         dt=1.0 / 60.0, apply_g1=True):
+    """結構軸(keyframe 級):就地把 skeleton 內指定件「**繞關節 pivot**」而非繞件中心變換。
+
+    這是 `references/structural_expansion.md` 加 bone / reparent 之外的**互補解**:不動骨架結構,
+    靠 `Δ=(M−I)(O−P)` 補償平移,讓貼在件中心 bone 上的幾何淨效果=繞關節 pivot P 轉/縮/剪。
+    θ=0 且 scale=1、shear=0 時 Δ=0 → setup/loop 端點/In-Out 介面保持 identity(無縫不破)。
+
+    skel        : 完整 skeleton dict(`generate_bigwin` 產出或既有角色)。**就地修改並回傳**。
+    pivots      : {件名 / slot 名 / bone 名: (Px,Py)} 件→關節 pivot(該 bone parent 座標)。
+    anim_names  : 要套用的動畫名 list(None=skel["animations"] 全部)。
+    bone_origin : {bone: (Ox,Oy)}(None=自 `_bone_origin_from_skel` 推;gen_lib skeleton 適用)。
+    include_scale / include_shear : 轉交 `pivot_rotation.apply_pivots`——讓繞 pivot 的變換
+                  也含 scale(cascade pop 的脈衝)/ shear(wobble/twist)。純 rotate 用預設(False,False)。
+    apply_g1    : True(預設)→ 套用後重跑 G1(pivot 加密只產純線性鍵,通常拔 0 條,維持地雷 #12 紀律)。
+
+    回傳 (skel, {anim_name: [converted_bone, ...]})。converted 為實際被轉成繞 pivot 的 bone 名。
+    """
+    _wire_repo_tools()
+    import pivot_rotation as pr                 # noqa: E402  repo tools/analyzer(過渡期,E1 bundle)
+    _, ct = _wire_repo_tools()
+    if not pivots:
+        raise ValueError("pivots 不可為空")
+    pivot_of = _resolve_pivot_bones(skel, pivots)
+    bo = bone_origin if bone_origin is not None else _bone_origin_from_skel(skel)
+    names = anim_names if anim_names is not None else list(skel.get("animations", {}).keys())
+    converted = {}
+    for an in names:
+        anim = skel["animations"][an]
+        conv = pr.apply_pivots(anim, bo, pivot_of, dt=dt,
+                               include_scale=include_scale, include_shear=include_shear)
+        if apply_g1:
+            ct.strip_last_frame_curves(anim)
+        converted[an] = conv
+    return skel, converted
+
+
 # --------------------------------------------------------------------- 自檢(不寫檔)
 def _self_test():
     """生成 cascade/pop/wobble/twist 各一支,回報 bone/slot 數與是否可過 G1(本地快檢,

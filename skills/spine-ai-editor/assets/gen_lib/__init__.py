@@ -8,5 +8,6 @@
 """
 from .make_beat import (  # noqa: F401
     generate_bigwin, write_bigwin, parts_from_psd,
+    apply_pivot_rotation,
     DEMO_PARTS, SUPPORTED_BEATS,
 )

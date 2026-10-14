@@ -778,6 +778,19 @@ BLOCKS = [
                      "**關鍵發現:『用 skill 生成 → 雙真值驗收』固化成對外契約(不再手搭 skeleton);4 beat 類型全過 editor 真值閘**。"
                      "honest:viewer/Cocos 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);過渡期相依 repo tools(E1 bundle);"
                      "哪個 beat 該用仍屬美術手感(A 類)。cap b2_genlib L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("b3_pivot", "spine-ai-editor 2.0 B3 結構軸:繞關節 pivot 變換 gen_lib 入口(apply_pivot_rotation)+ G2", "L2",
+                "python3 tools/analyzer/validate_b3_pivot.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase B3(承 B2):把 repo 的 pivot_rotation(Δ=(M−I)(O−P),件繞關節 pivot 而非件中心)"
+                     "併成 gen_lib 的**公開結構軸入口** `apply_pivot_rotation(skel, pivots)`——references/structural_expansion.md 的加 bone/reparent 之外的 **keyframe 級互補解**"
+                     "(手臂該繞肩、頭該繞頸,不必動骨架結構;θ=0&scale=1&shear=0 時 Δ=0 → 無縫 identity 不破)。"
+                     "repo 既有 7 pivot AC **移植**到經 skill 入口版 + 外加 G2 雙真值(套 pivot 後 validator_v1 仍乾淨=editor 匯入不破)。validate_b3_pivot.py 7AC PASS"
+                     "(真值=真實 Award 機器人左手 arm_len 117.4px + infer_pivots 推得肩 pivot:"
+                     "B3-1 公開 API 使肩 pivot 成不動點(殘差 0.0115px<0.5)/B3-2 負對照繞件中心位移 48.83px(ratio 4247,閘非恆真)/"
+                     "B3-3 件最遠點位移 94.33px(沒凍住)/B3-4 θ=0 Δ=0(identity 介面)/B3-5 等距剛性(距 P 絕對偏差 0.0115px)/"
+                     "B3-6 端到端 generate_bigwin cascade beat→apply_pivot_rotation(含 scale)→ pivot 不動 0.0007px+負對照 27px+**validator_v1 0 error+loop 閉合**/"
+                     "B3-7 bezier 緩動仍成立 0.0596px)。"
+                     "**關鍵發現:pivot 補償是純平移疊加+密網格重取樣,與 scale/shear 正交可共存;套在生成 beat 上 editor 真值閘仍乾淨(結構軸 keyframe 解可機械化入 2.0 流程)**。"
+                     "honest:pivot P 與 bone 原點須同在該 bone parent 座標系(gen_lib skeleton 皆 root-parented 故用世界座標);pivot 位置本身來自 S5 infer_pivots(人形接觸縫,非人形 pivot 仍屬使用者微調 A 類);過渡期相依 repo tools(E1 bundle)。cap b3_pivot L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]
