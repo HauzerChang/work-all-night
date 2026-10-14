@@ -219,6 +219,69 @@ for s in data["slots"]:
 
 ---
 
+## SOP E：繞關節 pivot 變換（keyframe 級，不動骨架）
+
+**前提**：生成器（或既有動畫）給 limb 一條 `rotate`／`scale`／`shear`，但在**非 rig** 組裝下該 bone 的原點落在**件中心 O**，於是手臂會繞「自己中心」轉／脹縮，對肢體不物理（手臂該繞**肩**、頭該繞**頸**）。
+
+SOP A–D 的解法是**動骨架**（加 bone／reparent／把 bone 搬到關節）。SOP E 是**互補的 keyframe 級解法**：bone 留在件中心，額外加一條補償 `translate`，使淨效果＝件繞**關節 pivot P**，而**骨架結構一位元都不動**。兩者可擇一（結構改動 vs 純 keyframe）。
+
+### 數學（確定性，無 ML）
+
+設 bone setup 原點在 O（parent 座標）、local 線性部 `M = R(θ)·shear·diag(sx,sy)`（真實 Spine TRS）。要讓貼在該 bone 的幾何繞 pivot P（同 parent 座標）變換，只需在原通道外加平移
+
+```
+Δ = (M − I)(O − P)
+```
+
+不動點性質：`(O+Δ) + M·(P−O) = O + (M−I)(O−P) + M(P−O) = O + (P−O) = P`（對**任意** M 成立）。
+`M = I`（θ=0、s=1、shear=0）時 Δ=0 → **setup／loop 端點／In-Out 介面全保持 identity**（無縫不被破壞）。
+Δ 對 θ／s **非線性** → 把通道**加密重取樣**成均勻密網格（dt 秒），rotate/translate/scale/shear 同格線性 → 幀間殘差 `~ (1/8)|O−P|·(dθ)²`，dt=1/60 下 << 0.1px。
+
+### 用法（skill 入口）
+
+```python
+from gen_lib.pivot_about_joint import apply_pivot_about_joint, apply_pivot_about_joint_anim
+
+# 1) 整份 skeleton：bone_origin 由 skel['bones'] 的 (x,y) 推得，對所有 animations 套關節軸
+converted = apply_pivot_about_joint(
+    skel,
+    pivot_of={"b_arm_L": (Px, Py), "b_head": (Hx, Hy)},   # 關節 pivot（S5 接觸縫推得）
+    include_scale=True,    # 連 scale 也繞 pivot（M=R·S）；預設 False=只繞 pivot 旋轉
+    include_shear=False,   # True=一般仿射含 shear（M=R·shear·S，隱含 include_scale）
+)
+# converted -> {anim_name: [被轉換的 bone 名]}
+
+# 2) 單支 animation + 明確 bone_origin
+conv = apply_pivot_about_joint_anim(anim, bone_origin={"b_arm": (Ox, Oy)},
+                                    pivot_of={"b_arm": (Px, Py)})
+```
+
+pivot P 從哪來：由 S5 的接觸縫推斷器（`tools/rig/infer_pivots.py`，父子件接觸縫＝關節）得到；
+`build_spine --animate --pivot-rotate`／`--scale-pivot`／`--shear-pivot` 會在組裝時自動套用。
+
+### 不變式（違反就破壞既有動畫/無縫）
+
+1. **θ=0／s=1／shear=0 的幀 Δ=0** → setup 與 loop 端點保持 identity（apply 後首尾相等才能接 Loop）。
+2. **pivot 與件原點重合（<0.5px）→ 不補償**（繞件中心即繞 pivot，避免多餘 translate）。
+3. **有既有 `translate`（如 In 的徑向歸位）會被疊加**，兩種位移語意共存。
+4. **G1**：輸出的 rotate/translate/scale/shear 皆密網格線性鍵（無 curve 鍵），不產生末鍵 curve（地雷 #12）；入口預設仍跑 `strip_last_frame_curves()` 作統一保險。
+
+### 何時用 SOP E vs SOP A（搬骨）
+
+| 情境 | 推薦 |
+|---|---|
+| 只想在**某幾支動畫**讓件繞關節轉，不影響其餘動畫/其他角色 | **SOP E**（純 keyframe，可 diff/回滾） |
+| 件**永遠**都該繞關節（結構性需求）、且後續手 K 動畫也要 | **SOP A**（`--rig` 搬骨，一次到位） |
+| 已有大量既有 keyframe、不想重綁/補償 setup world | **SOP A**（結構層補償 setup，keyframe 維持 delta） |
+
+### 驗收（自我量化，不靠肉眼）
+
+閘 `tools/analyzer/validate_b3_pivot.py`（經 skill 入口；真值＝真實 Award 左手世界幾何＋推得肩 pivot）：
+pivot 不動點殘差 < 0.5px、負對照繞件中心位移 >> 補償版（比值 >>20×）、θ=0 幀 Δ=0、剛性等距 < 0.5px、
+且套用後輸出**仍過 editor 雙真值閘**（`validator_v1` 0 error + loop 閉合）——含 `M=R·S`（scale）與含 shear 的一般仿射皆乾淨。
+
+---
+
 ## 結構擴充後的 Cocos 推送特殊注意事項
 
 結構改變（加 bone / 改 slot.bone）後，Cocos 需要完整重新 import skeleton data：

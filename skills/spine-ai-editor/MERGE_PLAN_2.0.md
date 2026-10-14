@@ -67,8 +67,18 @@
       （write_bigwin 寫檔→重讀 0 error；apply_g1=False 注入末鍵 curve 被抓、預設 apply_g1=True 乾淨；破壞 loop 被抓）。
       **AC（viewer 載入）= 使用者端**（排程 scope 邊界）；CPU 可自主部分（schema 合法 + editor 可匯入 + loop 閉合）已過。
       回歸 0 RED（新增 cap `b2_genlib` L2）。見 `knowledge/s2-v2-genlib-b2.md`。
-- [ ] **B3 繞關節 pivot 變換**：`pivot_rotation.py` 併進結構軸（補 `structural_expansion.md`）。
-      **AC**：limb 繞關節旋轉，pivot 殘差 < 門檻（repo 既有 7AC 可移植）；對照繞件中心的負對照。
+- [x] **B3 繞關節 pivot 變換**（2026-10-14 run 004 ✅）：把 repo `pivot_rotation.py`（Δ=(M−I)(O−P)，
+      rotate/scale/shear）抽成 skill 結構軸入口 `assets/gen_lib/pivot_about_joint.py`
+      （`apply_pivot_about_joint`/`apply_pivot_about_joint_anim` 公開 API），讓 limb 繞**關節 pivot**
+      轉/縮/剪而非件中心、**不動骨架結構**；補 `references/structural_expansion.md` **SOP E**。
+      閘 `tools/analyzer/validate_b3_pivot.py` **5 AC 全 PASS**（真值＝真實 Award 左手世界幾何＋推得肩 pivot）：
+      B3-1 經公開 API 對 B2 beat 套關節軸→轉 5 bone+schema 合法／B3-2 不動點 0.0115px＋剛性 0.0115px＋件最遠點動 94.3px／
+      B3-3 負對照繞件中心 48.8px（比值 4247×）＋θ=0 identity／**B3-4 編輯器雙真值(G2)**：cascade(M=R·S)＋
+      wobble(含 shear 一般仿射)皆 `validator_v1` 0 error＋loop 閉合＋bezier 緩動殘差 0.06px(AC7)／
+      B3-5 端到端 build_animations Loop→入口無縫/pivot 不動＋注入末鍵 curve 被抓(非恆真)。
+      **關鍵發現**：repo 7AC 只驗 runtime 幾何不動點；B3 移植到 skill 入口並**加上編輯器雙真值閘**——
+      繞關節 pivot 的密網格 translate/scale/shear 輸出仍 editor 可匯入（R·S 與含 shear 一般仿射皆乾淨）。
+      回歸 0 RED（新增 cap `b3_pivot` L2）。見 `knowledge/s2-v2-pivot-b3.md`。
 - [ ] **B4 序列 compose/crossfade/loop（C1）**：接 v1.3.0 的 idle-loop 與多 beat 大獎序列。
       **AC**：相異 beat 接點 C1 連續閘通過；首尾可接 Loop；stiffness 不升。
 

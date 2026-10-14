@@ -778,6 +778,23 @@ BLOCKS = [
                      "**關鍵發現:『用 skill 生成 → 雙真值驗收』固化成對外契約(不再手搭 skeleton);4 beat 類型全過 editor 真值閘**。"
                      "honest:viewer/Cocos 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);過渡期相依 repo tools(E1 bundle);"
                      "哪個 beat 該用仍屬美術手感(A 類)。cap b2_genlib L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("b3_pivot", "spine-ai-editor 2.0 B3 繞關節 pivot 變換:gen_lib(pivot_about_joint 結構軸)→ 幾何真值 + v1.3.0 validator_v1 雙真值", "L2",
+                "python3 tools/analyzer/validate_b3_pivot.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase B3(承 B1/B2):把 repo 的繞關節 pivot 變換引擎(tools/analyzer/pivot_rotation.py,"
+                     "Δ=(M−I)(O−P),rotate/scale/shear)抽成**可重用的 skill 結構軸入口** "
+                     "`skills/spine-ai-editor/assets/gen_lib/pivot_about_joint.py`(apply_pivot_about_joint / "
+                     "apply_pivot_about_joint_anim 公開 API),讓 limb 繞**關節 pivot**(S5 接觸縫推得)轉/縮/剪而非件中心,"
+                     "且**不動骨架結構**(與 build_spine --rig 搬骨的結構性解法互補)。入口過渡期 import repo tools/analyzer(G5 "
+                     "self-contained bundle 留 E1);輸出前跑 G1(strip_last_frame_curves,本軸皆密網格線性鍵故通常拔 0 條)。"
+                     "另補 references/structural_expansion.md SOP E(keyframe 級繞關節 pivot)。validate_b3_pivot.py 5AC PASS"
+                     "(真值=真實 Award 左手世界幾何 42 verts + infer_pivots 推得肩 pivot |O−P|=117px):"
+                     "B3-1 經公開 API 對 B2 generate_bigwin 產 cascade beat(include_scale)套關節軸→轉 5 bone 且 schema 合法(v0 0 error,非臨時腳本)/"
+                     "B3-2 crux 繞關節不動點殘差 0.0115px(AC1)+剛性等距 0.0115px(AC5)+件最遠點位移 94.33px(AC3,沒凍住)/"
+                     "B3-3 負對照繞件中心位移 48.83px 比值 4247×(AC2 閘非恆真)+θ=0 幀 Δ=0(AC4 identity)/"
+                     "B3-4 編輯器雙真值(G2):cascade include_scale(M=R·S)validator_v1 0 error+loop 閉合 0、wobble include_shear(一般仿射含 shear)0 error、bezier 緩動殘差 0.0596px(AC7)/"
+                     "B3-5 端到端經真實 build_animations Loop→skill 入口 finite/無縫/pivot 0.0003px+內建負對照未套用 9.75px(AC6);非恆真:注入末鍵 curve→validator_v1 抓到地雷 #12 AIOOBE,預設 apply_g1 輸出乾淨)。"
+                     "**關鍵發現:repo 7AC 只驗 runtime 幾何不動點;B3 把它移植到 skill 入口並**加上編輯器雙真值閘**——繞關節 pivot 的密網格 translate/scale/shear 輸出仍 editor 可匯入(R·S 與含 shear 一般仿射皆乾淨)**。"
+                     "honest:繞 pivot 是否貼手感的美術微調留使用者(A 類);單一 rig 真值;過渡期相依 repo tools(E1 bundle)。cap b3_pivot L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]
