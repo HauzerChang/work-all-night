@@ -12,8 +12,14 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,2026-10-14 run 005)。B 階段全部完成。下一個 run 做 Phase C(mesh/rig 併接)的 C1**
-> (mesh 生成 + 變形自交閘:`generate_mesh_v2` + `deform_eval` 併進結構軸;AC=對 robot/curtain 件生成 strip mesh、真實 deform si=0)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘,2026-10-15 run 006)。B 階段全部完成、C 階段開始。下一個 run 做 Phase C 的 C2**
+> (weighted mesh + rig 自動推斷:`generate_weighted_mesh` + `infer_pivots`/`infer_tree` 抽成 skill 入口;AC=合成肢體鏈 fixture 端到端通過,移植 repo 既有 5AC。⚠️ 真實多 rig 真值屬**使用者資源**(S5→L3 硬缺口),此 chunk 只搬可自主的合成驗收)。
+> **C1 做了什麼**:把 repo S3 strip 生成器(`generate_mesh_v2`)+ 真實位移場轉移自交閘(`deform_eval`)抽成 skill 入口
+> `skills/spine-ai-editor/assets/gen_lib/mesh.py`(`generate_mesh`/`mesh_from_region`/`real_deform_field_for`/`deform_si_check`/`mesh_schema_errors` + CLI)——v1.3.0 只檢查 mesh、不生成,C1 讓 skill 能**從一張件 PNG 自動生成 deformable mesh** 並自驗。
+> 閘 `tools/analyzer/validate_c1_mesh.py` **5 AC 全 PASS**(C1-1 公開 API 對 curtain(main_draw region)與 robot(robot_parts.psd 身體)件皆產 strip mesh 且 `mesh_schema_errors()`==[] / C1-2 main_draw 4 mesh strip 轉移**真實位移場** → **si=0 ∧ flip=0 ∧ degen=0** 全過=頭條 /
+> C1-3 同一真實場下 naive Delaunay 在 curtain_right(si=19)/shadow(si=64)**撕裂**、strip 全乾淨 → 證 strip 拓樸選型是 si=0 的原因(curtain_left 溫和處不鑑別,honest)/ C1-4 strip IoU(0.93~0.95)≥ 藝術家基準(0.47~0.92)+ 頂點 30 ≤ 預算 64 /
+> C1-5 `deform_si_check` 抓人工對角線自交 bowtie(si=1,零場即觸發)+ 抓 naive 真實 deform 撕裂(閘有牙)+ auto 選型資料驅動(高瘦窗簾→strip、軟邊光暈 blob→boundary-dense、方正 robot body aspect1.12<1.2→delaunay))。
+> **關鍵發現**:naive Delaunay 靜態 IoU 反而更高(curtain_left 0.98 vs strip 0.93)但真實 deform 下撕裂——「靜態像得好」≠「變形下不壞」,strip 直條拓樸(沿拉伸軸邊界取樣)才讓『真實 deform si=0』成立 → **生成器的拓樸選型是關鍵不是附帶**;這是 `s3-real-asset-finding.md` 結論在 2.0 入口層的實測復現(真實場非合成 stress field)。honest:mesh deform timeline 由動畫層負責、本模組只生 setup mesh 幾何(不涉 G1 末鍵 curve);robot 件無自身真實 deform 真值(真值僅 main_draw 4 mesh)。回歸 0 RED(新增 cap `c1_mesh` L2)。見 `knowledge/s2-v2-mesh-c1.md`。
 > **B4 做了什麼**:把 repo 跨 beat 序列組合(`compose_sequence`/`crossfade_sequence` + C1 判準)抽成 skill 入口
 > `skills/spine-ai-editor/assets/gen_lib/sequence.py`(`compose_bigwin_sequence`/`crossfade_bigwin_sequence`/`compose_idle_loop`/`build_beat_library`/`write_sequence` + CLI),
 > 在**序列層**機械化驗 G2 雙真值。閘 `tools/analyzer/validate_b4_sequence.py` **5 AC 全 PASS**(B4-1 公開 API 產單一 composed 序列動畫(schema 合法)/
@@ -38,6 +44,17 @@
 
 **專案三階段:第 2→3 階段(用工具鍛鍊四能力 → 整合成可交付 pipeline/skill)。**
 - 第 1 階段(可視化工具)已完成 → `spine_inspector.html`(含 `window.spineTool` API)。
+- **2.0 Phase C1 mesh 生成 + 變形自交閘入口:gen_lib.mesh(strip 生成 + 真實位移場轉移)→ robot/curtain 真實 deform si=0(里程碑,2026-10-15 run 006,開 C 階段)** —
+  承 B 階段(讓件動起來):C1 讓件能**變形**。v1.3.0 的 validator 只能**檢查**既有 mesh、不能生成;C1 把 repo S3 strip 生成器(`generate_mesh_v2`)+ 真實位移場轉移自交閘
+  (`deform_eval`)抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/mesh.py`(`generate_mesh`/`mesh_from_region`/`real_deform_field_for`/`deform_si_check`/`mesh_schema_errors` + CLI),
+  讓 skill 能**從一張件 PNG 自動生成 deformable mesh** 並用 main_draw 真實位移場自驗「變形下不撕裂」。閘 `tools/analyzer/validate_c1_mesh.py` **5 AC 全 PASS**:
+  **C1-1** 公開 API 對 curtain 件(main_draw region,auto→strip)與 robot 件(robot_parts.psd 身體,強制 strip)皆產 strip mesh 且 `mesh_schema_errors()`==[](Spine 3.8 unweighted:len(v)==len(uv)、hull 排前、三角索引在範圍、無孤兒頂點);
+  **C1-2 頭條** main_draw 4 mesh(curtain_left/right、shadow、shadow2)strip mesh(各 30 頂點/hull 22/36 三角)轉移**真實位移場** → **si=0 ∧ flip=0 ∧ degen=0**(clean)全過;
+  **C1-3 crux** 同一真實場下 naive Delaunay 在 curtain_right(si=19 flip=3)/shadow(si=64 flip=10)**撕裂**、strip 全乾淨 → 證 strip 拓樸選型是 si=0 的原因(curtain_left 變形溫和兩者皆乾淨,不鑑別,honest);
+  **C1-4** strip IoU(0.93/0.93/0.95/0.95)**≥ 藝術家 mesh 基準**(0.918/0.914/0.473/0.473)+ 頂點數 30 ≤ 預算 64(覆蓋保真 + 精簡可控);
+  **C1-5** `deform_si_check` 抓人工對角線自交 bowtie(si=1,零場即觸發)+ 抓 naive Delaunay 真實 deform 撕裂(閘有牙)+ auto 選型**資料驅動**(高瘦 row-convex 窗簾→`strip`、軟邊 blob 羽化=1.0 光暈→`boundary-dense-v1`、方正件 robot body aspect 1.12<1.2→`delaunay-v1`)。
+  **關鍵發現**:①naive Delaunay 靜態 IoU 反而更高(curtain_left 0.98 vs strip 0.93)但真實 deform 下撕裂——「靜態像得好」≠「變形下不壞」;strip 直條拓樸(沿拉伸軸的邊界取樣)才讓『真實 deform si=0』成立 → 生成器的**拓樸選型是關鍵不是附帶**;②這是 `s3-real-asset-finding.md`「散點靜態好但拉伸自交」結論在 2.0 入口層的實測復現(用真實場,非合成 stress field——後者 mag=315 面積比 2.0 會造假性失敗);③從「只能檢查」到「能生成且自驗」是 v1.3.0→2.0 的真升級。
+  **honest boundary**:mesh deform timeline 由動畫層負責、本模組只生 setup mesh 幾何(不涉 G1 末鍵 curve);robot 件無自身真實 deform 真值(其 si=0 以 strip schema + 轉移 main_draw 真實場驗,真實 deform 真值僅 main_draw 4 mesh);viewer/Cocos 實機載入=使用者端(用純 CPU 幾何真值替代);weighted mesh + rig 留 C2、統一閘 validator_v2 留 D1;過渡期 import repo tools/mesh_gen(E1 bundle);單一真值資產。回歸 **0 RED**(新增 cap `c1_mesh` L2 併入 `spine-anim-forge` 仍 HOLD)。見 `knowledge/s2-v2-mesh-c1.md`。
 - **2.0 Phase B1 橋接閘:repo cascade beat → v1.3.0 `validator_v1`(G1+G2 機械化)(里程碑,2026-10-12 run 002)** —
   排程主線(產出 spine-ai-editor 2.0)的 **B 階段前提 chunk**。問題:2.0 要併 repo 生成引擎進使用者既有 skill,但兩套閘驗的東西不同——
   **repo 69 閘只驗 runtime(spine-webgl)可載入**;v1.3.0 `validator_v1` 另驗 **editor 可匯入(末鍵 curve=地雷 #12 AIOOBE crash)+ loop 閉合 + stiffness**。

@@ -94,8 +94,19 @@
       見 `knowledge/s2-v2-sequence-b4.md`。
 
 ### Phase C — mesh / rig 併接
-- [ ] **C1 mesh 生成 + 變形自交閘**：`generate_mesh_v2` + `deform_eval` 併進結構軸
-      （v1.3.0 只檢查 mesh、不生成）。**AC**：對 robot/curtain 件生成 strip mesh，真實 deform si=0。
+- [x] **C1 mesh 生成 + 變形自交閘**（2026-10-15 run 006 ✅）：`generate_mesh_v2`（strip）+ `deform_eval`
+      （真實位移場轉移）抽成 skill 入口 `assets/gen_lib/mesh.py`（`generate_mesh`/`mesh_from_region`/
+      `real_deform_field_for`/`deform_si_check`/`mesh_schema_errors` + CLI）——v1.3.0 只檢查 mesh、不生成,
+      C1 讓 skill 能**從一張件 PNG 自動生成 deformable mesh** 並自驗。閘 `tools/analyzer/validate_c1_mesh.py`
+      **5 AC 全 PASS**：C1-1 公開 API 對 curtain 件(main_draw region)與 robot 件(robot_parts.psd)皆產
+      strip mesh 且 `mesh_schema_errors()`==[] / C1-2 main_draw 4 mesh strip 轉移**真實位移場** → **si=0 ∧ flip=0 ∧
+      degen=0**（頭條）/ C1-3 同一真實場下 naive Delaunay 在 curtain_right(si=19)/shadow(si=64)**撕裂**、
+      strip 全乾淨 → 證 strip 拓樸選型是 si=0 的原因（curtain_left 溫和處不鑑別,honest）/ C1-4 strip IoU
+      ≥ 藝術家基準 + 頂點 30 ≤ 預算 64 / C1-5 `deform_si_check` 抓人工自交 bowtie + 抓 naive 撕裂（閘有牙）+
+      auto 選型資料驅動（curtain→strip、軟邊光暈→boundary-dense、方正 robot body→delaunay）。**關鍵發現:
+      naive Delaunay 靜態 IoU 更高但真實 deform 下撕裂——strip 直條拓樸(沿拉伸軸邊界取樣)才讓 si=0 成立,
+      拓樸選型是關鍵不是附帶。** honest:mesh deform timeline 由動畫層負責(不涉 G1);robot 件無自身真實 deform
+      真值(真值僅 main_draw 4 mesh)。回歸 0 RED（新增 cap `c1_mesh` L2）。見 `knowledge/s2-v2-mesh-c1.md`。
 - [ ] **C2 weighted mesh + rig 自動推斷**：`generate_weighted_mesh` + `infer_pivots`/`infer_tree`。
       **AC**：合成肢體鏈 fixture 端到端通過（repo 既有 5AC 可移植）。
       ⚠️ 真實多 rig 真值仍屬**使用者資源**（S5→L3 硬缺口），此 chunk 只搬可自主的合成驗收。

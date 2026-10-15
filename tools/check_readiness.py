@@ -806,6 +806,20 @@ BLOCKS = [
                      "B4-5 write_sequence 寫檔→重讀 0 error + 注入接點末鍵 curve → validator_v1 抓到 editor-crash + 預設 G1 乾淨 + 破壞 Loop 閉合抓到開環(閘非恆真))。"
                      "**關鍵發現:compose 接點去重『丟前者尾幀、留後者首幀』結構上保證末鍵永遠乾淨(`_bez` 從不 curve 末鍵);crossfade 純線性重取樣亦然 → 地雷 #12 在此生成器家族天生不觸發,且 crossfade 反而降 stiffness(7×)**。"
                      "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);beat 排序 / 哪些接點該平滑 / xf 多長屬美術手感(A 類);過渡期 import repo tools/analyzer(E1 bundle);單一真值資產。cap b4_sequence L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("c1_mesh", "spine-ai-editor 2.0 C1 mesh 生成 + 變形自交閘入口:gen_lib.mesh(strip 生成 + 真實位移場轉移)→ robot/curtain 真實 deform si=0", "L2",
+                "python3 tools/analyzer/validate_c1_mesh.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase C1(承 B 階段,開 C 階段):B 讓件動起來(beat/繞關節/序列),C1 讓件能**變形**。"
+                     "把 repo S3 strip 生成器(`generate_mesh_v2`)+ 真實位移場轉移自交閘(`deform_eval`)抽成 skill 入口 "
+                     "`skills/spine-ai-editor/assets/gen_lib/mesh.py`(generate_mesh/mesh_from_region/real_deform_field_for/deform_si_check/mesh_schema_errors)。"
+                     "v1.3.0 的 validator 只能 *檢查* 既有 mesh、不能生成;C1 讓 skill 能**從一張件 PNG 自動生成 deformable mesh**,"
+                     "並用 main_draw 真實位移場證『自動生成的 mesh 在遊戲真實變形下不撕裂(si=0)』。validate_c1_mesh.py 5AC PASS"
+                     "(C1-1 公開 API 對 curtain 件(main_draw region)與 robot 件(robot_parts.psd 身體)皆產 strip mesh 且 mesh_schema_errors==[](Spine 3.8 unweighted:len(v)==len(uv)、hull 排前、三角索引在範圍、無孤兒)/"
+                     "C1-2 main_draw 4 mesh(curtain_left/right、shadow、shadow2)strip mesh 轉移真實位移場 → si=0 ∧ flip=0 ∧ degen=0 全過=頭條/"
+                     "C1-3 同一真實場下 naive Delaunay 在 curtain_right(si=19)/shadow(si=64)撕裂、strip 乾淨 → 證 strip 拓樸選型是『真實 deform si=0』的原因(curtain_left 溫和處兩者皆乾淨,不鑑別,honest)/"
+                     "C1-4 strip IoU ≥ 藝術家 mesh 基準(覆蓋保真)+ 頂點數 30 ≤ 預算 64(精簡可控)/"
+                     "C1-5 deform_si_check 抓人工自交 bowtie(si=1)+ 抓 naive Delaunay 真實 deform 撕裂(閘有牙)+ auto 選型資料驅動(curtain→strip、光暈軟邊 blob→boundary-dense、robot body aspect<1.2→delaunay))。"
+                     "**關鍵發現:naive Delaunay 靜態 IoU 高但真實 deform 下撕裂;strip 直條拓樸(沿拉伸軸的邊界取樣)才讓『真實 deform si=0』成立 → 生成器的拓樸選型是關鍵不是附帶**。"
+                     "honest:mesh deform timeline 由動畫層負責、本模組只生 setup mesh 幾何(不涉 G1 末鍵 curve);viewer/Cocos 實機載入=使用者端(排程 scope 邊界,用純 CPU 幾何真值替代);robot 件無自身真實 deform 場(其 si=0 以 strip schema + 轉移場驗,真實 deform 真值僅 main_draw);過渡期 import repo tools/mesh_gen(E1 bundle);weighted mesh + rig 留 C2。cap c1_mesh L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]
