@@ -94,8 +94,19 @@
       見 `knowledge/s2-v2-sequence-b4.md`。
 
 ### Phase C — mesh / rig 併接
-- [ ] **C1 mesh 生成 + 變形自交閘**：`generate_mesh_v2` + `deform_eval` 併進結構軸
-      （v1.3.0 只檢查 mesh、不生成）。**AC**：對 robot/curtain 件生成 strip mesh，真實 deform si=0。
+- [x] **C1 mesh 生成 + 變形自交閘**（2026-10-15 run 006 ✅）：`generate_mesh_v2`（strip/delaunay/boundary 自動選）
+      + `deform_eval`（**真實位移場自交閘**）抽成 skill 入口 `assets/gen_lib/mesh_gen.py`
+      （`generate_mesh`/`generate_and_gate`/`deform_gate`/`real_deform_field`/`crop_region`）。v1.3.0 **只檢查既有 mesh、不生成**；
+      C1 讓 2.0 能從一張件圖自動產可變形 mesh 並以真實最壞變形證不撕裂。閘 `tools/analyzer/validate_c1_mesh.py`
+      **5 AC 全 PASS**：C1-1 公開 API+真實 curtain_left 生成 `_mode=strip` mesh+Spine schema 合法/
+      **C1-2（核心）** main_draw **4 mesh**（curtain_left/right/shadow/shadow2）皆經入口自動生成 → 各件**自身真實
+      deform 最壞幀**（main_draw_close，max mag≈314.7px）位移場轉移後 **self_intersections=0/flips=0/degenerate=0**
+      （全 strip、nv=30）/C1-3 Award robot 件（身體/左手）auto 生成 schema 合法+setup 乾淨，**強制 strip 於緊湊身體
+      setup 不乾淨** → 證 auto 拓樸選擇**載重**（strip 非萬用）/C1-4 兩窗簾 IoU **0.9338/0.9335 ≥ 藝術家 baseline**/
+      C1-5 負對照 打亂場 si=18、放大×6 si=19 → 自交閘非恆真。**關鍵發現：「評估器就緒≠生成器就緒」在 mesh 層
+      的落點——deform_eval 早證藝術家 mesh 乾淨，但生成器自動產的 mesh 耐真實變形是另一回事，本閘補證；auto
+      拓樸選擇載重（強制 strip 於低長寬比件退化）。** 回歸 0 RED（新增 cap `c1_mesh` L2）。見 `knowledge/s2-v2-mesh-c1.md`。
+      honest：真實 deform 僅 main_draw 4 mesh 有（Award robot 無 deform timeline → 只驗生成+setup）。
 - [ ] **C2 weighted mesh + rig 自動推斷**：`generate_weighted_mesh` + `infer_pivots`/`infer_tree`。
       **AC**：合成肢體鏈 fixture 端到端通過（repo 既有 5AC 可移植）。
       ⚠️ 真實多 rig 真值仍屬**使用者資源**（S5→L3 硬缺口），此 chunk 只搬可自主的合成驗收。

@@ -806,6 +806,22 @@ BLOCKS = [
                      "B4-5 write_sequence 寫檔→重讀 0 error + 注入接點末鍵 curve → validator_v1 抓到 editor-crash + 預設 G1 乾淨 + 破壞 Loop 閉合抓到開環(閘非恆真))。"
                      "**關鍵發現:compose 接點去重『丟前者尾幀、留後者首幀』結構上保證末鍵永遠乾淨(`_bez` 從不 curve 末鍵);crossfade 純線性重取樣亦然 → 地雷 #12 在此生成器家族天生不觸發,且 crossfade 反而降 stiffness(7×)**。"
                      "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);beat 排序 / 哪些接點該平滑 / xf 多長屬美術手感(A 類);過渡期 import repo tools/analyzer(E1 bundle);單一真值資產。cap b4_sequence L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("c1_mesh", "spine-ai-editor 2.0 C1 mesh 生成入口:gen_lib.mesh_gen(generate_mesh_v2 strip + deform_eval 真實位移場自交閘)", "L2",
+                "python3 tools/analyzer/validate_c1_mesh.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase C(承 B1-B4,轉 mesh/rig 軸):把 repo 的 deform-aware mesh 生成(generate_mesh_v2 "
+                     "strip/delaunay/boundary)+ deform_eval 真實位移場自交閘抽成 skill 入口 "
+                     "`skills/spine-ai-editor/assets/gen_lib/mesh_gen.py`(generate_mesh/generate_and_gate/deform_gate/real_deform_field)。"
+                     "**v1.3.0 只檢查既有 mesh、不生成**;C1 讓 2.0 能從一張件圖自動產可變形 mesh 並以真實最壞變形證不撕裂。"
+                     "validate_c1_mesh.py 5AC PASS(C1-1 公開 API+真實 curtain_left region 生成 strip mesh+Spine mesh schema 合法/"
+                     "C1-2 main_draw 4 mesh(curtain_left/right/shadow/shadow2)皆經入口自動生成 → 各件自身真實 deform 最壞幀位移場轉移後 "
+                     "**self_intersections=0/flips=0/degenerate=0**(deform si=0 核心 AC)/"
+                     "C1-3 Award robot 件(身體/左手)auto 生成 schema 合法+setup 乾淨,且強制 strip 於緊湊身體 setup 不乾淨 → "
+                     "證 auto 拓樸選擇是**載重的**(strip 非萬用,窗簾才適用)/C1-4 兩窗簾生成 mesh IoU(0.9338/0.9335)≥ 藝術家 baseline/"
+                     "C1-5 負對照:真實場 baseline 乾淨、打亂位移場空間平滑 si=18、放大幅度×6 si=19 → 自交閘非恆真)。"
+                     "**關鍵發現:評估器就緒 ≠ 生成器就緒在 mesh 層的落點——deform_eval 早證藝術家 mesh 乾淨,但生成器自動產的 mesh "
+                     "耐真實變形是另一回事,本閘補證;且 auto 的拓樸選擇載重(強制 strip 於低長寬比件退化)**。"
+                     "honest:真實 deform 僅 main_draw 4 mesh 有(Award robot 無 deform timeline → 只驗生成+setup);件→拓樸模式"
+                     "選擇規則為幾何先驗;過渡期 import repo tools/mesh_gen(E1 bundle);單一真值資產。cap c1_mesh L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

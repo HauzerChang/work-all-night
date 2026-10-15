@@ -12,8 +12,13 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,2026-10-14 run 005)。B 階段全部完成。下一個 run 做 Phase C(mesh/rig 併接)的 C1**
-> (mesh 生成 + 變形自交閘:`generate_mesh_v2` + `deform_eval` 併進結構軸;AC=對 robot/curtain 件生成 strip mesh、真實 deform si=0)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,2026-10-14 run 005)、C1 ✅(mesh 生成+變形自交閘,2026-10-15 run 006)。B 階段全部完成、C 階段起步。下一個 run 做 Phase C 的 C2**
+> (weighted mesh + rig 自動推斷:`generate_weighted_mesh` + `infer_pivots`/`infer_tree` 抽成 skill 入口;AC=合成肢體鏈 fixture 端到端通過,repo 既有 `validate_rig_weighted_chain` 5AC 可移植;真實多 rig 真值屬使用者資源,C2 只搬可自主的合成驗收)。
+> **C1 做了什麼**:把 repo 的 deform-aware mesh 生成器(`generate_mesh_v2`:strip/delaunay/boundary 依件形狀自動選)+ 真實位移場自交閘(`deform_eval`)抽成 skill 入口
+> `skills/spine-ai-editor/assets/gen_lib/mesh_gen.py`(`generate_mesh`/`generate_and_gate`/`deform_gate`/`real_deform_field`/`crop_region`)。**v1.3.0 只檢查既有 mesh、不生成**;C1 讓 2.0 能從一張件圖自動產可變形 mesh
+> 並以真實最壞變形證不撕裂。閘 `tools/analyzer/validate_c1_mesh.py` **5 AC 全 PASS**(C1-1 公開 API+真實 curtain_left 生成 `_mode=strip` mesh+Spine schema 合法/**C1-2 核心** main_draw 4 mesh(curtain_left/right/shadow/shadow2)皆經入口自動生成 → 各件**自身真實 deform 最壞幀**(main_draw_close,max mag≈314.7px)位移場轉移後 **si=0/flips=0/degenerate=0**(全 strip、nv=30)/
+> C1-3 Award robot 件(身體/左手)auto 生成 schema 合法+setup 乾淨,強制 strip 於緊湊身體 setup 不乾淨 → 證 auto 拓樸選擇載重/C1-4 兩窗簾 IoU 0.9338/0.9335 ≥ 藝術家 baseline 0.9176/0.9140/C1-5 負對照 打亂場 si=18、放大×6 si=19 → 閘非恆真)。
+> **關鍵發現**:**「評估器就緒 ≠ 生成器就緒」在 mesh 層的落點**——`deform_eval` 早證藝術家 mesh 乾淨,但**生成器自動產**的 mesh 耐真實變形是另一回事,本閘補證;且 **auto 的拓樸選擇是載重的**(強制 strip 於低長寬比件會退化);真實位移場轉移(UV 基底 griddata)讓真實最壞變形可轉移到任一生成拓樸,比未校準 stress_field 可信。回歸 0 RED(新增 cap `c1_mesh` L2 併入 `spine-anim-forge` 仍 HOLD)。honest:真實 deform 僅 main_draw 4 mesh 有(Award robot 無 deform timeline → 只驗生成+setup)。見 `knowledge/s2-v2-mesh-c1.md`。
 > **B4 做了什麼**:把 repo 跨 beat 序列組合(`compose_sequence`/`crossfade_sequence` + C1 判準)抽成 skill 入口
 > `skills/spine-ai-editor/assets/gen_lib/sequence.py`(`compose_bigwin_sequence`/`crossfade_bigwin_sequence`/`compose_idle_loop`/`build_beat_library`/`write_sequence` + CLI),
 > 在**序列層**機械化驗 G2 雙真值。閘 `tools/analyzer/validate_b4_sequence.py` **5 AC 全 PASS**(B4-1 公開 API 產單一 composed 序列動畫(schema 合法)/
