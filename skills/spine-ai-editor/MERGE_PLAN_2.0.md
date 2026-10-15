@@ -94,8 +94,19 @@
       見 `knowledge/s2-v2-sequence-b4.md`。
 
 ### Phase C — mesh / rig 併接
-- [ ] **C1 mesh 生成 + 變形自交閘**：`generate_mesh_v2` + `deform_eval` 併進結構軸
-      （v1.3.0 只檢查 mesh、不生成）。**AC**：對 robot/curtain 件生成 strip mesh，真實 deform si=0。
+- [x] **C1 mesh 生成 + 變形自交閘**（2026-10-15 run 006 ✅）：`generate_mesh_v2` strip + `deform_eval`
+      真實位移場自交閘抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/mesh_forge.py`
+      （`generate_strip_mesh`/`scaffold_skeleton`/`install_mesh`/`deform_safety_check`），機械化驗 **mesh 軸雙真值 G2**
+      （真值 A 可載入：validator_v1 0 error；真值 B 變形安全：真實位移場轉移 si=0）。
+      閘 `tools/analyzer/validate_c1_mesh.py` **5 AC 全 PASS**：C1-1 生成 strip + evaluate_mesh 格式閘/
+      C1-2 真值 A（scaffold + 併進 2-bone 骨架 + 寫檔重讀皆 validator_v1 0 error）/
+      **C1-3 真值 B（headline）4 真實 deform 件（curtain_left/right/shadow/shadow2）真實位移場轉移 si=0/flips=0/degenerate=0**/
+      C1-4 robot 3 件 auto 正確回退非 strip + 靜態覆蓋率 IoU≥藝術家基準−0.03/
+      C1-5 負對照（tangle→抓自交 si=12、壞 slot→validator_v1 抓 unknown slot、越界三角→格式閘拒收）。
+      **關鍵發現：strip 是窗簾類 row-convex 件的 deform-aware 拓樸選擇（blobby 件 auto 正確回退=正確行為非 bug）；
+      變形自交真值只對有 deform timeline 的件適用，weighted 件以靜態覆蓋率驗 → 不同件類走不同真值組合；
+      mesh 軸雙真值與 animation 軸正交（空間 vs 時間），install_mesh 證兩軸可同一 skeleton 組合→為 D1 統一 validator_v2 鋪路。**
+      回歸 0 RED（新增 cap `c1_mesh` L2）。見 `knowledge/s2-v2-mesh-c1.md`。
 - [ ] **C2 weighted mesh + rig 自動推斷**：`generate_weighted_mesh` + `infer_pivots`/`infer_tree`。
       **AC**：合成肢體鏈 fixture 端到端通過（repo 既有 5AC 可移植）。
       ⚠️ 真實多 rig 真值仍屬**使用者資源**（S5→L3 硬缺口），此 chunk 只搬可自主的合成驗收。

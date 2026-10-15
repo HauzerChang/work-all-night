@@ -806,6 +806,19 @@ BLOCKS = [
                      "B4-5 write_sequence 寫檔→重讀 0 error + 注入接點末鍵 curve → validator_v1 抓到 editor-crash + 預設 G1 乾淨 + 破壞 Loop 閉合抓到開環(閘非恆真))。"
                      "**關鍵發現:compose 接點去重『丟前者尾幀、留後者首幀』結構上保證末鍵永遠乾淨(`_bez` 從不 curve 末鍵);crossfade 純線性重取樣亦然 → 地雷 #12 在此生成器家族天生不觸發,且 crossfade 反而降 stiffness(7×)**。"
                      "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);beat 排序 / 哪些接點該平滑 / xf 多長屬美術手感(A 類);過渡期 import repo tools/analyzer(E1 bundle);單一真值資產。cap b4_sequence L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("c1_mesh", "spine-ai-editor 2.0 C1 mesh 生成+變形自交閘入口(結構軸):mesh_forge(generate_mesh_v2 strip + 真實位移場 deform_eval)→ v1.3.0 validator_v1(mesh 軸雙真值)", "L2",
+                "python3 tools/analyzer/validate_c1_mesh.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase C1(承 B;開 Phase C 結構軸 mesh 面):把 repo deform-aware mesh 生成器(generate_mesh_v2 strip)"
+                     "+ 真實位移場轉移自交閘(deform_eval)抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/mesh_forge.py`"
+                     "(generate_strip_mesh/scaffold_skeleton/install_mesh/deform_safety_check),機械化驗 **mesh 軸雙真值 G2**。"
+                     "**使用者 validator_v1 只檢查 mesh schema、不生成、也不驗變形期拓樸(自交/翻面=撕裂,mesh 軸獨有真值)**。validate_c1_mesh.py 5AC PASS"
+                     "(C1-1 generate_strip_mesh 對真實窗簾產 strip + 過 evaluate_mesh 格式/拓樸閘(hull-first/三角索引/degenerate=0/orphans=0)/"
+                     "C1-2 真值A可載入:scaffold_skeleton(生成 mesh)→ 真正 validator_v1 0 error + 併進 2-bone 骨架(結構軸組合)0 error + 寫檔重讀 0 error/"
+                     "C1-3 真值B變形安全(headline):4 真實 deform 件(curtain_left/right/shadow/shadow2)各生成 strip → **真實位移場轉移** → si=0 且 flips=0 且 degenerate=0(area_ratio 0.99~1.15)/"
+                     "C1-4 robot 3 件(weighted 無 deform)→ auto 正確回退非 strip(光暈/身體 boundary-dense、左手 delaunay)→ 靜態覆蓋率 IoU≥藝術家基準−0.03 且拓樸合法/"
+                     "C1-5 負對照:tangle mesh → 真值B 抓自交(si=12 clean=False)+ 壞 slot 引用 → validator_v1 抓 'unknown slot' + 越界三角索引 → 格式閘拒收。證閘非恆真)。"
+                     "**關鍵發現:strip 是窗簾類 row-convex 件的 deform-aware 拓樸選擇(耐拉伸),blobby/軟邊件(機器人)auto 正確回退非 strip=正確生成行為,非 bug;變形自交真值只對有 deform timeline 的件適用(weighted 靠骨綁變形的件以靜態覆蓋率驗)**。"
+                     "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);⚠️ 變形閘用真實位移場轉移(非未校準 stress_field);過渡期 import repo tools/mesh_gen(E1 bundle);單一真值資產。cap c1_mesh L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

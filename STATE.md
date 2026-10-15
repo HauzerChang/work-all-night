@@ -12,8 +12,17 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,2026-10-14 run 005)。B 階段全部完成。下一個 run 做 Phase C(mesh/rig 併接)的 C1**
-> (mesh 生成 + 變形自交閘:`generate_mesh_v2` + `deform_eval` 併進結構軸;AC=對 robot/curtain 件生成 strip mesh、真實 deform si=0)。
+> **進度:Phase A ✅(地基)、B1–B4 ✅(動畫軸:橋接/單 beat/繞關節 pivot/序列,run 002–005)、C1 ✅(mesh 生成+變形自交閘/結構軸 mesh 面,2026-10-15 run 006)。下一個 run 做 Phase C 的 C2**
+> (weighted mesh + rig 自動推斷:`generate_weighted_mesh` + `infer_pivots`/`infer_tree` 併進結構軸;AC=合成肢體鏈 fixture 端到端通過,repo 既有 5AC 可移植。⚠️ 真實多 rig 真值屬使用者資源/S5→L3 硬缺口,此 chunk 只搬可自主的合成驗收)。
+> **C1 做了什麼**:把 repo deform-aware mesh 生成器(`generate_mesh_v2` strip)+ 真實位移場轉移自交閘(`deform_eval`)抽成 skill 入口
+> `skills/spine-ai-editor/assets/gen_lib/mesh_forge.py`(`generate_strip_mesh`/`scaffold_skeleton`/`install_mesh`/`deform_safety_check` + CLI),
+> 機械化驗 **mesh 軸雙真值 G2**(**使用者 validator_v1 對 mesh 只檢查 schema、不生成、也不驗變形期拓樸**=mesh 軸獨有真值)。閘 `tools/analyzer/validate_c1_mesh.py` **5 AC 全 PASS**
+> (C1-1 generate_strip_mesh 對真實 curtain_left 產 strip(30 頂點/hull 22/36 三角)過 evaluate_mesh 格式閘/
+> C1-2 真值 A 可載入:scaffold(生成 mesh)→ 真正 validator_v1 **0 error** + 併進 2-bone 骨架(mesh 掛 arm bone)0 error(結構軸組合)+ 寫檔重讀 0 error/
+> **C1-3 真值 B 變形安全(headline):4 真實 deform 件(curtain_left/right/shadow/shadow2)各生成 strip → 真實位移場轉移 → si=0 且 flips=0 且 degenerate=0(area_ratio 0.99~1.153)**/
+> C1-4 robot 3 件(weighted 無 deform)→ auto **正確回退非 strip**(光暈/身體 boundary-dense、左手 delaunay)→ 靜態覆蓋率 IoU 0.9602~0.9926 ≥ 藝術家基準−0.03 且拓樸合法/
+> C1-5 負對照:tangle mesh → 真值 B 抓自交(si=12 clean=False)+ 壞 slot 引用 → validator_v1 抓 'unknown slot' + 越界三角索引 → 格式閘拒收(閘非恆真))。
+> **關鍵發現**:①**strip 不是「所有件都該 strip」,是窗簾類 row-convex 件的 deform-aware 拓樸選擇**(順拉伸軸掃描線格點→大單向拉伸 si=0);blobby/軟邊件 auto **正確回退非 strip = 正確生成行為非 bug**;②**變形自交真值只對有 deform timeline 的件適用**(窗簾 unweighted 逐頂點 deform),weighted 靠骨綁變形的件(機器人)以靜態覆蓋率驗 → 不同件類走不同真值組合;③**mesh 軸雙真值與 animation 軸正交**(空間維 vs 時間維),install_mesh 證兩軸可同一 skeleton 組合→為 Phase D 統一 validator_v2 鋪路。⚠️ 變形閘**用真實位移場轉移,不用未校準 stress_field**。回歸 0 RED(新增 cap `c1_mesh` L2)。見 `knowledge/s2-v2-mesh-c1.md`。
 > **B4 做了什麼**:把 repo 跨 beat 序列組合(`compose_sequence`/`crossfade_sequence` + C1 判準)抽成 skill 入口
 > `skills/spine-ai-editor/assets/gen_lib/sequence.py`(`compose_bigwin_sequence`/`crossfade_bigwin_sequence`/`compose_idle_loop`/`build_beat_library`/`write_sequence` + CLI),
 > 在**序列層**機械化驗 G2 雙真值。閘 `tools/analyzer/validate_b4_sequence.py` **5 AC 全 PASS**(B4-1 公開 API 產單一 composed 序列動畫(schema 合法)/
