@@ -806,6 +806,21 @@ BLOCKS = [
                      "B4-5 write_sequence 寫檔→重讀 0 error + 注入接點末鍵 curve → validator_v1 抓到 editor-crash + 預設 G1 乾淨 + 破壞 Loop 閉合抓到開環(閘非恆真))。"
                      "**關鍵發現:compose 接點去重『丟前者尾幀、留後者首幀』結構上保證末鍵永遠乾淨(`_bez` 從不 curve 末鍵);crossfade 純線性重取樣亦然 → 地雷 #12 在此生成器家族天生不觸發,且 crossfade 反而降 stiffness(7×)**。"
                      "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);beat 排序 / 哪些接點該平滑 / xf 多長屬美術手感(A 類);過渡期 import repo tools/analyzer(E1 bundle);單一真值資產。cap b4_sequence L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("c1_mesh", "spine-ai-editor 2.0 C1 mesh 生成+變形自交閘入口:mesh_forge(strip 生成)→ 真實位移場轉移閘(robot/curtain→si=0)", "L2",
+                "python3 tools/analyzer/validate_c1_mesh.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase C1(mesh/rig 併接第一塊):把 repo 確定性 strip mesh 生成(generate_mesh_v2)"
+                     "+ 真實位移場轉移閘(deform_eval.transfer_deform_check)抽成 skill 入口 "
+                     "`skills/spine-ai-editor/assets/gen_lib/mesh_forge.py`(generate_strip_mesh/load_real_deform_field/deform_safety_check/forge_and_gate)。"
+                     "v1.3.0 只檢查既有 mesh、不生成、無變形撕裂閘。validate_c1_mesh.py 5AC PASS"
+                     "(C1-1 公開 API 對真實 curtain_left 產 strip mesh:mode=strip/unweighted/hull-first/winding 一致/0 退化/頂點預算內/"
+                     "C1-2 真實 curtain_left+curtain_right 各 strip → 自身真實 deform 場 → si=0 且 IoU≥藝術家基準(乾淨非空殼)=headline/"
+                     "C1-3 真實 robot 身體 auto→回退 Delaunay(blob 不硬塞 strip,正確路由)+ 合成肢體→strip,同一真實窗簾場轉移 → 皆 si=0/"
+                     "C1-4 benchmark_real 對 4 片真實藝術家 mesh × 9 動畫 worst si/flips/degen=0(閘與真值一致,有校準)/"
+                     "C1-5 三種拓樸破壞(換hull→si、折疊→flips相對原winding、塌陷→degen)各由對應通道抓到(閘非恆真))。"
+                     "**關鍵發現:放大合成場破不破取決於件幾何(細長肢體 ×8 真實場仍 clean、較寬窗簾 ×8 已撕裂)→ 放大場非可靠閘-有牙示範子"
+                     "(呼應 deform_eval 警告別拿未校準 stress_field 當閘),牙須靠拓樸破壞 + 真實場轉移驗**。"
+                     "honest:生成的是 unweighted mesh(weighted+rig 推斷=C2);Cocos/viewer 實機=使用者端;過渡期 import repo tools/mesh_gen(E1 bundle);"
+                     "真實 deform 真值只有 main_draw 窗簾(robot 用其 UV 可轉移場驗)。cap c1_mesh L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

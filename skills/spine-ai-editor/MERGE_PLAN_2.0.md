@@ -94,8 +94,18 @@
       見 `knowledge/s2-v2-sequence-b4.md`。
 
 ### Phase C — mesh / rig 併接
-- [ ] **C1 mesh 生成 + 變形自交閘**：`generate_mesh_v2` + `deform_eval` 併進結構軸
-      （v1.3.0 只檢查 mesh、不生成）。**AC**：對 robot/curtain 件生成 strip mesh，真實 deform si=0。
+- [x] **C1 mesh 生成 + 變形自交閘**（2026-10-15 run 006 ✅）：`generate_mesh_v2`（strip 生成）+ `deform_eval`
+      （真實位移場轉移閘）抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/mesh_forge.py`
+      （`generate_strip_mesh`/`load_real_deform_field`/`deform_safety_check`/`forge_and_gate` + CLI）。v1.3.0 只檢查
+      既有 mesh、不生成、無變形撕裂閘。閘 `tools/analyzer/validate_c1_mesh.py` **5 AC 全 PASS**：C1-1 公開 API 對真實
+      curtain_left 產 strip（mode=strip/30 頂點/unweighted/hull-first/winding 一致/0 退化）/C1-2 真實
+      curtain_left+curtain_right 各 strip → 自身真實 deform 場 → **si=0 且 IoU 0.934≥藝術家 0.918/0.914**
+      （乾淨非空殼）=headline/C1-3 真實 robot 身體 auto→回退 Delaunay（blob 不硬塞 strip）+ 合成肢體→strip,
+      同一真實窗簾場（UV 可轉移）皆 si=0/C1-4 `benchmark_real` 4 片真實藝術家 mesh×9 動畫 worst si/flips/degen=0
+      （閘有校準）/C1-5 三種拓樸破壞（換 hull→si105、折疊→flips16（相對原 winding）、塌陷→degen1）各由對應通道抓到
+      （閘非恆真）。**關鍵發現：放大合成場破不破取決於件幾何（細長肢體 ×8 真實場仍 clean、較寬窗簾 ×8 已撕裂）→
+      放大場非可靠的閘-有牙示範子（呼應 deform_eval 警告別拿未校準 stress_field 當閘），牙須靠拓樸破壞 + 真實場轉移;
+      triangle_flips 須相對原 mesh winding 量。** 回歸 0 RED（新增 cap `c1_mesh` L2）。見 `knowledge/s3-v2-mesh-forge-c1.md`。
 - [ ] **C2 weighted mesh + rig 自動推斷**：`generate_weighted_mesh` + `infer_pivots`/`infer_tree`。
       **AC**：合成肢體鏈 fixture 端到端通過（repo 既有 5AC 可移植）。
       ⚠️ 真實多 rig 真值仍屬**使用者資源**（S5→L3 硬缺口），此 chunk 只搬可自主的合成驗收。

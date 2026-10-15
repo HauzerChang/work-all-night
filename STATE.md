@@ -12,8 +12,16 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,2026-10-14 run 005)。B 階段全部完成。下一個 run 做 Phase C(mesh/rig 併接)的 C1**
-> (mesh 生成 + 變形自交閘:`generate_mesh_v2` + `deform_eval` 併進結構軸;AC=對 robot/curtain 件生成 strip mesh、真實 deform si=0)。
+> **進度:Phase A ✅(地基)、B1–B4 ✅(生成庫併接,run 002–005)、C1 ✅(mesh 生成+變形自交閘,2026-10-15 run 006)。下一個 run 做 Phase C 的 C2**
+> (weighted mesh + rig 自動推斷:`generate_weighted_mesh` + `infer_pivots`/`infer_tree` 併進結構軸;AC=合成肢體鏈 fixture 端到端通過,repo 既有 5AC 可移植;⚠️ 真實多 rig 真值屬使用者資源=S5→L3 硬缺口,此 chunk 只搬可自主的合成驗收)。
+> **C1 做了什麼**:把 repo 確定性 **strip mesh 生成**(`generate_mesh_v2`)+ **真實位移場轉移閘**(`deform_eval.transfer_deform_check`)抽成 skill 入口
+> `skills/spine-ai-editor/assets/gen_lib/mesh_forge.py`(`generate_strip_mesh`/`load_real_deform_field`/`deform_safety_check`/`forge_and_gate` + CLI)。v1.3.0 只檢查既有 mesh、不生成、無變形撕裂閘。
+> 閘 `tools/analyzer/validate_c1_mesh.py` **5 AC 全 PASS**(C1-1 公開 API 對真實 curtain_left 產 strip:mode=strip/30頂點(hull22)/unweighted/hull-first/winding一致/0退化/頂點預算內/
+> C1-2 真實 curtain_left+curtain_right 各 strip → 自身真實 deform 場(main_draw_close,area_ratio~1.14)→ **si=0 且 IoU 0.934≥藝術家 0.918/0.914**(乾淨非空殼)=**headline**/
+> C1-3 真實 robot 身體(blob aspect1.12)auto→**回退 Delaunay**(60頂點,不硬塞 strip=正確路由)+ 合成肢體(tall)→**strip**,同一真實窗簾場轉移(UV 可轉移)皆 **si=0**/
+> C1-4 `benchmark_real` 對 **4 片真實藝術家 mesh×9 動畫** worst si/flips/degen=0(`_checker_validated`=True,閘有校準)/
+> C1-5 三種拓樸破壞各由對應通道抓到:換 hull→**si=105**、折疊(相對原 winding)→**flips=16**、塌陷→**degen=1**(閘非恆真))。
+> **關鍵發現**:①**放大合成場破不破取決於件幾何**——細長肢體 ×8 真實場(area_ratio 42.5)仍 clean、較寬窗簾 ×8(6.6)已撕裂 → **放大場不是可靠的閘-有牙示範子**(細長件會假性過關;呼應 `deform_eval` 警告「別拿未校準 stress_field 當閘」的另一面:不只放大會假性失敗,放大不破也會假性通過),牙須靠**拓樸破壞 + 真實場轉移**;②**triangle_flips 須相對「原 mesh」winding 量**(以破壞後 mesh 自身為基準 flip 恆 0→折疊負對照會假性過關),與產線閘 `transfer_deform_check`(未變形為基準檢變形後)同語義。踩雷:validator 的 `_REPO` 路徑上溯層數要到 repo 根(tools/analyzer 上溯 2 層)。回歸 0 RED(新增 cap `c1_mesh` L2)。見 `knowledge/s3-v2-mesh-forge-c1.md`。
 > **B4 做了什麼**:把 repo 跨 beat 序列組合(`compose_sequence`/`crossfade_sequence` + C1 判準)抽成 skill 入口
 > `skills/spine-ai-editor/assets/gen_lib/sequence.py`(`compose_bigwin_sequence`/`crossfade_bigwin_sequence`/`compose_idle_loop`/`build_beat_library`/`write_sequence` + CLI),
 > 在**序列層**機械化驗 G2 雙真值。閘 `tools/analyzer/validate_b4_sequence.py` **5 AC 全 PASS**(B4-1 公開 API 產單一 composed 序列動畫(schema 合法)/
