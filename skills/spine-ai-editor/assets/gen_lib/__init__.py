@@ -6,8 +6,10 @@
   from gen_lib.pivot_axis import apply_joint_pivots, bone_origins_from_skel   # B3 繞關節 pivot 變換(結構軸)
   from gen_lib.sequence import (compose_bigwin_sequence, crossfade_bigwin_sequence,   # B4 序列組合
                                 compose_idle_loop, build_beat_library, write_sequence)
+  from gen_lib.mesh import (generate_part_mesh, deform_si_gate,                        # C1 mesh 生成 + 變形自交閘(結構軸)
+                            generate_and_gate_part)
 
-過渡期(B2/B3/B4)import repo 的 tools/analyzer;E1 會 self-contained bundle。見各 .py docstring。
+過渡期(B2/B3/B4)import repo 的 tools/analyzer、(C1)tools/mesh_gen;E1 會 self-contained bundle。見各 .py docstring。
 """
 from .make_beat import (  # noqa: F401
     generate_bigwin, write_bigwin, generate_idle, parts_from_psd,
@@ -19,4 +21,8 @@ from .pivot_axis import (  # noqa: F401
 from .sequence import (  # noqa: F401
     compose_bigwin_sequence, crossfade_bigwin_sequence, compose_idle_loop,
     build_beat_library, seal_sequence, write_sequence, STANDARD_BIGWIN_ORDER,
+)
+from .mesh import (  # noqa: F401
+    generate_part_mesh, deform_si_gate, generate_and_gate_part,
+    mesh_is_schema_valid, has_real_deform, CURTAIN_DEMO_PARTS, ROBOT_DEMO_PARTS,
 )

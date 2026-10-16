@@ -12,8 +12,24 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,2026-10-14 run 005)。B 階段全部完成。下一個 run 做 Phase C(mesh/rig 併接)的 C1**
-> (mesh 生成 + 變形自交閘:`generate_mesh_v2` + `deform_eval` 併進結構軸;AC=對 robot/curtain 件生成 strip mesh、真實 deform si=0)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)。下一個 run 做 Phase C 的 C2**
+> (weighted mesh + rig 自動推斷:`generate_weighted_mesh` + `infer_pivots`/`infer_tree` 抽成 skill 入口;
+> AC=合成肢體鏈 fixture 端到端通過,移植 repo 既有 5AC。⚠️ 真實多 rig 真值屬**使用者資源**(S5→L3 硬缺口),此 chunk 只搬可自主的合成驗收)。
+> **C1 做了什麼**:把 repo 的 **mesh 生成引擎**(`generate_mesh_v2` strip/delaunay/boundary-dense)+ **變形自交評估器**
+> (`deform_eval` 真實位移場轉移,**非** stress_field)抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/mesh.py`
+> (`generate_part_mesh`/`deform_si_gate`/`generate_and_gate_part`),成為**結構軸的 mesh 分支**——v1.3.0 只能**檢查**既有 mesh,
+> C1 讓 2.0 能**生成**耐變形 mesh 並自驗(解「件沒有 mesh、只能整塊剛體位移、無法彎折/飄動」的 structural 限制)。閘
+> `tools/analyzer/validate_c1_mesh.py` **5 AC 全 PASS**:C1-1 公開 API 對窗簾件產 **strip** mesh(schema 合法、unweighted
+> len(vertices)==len(uvs)、hull∈(0,nv]、30 頂點 hull 22)+ 機器人件合法 mesh/**C1-2 headline**:curtain_left 與 curtain_right 生成
+> strip mesh 套**真實動畫 deform 位移場**(總位移最大幀 main_draw_close)→ **si==0 / flips==0 / degen==0**(clean)、area_ratio ~1.14
+> (= AC「真實 deform si=0」,遊戲拉扯下不撕裂)/C1-3 2 窗簾 + 3 機器人件生成 mesh 覆蓋率 IoU ≥ 藝術家基準−0.03(窗簾 0.933>0.914、機器人 0.96~0.99)/
+> C1-4 閘真值校準:repo `benchmark_real(main_draw)` 真實 4 美術 mesh×9 動畫逐幀 worst si/flips/degen 全 0(_checker_validated)→ 生成 mesh
+> 過閘**與真值一致**(非假性過)+ 機器人件(weighted 無 deform timeline)→ has_real_deform=False 退回 setup 靜態拓樸檢查/
+> C1-5 閘非恆真:生成 mesh 對調兩非相鄰 hull 頂點造 tangle → 窗簾經真實 deform 閘 si=44、機器人經靜態拓樸閘 si=53 皆抓到(clean=False)。
+> **關鍵發現**:①**「真實 deform si=0」是拓樸選擇問題**——strip(邊界點順拉伸軸)天生耐窗簾的單向拉伸(area_ratio 1.14 下仍 si=0),
+> Delaunay 散點在大單向拉伸下會自交(見 `s3-real-asset-finding`);mesh 生成器的價值不在覆蓋率高(Delaunay 也高)而在**變形下拓樸穩**;
+> ②**weighted 件**(靠骨骼變形、無逐頂點 deform)真實位移場轉移不適用 → 閘自動退回 setup 靜態拓樸檢查,仍有牙;③生成 mesh 為 **unweighted**
+> → 可直接 reshape 驗拓樸,與美術 weighted mesh 互補(形狀生成 vs weight 由 C2 BBW 補)。回歸 **0 RED**(新增 cap `c1_mesh` L2)。見 `knowledge/s2-v2-mesh-c1.md`。
 > **B4 做了什麼**:把 repo 跨 beat 序列組合(`compose_sequence`/`crossfade_sequence` + C1 判準)抽成 skill 入口
 > `skills/spine-ai-editor/assets/gen_lib/sequence.py`(`compose_bigwin_sequence`/`crossfade_bigwin_sequence`/`compose_idle_loop`/`build_beat_library`/`write_sequence` + CLI),
 > 在**序列層**機械化驗 G2 雙真值。閘 `tools/analyzer/validate_b4_sequence.py` **5 AC 全 PASS**(B4-1 公開 API 產單一 composed 序列動畫(schema 合法)/

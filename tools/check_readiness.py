@@ -806,6 +806,20 @@ BLOCKS = [
                      "B4-5 write_sequence 寫檔→重讀 0 error + 注入接點末鍵 curve → validator_v1 抓到 editor-crash + 預設 G1 乾淨 + 破壞 Loop 閉合抓到開環(閘非恆真))。"
                      "**關鍵發現:compose 接點去重『丟前者尾幀、留後者首幀』結構上保證末鍵永遠乾淨(`_bez` 從不 curve 末鍵);crossfade 純線性重取樣亦然 → 地雷 #12 在此生成器家族天生不觸發,且 crossfade 反而降 stiffness(7×)**。"
                      "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用 validator_v1 無頭等價);beat 排序 / 哪些接點該平滑 / xf 多長屬美術手感(A 類);過渡期 import repo tools/analyzer(E1 bundle);單一真值資產。cap b4_sequence L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("c1_mesh", "spine-ai-editor 2.0 C1 mesh 生成 + 變形自交閘入口(結構軸的 mesh 分支):gen_lib.mesh → 真實 deform si=0 + IoU", "L2",
+                "python3 tools/analyzer/validate_c1_mesh.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase C1(承 B1..B4):把 repo 的 **mesh 生成引擎**(generate_mesh_v2 strip/delaunay/boundary-dense)"
+                     "+ **變形自交評估器**(deform_eval 真實位移場轉移,**非** stress_field)抽成 skill 入口 "
+                     "`skills/spine-ai-editor/assets/gen_lib/mesh.py`(generate_part_mesh/deform_si_gate/generate_and_gate_part),"
+                     "成為**結構軸的 mesh 分支**——v1.3.0 只能**檢查**既有 mesh,C1 讓 2.0 能**生成**耐變形 mesh 並自驗"
+                     "(解『件沒有 mesh、只能整塊剛體位移』的 structural 限制)。validate_c1_mesh.py 5AC PASS"
+                     "(C1-1 公開 API 對窗簾件產 strip mesh(schema 合法、unweighted len(vertices)==len(uvs)、hull∈(0,nv])、對機器人件產合法 mesh)/"
+                     "C1-2 **headline**:curtain_left 與 curtain_right 生成 strip mesh 套**真實動畫 deform 位移場**(總位移最大幀 main_draw_close)→ **si==0 / flips==0 / degen==0**(clean),area_ratio ~1.14(= AC『真實 deform si=0』,遊戲拉扯下不撕裂)/"
+                     "C1-3 2 窗簾 + 3 機器人件生成 mesh 覆蓋率 IoU ≥ 藝術家基準−0.03(窗簾 0.933>0.914、機器人 0.96~0.99)/"
+                     "C1-4 閘真值校準:repo benchmark_real(main_draw) 真實 4 美術 mesh×9 動畫逐幀 worst si/flips/degen 全 0(_checker_validated)→ 生成 mesh 過閘與真值一致(非假性過)+ 機器人件(weighted 無 deform)→ has_real_deform=False 退回靜態拓樸檢查/"
+                     "C1-5 閘非恆真:生成 mesh 對調兩非相鄰 hull 頂點造 tangle → 窗簾經真實 deform 閘 si=44、機器人經靜態拓樸閘 si=53 皆抓到(clean=False))。"
+                     "**關鍵發現:①『真實 deform si=0』是**拓樸選擇**問題——strip(邊界點順拉伸軸)天生耐窗簾的單向拉伸(area_ratio 1.14 下仍 si=0),Delaunay 散點在大單向拉伸下會自交(見 s3-real-asset-finding);②weighted 件(靠骨骼變形、無逐頂點 deform)真實位移場轉移不適用 → 閘自動退回 setup 靜態拓樸檢查,仍有牙;③生成 mesh 為 unweighted → 可直接 reshape 驗拓樸,與美術 weighted mesh 互補。**"
+                     "honest:Cocos/viewer 實機載入與 PMA 視覺=使用者端(排程 scope 邊界,用真實 deform 幾何量化等價);weighted mesh 生成(BBW)仍 HOLD(C2);真實多 rig 真值屬使用者資源;過渡期 import repo tools/mesh_gen(E1 bundle);單一真值資產(main_draw 4 mesh + Award 3 件)。cap c1_mesh L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

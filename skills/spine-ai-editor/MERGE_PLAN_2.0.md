@@ -94,8 +94,16 @@
       見 `knowledge/s2-v2-sequence-b4.md`。
 
 ### Phase C — mesh / rig 併接
-- [ ] **C1 mesh 生成 + 變形自交閘**：`generate_mesh_v2` + `deform_eval` 併進結構軸
-      （v1.3.0 只檢查 mesh、不生成）。**AC**：對 robot/curtain 件生成 strip mesh，真實 deform si=0。
+- [x] **C1 mesh 生成 + 變形自交閘**（2026-10-16 run 006 ✅）：`generate_mesh_v2` + `deform_eval` 併進**結構軸的 mesh 分支**
+      （v1.3.0 只**檢查** mesh、不**生成**）。抽成 skill 入口 `assets/gen_lib/mesh.py`
+      （`generate_part_mesh`/`deform_si_gate`/`generate_and_gate_part`）。閘 `tools/analyzer/validate_c1_mesh.py`
+      **5 AC 全 PASS**：C1-1 公開 API 對窗簾件產 **strip** mesh（schema 合法、unweighted、hull∈(0,nv]）+ 機器人件合法 mesh/
+      **C1-2 headline**：curtain_left 與 curtain_right 生成 strip mesh 套**真實 deform 位移場**（最大幀 main_draw_close）
+      → **si==0 / flips==0 / degen==0**（= AC「真實 deform si=0」，area_ratio ~1.14）/C1-3 2 窗簾 + 3 機器人件 IoU ≥ 藝術家基準−0.03/
+      C1-4 閘真值校準（repo `benchmark_real` 真實 4 mesh×9 動畫 worst 全 0 → 過閘與真值一致）+ weighted 件退回靜態拓樸檢查/
+      C1-5 閘非恆真（生成 mesh 對調兩非相鄰 hull 頂點造 tangle → 窗簾真實閘 si=44、機器人靜態閘 si=53 皆抓到）。
+      **關鍵發現：「真實 deform si=0」是拓樸選擇問題——strip（邊界點順拉伸軸）天生耐單向拉伸，Delaunay 散點會自交；
+      weighted 件真實場不適用 → 退回靜態拓樸檢查仍有牙。** 回歸 0 RED（新增 cap `c1_mesh` L2）。見 `knowledge/s2-v2-mesh-c1.md`。
 - [ ] **C2 weighted mesh + rig 自動推斷**：`generate_weighted_mesh` + `infer_pivots`/`infer_tree`。
       **AC**：合成肢體鏈 fixture 端到端通過（repo 既有 5AC 可移植）。
       ⚠️ 真實多 rig 真值仍屬**使用者資源**（S5→L3 硬缺口），此 chunk 只搬可自主的合成驗收。

@@ -1,7 +1,18 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-14 run 001(2.0 Phase B3 繞關節 pivot 變換 / 結構軸 —— `pivot_axis` → 幾何真值 + v1.3.0 `validator_v1` 雙真值)。
+> **最新:2026-10-16 run 006(2.0 Phase C1 mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支 —— `gen_lib.mesh` → 真實 deform si=0 + IoU)。
+> 74 閘全綠(72 + B4 `b4_sequence` + C1 `c1_mesh`,0 RED,無 GREEN→RED)。** 把 repo 的 **mesh 生成引擎**
+> (`generate_mesh_v2` strip/delaunay/boundary-dense)+ **變形自交評估器**(`deform_eval` 真實位移場轉移,**非** stress_field)
+> 抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/mesh.py`(`generate_part_mesh`/`deform_si_gate`/`generate_and_gate_part`)——
+> v1.3.0 只能**檢查**既有 mesh,C1 讓 2.0 能**生成**耐變形 mesh 並自驗(解「件沒有 mesh、只能整塊剛體位移」的 structural 限制)。
+> `validate_c1_mesh.py` 5AC PASS:C1-1 公開 API 對窗簾件產 strip mesh(schema 合法、unweighted、hull∈(0,nv])+ 機器人件合法 mesh/
+> **C1-2 headline** curtain_left/right 生成 strip mesh 套**真實 deform 位移場**(最大幀 main_draw_close)→ **si==0/flips==0/degen==0**(area_ratio ~1.14)/
+> C1-3 2 窗簾 + 3 機器人件 IoU ≥ 藝術家基準−0.03(窗簾 0.933>0.914、機器人 0.96~0.99)/C1-4 閘真值校準(repo `benchmark_real` 真實 4 mesh×9 動畫 worst 全 0 → 過閘與真值一致)+ weighted 件退回靜態拓樸檢查/
+> C1-5 閘非恆真(生成 mesh 對調兩非相鄰 hull 頂點造 tangle → 窗簾真實閘 si=44、機器人靜態閘 si=53 皆抓到)。
+> **關鍵發現:「真實 deform si=0」是拓樸選擇問題——strip 邊界點順拉伸軸天生耐單向拉伸,Delaunay 散點會自交;weighted 件真實場不適用 → 退回靜態拓樸檢查仍有牙。**
+> Cocos/viewer 實機=使用者端(scope 邊界);weighted mesh 生成(BBW)= C2 仍 HOLD;過渡期 import repo tools/mesh_gen(E1 bundle)。cap `c1_mesh` L2 pipeline 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s2-v2-mesh-c1.md`。
+> ──(前)2026-10-14 run 001(2.0 Phase B3 繞關節 pivot 變換 / 結構軸 —— `pivot_axis` → 幾何真值 + v1.3.0 `validator_v1` 雙真值)。
 > 72 閘全綠(71 + 新 `b3_pivot`,0 RED,無 GREEN→RED)。** 把 repo `pivot_rotation.py`(`Δ=(M−I)(O−P)`,繞任意點旋轉/縮放/剪切的
 > 確定性分解)抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/pivot_axis.py`(`apply_joint_pivots`/`bone_origins_from_skel`)——
 > **不動骨架結構**,只在既有動畫上疊補償 translate,使件繞**關節 pivot**(肩/頸)轉。補 `references/structural_expansion.md` **SOP E**
