@@ -104,9 +104,21 @@
       C1-5 閘非恆真（生成 mesh 對調兩非相鄰 hull 頂點造 tangle → 窗簾真實閘 si=44、機器人靜態閘 si=53 皆抓到）。
       **關鍵發現：「真實 deform si=0」是拓樸選擇問題——strip（邊界點順拉伸軸）天生耐單向拉伸，Delaunay 散點會自交；
       weighted 件真實場不適用 → 退回靜態拓樸檢查仍有牙。** 回歸 0 RED（新增 cap `c1_mesh` L2）。見 `knowledge/s2-v2-mesh-c1.md`。
-- [ ] **C2 weighted mesh + rig 自動推斷**：`generate_weighted_mesh` + `infer_pivots`/`infer_tree`。
-      **AC**：合成肢體鏈 fixture 端到端通過（repo 既有 5AC 可移植）。
-      ⚠️ 真實多 rig 真值仍屬**使用者資源**（S5→L3 硬缺口），此 chunk 只搬可自主的合成驗收。
+- [x] **C2 weighted mesh + rig 自動推斷**（2026-10-16 run 007 ✅）：`generate_weighted_mesh`（heat-diffusion/BBW
+      骨綁權重）+ `infer_pivots`（關節 pivot 接觸縫）/`infer_tree`（肢體父子樹）抽成 skill 入口
+      `assets/gen_lib/rig.py`（`infer_limb_tree`/`infer_joint_pivots`/`infer_rig`/`generate_weighted_part_mesh`/
+      `weighted_deform_gate`），成為**結構軸的 rig 分支**——v1.3.0 只能在既有骨架疊動畫,C2 讓 2.0 能從
+      **件幾何**自動長出 rig（拓樸+pivot）並產可平滑彎折的 weighted mesh。閘 `tools/analyzer/validate_c2_rig.py`
+      **5 AC 全 PASS**：C2-1 公開 API 皆 callable + `infer_rig` 對合成鏈產 schema 合法 rig/**C2-2 headline**：合成肢體鏈
+      fixture（body→arm→forearm→hand，只相鄰件接觸）→ 端到端 recover 成**鏈**（非星形，鏈深 2 跳），合成星形亦正確，
+      Award 機器人推斷樹 == 真值 ROBOT_TREE，τ_frac band 穩定/C2-3 pivot 準度 max err/rig=0.051<0.10 + 中位 < 質心 baseline/
+      C2-4 生成 weighted mesh（身體/左手）setup 自一致 + 真實動畫 si=0/flip=0/degen=0 + nv ≤ 1.4× 藝術家 + 真值校準/
+      C2-5 閘非恆真（隨機父指派≈0、拆件→父邊變、隨機/互換 pivot >> 門檻、打亂權重 si>0）。
+      **關鍵發現：rig 拓樸=接觸幾何問題（接觸距離 Dijkstra 樹讓「誰掛誰」自決，不硬編星形）；pivot 可客觀化子問題=
+      「關節落在父子接觸縫」（沿軸精修屬美術 A 類）；weighted 權重 cotangent Laplacian+heat 稀疏解天然 partition-of-unity，
+      與 C1 unweighted strip 互補。** honest：真實多樣 rig 真值仍屬使用者資源（S5→L3 硬缺口），只搬「單一 Award 真值 +
+      合成鏈」可自主部分；effect/structural 分類是輸入；build_spine --rig --weighted 端到端另見 `validate_rig_weighted_chain.py`。
+      回歸 0 RED（新增 cap `c2_rig` L2）。見 `knowledge/s2-v2-rig-c2.md`。
 
 ### Phase D — 統一品質閘 validator_v2
 - [ ] **D1**：把 repo 的閘紀律 + v1.3.0 `validator_v1` 合成單一 `assets/validator_v2.py`：

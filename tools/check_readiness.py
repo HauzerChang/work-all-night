@@ -820,6 +820,20 @@ BLOCKS = [
                      "C1-5 閘非恆真:生成 mesh 對調兩非相鄰 hull 頂點造 tangle → 窗簾經真實 deform 閘 si=44、機器人經靜態拓樸閘 si=53 皆抓到(clean=False))。"
                      "**關鍵發現:①『真實 deform si=0』是**拓樸選擇**問題——strip(邊界點順拉伸軸)天生耐窗簾的單向拉伸(area_ratio 1.14 下仍 si=0),Delaunay 散點在大單向拉伸下會自交(見 s3-real-asset-finding);②weighted 件(靠骨骼變形、無逐頂點 deform)真實位移場轉移不適用 → 閘自動退回 setup 靜態拓樸檢查,仍有牙;③生成 mesh 為 unweighted → 可直接 reshape 驗拓樸,與美術 weighted mesh 互補。**"
                      "honest:Cocos/viewer 實機載入與 PMA 視覺=使用者端(排程 scope 邊界,用真實 deform 幾何量化等價);weighted mesh 生成(BBW)仍 HOLD(C2);真實多 rig 真值屬使用者資源;過渡期 import repo tools/mesh_gen(E1 bundle);單一真值資產(main_draw 4 mesh + Award 3 件)。cap c1_mesh L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("c2_rig", "spine-ai-editor 2.0 C2 weighted mesh 生成 + rig 自動推斷入口(結構軸的 rig 分支):gen_lib.rig → 合成鏈拓樸 + Award pivot 真值 + weighted deform 閘", "L2",
+                "python3 tools/analyzer/validate_c2_rig.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase C2(承 C1):把 repo 的 **weighted mesh 生成**(generate_weighted_mesh heat-diffusion/BBW 骨綁權重)"
+                     "+ **rig 自動推斷**(infer_tree 肢體父子樹 + infer_pivots 關節 pivot 接觸縫)抽成 skill 入口 "
+                     "`skills/spine-ai-editor/assets/gen_lib/rig.py`(infer_limb_tree/infer_joint_pivots/infer_rig/generate_weighted_part_mesh/weighted_deform_gate),"
+                     "成為**結構軸的 rig 分支**——v1.3.0 只能在既有骨架疊動畫,C2 讓 2.0 能從**件幾何**自動長出 rig(拓樸+pivot)並產可平滑彎折的 weighted mesh"
+                     "(解『件沒綁骨/綁錯父子/pivot 擺錯關節/只能整塊剛體位移無法平滑彎折』的 structural 限制)。validate_c2_rig.py 5AC PASS"
+                     "(C2-1 公開 API 皆 callable + infer_rig 對合成鏈產 schema 合法 rig(root∈parts、無環、每非 root 件有 parent+pivot)/"
+                     "C2-2 **headline**:合成肢體鏈 fixture(body→arm→forearm→hand,只相鄰件接觸)→ 端到端 recover 成**鏈**(upper→torso、lower→upper,非星形,鏈深 2 跳),合成星形亦正確,Award 機器人推斷樹 == 真值 ROBOT_TREE,τ_frac band[0.008..0.20] root+tree 穩定/"
+                     "C2-3 pivot 準度:Award 機器人每關節 pivot max err/rig=0.051<0.10(draft 級)+ 中位 21.6px < 質心 baseline(接觸縫顯著勝天真)/"
+                     "C2-4 weighted mesh 生成:身體/左手生成 heat-diffusion weighted mesh → setup 自一致 + 真實動畫 si=0/flip=0/degen=0 + nv 98/104 ≤ 1.4× 藝術家(98/80);真值校準:藝術家既有 weighted mesh 真實動畫全幀乾淨/"
+                     "C2-5 閘非恆真:隨機父指派命中率 0.014<0.05 + 左手平移 1500px → 父邊改掛右手(幾何驅動)+ 隨機 pivot 0.169/互換 0.276 皆>0.10 + 打亂權重放大動作 si=54>0(藝術家 si=0))。"
+                     "**關鍵發現:①rig 拓樸是**接觸幾何**問題——接觸距離 Dijkstra 樹讓『誰掛誰』完全自決(星形/多跳鏈都 recover,不硬編星形),root=最大面積件(軀幹穩健簽名);②pivot 的**可客觀化**子問題=『關節落在父子接觸縫』(肩/頸/hip 皆在此),沿肢體軸精修與手感屬美術(A 類);③weighted mesh 權重用 cotangent Laplacian+heat H 稀疏解,天然 partition-of-unity,與 C1 的 unweighted strip 互補(strip 靠逐頂點 deform、weighted 靠骨骼 skinning)。**"
+                     "honest:真實**多樣** rig 真值(各種人形/非人形骨架)仍屬使用者資源(S5→L3 硬缺口),本 chunk 只搬『單一 Award 真值 + 合成鏈』可自主部分;pivot 沿肢體軸精修/動起來手感=美術微調(A 類);build_spine --rig --weighted 端到端整合另見 validate_rig_weighted_chain.py;過渡期 import repo tools/mesh_gen+tools/rig(E1 bundle);Cocos/viewer 實機=使用者端。cap c2_rig L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]
