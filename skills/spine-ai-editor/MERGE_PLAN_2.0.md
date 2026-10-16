@@ -104,9 +104,24 @@
       C1-5 閘非恆真（生成 mesh 對調兩非相鄰 hull 頂點造 tangle → 窗簾真實閘 si=44、機器人靜態閘 si=53 皆抓到）。
       **關鍵發現：「真實 deform si=0」是拓樸選擇問題——strip（邊界點順拉伸軸）天生耐單向拉伸，Delaunay 散點會自交；
       weighted 件真實場不適用 → 退回靜態拓樸檢查仍有牙。** 回歸 0 RED（新增 cap `c1_mesh` L2）。見 `knowledge/s2-v2-mesh-c1.md`。
-- [ ] **C2 weighted mesh + rig 自動推斷**：`generate_weighted_mesh` + `infer_pivots`/`infer_tree`。
-      **AC**：合成肢體鏈 fixture 端到端通過（repo 既有 5AC 可移植）。
-      ⚠️ 真實多 rig 真值仍屬**使用者資源**（S5→L3 硬缺口），此 chunk 只搬可自主的合成驗收。
+- [x] **C2 weighted mesh + rig 自動推斷**（2026-10-16 run 007 ✅）：把 repo 的 **S5 rig 自動化**
+      （`infer_tree` 肢體父子樹 + `infer_pivots` 接觸縫關節 pivot）+ **weighted mesh 生成**
+      （`generate_weighted_mesh` heat-diffusion/BBW 近似）抽成 skill 入口 `assets/gen_lib/rig.py`
+      （`infer_rig_tree`/`infer_joint_pivots`/`generate_weighted_part`/`build_rigged_skeleton`/
+      `make_synthetic_limb_chain`/`award_robot_truth`），成為**結構軸的 rig 分支**（v1.3.0 只修既有動畫手感、
+      C1 能生成耐變形 mesh；C2 讓 2.0 能**自動推骨架階層 + 關節 pivot + 生成接進關節鏈的 weighted mesh**）。
+      閘 `tools/analyzer/validate_c2_rig.py` **5 AC 全 PASS**：C2-1 infer-truth（`infer_rig_tree`（Award 結構件）→
+      root==身體 且 tree==ROBOT_TREE，`infer_joint_pivots` 中位誤差 21.6px < 子件質心 baseline 43.0px 且 max err/rig<0.10）/
+      C2-2 weighted-gen-truth（`generate_weighted_part`（Award 身體+左手）→ partition of unity、≤4 骨/頂點、setup 乾淨、
+      真實動畫骨骼變形 si=0/flip=0（checker_validated）、nv≤1.4× 藝術家）/C2-3 chain-structure（`build_rigged_skeleton`
+      （合成鏈 body→arm→forearm→hand，rig×weighted）→ 骨鏈非星形、深 4≥3、每 weighted mesh 件控制骨 parent==關節骨 b_{nm}）/
+      **C2-4 headline** recursive-drive（setup 不位移 rig==weighted-only 0.0px + 轉每關節 → 後代動/祖先旁支≈0 +
+      **多跳**轉 body 帶動隔一跳 forearm 80px + 關節旋轉逐幀結構件 si=0/flip=0）/C2-5 gate-non-vacuous
+      （(a) weighted-only 版轉關節全脫鉤 (b) effect 件當結構→樹被汙染 (c) pivot 隨機/互換 med err/rig >> 0.10）。
+      **關鍵發現：①rig 推斷對 Award 真值拓樸精確、pivot 勝 baseline 2×、泛化到多跳鏈；②weighted mesh 當鏈中段
+      靠控制骨掛該件關節骨 + 座標轉局部 → setup 不動但關節旋轉沿鏈剛性遞迴帶動；③weighted-only 版=天生脫鉤負對照。**
+      ⚠️ 真實多 rig 真值仍屬**使用者資源**（S5→L3 硬缺口），此 chunk 只搬可自主的合成端到端 + 單一真值（Award）校準。
+      回歸 0 RED（新增 cap `c2_rig` L2）。見 `knowledge/s2-v2-rig-c2.md`。
 
 ### Phase D — 統一品質閘 validator_v2
 - [ ] **D1**：把 repo 的閘紀律 + v1.3.0 `validator_v1` 合成單一 `assets/validator_v2.py`：

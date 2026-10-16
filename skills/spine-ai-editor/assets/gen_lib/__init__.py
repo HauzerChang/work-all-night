@@ -8,8 +8,10 @@
                                 compose_idle_loop, build_beat_library, write_sequence)
   from gen_lib.mesh import (generate_part_mesh, deform_si_gate,                        # C1 mesh 生成 + 變形自交閘(結構軸)
                             generate_and_gate_part)
+  from gen_lib.rig import (infer_rig_tree, infer_joint_pivots, generate_weighted_part,  # C2 weighted mesh 生成 + rig 自動推斷(結構軸)
+                           build_rigged_skeleton, make_synthetic_limb_chain, award_robot_truth)
 
-過渡期(B2/B3/B4)import repo 的 tools/analyzer、(C1)tools/mesh_gen;E1 會 self-contained bundle。見各 .py docstring。
+過渡期(B2/B3/B4)import repo 的 tools/analyzer、(C1)tools/mesh_gen、(C2)tools/{mesh_gen,rig,analyzer};E1 會 self-contained bundle。見各 .py docstring。
 """
 from .make_beat import (  # noqa: F401
     generate_bigwin, write_bigwin, generate_idle, parts_from_psd,
@@ -25,4 +27,9 @@ from .sequence import (  # noqa: F401
 from .mesh import (  # noqa: F401
     generate_part_mesh, deform_si_gate, generate_and_gate_part,
     mesh_is_schema_valid, has_real_deform, CURTAIN_DEMO_PARTS, ROBOT_DEMO_PARTS,
+)
+from .rig import (  # noqa: F401
+    infer_rig_tree, infer_joint_pivots, contact_seam_joint, centroid_pivot_baseline,
+    diagnose_effect_contamination, generate_weighted_part, weighted_part_quality,
+    make_synthetic_limb_chain, build_rigged_skeleton, award_robot_truth,
 )

@@ -820,6 +820,23 @@ BLOCKS = [
                      "C1-5 閘非恆真:生成 mesh 對調兩非相鄰 hull 頂點造 tangle → 窗簾經真實 deform 閘 si=44、機器人經靜態拓樸閘 si=53 皆抓到(clean=False))。"
                      "**關鍵發現:①『真實 deform si=0』是**拓樸選擇**問題——strip(邊界點順拉伸軸)天生耐窗簾的單向拉伸(area_ratio 1.14 下仍 si=0),Delaunay 散點在大單向拉伸下會自交(見 s3-real-asset-finding);②weighted 件(靠骨骼變形、無逐頂點 deform)真實位移場轉移不適用 → 閘自動退回 setup 靜態拓樸檢查,仍有牙;③生成 mesh 為 unweighted → 可直接 reshape 驗拓樸,與美術 weighted mesh 互補。**"
                      "honest:Cocos/viewer 實機載入與 PMA 視覺=使用者端(排程 scope 邊界,用真實 deform 幾何量化等價);weighted mesh 生成(BBW)仍 HOLD(C2);真實多 rig 真值屬使用者資源;過渡期 import repo tools/mesh_gen(E1 bundle);單一真值資產(main_draw 4 mesh + Award 3 件)。cap c1_mesh L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("c2_rig", "spine-ai-editor 2.0 C2 weighted mesh 生成 + rig 自動推斷入口(結構軸的 rig 分支):gen_lib.rig → Award 真值 + 合成多跳鏈端到端", "L2",
+                "python3 tools/analyzer/validate_c2_rig.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase C2(承 C1):把 repo 的 **S5 rig 自動化**(infer_tree 肢體父子樹 + infer_pivots 接觸縫關節 pivot)"
+                     "+ **weighted mesh 生成**(generate_weighted_mesh heat-diffusion / BBW 近似)抽成 skill 入口 "
+                     "`skills/spine-ai-editor/assets/gen_lib/rig.py`(infer_rig_tree/infer_joint_pivots/generate_weighted_part/"
+                     "build_rigged_skeleton/make_synthetic_limb_chain/award_robot_truth),成為**結構軸的 rig 分支**——"
+                     "v1.3.0 只修既有動畫手感、C1 能生成耐變形 mesh,C2 讓 2.0 能**自動推骨架階層 + 關節 pivot + 生成接進關節鏈的 weighted mesh**,"
+                     "組成可被關節 articulate 的完整 rig(解『件只能整塊剛體位移、沒骨架階層、關節 pivot 放錯』的 structural 限制)。validate_c2_rig.py 5AC PASS"
+                     "(C2-1 infer-truth:infer_rig_tree(Award 結構件)→ root==身體 且 tree==ROBOT_TREE,infer_joint_pivots 中位誤差 21.6px < 子件質心 baseline 43.0px 且 max err/rig < 0.10/"
+                     "C2-2 weighted-gen-truth:generate_weighted_part(Award 身體+左手)→ partition of unity、≤4 骨/頂點、setup 乾淨、真實動畫骨骼變形 si=0/flip=0(過 weighted_deform_eval,checker_validated)、nv ≤1.4× 藝術家/"
+                     "C2-3 chain-structure:build_rigged_skeleton(合成鏈 body→arm→forearm→hand,rig×weighted)→ 骨鏈非星形、深 4≥3、每 weighted mesh 件控制骨 parent==關節骨 b_{nm}、index 合法/"
+                     "C2-4 **headline** recursive-drive:setup 不位移(rig==weighted-only 0.0px)+ 轉每關節 → 後代動/祖先旁支≈0 + **多跳**(轉 body 帶動隔一跳 forearm 80px)+ 關節旋轉逐幀結構件 si=0/flip=0/"
+                     "C2-5 gate-non-vacuous:(a) weighted-only 版轉關節**全脫鉤**(位移≈0)(b) effect 件當結構 → 樹被汙染 (c) pivot 隨機 0.476 / 互換 0.276 med err/rig >> 0.10)。"
+                     "**關鍵發現:①rig 推斷(root 面積優先 + 接觸距離 Dijkstra 樹 + 接觸縫 pivot)對 Award 真值拓樸精確、pivot 勝 baseline 2×,且泛化到多跳鏈(非只會星形);"
+                     "②weighted mesh 當鏈中段(既子又父)靠控制骨掛**該件關節骨** + 座標轉局部 → setup 不動但關節旋轉沿鏈剛性遞迴帶動;"
+                     "③weighted-only 版(控制骨掛 root)= 天生脫鉤負對照,證『接進關節鏈』才是 rig×weighted 的收益。**"
+                     "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用 bone world transform 幾何量化等價);**真實多 rig 真值(多角色、非人形運動分群)屬使用者資源(S5→L3 硬缺口)**,此入口只搬可自主的合成端到端 + 單一真值(Award)校準;pivot 沿肢體軸精修 / 動起來手感=美術(A 類);過渡期 import repo tools/{mesh_gen,rig,analyzer}(E1 bundle)。cap c2_rig L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]
