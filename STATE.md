@@ -12,9 +12,27 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)。下一個 run 做 Phase C 的 C2**
-> (weighted mesh + rig 自動推斷:`generate_weighted_mesh` + `infer_pivots`/`infer_tree` 抽成 skill 入口;
-> AC=合成肢體鏈 fixture 端到端通過,移植 repo 既有 5AC。⚠️ 真實多 rig 真值屬**使用者資源**(S5→L3 硬缺口),此 chunk 只搬可自主的合成驗收)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,run 006)、C2 ✅(weighted mesh + rig 自動推斷 / 結構軸的 rig 分支,2026-10-16 run 007)。下一個 run 做 Phase D 的 D1**
+> (統一品質閘 `validator_v2`:把 repo 的閘紀律 + v1.3.0 `validator_v1` 合成單一 `assets/validator_v2.py`,
+> 一條指令同時驗「runtime 可載入 / editor 可匯入 / loop 閉合 / stiffness / deform si / C1」;AC=對一支 2.0 生成的大獎動畫一鍵輸出全維度 pass/fail + 量化指標)。
+> **C2 做了什麼**:把 repo 的 **weighted mesh 生成器**(`generate_weighted_mesh`,heat-diffusion/BBW 近似權重)+ **rig 自動化**
+> (`infer_tree` 肢體樹 + `infer_pivots` 接觸縫關節 pivot)抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/rig.py`
+> (`infer_limb_tree`/`infer_joint_pivots`/`generate_weighted_part_mesh`/`gate_limb_chain`),成為**結構軸的 rig 分支**——v1.3.0 只能
+> **檢查**既有 rig/weighted mesh 且 `build_spine --rig` **假設星形**,C2 讓 2.0 能**自動推斷**拓樸+關節 pivot(支援多跳肢體鏈)並
+> **生成**骨綁 weighted mesh(解「件只能整塊剛體位移、無法彎折;rig 只能手動/假設星形」的 structural 限制)。閘
+> `tools/analyzer/validate_c2_rig.py` **5 AC 全 PASS**:C2-1 公開 API 對 Award 身體產 weighted mesh(schema 合法、heat 權重
+> **partition of unity** worst|Σw-1|≈2e-16、至多 4 骨、nv 190≥藝術家 98、setup clean)+ `pv_to_spine_vertices` 攤平自洽/**C2-2 真值**:
+> 合成多跳肢體鏈 `infer_limb_tree`→root=body + recover **鏈**(forearm 父=arm 非 body → 非星形);Award robot→星形真值 ROBOT_TREE +
+> 接觸縫 pivot max err/rig<0.1(中位 0.028)顯著贏質心 baseline(0.056)/**C2-3 headline 端到端**:合成肢體鏈→`build_spine --rig --weighted`→
+> 轉任一關節後代 weighted 件**遞迴帶動**、祖先旁支不動(多跳驗證)、weighted-only 脫鉤、region 葉件隨鏈、鏈深 4≥3、逐幀 si=0/C2-4 變形乾淨+
+> **真值校準**:生成身體 weighted mesh 真實動畫 worst si/flip/degen=0 validated + 藝術家 weighted mesh(身體+左手)於真實動畫亦乾淨(閘不誤報)+
+> 鏈 weighted 件乾淨/C2-5 閘非恆真:隨機 pivot(全 rig bbox)+ 關節互換中位 err/rig>>0.1(接觸縫<0.1);身體放大 4× 藝術家 si=0 vs 打亂權重
+> si=54、左手打亂直接被抓;weighted-only 脫鉤。**關鍵發現**:①**heat-diffusion 權重天然 partition of unity**(`(L+H)W=HP` 解每頂點和=1,
+> 實測 worst|Σw-1|≈機器精度)→ 剪 topk 4 重正規後仍守恆,BBW 近似純 CPU 稀疏解可自動產骨綁網格;②**rig 推斷只客觀到「拓樸+接觸縫關節」但
+> 這兩塊足以自動化整個 rig**(接觸距離 Dijkstra 樹不強制星形、多跳鏈 recover 成鏈;接觸縫質心 pivot 對真值 err/rig<0.1 且贏 baseline);
+> ③**「weighted mesh 當鏈中段肢體→遞迴帶動」真實資產無樣本**(robot_parts 肢體皆 region 直掛 body),需合成 fixture 補真值缺口,演算法早已支援、
+> C2-3 證端到端成立。回歸 **0 RED**(新增 cap `c2_rig` L2)。⚠️ **真實多 rig 真值屬使用者資源**(S5→L3 硬缺口),此 chunk 只搬可自主的合成肢體鏈 +
+> 單一真實 rig(Award)的樹/pivot 真值。見 `knowledge/s2-v2-rig-c2.md`。
 > **C1 做了什麼**:把 repo 的 **mesh 生成引擎**(`generate_mesh_v2` strip/delaunay/boundary-dense)+ **變形自交評估器**
 > (`deform_eval` 真實位移場轉移,**非** stress_field)抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/mesh.py`
 > (`generate_part_mesh`/`deform_si_gate`/`generate_and_gate_part`),成為**結構軸的 mesh 分支**——v1.3.0 只能**檢查**既有 mesh,
