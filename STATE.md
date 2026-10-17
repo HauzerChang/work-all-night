@@ -12,9 +12,21 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)、C2 ✅(weighted mesh + rig 自動推斷 / 結構軸的 rig 分支,2026-10-17 run 007)。Phase C 完成;下一個 run 做 Phase D 的 D1**
-> (統一品質閘 `validator_v2`:把 repo 閘紀律 + v1.3.0 `validator_v1` 合成單一 `assets/validator_v2.py`,一條指令同時驗
-> 「runtime 可載入 / editor 可匯入 / loop 閉合 / stiffness / deform si / C1」;AC=對一支 2.0 生成的大獎動畫一鍵輸出全維度 pass/fail + 量化指標)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)、C2 ✅(weighted mesh + rig 自動推斷 / 結構軸的 rig 分支,2026-10-17 run 007)、D1 ✅(統一品質閘 validator_v2,2026-10-17 run 008)。Phase B/C/D 核心升級全完成;下一個 run 進 Phase E(打包升版 & 交付,E1 bundle)**。
+> **D1 做了什麼**:把 repo 的閘紀律 + v1.3.0 `validator_v1` 合成**單一指令** `skills/spine-ai-editor/assets/validator_v2.py`——
+> 對一支 2.0 生成的大獎動畫**一鍵輸出全維度 pass/fail + 量化指標**,= 2.0 的 **G2(雙真值驗收)** 在**一條可重跑機讀閘**裡的落點。
+> 六維度(各自 PASS/FAIL/NA/UNAVAILABLE):①`runtime_loadable`(validator_v0 schema+引用完整性,spine-webgl 載入代理)②`editor_importable`
+> (地雷#12 末鍵 curve + cx 超[0,1],= validator_v1 編輯器真值)③`loop_closure`(curve_tools)④`stiffness`(curve_tools metric,預設只回報、--stiffness-max 才硬閘)
+> ⑤`deform_si`(gen_lib.mesh.deform_si_gate,無 mesh+deform→NA)⑥`c1_continuity`(gen_animations.is_c1_loopable,不傳 --loop-anims→NA)。**核心 1–4 self-contained**
+> (validator_v0+curve_tools 已在 assets/),**延伸 5–6** 過渡期 lazy import repo(import 不到→UNAVAILABLE,不拖垮核心、使用者端仍可跑核心四維)。閘
+> `tools/analyzer/validate_d1_validator_v2.py` **5 AC 全 PASS**:D1-1 對 2.0 生成(gen_lib 公開 API)大獎動畫一鍵輸出六維度結構完整報告/
+> **D1-2 headline**:該 2.0 大獎全可檢維 PASS(runtime 0 error + editor 0 地雷#12 + loop 首尾 identity + stiffness 16.46 有限)→ overall_pass=True(G2 一鍵)/
+> D1-3 deform_si 真值校準:對真實資產 main_draw 4 mesh×deform → 逐 mesh clean(si=0,藝術家真值本身過閘=checker_validated,維度非假性過)/
+> D1-4 c1 鑑別:idle Loop → C1-loopable PASS vs 一次性大獎 beat → FAIL(把真 Loop 與一次性 beat 分開)/
+> D1-5 四維各一負對照:(a)注入末鍵 curve→editor FAIL+overall FAIL (b)破壞 scale 末鍵→loop FAIL (c)移除 root→runtime FAIL (d)mesh hull-tangle→deform_si FAIL(si=34)皆抓到。
+> **關鍵發現**:①兩套品質閘(runtime 可載入 vs editor 可匯入)+ 結構軸變形閘(deform_si)+ 序列平滑閘(C1)可合成單一可重跑機讀閘 → G2 不必人工開 Spine editor;
+> ②**NA vs FAIL 的語意分離是誠實關鍵**——一次性大獎 beat 不傳 --loop-anims 時 C1 標 NA(非 FAIL),傳才當硬閘,避免誤判「不該循環的 beat」;overall_pass 只看非 NA/非 UNAVAILABLE 維度;
+> ③核心四維 self-contained、延伸兩維 graceful degrade(UNAVAILABLE),使閘在使用者端(無 repo tools)仍可跑核心。回歸 **0 RED**(新增 cap `d1_validator_v2` L2,併入 spine-anim-forge 仍 HOLD)。見 `knowledge/s2-v2-validator-d1.md`。
 > **C2 做了什麼**:把 repo 三個確定性純 CPU 器——weighted mesh 生成(`generate_weighted_mesh`:三角化內部密度 + heat-diffusion/BBW 近似骨綁權重)、
 > 關節 pivot 推斷(`infer_pivots`:父子接觸縫)、肢體父子樹推斷(`infer_tree`:接觸距離 Dijkstra)——抽成 skill 入口
 > `skills/spine-ai-editor/assets/gen_lib/rig.py`(`generate_weighted_part_mesh`/`generate_and_gate_weighted`/`infer_limb_tree`/`infer_joint_pivots`/`rig_from_parts`),

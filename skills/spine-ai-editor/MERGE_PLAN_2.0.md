@@ -126,9 +126,22 @@
       見 `knowledge/s2-v2-rig-c2.md`。
 
 ### Phase D — 統一品質閘 validator_v2
-- [ ] **D1**：把 repo 的閘紀律 + v1.3.0 `validator_v1` 合成單一 `assets/validator_v2.py`：
-      一條指令同時驗「runtime 可載入 / editor 可匯入 / loop 閉合 / stiffness / deform si / C1」。
-      **AC**：對一支 2.0 生成的大獎動畫，一鍵輸出全維度 pass/fail + 量化指標。
+- [x] **D1**（2026-10-17 run 008 ✅）：把 repo 的閘紀律 + v1.3.0 `validator_v1` 合成單一
+      `assets/validator_v2.py`：一條指令同時驗「runtime 可載入 / editor 可匯入 / loop 閉合 /
+      stiffness / deform si / C1」六維度（各自 PASS/FAIL/NA/UNAVAILABLE）。**核心 1–4 self-contained**
+      （validator_v0 + curve_tools），**延伸 5–6**（deform_si = gen_lib.mesh / c1 = gen_animations）
+      過渡期 lazy import repo，import 不到標 UNAVAILABLE（不拖垮核心）。閘
+      `tools/analyzer/validate_d1_validator_v2.py` **5 AC 全 PASS**：D1-1 對 2.0 生成（gen_lib 公開 API）
+      大獎動畫一鍵輸出六維度結構完整報告/**D1-2 headline**：該 2.0 大獎全可檢維 PASS（runtime 0 error +
+      editor 0 地雷#12 + loop 首尾 identity + stiffness 16.46 有限）→ overall_pass=True（G2 一鍵）/
+      D1-3 deform_si 真值校準：對真實資產 main_draw 4 mesh×deform → 逐 mesh clean（si=0，藝術家真值本身過閘=
+      checker_validated）/D1-4 c1 鑑別：idle Loop → C1-loopable PASS vs 一次性大獎 beat → FAIL/
+      D1-5 四維各一負對照（末鍵 curve→editor FAIL、破壞 scale 末鍵→loop FAIL、移除 root→runtime FAIL、
+      mesh hull-tangle→deform_si FAIL si=34）皆抓到。**關鍵發現：①兩套品質閘 + deform_si + C1 可合成單一
+      可重跑機讀閘 → G2 不必人工開 Spine editor；②NA vs FAIL 語意分離是誠實關鍵（一次性 beat 不傳
+      --loop-anims 時 C1 標 NA 非 FAIL，overall 只看非 NA/非 UNAVAILABLE 維度）；③核心四維 self-contained、
+      延伸兩維 graceful degrade，使閘在使用者端仍可跑核心。** 回歸 0 RED（新增 cap `d1_validator_v2` L2）。
+      見 `knowledge/s2-v2-validator-d1.md`。
 
 ### ⚙️ 排程 scope 邊界（2026-10-12 使用者確認）
 - **排程環境 = 純 CPU、無 Cocos Creator、無 ffmpeg GPU**。排程**只推進純 CPU 可自主驗收的部分**：
