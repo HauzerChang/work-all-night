@@ -836,6 +836,29 @@ BLOCKS = [
                      "C2-5 閘非恆真:(a) pivot 隨機/互換 med/rig 0.44/0.28 >> TAU (b) tree 隨機父指派命中 0.015 + 納 effect(光暈)當結構汙染樹(root→光暈) (c) weighted mesh 對調兩非相鄰 hull 頂點 tangle → 真實 skinning 閘 setup si>0(身體 150、左手 65)皆抓到)。"
                      "**關鍵發現:①weighted mesh『真實變形 si=0』靠 heat-diffusion partition-of-unity 平滑權重(藝術家同件亦 si=0,生成追平真值);②pivot/tree 準度取決於**件輪廓保真**(rect 代理爆閘),再現 rig 階段的 PSD-first 論點;③effect vs structural 語意分類**須作為輸入**(光暈大面積背光會汙染樹),是 honest boundary 非 bug;④weight-scramble 不一定破(根件諸骨 setup 近似剛性),hull-tangle(動拓樸)才是可靠負對照。**"
                      "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用真實 skinning 幾何量化等價);軟性加成件(光暈)si 不列硬閘(additive 視覺無害、藝術家自身即 si>0);pivot 沿軸精修/手感、effect 語意分類=美術/輸入(A 類);真實多 rig 真值屬使用者資源(S5→L3 硬缺口,本 chunk 只搬可自主的合成 + Award 單 rig 真值);weighted uvs 由 setup 世界 bbox 正規化(schema 級,真 atlas UV=build_spine/使用者端);過渡期 import repo tools/mesh_gen+tools/rig(E1 bundle)。cap c2_rig L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("d1_validator_v2", "spine-ai-editor 2.0 D1 統一品質閘:validator_v2 → 全維度單一報告(runtime/editor/loop/stiffness/deform_si/C1)", "L2",
+                "python3 tools/analyzer/validate_d1_validator_v2.py", "eval",
+                note="MERGE_PLAN_2.0 Phase D1(承 B/C 全部):把 repo 閘紀律 + v1.3.0 validator_v1 **合成單一** "
+                     "`skills/spine-ai-editor/assets/validator_v2.py :: validate_v2`——對一支 2.0 生成的大獎動畫,"
+                     "**一條指令輸出全維度 pass/fail + 量化指標**(六維度:runtime 可載入 / editor 可匯入 / loop 閉合 / "
+                     "stiffness / deform si / C1)。validator_v2 是**編排層**(不新寫檢查邏輯):維度 1-4 直接呼叫 "
+                     "`validator_v1.validate_v1()`(為此把 v1 抽出程式化入口,main stdout 逐字不變 → B1-B4 subprocess 閘零回歸)、"
+                     "維度 5 呼叫 `gen_lib.mesh.deform_si_gate`、維度 6 呼叫 `gen_animations.is_c1_loopable`。"
+                     "**關鍵切分:把 validator_v1 合在一起的『runtime 載不進來(schema/cx 超界)』與『editor 匯入 crash(末鍵 curve 地雷 #12,runtime OK)』"
+                     "依 error 前綴拆成兩獨立維度 = G2『遊戲能播 且 編輯器能匯入』的機讀落點**。validate_d1_validator_v2.py 5AC PASS"
+                     "(D1-1 對 gen_lib 公開 API 生成的大獎 beat 一次 validate_v2 回傳含 6 維度單一報告:硬閘(runtime/editor/loop)PASS、"
+                     "stiffness 有限(cascade 16.46)、deform_si=na(region 占位 beat)、c1=info(一次性 beat 預期非 C1)、overall PASS/"
+                     "D1-2 **語意切分非恆真**:注入末鍵 curve→editor_importable FAIL 但 runtime_loadable 仍 PASS(乾淨切分)、G1 strip 後 editor 回 PASS、注入 cx>1(非末鍵)→runtime_loadable FAIL/"
+                     "D1-3 生成 beat loop_closure PASS、破壞首尾 identity→loop_closure FAIL(open loop 被抓)/"
+                     "D1-4 **真值校準+負對照**:main_draw 4 真實美術 mesh 套真實 deform 位移場 deform_si PASS(藝術家 mesh si=0)、"
+                     "某 mesh hull 兩頂點對調造 tangle→deform_si FAIL(worst si=39)、region beat→deform_si na/"
+                     "D1-5 idle Loop is_c1_loopable=True(seam vel gap 0.19)→--require-c1 升硬閘 PASS+overall PASS、"
+                     "一次性 beat 預設 c1=info 不害 overall、--require-c1 指到它→c1 FAIL+overall FAIL、缺頂層 key 壞 skeleton→runtime FAIL→overall FAIL)。"
+                     "**關鍵發現:①『統一閘』的價值是**語意切分**而非檢查疊加——validator_v1 把 runtime/editor error 混在一份,validator_v2 依前綴拆成兩維度才讓 G2 雙真值可機讀逐維判;"
+                     "②編排層不產生第二套真值(抽 v1 程式化入口 + 直呼 gen_lib/gen_animations)→ 各維度的負對照紀律自動繼承,D1 只需證編排正確;"
+                     "③deform_si/C1 屬過渡期相依(repo tools/mesh_gen+analyzer),取不到標 unavailable 不讓整支 crash,standalone 維度 1-4 仍可跑。**"
+                     "honest:Cocos/viewer 實機載入與 PMA 視覺=使用者端(排程 scope 邊界,用 spine-webgl 無頭等價仍留 E);stiffness 與未要求的 C1 為量化指標非硬閘(手感 A 類);"
+                     "過渡期 import repo tools(E1 bundle);真值資產=生成 beat + main_draw 4 mesh。cap d1_validator_v2 L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

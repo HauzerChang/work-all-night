@@ -126,9 +126,25 @@
       見 `knowledge/s2-v2-rig-c2.md`。
 
 ### Phase D — 統一品質閘 validator_v2
-- [ ] **D1**：把 repo 的閘紀律 + v1.3.0 `validator_v1` 合成單一 `assets/validator_v2.py`：
-      一條指令同時驗「runtime 可載入 / editor 可匯入 / loop 閉合 / stiffness / deform si / C1」。
-      **AC**：對一支 2.0 生成的大獎動畫，一鍵輸出全維度 pass/fail + 量化指標。
+- [x] **D1**（2026-10-17 run 008 ✅）：把 repo 的閘紀律 + v1.3.0 `validator_v1` 合成單一
+      `assets/validator_v2.py :: validate_v2`——一條指令同時驗六維度「runtime 可載入 / editor 可匯入 /
+      loop 閉合 / stiffness / deform si / C1」+ 量化指標。validator_v2 是**編排層**(不新寫檢查邏輯):
+      維度 1-4 直呼 `validator_v1.validate_v1()`(為此把 v1 抽出程式化入口,`main` stdout 逐字不變 →
+      B1-B4 subprocess 閘零回歸)、維度 5 呼 `gen_lib.mesh.deform_si_gate`、維度 6 呼 `gen_animations.is_c1_loopable`。
+      **關鍵切分**:把 validator_v1 合在一起的「runtime 載不進來(schema/cx 超界)」與「editor 匯入 crash
+      (末鍵 curve 地雷 #12,runtime OK)」依 error 前綴拆成**兩獨立維度** = G2「遊戲能播 **且** 編輯器能匯入」的機讀落點。
+      閘 `tools/analyzer/validate_d1_validator_v2.py` **5 AC 全 PASS**:D1-1 對 gen_lib 公開 API 生成的大獎 beat
+      一次 `validate_v2` 回傳含 6 維度單一報告(硬閘 runtime/editor/loop PASS、stiffness 有限 16.46、
+      deform_si=na region 占位、c1=info 一次性 beat 預期非 C1、overall PASS)/D1-2 **語意切分非恆真**(注入末鍵 curve→
+      editor FAIL 但 runtime 仍 PASS、G1 strip 後 editor 回 PASS、注入 cx>1→runtime FAIL)/D1-3 生成 beat loop PASS、
+      破壞首尾 identity→loop FAIL/D1-4 **真值校準+負對照**(main_draw 4 真實美術 mesh 套真實 deform si=0→deform_si PASS、
+      某 mesh hull 兩頂點對調 tangle→deform_si FAIL worst si=39、region beat→na)/D1-5 idle Loop `is_c1_loopable`=True→
+      `--require-c1` 升硬閘 PASS+overall PASS、一次性 beat 預設 c1=info 不害 overall、`--require-c1` 指到它→c1 FAIL+overall FAIL、
+      壞 skeleton→runtime FAIL→overall FAIL。**關鍵發現:①「統一閘」的價值是**語意切分**而非檢查疊加
+      (v1 把 runtime/editor error 混一份,v2 依前綴拆兩維度才讓 G2 雙真值可逐維機讀判);②編排層不產生第二套真值
+      → 各維度負對照紀律自動繼承,D1 只需證編排正確;③deform_si/C1 屬過渡期相依,取不到標 unavailable 不讓整支 crash。**
+      回歸 **0 RED**(新增 cap `d1_validator_v2` L2 eval)。見 `knowledge/s2-v2-validator-d1.md`。
+      **Phase D 完成;下一個 run 進 Phase E(打包升版 & 交付)——E1 把生成碼 bundle 進 `assets/`(self-contained,滿足 G5)。**
 
 ### ⚙️ 排程 scope 邊界（2026-10-12 使用者確認）
 - **排程環境 = 純 CPU、無 Cocos Creator、無 ffmpeg GPU**。排程**只推進純 CPU 可自主驗收的部分**：

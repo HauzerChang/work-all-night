@@ -26,17 +26,20 @@ import curve_tools as ct                            # noqa: E402
 import json                                         # noqa: E402
 
 
-def main(argv):
-    if len(argv) < 2:
-        print(__doc__)
-        return 2
-    args = [a for a in argv[1:] if not a.startswith('--')]
-    json_path = Path(args[0])
-    atlas_path = Path(args[1]) if len(args) >= 2 else None
-    want_metric = '--metric' in argv
-    loop_anims = None
-    if '--loop-anims' in argv:
-        loop_anims = argv[argv.index('--loop-anims') + 1].split(',')
+def validate_v1(json_path, atlas_path=None, loop_anims=None, want_metric=False):
+    """程式化入口：回傳 (report, demoted, metrics)。
+
+    report  : validator_v0 的 Report（v0 schema/ref + v1 調整後）——
+              其中 `(v1)` 開頭的 error 為 v1 專屬(cx 超界 / 末鍵 curve)、`(v1 loop)` 開頭的
+              warning 為 loop 閉合問題。runtime 可載入 / editor 可匯入 的語意由呼叫端依字串前綴切分
+              (validator_v2 即據此把「runtime」與「editor」兩維度拆開)。
+    demoted : cy(c2/c4)過衝豁免的原始 warning(穿透式切線,正常)。
+    metrics : {anim: stiffness}(want_metric=True 時才算)。
+
+    與 `main` 共用同一套檢查(main 只是把本函式結果格式化列印),確保程式化呼叫與 CLI 一致、
+    不產生第二套真值。"""
+    json_path = Path(json_path)
+    atlas_path = Path(atlas_path) if atlas_path is not None else None
 
     # ---- v0 全套 ----
     r = validate_v0(json_path, atlas_path)
@@ -77,6 +80,23 @@ def main(argv):
             r.warn(f'(v1 loop) {aname}: {prob}')
         if want_metric:
             metrics[aname] = ct.stiffness_metric(anim, dur)
+
+    return r, demoted, metrics
+
+
+def main(argv):
+    if len(argv) < 2:
+        print(__doc__)
+        return 2
+    args = [a for a in argv[1:] if not a.startswith('--')]
+    json_path = Path(args[0])
+    atlas_path = Path(args[1]) if len(args) >= 2 else None
+    want_metric = '--metric' in argv
+    loop_anims = None
+    if '--loop-anims' in argv:
+        loop_anims = argv[argv.index('--loop-anims') + 1].split(',')
+
+    r, demoted, metrics = validate_v1(json_path, atlas_path, loop_anims, want_metric)
 
     # ---- 輸出 ----
     print(f'=== validator_v1 on {json_path.name} ===')
