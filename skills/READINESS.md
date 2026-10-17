@@ -1,8 +1,21 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-16 run 006(2.0 Phase C1 mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支 —— `gen_lib.mesh` → 真實 deform si=0 + IoU)。
-> 74 閘全綠(72 + B4 `b4_sequence` + C1 `c1_mesh`,0 RED,無 GREEN→RED)。** 把 repo 的 **mesh 生成引擎**
+> **最新:2026-10-17 run 007(2.0 Phase C2 weighted mesh 生成 + rig 自動推斷 / 結構軸的 rig 分支 —— `gen_lib.rig` → 真實 skinning si=0 + pivot/tree 真值)。
+> 75 閘全綠(74 + C2 `c2_rig`,0 RED,無 GREEN→RED)。** 把 repo 三個確定性純 CPU 器——weighted mesh 生成
+> (`generate_weighted_mesh`:三角化內部密度 + heat-diffusion/BBW 近似骨綁權重)、關節 pivot 推斷(`infer_pivots`:父子接觸縫)、
+> 肢體父子樹推斷(`infer_tree`:接觸距離 Dijkstra)——抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/rig.py`
+> (`generate_weighted_part_mesh`/`generate_and_gate_weighted`/`infer_limb_tree`/`infer_joint_pivots`/`rig_from_parts`)——
+> C1 解「件沒有 mesh」,C2 解「件有 mesh 但沒綁骨 / 一堆件沒組成骨架」。`validate_c2_rig.py` 5AC PASS(全經公開 API):
+> C2-1 對 Award 不透明件產 Spine **weighted** mesh(schema 合法:partition of unity 權重和=1、≤4 骨、hull∈(0,nv]）+ 頂點 ≤1.4× 藝術家(身體 98/98、左手 104/80)/
+> **C2-2 headline** 生成 weighted mesh 放回**真實動畫** skinning → setup 乾淨 + 逐幀 si=0/flip=0 + 平滑度不劣於藝術家;真值校準:藝術家同件亦 si=0(checker_validated)→ 過閘與真值一致/
+> C2-3 pivot max err/rig=0.051(<0.10)勝質心 baseline(中位 21.6<43.0px)+ rect 代理爆閘 0.82(PSD-first 再現)/
+> C2-4 tree Award root==身體 且 拓樸==真值 ROBOT_TREE + τ_frac band 穩定 + 合成鏈 recover 鏈 + 合成星形/
+> C2-5 閘非恆真:(a) pivot 隨機/互換 0.44/0.28>>TAU (b) tree 隨機命中 0.015 + 納 effect 汙染樹 (c) weighted hull-tangle → setup si>0(身體 150、左手 65)皆抓到。
+> **關鍵發現:①weighted「真實變形 si=0」靠 heat-diffusion partition-of-unity 平滑權重(藝術家同件亦 si=0,追平真值),對照 C1 unweighted strip 靠拓樸選擇耐單向拉伸——兩條變形機制各有生成策略;②pivot/tree 準度取決於件輪廓保真(rect 爆閘);③effect/structural 語意分類須作為輸入(光暈奪 root),honest boundary 非 bug;④weight-scramble 不一定破(根件近似剛性),hull-tangle 才是可靠負對照。**
+> Cocos/viewer 實機=使用者端(scope 邊界);真實多 rig 真值屬使用者資源(S5→L3 硬缺口);過渡期 import repo tools/mesh_gen+tools/rig(E1 bundle)。cap `c2_rig` L2 pipeline 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s2-v2-rig-c2.md`。
+> ──(前)2026-10-16 run 006(2.0 Phase C1 mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支 —— `gen_lib.mesh` → 真實 deform si=0 + IoU)。
+> 74 閘全綠(72 + B4 `b4_sequence` + C1 `c1_mesh`,0 RED,無 GREEN→RED)。 把 repo 的 **mesh 生成引擎**
 > (`generate_mesh_v2` strip/delaunay/boundary-dense)+ **變形自交評估器**(`deform_eval` 真實位移場轉移,**非** stress_field)
 > 抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/mesh.py`(`generate_part_mesh`/`deform_si_gate`/`generate_and_gate_part`)——
 > v1.3.0 只能**檢查**既有 mesh,C1 讓 2.0 能**生成**耐變形 mesh 並自驗(解「件沒有 mesh、只能整塊剛體位移」的 structural 限制)。

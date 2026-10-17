@@ -104,9 +104,26 @@
       C1-5 閘非恆真（生成 mesh 對調兩非相鄰 hull 頂點造 tangle → 窗簾真實閘 si=44、機器人靜態閘 si=53 皆抓到）。
       **關鍵發現：「真實 deform si=0」是拓樸選擇問題——strip（邊界點順拉伸軸）天生耐單向拉伸，Delaunay 散點會自交；
       weighted 件真實場不適用 → 退回靜態拓樸檢查仍有牙。** 回歸 0 RED（新增 cap `c1_mesh` L2）。見 `knowledge/s2-v2-mesh-c1.md`。
-- [ ] **C2 weighted mesh + rig 自動推斷**：`generate_weighted_mesh` + `infer_pivots`/`infer_tree`。
-      **AC**：合成肢體鏈 fixture 端到端通過（repo 既有 5AC 可移植）。
-      ⚠️ 真實多 rig 真值仍屬**使用者資源**（S5→L3 硬缺口），此 chunk 只搬可自主的合成驗收。
+- [x] **C2 weighted mesh + rig 自動推斷**（2026-10-17 run 007 ✅）：把 repo 三個確定性純 CPU 器
+      ——weighted mesh 生成（`generate_weighted_mesh`:三角化內部密度 + heat-diffusion/BBW 近似權重）、
+      關節 pivot 推斷（`infer_pivots`:父子接觸縫）、肢體父子樹推斷（`infer_tree`:接觸距離 Dijkstra）
+      ——抽成 skill 入口 `assets/gen_lib/rig.py`（`generate_weighted_part_mesh`/`generate_and_gate_weighted`/
+      `infer_limb_tree`/`infer_joint_pivots`/`rig_from_parts`），成為**結構軸的 rig 分支**（C1 解「件沒有
+      mesh」,C2 解「件有 mesh 但沒綁骨 / 一堆件沒組成骨架」）。閘 `tools/analyzer/validate_c2_rig.py`
+      **5 AC 全 PASS**（全經公開 API）：C2-1 對 Award 不透明件產 Spine **weighted** mesh（schema 合法:
+      partition of unity 權重和=1、≤4 骨、hull∈(0,nv]）+ 頂點 ≤1.4× 藝術家（身體 98/98、左手 104/80）/
+      **C2-2 headline**:生成 weighted mesh 放回**真實動畫** skinning → setup 乾淨 + 逐幀 si=0/flip=0 +
+      平滑度不劣於藝術家;真值校準:藝術家同件 mesh 經同 checker 亦 si=0（checker_validated）→ 過閘與真值一致/
+      C2-3 pivot max err/rig=0.051（<0.10）勝質心 baseline（中位 21.6<43.0px）+ rect 代理爆閘 0.82（PSD-first 再現）/
+      C2-4 tree Award root==身體 且 拓樸==真值 ROBOT_TREE + τ_frac band 穩定 + 合成鏈 recover 鏈 + 合成星形/
+      C2-5 閘非恆真:(a) pivot 隨機/互換 0.44/0.28>>TAU (b) tree 隨機命中 0.015 + 納 effect 汙染樹 (c) weighted
+      hull-tangle → setup si>0（身體 150、左手 65）皆抓到。**關鍵發現:①weighted「真實變形 si=0」靠
+      heat-diffusion partition-of-unity 平滑權重(藝術家同件亦 si=0,追平真值),對照 C1 unweighted strip 靠拓樸
+      選擇耐單向拉伸——兩條變形機制各有生成策略;②pivot/tree 準度取決於件輪廓保真(rect 爆閘=PSD-first 再現);
+      ③effect/structural 語意分類須作為輸入(光暈會奪 root 汙染樹),是 honest boundary 非 bug;④weight-scramble
+      不一定破(根件諸骨近似剛性),hull-tangle 動拓樸才是可靠負對照。** 回歸 0 RED(新增 cap `c2_rig` L2)。
+      ⚠️ 真實多 rig 真值仍屬**使用者資源**（S5→L3 硬缺口）,本 chunk 只搬可自主的合成 fixture + Award 單 rig 真值。
+      見 `knowledge/s2-v2-rig-c2.md`。
 
 ### Phase D — 統一品質閘 validator_v2
 - [ ] **D1**：把 repo 的閘紀律 + v1.3.0 `validator_v1` 合成單一 `assets/validator_v2.py`：

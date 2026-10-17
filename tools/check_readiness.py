@@ -820,6 +820,22 @@ BLOCKS = [
                      "C1-5 閘非恆真:生成 mesh 對調兩非相鄰 hull 頂點造 tangle → 窗簾經真實 deform 閘 si=44、機器人經靜態拓樸閘 si=53 皆抓到(clean=False))。"
                      "**關鍵發現:①『真實 deform si=0』是**拓樸選擇**問題——strip(邊界點順拉伸軸)天生耐窗簾的單向拉伸(area_ratio 1.14 下仍 si=0),Delaunay 散點在大單向拉伸下會自交(見 s3-real-asset-finding);②weighted 件(靠骨骼變形、無逐頂點 deform)真實位移場轉移不適用 → 閘自動退回 setup 靜態拓樸檢查,仍有牙;③生成 mesh 為 unweighted → 可直接 reshape 驗拓樸,與美術 weighted mesh 互補。**"
                      "honest:Cocos/viewer 實機載入與 PMA 視覺=使用者端(排程 scope 邊界,用真實 deform 幾何量化等價);weighted mesh 生成(BBW)仍 HOLD(C2);真實多 rig 真值屬使用者資源;過渡期 import repo tools/mesh_gen(E1 bundle);單一真值資產(main_draw 4 mesh + Award 3 件)。cap c1_mesh L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("c2_rig", "spine-ai-editor 2.0 C2 weighted mesh 生成 + rig 自動推斷入口(結構軸的 rig 分支):gen_lib.rig → 真實 skinning si=0 + pivot/tree 真值", "L2",
+                "python3 tools/analyzer/validate_c2_rig.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase C2(承 C1):把 repo 三個確定性純 CPU 生成/推斷器——**weighted mesh 生成**"
+                     "(generate_weighted_mesh:三角化內部密度 + heat-diffusion/BBW 近似骨綁權重)、**關節 pivot 推斷**"
+                     "(infer_pivots:父子接觸縫)、**肢體父子樹推斷**(infer_tree:接觸距離 Dijkstra)——抽成 skill 入口 "
+                     "`skills/spine-ai-editor/assets/gen_lib/rig.py`(generate_weighted_part_mesh/generate_and_gate_weighted/"
+                     "infer_limb_tree/infer_joint_pivots/rig_from_parts),成為**結構軸的 rig 分支**——C1 解『件沒有 mesh』,"
+                     "C2 解『件有 mesh 但沒綁骨 / 一堆件沒組成骨架』(從件影像生成能被骨骼平滑變形的 weighted mesh + 自動推 root/父子/關節)。"
+                     "validate_c2_rig.py 5AC PASS(全經公開 API)"
+                     "(C2-1 公開 API 對 Award 不透明件(身體/左手)產 Spine **weighted** mesh:schema 合法(weighted 格式、每頂點 partition of unity 權重和=1、≤4 骨、hull∈(0,nv])+ 頂點 ≤1.4× 藝術家(身體 98/98、左手 104/80)/"
+                     "C2-2 **headline**:生成 weighted mesh 放回**真實動畫** skinning 變形 → setup 乾淨 + 逐幀 si=0/flip=0 + 平滑度不劣於藝術家;真值校準:藝術家同件 mesh 經同 checker 亦 si=0(checker_validated)→ 過閘與真值一致/"
+                     "C2-3 pivot 推斷 max err/rig=0.051(<0.10)勝質心 baseline(中位 21.6<43.0px)+ rect 代理(--no-alpha)max/rig=0.82 爆閘(佐證輪廓保真=PSD-first)/"
+                     "C2-4 tree 推斷 Award root==身體 且 拓樸==真值 ROBOT_TREE + τ_frac band 穩定 + 合成鏈 recover 鏈(非星形)+ 合成星形 recover 星形(多跳通用)/"
+                     "C2-5 閘非恆真:(a) pivot 隨機/互換 med/rig 0.44/0.28 >> TAU (b) tree 隨機父指派命中 0.015 + 納 effect(光暈)當結構汙染樹(root→光暈) (c) weighted mesh 對調兩非相鄰 hull 頂點 tangle → 真實 skinning 閘 setup si>0(身體 150、左手 65)皆抓到)。"
+                     "**關鍵發現:①weighted mesh『真實變形 si=0』靠 heat-diffusion partition-of-unity 平滑權重(藝術家同件亦 si=0,生成追平真值);②pivot/tree 準度取決於**件輪廓保真**(rect 代理爆閘),再現 rig 階段的 PSD-first 論點;③effect vs structural 語意分類**須作為輸入**(光暈大面積背光會汙染樹),是 honest boundary 非 bug;④weight-scramble 不一定破(根件諸骨 setup 近似剛性),hull-tangle(動拓樸)才是可靠負對照。**"
+                     "honest:Cocos/viewer 實機載入=使用者端(排程 scope 邊界,用真實 skinning 幾何量化等價);軟性加成件(光暈)si 不列硬閘(additive 視覺無害、藝術家自身即 si>0);pivot 沿軸精修/手感、effect 語意分類=美術/輸入(A 類);真實多 rig 真值屬使用者資源(S5→L3 硬缺口,本 chunk 只搬可自主的合成 + Award 單 rig 真值);weighted uvs 由 setup 世界 bbox 正規化(schema 級,真 atlas UV=build_spine/使用者端);過渡期 import repo tools/mesh_gen+tools/rig(E1 bundle)。cap c2_rig L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]
