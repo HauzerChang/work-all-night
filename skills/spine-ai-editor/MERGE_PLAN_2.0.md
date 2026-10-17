@@ -126,9 +126,25 @@
       見 `knowledge/s2-v2-rig-c2.md`。
 
 ### Phase D — 統一品質閘 validator_v2
-- [ ] **D1**：把 repo 的閘紀律 + v1.3.0 `validator_v1` 合成單一 `assets/validator_v2.py`：
-      一條指令同時驗「runtime 可載入 / editor 可匯入 / loop 閉合 / stiffness / deform si / C1」。
-      **AC**：對一支 2.0 生成的大獎動畫，一鍵輸出全維度 pass/fail + 量化指標。
+- [x] **D1**（2026-10-17 run 008 ✅）：把 repo 的閘紀律 + v1.3.0 `validator_v1` 合成單一
+      `assets/validator_v2.py`（`validate_v2` + CLI）：**一條指令**同時驗「runtime 可載入 /
+      editor 可匯入 / loop 閉合 / stiffness / deform si(C1)」。**無漂移**:維度 1–4 in-process 複用
+      `validator_v1.run_checks()`（本 run 把 v1 重構出此函式，`main` 輸出**逐字不變** → B1 bridge 零回歸），
+      維度 5 複用 `gen_lib.mesh.deform_si_gate`；validator_v2 不重寫任一判準、只合流。閘
+      `tools/analyzer/validate_d1_validator.py` **5 AC 全 PASS**：D1-1 一條指令對「2.0 生成大獎 +
+      嵌入 C1 生成 mesh」→ 五維度全 present、runtime/editor/loop/deform_si 皆 PASS + stiffness 有限
+      （50.49）+ overall_pass + deform_si gated≥1/**D1-2 無漂移**:validate_v2 的 errors/loop/stiffness
+      與**真正 validator_v1 subprocess**（使用者端實際 CLI）逐項一致/D1-3 真實 main_draw → deform_si 對
+      4 美術 mesh has_real_deform=True 且 clean(si=0) 真值校準/**D1-4** C1 生成 strip mesh 經 validator_v2
+      實際接線的 deform 引擎套真實場(源自原 artist uvs 轉移)→ si=0 clean;附帶:換幾何不換 deform
+      timeline = inconsistent skeleton 被抓 si=44(不放水)/D1-5 **每維度各有牙**:同一條 validate_v2
+      指令分別抓到 末鍵 curve→editor FAIL、破壞 loop→loop FAIL、hull tangle→deform_si FAIL、破壞 bone
+      引用→runtime FAIL。**關鍵發現:①「合成單一閘」的正確性靠 in-process 複用單一真相來源 + 與 CLI
+      subprocess 逐項對齊證無漂移(重構 v1 守住 stdout 逐字不變是硬約束);②deform timeline 綁定特定
+      mesh 的頂點佈局——換幾何不換 timeline = inconsistent skeleton,統一閘如實抓到;③stiffness 為手感
+      (A 類)預設只量化不硬閘;④weighted mesh 逐骨 skinning 變形屬 C2 範疇,統一閘只驗 schema。**
+      回歸 0 RED（新增 cap `d1_validator` L2）。見 `knowledge/s2-v2-validator-d1.md`。**Phase D 完成 → 下一個
+      run 進 Phase E（E1 bundle self-contained）。**
 
 ### ⚙️ 排程 scope 邊界（2026-10-12 使用者確認）
 - **排程環境 = 純 CPU、無 Cocos Creator、無 ffmpeg GPU**。排程**只推進純 CPU 可自主驗收的部分**：

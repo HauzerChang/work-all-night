@@ -1,8 +1,21 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-17 run 007(2.0 Phase C2 weighted mesh 生成 + rig 自動推斷 / 結構軸的 rig 分支 —— `gen_lib.rig` → 真實 skinning si=0 + pivot/tree 真值)。
-> 75 閘全綠(74 + C2 `c2_rig`,0 RED,無 GREEN→RED)。** 把 repo 三個確定性純 CPU 器——weighted mesh 生成
+> **最新:2026-10-17 run 008(2.0 Phase D1 統一品質閘 —— `validator_v2` 一鍵五維度:runtime 載入 / editor 匯入 / loop 閉合 / stiffness / deform si(C1))。
+> 76 閘全綠(75 + D1 `d1_validator`,0 RED,無 GREEN→RED)。** 把前面各 chunk 累積的**閘紀律**合成單一一條指令
+> `skills/spine-ai-editor/assets/validator_v2.py`(`validate_v2` + CLI):對一支 2.0 生成大獎動畫,一鍵輸出**全五維度**
+> pass/fail + 量化,不必分別跑 `validator_v1` 與 C1 兩套、也不必人工開 Spine editor。**無漂移**:維度 1–4 in-process 複用
+> `validator_v1.run_checks()`(本 run 把 v1 重構出此函式,`main` 輸出逐字不變 → B1 bridge 零回歸),維度 5 複用
+> `gen_lib.mesh.deform_si_gate`;validator_v2 不重寫任一判準、只合流。`validate_d1_validator.py` 5AC PASS:
+> D1-1 一條指令對「2.0 生成大獎 + 嵌入 C1 生成 mesh」→ 五維度全 present、runtime/editor/loop/deform_si 皆 PASS + stiffness 有限(50.49)+ overall_pass + deform_si gated≥1/
+> **D1-2 無漂移** validate_v2 的 errors/loop/stiffness 與**真正 validator_v1 subprocess**(使用者端 CLI)逐項一致/
+> D1-3 真實 main_draw → deform_si 對 4 美術 mesh has_real_deform=True 且 clean(si=0)真值校準/
+> D1-4 C1 生成 strip mesh 經 validator_v2 實際接線的 deform 引擎套真實場 → si=0 clean;附帶:換幾何不換 deform timeline = inconsistent skeleton 被抓 si=44(不放水)/
+> D1-5 **每維度各有牙** 同一條 validate_v2 指令分別抓到 末鍵 curve→editor FAIL、破壞 loop→loop FAIL、hull tangle→deform_si FAIL、破壞 bone 引用→runtime FAIL。
+> **關鍵發現:①「合成單一閘」正確性靠 in-process 複用單一真相來源 + 與 CLI subprocess 逐項對齊(D1-2)證無漂移;②deform timeline 綁定特定 mesh 頂點佈局,換幾何不換 timeline = inconsistent skeleton 被如實抓到;③stiffness 為手感(A 類)預設只量化不硬閘;④weighted mesh 逐骨 skinning 變形屬 C2 範疇,統一閘只驗 schema。**
+> runtime『可載入』用 validator_v0 schema 作 spine-webgl 無頭等價(Cocos/viewer 實機=使用者端);過渡期 validator_v2 import gen_lib.mesh→repo tools/mesh_gen(E1 bundle)。cap `d1_validator` L2 pipeline 併入 `spine-anim-forge`(仍 HOLD)。**Phase D 完成 → 下一個 run 進 Phase E(E1 bundle self-contained)。** 見 `knowledge/s2-v2-validator-d1.md`。
+> ──(前)2026-10-17 run 007(2.0 Phase C2 weighted mesh 生成 + rig 自動推斷 / 結構軸的 rig 分支 —— `gen_lib.rig` → 真實 skinning si=0 + pivot/tree 真值)。
+> 75 閘全綠(74 + C2 `c2_rig`,0 RED,無 GREEN→RED)。 把 repo 三個確定性純 CPU 器——weighted mesh 生成
 > (`generate_weighted_mesh`:三角化內部密度 + heat-diffusion/BBW 近似骨綁權重)、關節 pivot 推斷(`infer_pivots`:父子接觸縫)、
 > 肢體父子樹推斷(`infer_tree`:接觸距離 Dijkstra)——抽成 skill 入口 `skills/spine-ai-editor/assets/gen_lib/rig.py`
 > (`generate_weighted_part_mesh`/`generate_and_gate_weighted`/`infer_limb_tree`/`infer_joint_pivots`/`rig_from_parts`)——

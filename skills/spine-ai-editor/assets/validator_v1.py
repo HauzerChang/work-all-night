@@ -26,17 +26,17 @@ import curve_tools as ct                            # noqa: E402
 import json                                         # noqa: E402
 
 
-def main(argv):
-    if len(argv) < 2:
-        print(__doc__)
-        return 2
-    args = [a for a in argv[1:] if not a.startswith('--')]
-    json_path = Path(args[0])
-    atlas_path = Path(args[1]) if len(args) >= 2 else None
-    want_metric = '--metric' in argv
-    loop_anims = None
-    if '--loop-anims' in argv:
-        loop_anims = argv[argv.index('--loop-anims') + 1].split(',')
+def run_checks(json_path, atlas_path=None, loop_anims=None, want_metric=False):
+    """執行 v1 的全部檢查,回傳 (report, demoted, metrics) 供程式化消費。
+
+    這是 `main` 與 `validator_v2`(統一品質閘 D1)共用的單一真相來源:
+      report  : validator_v0 的 Report(errors/warnings/info,errors 已含 v1 的 cx 升級與末鍵 curve)。
+      demoted : 被降級為 info 的穿透式切線過衝(cy 超界)warning 清單。
+      metrics : {anim: stiffness}(want_metric=True 時才填)。
+    `main` 只做參數解析 + 印出,行為與輸出逐字不變(B1 bridge 解析其 stdout,不可回歸)。
+    """
+    json_path = Path(json_path)
+    atlas_path = Path(atlas_path) if atlas_path is not None else None
 
     # ---- v0 全套 ----
     r = validate_v0(json_path, atlas_path)
@@ -77,6 +77,23 @@ def main(argv):
             r.warn(f'(v1 loop) {aname}: {prob}')
         if want_metric:
             metrics[aname] = ct.stiffness_metric(anim, dur)
+
+    return r, demoted, metrics
+
+
+def main(argv):
+    if len(argv) < 2:
+        print(__doc__)
+        return 2
+    args = [a for a in argv[1:] if not a.startswith('--')]
+    json_path = Path(args[0])
+    atlas_path = Path(args[1]) if len(args) >= 2 else None
+    want_metric = '--metric' in argv
+    loop_anims = None
+    if '--loop-anims' in argv:
+        loop_anims = argv[argv.index('--loop-anims') + 1].split(',')
+
+    r, demoted, metrics = run_checks(json_path, atlas_path, loop_anims, want_metric)
 
     # ---- 輸出 ----
     print(f'=== validator_v1 on {json_path.name} ===')
