@@ -1,8 +1,20 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-17 run 008(2.0 Phase D1 統一品質閘 —— `validator_v2` 把全維度合成單一報告)。
-> 76 閘全綠(75 + D1 `d1_validator_v2`,0 RED,無 GREEN→RED)。** 把 repo 閘紀律 + v1.3.0 `validator_v1` **合成單一**
+> **最新:2026-10-18 run 009(2.0 Phase E1 self-contained bundle —— gen 碼 bundle 進 `assets/genpack`,移除對 repo `tools/` 的硬相依,G5)。
+> 77 閘全綠(76 + E1 `e1_bundle`,0 RED,無 GREEN→RED)。** 把 `gen_lib`(make_beat/pivot_axis/sequence/mesh/rig)與 `validator_v2`
+> 公開 API 會用到的 **13 個** repo `tools/` 純 CPU 模組,**byte-identical trimmed copy** 進 `skills/spine-ai-editor/assets/genpack/`
+> (+ `MANIFEST.json` sha256 drift guard),各 `_wire_repo_tools()` 改為**優先用 bundle**、repo `tools/` 僅開發 fallback → 交付
+> `.skill`(只帶 assets/)在使用者端無 repo tools 時也能生成+驗收。`validate_e1_bundle.py` 5AC PASS:
+> E1-1 bundle 13 模組與 repo 來源逐位元一致/**E1-2 headline** 複製 assets/ 到**無 sibling `tools/`** 的暫存目錄 + `python3 -I` 子程序
+> (= 交付 .skill 真實佈局)→ 五生成軸全 import+生成成功、解析到隔離 genpack/E1-3 隔離 `validator_v2` overall PASS 且維度 5/6 非 unavailable/
+> E1-4 隔離生成 beat 過 `validator_v1` editor-import 0 error(G2)/E1-5 負對照:移走 genpack→import FAIL(證測試真靠 bundle)。
+> **關鍵發現:①隔離要靠「無 sibling tools/ 的真實佈局」而非 monkeypatch;②bundle 用 copy(G5 trimmed copy)+ drift guard;
+> ③E1 不改生成/產線值→B2..D1 六閘回歸全綠即證零行為回歸;④維度 5/6 的 na/info ≠ unavailable。**
+> honest:`analyze_target`(PSD 前端)不在 bundle(可選輸入,需 psd-tools);第三方 pip 不 bundle;SKILL.md 升 2.0.0 + 重 zip .skill = E2/E3,sync = E4(C 類)。
+> cap `e1_bundle` L2 pipeline 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s2-v2-bundle-e1.md`。
+> ──(前)2026-10-17 run 008(2.0 Phase D1 統一品質閘 —— `validator_v2` 把全維度合成單一報告)。
+> 76 閘全綠(75 + D1 `d1_validator_v2`,0 RED,無 GREEN→RED)。 把 repo 閘紀律 + v1.3.0 `validator_v1` **合成單一**
 > `skills/spine-ai-editor/assets/validator_v2.py :: validate_v2`——對一支 2.0 生成的大獎動畫,**一條指令輸出全維度
 > pass/fail + 量化指標**(六維度:runtime 可載入 / editor 可匯入 / loop 閉合 / stiffness / deform si / C1)。
 > validator_v2 是**編排層**(不新寫檢查邏輯):維度 1-4 直呼 `validator_v1.validate_v1()`(為此把 v1 抽出程式化入口,
