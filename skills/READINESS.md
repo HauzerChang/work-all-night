@@ -1,8 +1,23 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-17 run 008(2.0 Phase D1 統一品質閘 —— `validator_v2` 把全維度合成單一報告)。
-> 76 閘全綠(75 + D1 `d1_validator_v2`,0 RED,無 GREEN→RED)。** 把 repo 閘紀律 + v1.3.0 `validator_v1` **合成單一**
+> **最新:2026-10-18 run 009(2.0 Phase E1 self-contained bundle —— 生成/驗收碼打包進 skill,移除 repo `tools/` 硬相依,滿足 G5)。
+> 77 閘全綠(76 + E1 `e1_bundle`,0 RED,無 GREEN→RED)。** B/C/D 把生成器 + 統一閘搬進 skill,但各 `_wire_repo_tools()`
+> 過渡期仍 import repo 的 `tools/analyzer`+`mesh_gen`+`rig` → 純使用者端(只拿 skill 資料夾、無本 research repo)會 import 不到而爆。
+> E1 把這些生成/評估/推斷碼的 **import 閉包(18 模組)** 的 **逐 byte trimmed copy** bundle 進
+> `skills/spine-ai-editor/assets/gen_lib/_bundled/`(附 `BUNDLE_MANIFEST.json` sha256,扁平非 package 目錄),各
+> `_wire_repo_tools()`(make_beat/mesh/rig/validator_v2;sequence/pivot_axis 共用 make_beat)改為 **bundle 優先、repo `tools/` 僅 repo 環境 fallback**。
+> `validate_e1_bundle.py` 5AC PASS:E1-1 faithful_trimmed_copy(18 模組 sha256==repo 原檔 + 對 bundle 重算 import 閉包全落 bundle 內無漏 + 18<<93 trimmed)/
+> **E1-2 generation_self_contained(headline)**:把 `assets/` 複製到 **repo 外**、subprocess 清 env(sys.path 不含 repo tools)→
+> generate_bigwin/idle/compose/crossfade/pivot 全跑成 + gen_animations/generate_mesh_v2/generate_weighted_mesh 皆解析自 `_bundled/`(provenance)/
+> E1-3 validator_self_contained(同隔離環境 validate_v2 對生成 beat deform_si=na/c1=info/overall PASS=維度 5/6 wired、對 main_draw 4 真實 mesh deform_si=pass、mesh.deform_si_gate/rig.infer_limb_tree 直呼亦成)/
+> **E1-4 negative_control**(刪 `_bundled/` → generate/mesh/rig 皆 ImportError 指名缺模組、validate_v2 維度 5/6 退 unavailable 但 1-4 仍 PASS → bundle 承重 + 降級正確閘非恆真)/
+> E1-5 zero_regression(repo 環境既有閘 validate_b2_genlib.py 仍 exit 0)。
+> **關鍵發現:①self-containment 最可信證法 = 把 assets/ 搬出 repo 實跑 + `__file__` provenance(靜態掃 import 蓋不到 `sys.path.insert` 動態 wiring);
+> ②逐 byte 複製 + sha256 manifest = 漂移防護(repo tools 改了忘 re-bundle → E1-1 立刻 FAIL);③bundle 優先但零回歸靠「repo 既有閘先 import repo 版(sys.modules 快取)+ 兩者逐 byte 相同」。**
+> 外部 pip 套件(numpy/cv2/scipy/triangle/psd_tools/PIL)仍需安裝,G5 只管 repo tools 不管 pip;Cocos/viewer 實機=使用者端;E2(改 SKILL.md→2.0.0)/E3(重跑 readiness+zip)/E4(C 類 sync 拍板)為後續。cap `e1_bundle` L2 eval 併入 `spine-anim-forge`(仍 HOLD)。見 `knowledge/s2-v2-bundle-e1.md`。
+> ──(前)2026-10-17 run 008(2.0 Phase D1 統一品質閘 —— `validator_v2` 把全維度合成單一報告)。
+> 76 閘全綠(75 + D1 `d1_validator_v2`,0 RED,無 GREEN→RED)。 把 repo 閘紀律 + v1.3.0 `validator_v1` **合成單一**
 > `skills/spine-ai-editor/assets/validator_v2.py :: validate_v2`——對一支 2.0 生成的大獎動畫,**一條指令輸出全維度
 > pass/fail + 量化指標**(六維度:runtime 可載入 / editor 可匯入 / loop 閉合 / stiffness / deform si / C1)。
 > validator_v2 是**編排層**(不新寫檢查邏輯):維度 1-4 直呼 `validator_v1.validate_v1()`(為此把 v1 抽出程式化入口,

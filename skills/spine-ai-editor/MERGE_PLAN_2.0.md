@@ -154,7 +154,24 @@
   Cocos 視覺確認留最後交付給使用者。**排程遇到需 Cocos/ffmpeg 的步驟 → 標記「待使用者端」跳過，不停等。**
 
 ### Phase E — 打包升版 & 交付（里程碑 / C 類拍板）
-- [ ] **E1**：生成碼 bundle 進 `assets/`（self-contained，滿足 G5）；移除對 repo `tools/` 的硬相依。
+- [x] **E1**（2026-10-18 run 009 ✅）：生成碼 bundle 進 `assets/gen_lib/_bundled/`（self-contained，滿足 **G5**）；
+      移除對 repo `tools/` 的硬相依。把 B/C/D 入口實際會 wire 的生成/評估/推斷碼做 **import 閉包 = 18 模組**
+      （analyzer+mesh_gen+rig 共 93 py 的 trimmed set），**逐 byte 複製**進 `_bundled/`（附 `BUNDLE_MANIFEST.json`
+      sha256，可驗漂移/可重建），扁平非 package 目錄（天然自洽於這些模組的同目錄平面 import）。各
+      `_wire_repo_tools()`（make_beat / mesh / rig / validator_v2；sequence / pivot_axis 共用 make_beat）改為
+      **bundle 優先、repo `tools/` 僅 repo 環境 fallback**。閘 `tools/analyzer/validate_e1_bundle.py` **5 AC 全 PASS**：
+      E1-1 faithful_trimmed_copy（18 模組 sha256==repo 原檔 + 對 bundle 重算 import 閉包全落 bundle 內無漏 + 18<<93）/
+      **E1-2 generation_self_contained（headline）**：把 `assets/` 複製到 **repo 外**、subprocess 清 env（sys.path 不含
+      repo tools）→ generate_bigwin/generate_idle/compose/crossfade/pivot 全跑成，且 gen_animations/generate_mesh_v2/
+      generate_weighted_mesh 皆解析自 `_bundled/`（provenance）/E1-3 validator_self_contained（同隔離環境 validate_v2
+      對生成 beat deform_si=na/c1=info/overall PASS=維度 5/6 wired 非 unavailable、對 main_draw 4 真實 mesh deform_si=pass、
+      mesh.deform_si_gate/rig.infer_limb_tree 直呼亦成）/**E1-4 negative_control**（同隔離環境但刪 `_bundled/` →
+      generate/mesh/rig 皆 ImportError 指名缺模組、validate_v2 維度 5/6 退 unavailable 但 1-4 仍 PASS → 證 bundle 承重 +
+      降級正確閘非恆真）/E1-5 zero_regression（repo 既有閘 validate_b2_genlib.py 仍 exit 0）。
+      **關鍵發現**：①self-containment 最可信的證法是**把 assets/ 搬出 repo 實跑 + `__file__` provenance**（靜態掃 import
+      蓋不到 `sys.path.insert` 動態 wiring）；②逐 byte 複製 + sha256 manifest = 漂移防護；③bundle 優先但零回歸靠
+      「repo 既有閘先 import repo 版（sys.modules 快取）+ 兩者逐 byte 相同」。回歸 **0 RED**（新增 cap `e1_bundle` L2）。
+      見 `knowledge/s2-v2-bundle-e1.md`。**下一個 run 進 E2(改 SKILL.md→2.0.0)。**
 - [ ] **E2**：改寫 `SKILL.md` → **2.0.0**（新增軸寫進核心能力表 + 觸發詞 + Changelog），更新 `INSTALL.md`。
 - [ ] **E3**：跑 `check_readiness.py` 更新 `READINESS.md`；重 zip 成 `.skill` 交付檔。
 - [ ] **E4**：依 RULES **C 類**回報使用者拍板是否 sync（打包/安裝屬帳號層級，需人決定）。

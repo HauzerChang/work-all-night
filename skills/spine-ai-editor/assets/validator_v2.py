@@ -35,10 +35,11 @@ gen_animations.is_c1_loopable 各自怎麼跑。
   - 維度 6 **直接呼叫 `gen_animations.is_c1_loopable()`**(B4 的 C1 判準)。
   → validator_v2 是**編排層(orchestrator)**,不是新的檢查邏輯;各維度的真值來源仍是既有、已有負對照的閘。
 
-== 過渡期相依（D1 → E1）==
-  維度 1-4 **standalone**(只需 assets/ 的 validator_v0 / validator_v1 / curve_tools,無 repo tools)。
-  維度 5(deform_si)需 repo tools/mesh_gen、維度 6(c1)需 repo tools/analyzer——與 gen_lib 一致的過渡期
-  相依;**取不到時該維度標 `unavailable`(不讓整支 crash)**，standalone 的 1-4 仍可跑。E1 bundle 後補齊。
+== 相依（E1 self-contained 後）==
+  維度 1-4 **standalone**(只需 assets/ 的 validator_v0 / validator_v1 / curve_tools)。
+  維度 5(deform_si)需 gen_lib.mesh+mesh_gen、維度 6(c1)需 gen_animations——**E1 起這些都隨
+  skill 打包在 `assets/gen_lib/_bundled/`**(見 `_wire_repo_tools`),純使用者端即可跑全六維度。
+  `_bundled/` 被刪且不在 repo 環境時,維度 5/6 標 `unavailable`(不讓整支 crash),1-4 仍可跑。
 
 用法（CLI）:
   python3 validator_v2.py Main.json [Main.atlas]            # 全維度精簡報告
@@ -70,15 +71,21 @@ from validator_v1 import validate_v1                      # noqa: E402
 
 # --------------------------------------------------------------------- 過渡期 shim（維度 5/6）
 def _wire_repo_tools():
-    """把 repo 的 tools/mesh_gen、tools/analyzer 掛上 sys.path。
-    回傳 (ok, err)。取不到時 ok=False，維度 5/6 標 unavailable（standalone 1-4 仍可跑）。
-    E1 self-contained bundle 後本函式改指向 bundled 目錄。"""
+    """把維度 5/6 需要的生成碼掛上 sys.path。回傳 (ok, err)。
+
+    **E1(self-contained)**:優先用隨 skill 打包的 `assets/gen_lib/_bundled/`
+    (gen_animations 供維度 6;gen_lib.mesh 供維度 5,其自身再 wire bundle 的 mesh_gen)。
+    `_bundled/` 不存在才退回 repo `tools/`(repo 環境 fallback)。
+    取不到時 ok=False,維度 5/6 標 unavailable(standalone 的維度 1-4 仍可跑)。"""
+    bundled = os.path.join(_HERE, "gen_lib", "_bundled")             # E1 self-contained 生成碼
     repo = os.path.normpath(os.path.join(_HERE, "..", "..", ".."))   # assets → skill → skills → repo
     for p in (os.path.join(repo, "tools", "mesh_gen"),
               os.path.join(repo, "tools", "analyzer"),
               os.path.join(_HERE, "gen_lib")):
-        if p not in sys.path:
+        if os.path.isdir(p) and p not in sys.path:
             sys.path.insert(0, p)
+    if os.path.isdir(bundled) and bundled not in sys.path:
+        sys.path.insert(0, bundled)
     try:
         import gen_lib.mesh as _m           # noqa: F401
         import gen_animations as _g         # noqa: F401

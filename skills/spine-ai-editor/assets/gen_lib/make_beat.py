@@ -44,32 +44,37 @@ import os
 import sys
 
 
-# --------------------------------------------------------------------- 過渡期路徑 shim
+# --------------------------------------------------------------------- 路徑 shim（E1:self-contained）
 def _wire_repo_tools():
-    """把 repo 的 tools/analyzer、tools/mesh_gen、以及本 assets/(validator_v1/curve_tools)
-    掛上 sys.path。E1 self-contained bundle 後本函式改為指向 bundled 目錄即可。
+    """把生成碼掛上 sys.path,回傳 (gen_animations_module, curve_tools_module)。
 
-    回傳 (gen_animations_module, curve_tools_module)。找不到 repo tools 時給清楚錯誤。
+    **E1(self-contained bundle,滿足 G5)**:優先用隨 skill 一起打包的 `_bundled/`
+    (生成碼的 trimmed copy),使純使用者端(無 repo `tools/`)也能跑。
+    若 `_bundled/` 不存在(例如有人手動刪了)才退回 repo `tools/`(repo 環境 fallback)。
+    bundled 置於 sys.path 最前 → 預設真值來源為 bundle;repo 執行時既有閘已先 import repo 版
+    (sys.modules 快取),且兩者逐 byte 相同(見 `_bundled/BUNDLE_MANIFEST.json` + E1-1 閘)→ 零回歸。
     """
     here = os.path.dirname(os.path.abspath(__file__))              # .../assets/gen_lib
     assets = os.path.dirname(here)                                 # .../assets
-    # repo 根:assets/gen_lib → skills/spine-ai-editor/assets → skills/spine-ai-editor → skills → repo
+    bundled = os.path.join(here, "_bundled")                       # E1 self-contained 生成碼
+    # repo 根(fallback):assets/gen_lib → assets → spine-ai-editor → skills → repo
     repo = os.path.normpath(os.path.join(here, "..", "..", "..", ".."))
-    cand = [
-        os.path.join(repo, "tools", "analyzer"),
-        os.path.join(repo, "tools", "mesh_gen"),
-        assets,                                                     # curve_tools / validator_v1
-    ]
-    for p in cand:
-        if p not in sys.path:
+    # repo/assets 路徑(fallback / curve_tools)先掛;bundled 最後插到最前 → 優先。
+    for p in (os.path.join(repo, "tools", "analyzer"),
+              os.path.join(repo, "tools", "mesh_gen"),
+              assets):                                             # curve_tools / validator_v1
+        if os.path.isdir(p) and p not in sys.path:
             sys.path.insert(0, p)
+    if os.path.isdir(bundled) and bundled not in sys.path:
+        sys.path.insert(0, bundled)
     try:
         import gen_animations as G
         import curve_tools as ct
     except ImportError as e:
         raise ImportError(
-            "gen_lib 過渡期需要 repo 的 tools/analyzer(gen_animations)與 assets/curve_tools。"
-            "在 repo 環境下跑;E1 self-contained bundle 後此相依會移除。原始錯誤:{}".format(e))
+            "gen_lib 需要生成碼 gen_animations(隨 skill 的 assets/gen_lib/_bundled 打包)"
+            "與 assets/curve_tools。找不到 _bundled/ 且不在 repo 環境時會發生此錯。"
+            "原始錯誤:{}".format(e))
     return G, ct
 
 

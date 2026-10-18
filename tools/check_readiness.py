@@ -859,6 +859,24 @@ BLOCKS = [
                      "③deform_si/C1 屬過渡期相依(repo tools/mesh_gen+analyzer),取不到標 unavailable 不讓整支 crash,standalone 維度 1-4 仍可跑。**"
                      "honest:Cocos/viewer 實機載入與 PMA 視覺=使用者端(排程 scope 邊界,用 spine-webgl 無頭等價仍留 E);stiffness 與未要求的 C1 為量化指標非硬閘(手感 A 類);"
                      "過渡期 import repo tools(E1 bundle);真值資產=生成 beat + main_draw 4 mesh。cap d1_validator_v2 L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("e1_bundle", "spine-ai-editor 2.0 E1 self-contained bundle:生成/驗收碼 bundle 進 assets/gen_lib/_bundled → 移除 repo tools/ 硬相依(G5)", "L2",
+                "python3 tools/analyzer/validate_e1_bundle.py", "eval",
+                note="MERGE_PLAN_2.0 Phase E / E1(承 B/C/D 全部,收斂護欄 G5『self-contained』):B/C/D 把生成器 + 統一閘搬進 skill,"
+                     "但各 `_wire_repo_tools()` 過渡期仍 import repo 的 tools/analyzer+mesh_gen+rig → 純使用者端(只拿 skill 資料夾、無本 research repo)會 import 不到而爆。"
+                     "E1 把生成/評估/推斷碼的 **import 閉包(18 模組)** 的 trimmed copy bundle 進 `skills/spine-ai-editor/assets/gen_lib/_bundled/`,"
+                     "各 `_wire_repo_tools()`(make_beat/mesh/rig + validator_v2)改為**優先用 bundle**、repo tools/ 僅 repo 環境 fallback;"
+                     "bundle 逐 byte 複製 + 附 BUNDLE_MANIFEST.json(sha256)。validate_e1_bundle.py 5AC PASS"
+                     "(E1-1 faithful_trimmed_copy:manifest 列 18 模組 sha256==repo 原檔 + 對 bundle 重算 import 閉包全落 bundle 內(無漏) + 18<<93 repo tool 模組(trimmed)/"
+                     "E1-2 generation_self_contained(headline):把 assets/ 複製到 repo 外、subprocess 清 env(sys.path 不含 repo tools)→ generate_bigwin/generate_idle/compose/crossfade/pivot 全跑成,"
+                     "且 gen_animations/generate_mesh_v2/generate_weighted_mesh 皆解析自 _bundled/(provenance 驗證)/"
+                     "E1-3 validator_self_contained:同隔離環境 validate_v2 對生成 beat 回 deform_si=na/c1=info/overall PASS(維度 5/6 wired 非 unavailable)、對 main_draw 4 真實 mesh deform_si=pass、mesh.deform_si_gate/rig.infer_limb_tree 直呼亦成/"
+                     "E1-4 negative_control:同隔離環境但刪 _bundled/ → generate/mesh/rig 皆 ImportError(指名缺模組)、validate_v2 維度 5/6 退 unavailable 但 1-4 仍 PASS(graceful,不整支 crash)→ 證 bundle 承重 + 閘非恆真/"
+                     "E1-5 zero_regression:repo 環境既有閘 validate_b2_genlib.py 仍 exit 0(rewire 未破壞 repo 側))。"
+                     "**關鍵發現:①『self-containment』最可信的證法是**把 assets/ 搬出 repo、清掉 repo 於 sys.path 後實跑**(靜態掃 import 不夠,蓋不到 sys.path.insert 的動態 wiring);"
+                     "②bundle 逐 byte 複製 + sha256 manifest → 未來 repo tools 若改而忘了 re-bundle,E1-1 立刻抓到漂移(drift 防護);"
+                     "③驗證器優先用 bundle 但 repo 既有閘先 import repo 版(sys.modules 快取)+ 兩者逐 byte 相同 → 零回歸。**"
+                     "honest:外部 pip 套件(numpy/cv2/scipy/triangle/psd_tools/PIL)仍需安裝,G5 只管 repo tools/ 相依不管 pip(見 requirements.txt);"
+                     "Cocos/viewer 實機=使用者端(排程 scope 邊界);E2(改 SKILL.md→2.0.0)/E3(重跑 readiness+zip)/E4(C 類 sync 拍板)為後續。cap e1_bundle L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]
