@@ -11,7 +11,9 @@
   from gen_lib.rig import (generate_weighted_part_mesh, generate_and_gate_weighted,    # C2 weighted mesh + rig 自動推斷(結構軸)
                            infer_limb_tree, infer_joint_pivots, rig_from_parts)
 
-過渡期(B2/B3/B4)import repo 的 tools/analyzer、(C1)tools/mesh_gen、(C2)tools/mesh_gen+tools/rig;E1 會 self-contained bundle。見各 .py docstring。
+**self-contained(E1,2026-10-18)**:生成/評估引擎已逐位元 bundle 進 `gen_lib/_bundled/`
+(gen_animations / mesh / rig / pivot 的 repo 來源複本),**不再相依本 research repo 的 `tools/`**;
+各 `_wire_repo_tools()` 指向 `_bundled/`。見 `_bundled/README.md` 與各 .py docstring。
 """
 from .make_beat import (  # noqa: F401
     generate_bigwin, write_bigwin, generate_idle, parts_from_psd,

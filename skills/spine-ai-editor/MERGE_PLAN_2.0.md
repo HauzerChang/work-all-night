@@ -154,7 +154,24 @@
   Cocos 視覺確認留最後交付給使用者。**排程遇到需 Cocos/ffmpeg 的步驟 → 標記「待使用者端」跳過，不停等。**
 
 ### Phase E — 打包升版 & 交付（里程碑 / C 類拍板）
-- [ ] **E1**：生成碼 bundle 進 `assets/`（self-contained，滿足 G5）；移除對 repo `tools/` 的硬相依。
+- [x] **E1**（2026-10-18 run 009 ✅）：把執行期需要的 **13 個** repo 生成/評估模組逐位元複本 bundle 進
+      `assets/gen_lib/_bundled/`（analyzer:gen_animations/beat_templates/tier_variants/spine_anim/pivot_rotation；
+      mesh_gen:generate_mesh_v2/generate_mesh/deform_eval/atlas_crop/generate_weighted_mesh/weighted_deform_eval；
+      rig:infer_pivots/infer_tree），並把 gen_lib 五模組 + `validator_v2` 的 `_wire_repo_tools()` 全改指向
+      `_bundled/`，**移除對 repo `tools/` 的硬相依**（滿足 G5 self-contained）。閘
+      `tools/analyzer/validate_e1_selfcontained.py` **5 AC 全 PASS**：E1-1 bundle 13 模組齊備 + 與 repo 來源
+      SHA-256 **byte-identical** + 無未登錄額外 .py/**E1-2 headline**：整個 `assets/` 複製到 **repo 外**、
+      PYTHONPATH 只給複本、cwd 中性空目錄 → 跑 gen_lib beat×4 / idle+繞關節 pivot / mesh(合成 mask nv=30) /
+      rig(合成 chain root=torso) / sequence compose+crossfade + validator_v2，全成功 + 掃 `sys.modules`
+      **零 repo import 洩漏**/E1-3 **負對照**:external 移掉 `_bundled/` → 生成 ImportError(rc=7)/
+      E1-4 external validator_v2 四 beat 六維度硬閘 PASS + deform_si/c1 **可用(非 unavailable)** + overall PASS/
+      E1-5 in-repo 零回歸:既有 B2/B3/B4/C1/C2/D1 **六閘** 仍全 exit 0。**關鍵發現:①self-contained 的真正
+      證明是 external 隔離 + `sys.modules` 洩漏掃描,不是「能 import」;②逐位元複本 = 零回歸 by construction
+      (維護約定:repo 來源改了就重新複製 + 重跑 E1-1 逼同步);③G5 邊界是「不 import 不存在的 tools/」,不是
+      「不需任何使用者資料」——生成路徑 self-contained,真值校準資料(Award.json/main_draw.json)與 PSD 反推
+      本就該由使用者提供,刻意留使用者端。** 回歸 0 RED（新增 cap `e1_selfcontained` L2）。見
+      `knowledge/s2-v2-e1-selfcontained.md`。
+      **下一個 run 做 E2（改寫 `SKILL.md`→2.0.0 + `INSTALL.md`）。**
 - [ ] **E2**：改寫 `SKILL.md` → **2.0.0**（新增軸寫進核心能力表 + 觸發詞 + Changelog），更新 `INSTALL.md`。
 - [ ] **E3**：跑 `check_readiness.py` 更新 `READINESS.md`；重 zip 成 `.skill` 交付檔。
 - [ ] **E4**：依 RULES **C 類**回報使用者拍板是否 sync（打包/安裝屬帳號層級，需人決定）。

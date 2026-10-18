@@ -859,6 +859,28 @@ BLOCKS = [
                      "③deform_si/C1 屬過渡期相依(repo tools/mesh_gen+analyzer),取不到標 unavailable 不讓整支 crash,standalone 維度 1-4 仍可跑。**"
                      "honest:Cocos/viewer 實機載入與 PMA 視覺=使用者端(排程 scope 邊界,用 spine-webgl 無頭等價仍留 E);stiffness 與未要求的 C1 為量化指標非硬閘(手感 A 類);"
                      "過渡期 import repo tools(E1 bundle);真值資產=生成 beat + main_draw 4 mesh。cap d1_validator_v2 L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("e1_selfcontained", "spine-ai-editor 2.0 E1 self-contained bundle(G5):gen_lib/validator 全走 bundled 引擎,repo tools/ 零相依", "L2",
+                "python3 tools/analyzer/validate_e1_selfcontained.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase E1(承 B/C/D 全部):把執行期需要的 13 個 repo 生成/評估模組"
+                     "(tools/analyzer:gen_animations/beat_templates/tier_variants/spine_anim/pivot_rotation;"
+                     "tools/mesh_gen:generate_mesh_v2/generate_mesh/deform_eval/atlas_crop/generate_weighted_mesh/weighted_deform_eval;"
+                     "tools/rig:infer_pivots/infer_tree)**逐位元複本** bundle 進 "
+                     "`skills/spine-ai-editor/assets/gen_lib/_bundled/`,並把 gen_lib 五模組 + validator_v2 的 "
+                     "`_wire_repo_tools()` 全部改指向 `_bundled/`,**移除對本 research repo tools/ 的硬相依**(滿足 G5 self-contained)。"
+                     "validate_e1_selfcontained.py 5AC PASS(E1-1 bundle 13 模組齊備 + 與 repo 來源 byte-identical + 無未登錄額外 .py/"
+                     "**E1-2 headline**:把整個 assets/ 複製到 **repo 外**、PYTHONPATH 只給複製出的 assets、cwd 中性空目錄 → 跑 gen_lib "
+                     "beat×4(cascade/pop/wobble/twist)/ idle+繞關節 pivot / mesh 生成(合成 mask nv=30)/ rig 推斷(合成 chain root=torso)/ "
+                     "sequence compose+crossfade + validator_v2,全成功 + 掃 sys.modules **零 repo import 洩漏**/"
+                     "E1-3 **負對照**:external 複本移掉 _bundled/ → 生成 ImportError 失敗(證生成確實靠 bundle 非環境 fallback)/"
+                     "E1-4 external validator_v2 四 beat 六維度:硬閘 runtime/editor/loop PASS、deform_si/c1 **可用(非 unavailable)**、overall PASS → "
+                     "統一閘也 self-contained/E1-5 in-repo 零回歸:既有 B2/B3/B4/C1/C2/D1 六閘仍全 exit 0)。"
+                     "**關鍵發現:①逐位元複本 = 零回歸 by construction(in-repo module cache 命中 repo 複本、external 只有 bundle,兩者同碼);"
+                     "②self-contained 的真正證明是 external 隔離 + sys.modules 洩漏掃描,不是『能 import』;"
+                     "③生成路徑 self-contained,但真值校準資料(Award.json/main_draw.json)與 PSD 反推(analyze_target 鏈)仍屬使用者端/repo 資料——"
+                     "honest boundary:G5 只要求不 import 不存在的 tools/,資料真值本就該由使用者提供。**"
+                     "honest:weighted mesh **生成**需 Award hull 真值資料(使用者端),external 測試只驗合成 rig 推斷路徑;"
+                     "parts_from_psd(PSD 驅動)仍需 repo S1 分析器,刻意不 bundle(使用者端/過渡期);Cocos/viewer 實機=使用者端。"
+                     "cap e1_selfcontained L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

@@ -68,20 +68,18 @@ from validator_v0 import validate as validate_v0          # noqa: E402
 from validator_v1 import validate_v1                      # noqa: E402
 
 
-# --------------------------------------------------------------------- 過渡期 shim（維度 5/6）
+# --------------------------------------------------------------------- self-contained shim（維度 5/6，E1）
 def _wire_repo_tools():
-    """把 repo 的 tools/mesh_gen、tools/analyzer 掛上 sys.path。
+    """把 **bundled** 生成引擎(`gen_lib/_bundled`,repo tools 的逐位元複本)掛上 sys.path。
     回傳 (ok, err)。取不到時 ok=False，維度 5/6 標 unavailable（standalone 1-4 仍可跑）。
-    E1 self-contained bundle 後本函式改指向 bundled 目錄。"""
-    repo = os.path.normpath(os.path.join(_HERE, "..", "..", ".."))   # assets → skill → skills → repo
-    for p in (os.path.join(repo, "tools", "mesh_gen"),
-              os.path.join(repo, "tools", "analyzer"),
-              os.path.join(_HERE, "gen_lib")):
+    E1(2026-10-18)後 skill **self-contained**,不再相依本 research repo 的 `tools/`。"""
+    for p in (os.path.join(_HERE, "gen_lib", "_bundled"),            # 生成引擎逐位元複本
+              os.path.join(_HERE, "gen_lib")):                       # gen_lib package
         if p not in sys.path:
             sys.path.insert(0, p)
     try:
-        import gen_lib.mesh as _m           # noqa: F401
-        import gen_animations as _g         # noqa: F401
+        import gen_lib.mesh as _m           # noqa: F401  維度 5 deform_si
+        import gen_animations as _g         # noqa: F401  維度 6 c1(bundled)
         return True, None
     except Exception as e:                   # noqa: BLE001
         return False, "{}: {}".format(type(e).__name__, e)

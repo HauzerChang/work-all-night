@@ -18,9 +18,9 @@
     `strip_last_frame_curves()` 保險(與 make_beat 入口同一條 G1 契約)。
   - **G3 不覆蓋美術原檔**:本流程只在**傳入的動畫**上疊加補償,不碰其他動畫 / bones / slots。
 
-== 過渡期相依(B3 → E1)==
-  同 make_beat:透過其 `_wire_repo_tools()` 掛 repo `tools/analyzer`(`pivot_rotation` / `spine_anim`)。
-  E1 self-contained bundle 後移除此相依。
+== self-contained(E1,2026-10-18)==
+  同 make_beat:透過其 `_wire_repo_tools()` 掛 **bundled** 生成引擎(`gen_lib/_bundled` 的
+  `pivot_rotation` / `spine_anim`)。E1 後不再相依本 research repo 的 `tools/`。
 
 用法(程式化):
   from gen_lib.pivot_axis import apply_joint_pivots, bone_origins_from_skel
@@ -38,9 +38,9 @@ except ImportError:  # 當 gen_lib 目錄被直接加進 sys.path 時
 
 
 def _wire():
-    """掛上 repo tools,回傳 (pivot_rotation_module, curve_tools_module)。"""
-    _, ct = _mb._wire_repo_tools()      # 把 tools/analyzer、assets 掛上 sys.path
-    import pivot_rotation as pr          # noqa: E402  tools/analyzer(含 spine_anim 同目錄相依)
+    """掛上 bundled 生成引擎,回傳 (pivot_rotation_module, curve_tools_module)。E1 後走 self-contained。"""
+    _, ct = _mb._wire_repo_tools()      # 把 gen_lib/_bundled、assets 掛上 sys.path
+    import pivot_rotation as pr          # noqa: E402  bundled(含 spine_anim 同目錄相依)
     return pr, ct
 
 

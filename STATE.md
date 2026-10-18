@@ -12,10 +12,30 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)、C2 ✅(weighted mesh + rig 自動推斷 / 結構軸的 rig 分支,2026-10-17 run 007)、D1 ✅(統一品質閘 validator_v2,2026-10-17 run 008)。Phase B/C/D 完成;下一個 run 做 Phase E 的 E1**
-> (self-contained bundle:把生成碼 bundle 進 `skills/spine-ai-editor/assets/`,移除對 repo `tools/` 的硬相依——
-> 含 validator_v2 / gen_lib(make_beat/mesh/rig/sequence/pivot_axis)各自的 `_wire_repo_tools()` shim,滿足 G5;E1 純 CPU 可自主,
-> E4「是否 sync 打包」屬帳號層級 → 依 RULES C 類回報使用者拍板)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)、C2 ✅(weighted mesh + rig 自動推斷 / 結構軸的 rig 分支,2026-10-17 run 007)、D1 ✅(統一品質閘 validator_v2,2026-10-17 run 008)、E1 ✅(self-contained bundle / G5,2026-10-18 run 009)。Phase B/C/D 完成、Phase E 的 E1 完成;下一個 run 做 E2**
+> (E2:改寫 `skills/spine-ai-editor/SKILL.md` → **2.0.0**(把新增的生成/mesh/rig/序列/統一閘軸寫進核心能力表 + 觸發詞 + Changelog),更新 `INSTALL.md`。
+> 之後 E3(跑 `check_readiness.py` 更新 `READINESS.md` + 重 zip 成 `.skill` 交付檔)、E4(依 RULES **C 類**回報使用者拍板是否 sync——打包/安裝屬帳號層級,需人決定)。
+> E2/E3 純 CPU 可自主;E4 須使用者拍板)。
+> **E1 做了什麼**(2026-10-18 run 009):收斂 B2→D1 遺留的過渡期相依——每個 skill 入口的 `_wire_repo_tools()` 原本把 repo
+> `tools/` 掛 sys.path 再 import,使用者端只裝 skill、無 `tools/` 時會 `ModuleNotFoundError`。E1 把執行期**實際需要**的 **13 個**
+> repo 模組**逐位元複本** bundle 進 `skills/spine-ai-editor/assets/gen_lib/_bundled/`(analyzer:gen_animations/beat_templates/
+> tier_variants/spine_anim/pivot_rotation;mesh_gen:generate_mesh_v2/generate_mesh/deform_eval/atlas_crop/generate_weighted_mesh/
+> weighted_deform_eval;rig:infer_pivots/infer_tree),並把 gen_lib 五模組(make_beat/mesh/rig/pivot_axis/—sequence 透過 make_beat)
+> + `validator_v2` 的 wire **全改指向 `_bundled/`**,移除對 repo `tools/` 的硬相依(滿足 G5)。相依封閉性靠裸名 import + 扁平資料夾
+> + 模組自帶 `sys.path.insert(dirname(__file__))` self-bootstrap;刻意不 bundle `analyze_target`(PSD 反推,屬使用者端/過渡期)。
+> 閘 `tools/analyzer/validate_e1_selfcontained.py` **5 AC 全 PASS**:E1-1 bundle 13 模組齊備 + 與 repo 來源 **SHA-256 byte-identical**
+> + 無未登錄額外 .py/**E1-2 headline**:整個 `assets/` 複製到 **repo 外**、子程序 PYTHONPATH 只給複本、cwd 中性空目錄(無 repo 在 path)
+> → 跑 gen_lib beat×4(cascade/pop/wobble/twist 過 validator_v2 硬閘)/ idle+繞關節 pivot(轉 b_arm_L/R)/ mesh 生成(合成橢圓 mask nv=30/hull=22)/
+> rig 推斷(合成 chain root=torso tree={upper,lower})/ sequence compose+crossfade+write,全成功 + 掃 `sys.modules` **零 repo import 洩漏**/
+> E1-3 **負對照**:external 複本移掉 `_bundled/` → 生成 `ImportError`(rc=7,No module named 'gen_animations')證生成確實靠 bundle/
+> E1-4 external `validate_v2` 四 beat 六維度:硬閘 runtime/editor/loop PASS + deform_si/c1 **可用(na/info,非 unavailable)** + overall PASS
+> → 統一閘也 self-contained/E1-5 **in-repo 零回歸**:既有 B2/B3/B4/C1/C2/D1 **六閘**仍全 exit 0。
+> **關鍵發現**:①**self-contained 的真正證明是 external 隔離 + `sys.modules` 洩漏掃描,不是「能 import」**(repo 內永遠 import 得到;
+> 唯有搬出 repo、path 只留複本、再驗「無任何載入模組來自 repo」才算數);②**逐位元複本 = 零回歸 by construction**(不手動 trim → 無 behavior drift;
+> 維護約定:repo 來源改了就重新複製 + 重跑 E1-1,不一致即 FAIL 逼同步);③**G5 邊界是「不 import 不存在的 tools/」,不是「不需任何使用者資料」**——
+> 生成路徑 self-contained,但真值校準資料(Award.json/main_draw.json)與 PSD 反推(analyze_target 鏈)本就該由使用者提供,刻意留使用者端。
+> honest:weighted mesh **生成**需 Award hull 真值(external 只驗合成 rig 推斷,C2 閘覆蓋該路徑);`parts_from_psd` 仍需 repo S1 分析器(刻意不 bundle);
+> Cocos/viewer 實機=使用者端。回歸 **0 RED**(新增 cap `e1_selfcontained` L2 pipeline 併入 spine-anim-forge 仍 HOLD)。見 `knowledge/s2-v2-e1-selfcontained.md`。
 > **D1 做了什麼**:把 repo 閘紀律 + v1.3.0 `validator_v1` **合成單一** `assets/validator_v2.py :: validate_v2`——
 > 對一支 2.0 生成的大獎動畫,**一條指令輸出全維度 pass/fail + 量化指標**(六維度:runtime 可載入 / editor 可匯入 /
 > loop 閉合 / stiffness / deform si / C1)。validator_v2 是**編排層**(不新寫檢查邏輯):維度 1-4 直呼 `validator_v1.validate_v1()`
@@ -1450,11 +1470,14 @@
 ## 下一步動作 (next action)
 
 > 🟢 **現行主線(2026-10-12 起):spine-ai-editor 2.0**。
-> **下一個 run 做 `skills/spine-ai-editor/MERGE_PLAN_2.0.md` 的 Phase B3(繞關節 pivot 變換)** ——
-> 把 `tools/analyzer/pivot_rotation.py`(`Δ=(M−I)(O−P)`,rotate/scale/shear)併進結構軸,補 `references/structural_expansion.md`。
-> **AC**:limb 繞關節旋轉 pivot 殘差 < 門檻(repo 既有 7AC 可移植,見 `validate_pivot_rotation.py`/`validate_scale_pivot.py`/`validate_shear_pivot.py`);對照繞件中心的負對照。
-> **已完成**:B1 ✅(橋接閘 `validate_v2_bridge.py`,2026-10-12)、**B2 ✅**(生成庫入口 `assets/gen_lib/make_beat.py`
-> + Pattern 12 + `validate_b2_genlib.py` 5AC,2026-10-13)。B3 之後照 B4→C→D→E 順序(清單在 merge plan;每 run 一個 chunk,完成在該檔打勾)。
+> **下一個 run 做 `skills/spine-ai-editor/MERGE_PLAN_2.0.md` 的 Phase E2(改寫 `SKILL.md` → 2.0.0)** ——
+> 把 B/C/D/E1 新增的生成/mesh/rig/序列/統一閘/self-contained 軸寫進 `skills/spine-ai-editor/SKILL.md` 的核心能力表 + 觸發詞 + Changelog,
+> 更新 `INSTALL.md`(說明 skill 已 self-contained、`assets/gen_lib/_bundled/` 隨裝即可跑,無需 repo `tools/`)。
+> **AC**:SKILL.md 2.0.0 列出新軸(gen_lib 大獎生成 / 繞關節 pivot / 序列 compose+crossfade+loop / mesh 生成 / weighted mesh+rig 推斷 / validator_v2 統一閘 / self-contained bundle)、
+> 觸發詞涵蓋新能力、Changelog 記 2.0.0;INSTALL.md 與 bundle 現況一致。E2 純文件、純 CPU 可自主。
+> **已完成**:B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot,run 004)、B4 ✅(序列,run 005)、
+> C1 ✅(mesh 生成,run 006)、C2 ✅(weighted mesh+rig,run 007)、D1 ✅(統一閘 validator_v2,run 008)、
+> **E1 ✅(self-contained bundle / G5,2026-10-18 run 009,見上「E1 做了什麼」)**。E2 之後 E3(重跑 readiness + 重 zip `.skill`)、E4(C 類拍板是否 sync)。
 >
 > 以下為舊的「S1/S3/S5 底層能力」進度(仍有效,現轉為**被 2.0 併入的素材庫**,非獨立推進目標):
 

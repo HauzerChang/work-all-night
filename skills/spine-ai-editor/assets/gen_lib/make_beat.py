@@ -20,11 +20,11 @@ tier_variants)包成**一條 skill 層級的流程**:給一組「拆件(part)」
   - **G3 不覆蓋美術原檔**:本流程**從零生成**一份新 skeleton(bones/slots/skin 占位 + animations),
     不碰任何既有檔;要 patch 既有角色請用 `references/animation_patch_patterns.md` 的 patch 流程。
 
-== 過渡期相依(B2 → E1)==
-  本檔目前**import repo 的 `tools/analyzer`**(透過下方 `_wire_repo_tools()` 路徑 shim)。
-  這是 MERGE_PLAN 明列的**過渡期**做法("或過渡期 references 指向 repo tools")。
-  **Phase E1** 會把生成碼 bundle 進 `assets/`(self-contained,滿足 G5),屆時移除此 shim。
-  在 repo 環境下(排程)本檔即可跑;純使用者端(無 repo tools)須等 E1 bundle 後才 standalone。
+== self-contained(E1,2026-10-18,滿足 G5)==
+  生成引擎已逐位元 bundle 進 `gen_lib/_bundled/`(見其 README);下方 `_wire_repo_tools()`
+  指向 `_bundled/`,**不再相依本 research repo 的 `tools/`**。純使用者端(只裝 skill)即可 standalone。
+  例外:`parts_from_psd`(PSD 驅動)仍需 repo 的 S1 分析器(analyze_target 鏈),屬使用者端/過渡期路徑;
+  自主 CPU 生成(DEMO_PARTS)不需要。
 
 用法(CLI):
   python3 make_beat.py --beat cascade --out /tmp/bigwin.json        # 預設 demo 5 件機器人
@@ -44,23 +44,18 @@ import os
 import sys
 
 
-# --------------------------------------------------------------------- 過渡期路徑 shim
+# --------------------------------------------------------------------- self-contained 路徑 shim(E1)
 def _wire_repo_tools():
-    """把 repo 的 tools/analyzer、tools/mesh_gen、以及本 assets/(validator_v1/curve_tools)
-    掛上 sys.path。E1 self-contained bundle 後本函式改為指向 bundled 目錄即可。
+    """把 **bundled** 生成引擎(`gen_lib/_bundled`,repo tools 的逐位元複本)與本 `assets/`
+    (curve_tools / validator_v1)掛上 sys.path。E1(2026-10-18)後 skill **self-contained**:
+    不再相依本 research repo 的 `tools/`;生成/評估全走 `_bundled/`(見其 README)。
 
-    回傳 (gen_animations_module, curve_tools_module)。找不到 repo tools 時給清楚錯誤。
+    回傳 (gen_animations_module, curve_tools_module)。bundle 缺損時給清楚錯誤。
     """
     here = os.path.dirname(os.path.abspath(__file__))              # .../assets/gen_lib
     assets = os.path.dirname(here)                                 # .../assets
-    # repo 根:assets/gen_lib → skills/spine-ai-editor/assets → skills/spine-ai-editor → skills → repo
-    repo = os.path.normpath(os.path.join(here, "..", "..", "..", ".."))
-    cand = [
-        os.path.join(repo, "tools", "analyzer"),
-        os.path.join(repo, "tools", "mesh_gen"),
-        assets,                                                     # curve_tools / validator_v1
-    ]
-    for p in cand:
+    bundled = os.path.join(here, "_bundled")                       # 生成引擎逐位元複本
+    for p in (bundled, assets):                                    # bundle 優先;assets 供 curve_tools/validator_v1
         if p not in sys.path:
             sys.path.insert(0, p)
     try:
@@ -68,8 +63,9 @@ def _wire_repo_tools():
         import curve_tools as ct
     except ImportError as e:
         raise ImportError(
-            "gen_lib 過渡期需要 repo 的 tools/analyzer(gen_animations)與 assets/curve_tools。"
-            "在 repo 環境下跑;E1 self-contained bundle 後此相依會移除。原始錯誤:{}".format(e))
+            "gen_lib 需要 bundled 生成引擎(gen_lib/_bundled/gen_animations)與 "
+            "assets/curve_tools。bundle 應隨 skill 一併安裝(見 _bundled/README.md);"
+            "原始錯誤:{}".format(e))
     return G, ct
 
 
