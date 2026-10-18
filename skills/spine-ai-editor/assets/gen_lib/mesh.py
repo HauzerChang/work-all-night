@@ -57,26 +57,25 @@ import sys
 
 # --------------------------------------------------------------------- 過渡期路徑 shim
 def _wire_repo_tools():
-    """把 repo 的 tools/mesh_gen 掛上 sys.path,回傳生成/評估模組。
-    E1 self-contained bundle 後本函式改為指向 bundled 目錄即可。
+    """掛上 **self-contained bundle**(`gen_lib/_bundled/`),回傳生成/評估模組。
+    E1(2026-10-18)已把 generate_mesh_v2 / generate_mesh / deform_eval / atlas_crop
+    bundle 進 `_bundled/`,故**不再相依 repo `tools/mesh_gen`**(滿足 MERGE_PLAN G5)。
 
-    回傳 (generate_mesh_v2_module, deform_eval_module, atlas_crop_module)。"""
+    回傳 (generate_mesh_v2_module, deform_eval_module, atlas_crop_module)。
+    函式名沿用以維持既有呼叫簽章零回歸。真值來源見 `_bundled/README.md`。"""
     here = os.path.dirname(os.path.abspath(__file__))              # .../assets/gen_lib
-    # repo 根:assets/gen_lib → assets → spine-ai-editor → skills → repo
-    repo = os.path.normpath(os.path.join(here, "..", "..", "..", ".."))
-    for p in (os.path.join(repo, "tools", "mesh_gen"),
-              os.path.join(repo, "tools", "analyzer")):
-        if p not in sys.path:
-            sys.path.insert(0, p)
+    bundled = os.path.join(here, "_bundled")
+    if bundled not in sys.path:
+        sys.path.insert(0, bundled)
     try:
         import generate_mesh_v2 as GM
         import deform_eval as DE
         import atlas_crop as AC
     except ImportError as e:
         raise ImportError(
-            "gen_lib.mesh 過渡期需要 repo 的 tools/mesh_gen"
-            "(generate_mesh_v2 / deform_eval / atlas_crop)。在 repo 環境下跑;"
-            "E1 self-contained bundle 後此相依會移除。原始錯誤:{}".format(e))
+            "gen_lib.mesh 需要 self-contained bundle"
+            "(gen_lib/_bundled/{generate_mesh_v2,deform_eval,atlas_crop}.py)。"
+            "E1 後本 skill 自帶生成碼,不應再缺。原始錯誤:{}".format(e))
     return GM, DE, AC
 
 

@@ -46,21 +46,19 @@ import sys
 
 # --------------------------------------------------------------------- 過渡期路徑 shim
 def _wire_repo_tools():
-    """把 repo 的 tools/analyzer、tools/mesh_gen、以及本 assets/(validator_v1/curve_tools)
-    掛上 sys.path。E1 self-contained bundle 後本函式改為指向 bundled 目錄即可。
+    """掛上 **self-contained bundle**(`gen_lib/_bundled/`)與本 `assets/`(validator_v1/curve_tools)。
 
-    回傳 (gen_animations_module, curve_tools_module)。找不到 repo tools 時給清楚錯誤。
+    E1(2026-10-18)已把生成碼 bundle 進 `_bundled/`(gen_animations / beat_templates /
+    tier_variants / spine_anim / pivot_rotation 等 verbatim copy),故**不再相依 repo `tools/`**
+    (滿足 MERGE_PLAN G5)。回傳 (gen_animations_module, curve_tools_module)。
+
+    函式名沿用 `_wire_repo_tools` 以維持 gen_lib 內部/pivot_axis/sequence 的既有呼叫簽章零回歸;
+    語意已從「掛 repo tools」改為「掛 bundled + assets」。_bundled 清單的真值來源見 `_bundled/README.md`。
     """
     here = os.path.dirname(os.path.abspath(__file__))              # .../assets/gen_lib
     assets = os.path.dirname(here)                                 # .../assets
-    # repo 根:assets/gen_lib → skills/spine-ai-editor/assets → skills/spine-ai-editor → skills → repo
-    repo = os.path.normpath(os.path.join(here, "..", "..", "..", ".."))
-    cand = [
-        os.path.join(repo, "tools", "analyzer"),
-        os.path.join(repo, "tools", "mesh_gen"),
-        assets,                                                     # curve_tools / validator_v1
-    ]
-    for p in cand:
+    bundled = os.path.join(here, "_bundled")                       # .../assets/gen_lib/_bundled
+    for p in (bundled, assets):                                    # bundled 置前:bare import 必命中自帶副本
         if p not in sys.path:
             sys.path.insert(0, p)
     try:
@@ -68,8 +66,8 @@ def _wire_repo_tools():
         import curve_tools as ct
     except ImportError as e:
         raise ImportError(
-            "gen_lib 過渡期需要 repo 的 tools/analyzer(gen_animations)與 assets/curve_tools。"
-            "在 repo 環境下跑;E1 self-contained bundle 後此相依會移除。原始錯誤:{}".format(e))
+            "gen_lib 需要 self-contained bundle(gen_lib/_bundled/gen_animations.py)與 "
+            "assets/curve_tools.py。E1 後本 skill 自帶生成碼,不應再缺。原始錯誤:{}".format(e))
     return G, ct
 
 

@@ -56,17 +56,17 @@ import sys
 
 # --------------------------------------------------------------------- 過渡期路徑 shim
 def _wire_repo_tools():
-    """把 repo 的 tools/mesh_gen + tools/rig 掛上 sys.path,回傳生成/推斷模組。
-    E1 self-contained bundle 後本函式改為指向 bundled 目錄即可。
+    """掛上 **self-contained bundle**(`gen_lib/_bundled/`),回傳生成/推斷模組。
+    E1(2026-10-18)已把 generate_weighted_mesh / weighted_deform_eval / infer_pivots /
+    infer_tree bundle 進 `_bundled/`,故**不再相依 repo `tools/mesh_gen`+`tools/rig`**(滿足 MERGE_PLAN G5)。
 
     回傳 (generate_weighted_mesh_module G, weighted_deform_eval_module W,
-          infer_pivots_module ip, infer_tree_module it)。"""
+          infer_pivots_module ip, infer_tree_module it)。
+    函式名沿用以維持既有呼叫簽章零回歸。真值來源見 `_bundled/README.md`。"""
     here = os.path.dirname(os.path.abspath(__file__))              # .../assets/gen_lib
-    repo = os.path.normpath(os.path.join(here, "..", "..", "..", ".."))
-    for p in (os.path.join(repo, "tools", "mesh_gen"),
-              os.path.join(repo, "tools", "rig")):
-        if p not in sys.path:
-            sys.path.insert(0, p)
+    bundled = os.path.join(here, "_bundled")
+    if bundled not in sys.path:
+        sys.path.insert(0, bundled)
     try:
         import generate_weighted_mesh as G
         import weighted_deform_eval as W
@@ -74,9 +74,9 @@ def _wire_repo_tools():
         import infer_tree as it
     except ImportError as e:
         raise ImportError(
-            "gen_lib.rig 過渡期需要 repo 的 tools/mesh_gen(generate_weighted_mesh / "
-            "weighted_deform_eval)與 tools/rig(infer_pivots / infer_tree)。在 repo 環境下跑;"
-            "E1 self-contained bundle 後此相依會移除。原始錯誤:{}".format(e))
+            "gen_lib.rig 需要 self-contained bundle(gen_lib/_bundled/{generate_weighted_mesh,"
+            "weighted_deform_eval,infer_pivots,infer_tree}.py)。"
+            "E1 後本 skill 自帶生成碼,不應再缺。原始錯誤:{}".format(e))
     return G, W, ip, it
 
 

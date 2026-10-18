@@ -154,7 +154,20 @@
   Cocos 視覺確認留最後交付給使用者。**排程遇到需 Cocos/ffmpeg 的步驟 → 標記「待使用者端」跳過，不停等。**
 
 ### Phase E — 打包升版 & 交付（里程碑 / C 類拍板）
-- [ ] **E1**：生成碼 bundle 進 `assets/`（self-contained，滿足 G5）；移除對 repo `tools/` 的硬相依。
+- [x] **E1**（2026-10-18 run 009 ✅）：生成碼 bundle 進 `assets/gen_lib/_bundled/`（self-contained，滿足 **G5**）；
+      移除對 repo `tools/` 的硬相依。把 13 個過渡期 import 的 repo 模組（gen_animations/beat_templates/tier_variants/
+      spine_anim/pivot_rotation/generate_mesh(_v2)/deform_eval/atlas_crop/generate_weighted_mesh/weighted_deform_eval/
+      infer_pivots/infer_tree）以 **verbatim copy** 放進 `_bundled/`，4 個 `_wire_repo_tools()`（make_beat/mesh/rig/
+      validator_v2）改指向 `_bundled/`（函式名沿用 → gen_lib 內部零回歸）。`analyze_target`（+PIL/psd 鏈）只在
+      `gen_animations.main()` CLI lazy import、不在公開 API 路徑，**不 bundle**。閘 `tools/analyzer/validate_e1_bundle.py`
+      **5 AC 全 PASS**：E1-1 bundle 含全 13 模組 + 4 wire 不再出現 repo tools/ 路徑 / **E1-2 headline**：把 `assets/`
+      整份複製到 **/tmp（repo 樹外）**、subprocess `python3 -I`、sys.path 剝除所有 repo 路徑 → `write_bigwin` → `validator_v1`
+      **0 error** → `validator_v2` **overall PASS**（stiffness 16.46 與 repo 一致）/ E1-3 隔離環境 mesh/rig 的 wire 回傳模組
+      `__file__` 落在 `_bundled/` + rig `infer_limb_tree` recover 鏈/星形 / E1-4 `_bundled/` 每檔與 repo 原檔**逐 byte 相同**
+      （13/13）/ E1-5 **teeth**：移走 bundled `gen_animations.py` → 一呼叫生成即丟「需 self-contained bundle」ImportError、
+      pipeline 無法 overall（證隔離有牙 + bundle 集最小完整）。**回歸：B1-D1 共 7 支既有閘全經 rewired 的 bundled 路徑
+      PASS → 0 RED**（新增 cap `e1_bundle` L2）。見 `knowledge/s2-v2-bundle-e1.md`、`_bundled/README.md`。
+      **下一個 run 進 E2：改寫 `SKILL.md` → 2.0.0（核心能力表 + 觸發詞 + Changelog）。**
 - [ ] **E2**：改寫 `SKILL.md` → **2.0.0**（新增軸寫進核心能力表 + 觸發詞 + Changelog），更新 `INSTALL.md`。
 - [ ] **E3**：跑 `check_readiness.py` 更新 `READINESS.md`；重 zip 成 `.skill` 交付檔。
 - [ ] **E4**：依 RULES **C 類**回報使用者拍板是否 sync（打包/安裝屬帳號層級，需人決定）。

@@ -859,6 +859,27 @@ BLOCKS = [
                      "③deform_si/C1 屬過渡期相依(repo tools/mesh_gen+analyzer),取不到標 unavailable 不讓整支 crash,standalone 維度 1-4 仍可跑。**"
                      "honest:Cocos/viewer 實機載入與 PMA 視覺=使用者端(排程 scope 邊界,用 spine-webgl 無頭等價仍留 E);stiffness 與未要求的 C1 為量化指標非硬閘(手感 A 類);"
                      "過渡期 import repo tools(E1 bundle);真值資產=生成 beat + main_draw 4 mesh。cap d1_validator_v2 L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("e1_bundle", "spine-ai-editor 2.0 E1 self-contained bundle:gen_lib 生成碼 bundle 進 _bundled/,移除對 repo tools/ 的硬相依(G5)", "L2",
+                "python3 tools/analyzer/validate_e1_bundle.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase E1(承 B/C/D 全部;Phase E 第一步):把 gen_lib(make_beat/pivot_axis/sequence/mesh/rig)"
+                     "與 validator_v2 原本**過渡期 import 的 13 個 repo tools/ 模組**(gen_animations/beat_templates/tier_variants/"
+                     "spine_anim/pivot_rotation/generate_mesh(_v2)/deform_eval/atlas_crop/generate_weighted_mesh/weighted_deform_eval/"
+                     "infer_pivots/infer_tree)以 **verbatim copy** bundle 進 `skills/spine-ai-editor/assets/gen_lib/_bundled/`,"
+                     "並把 4 個 `_wire_repo_tools()` 改指向 `_bundled/` → 本 skill **不再相依 research repo 的 tools/**(滿足護欄 G5)。"
+                     "`analyze_target`(+PIL/psd 鏈)只在 gen_animations.main() CLI lazy import、不在公開 API 路徑,故不 bundle。"
+                     "validate_e1_bundle.py 5AC PASS"
+                     "(E1-1 _bundled/ 含全 13 模組 + 4 個 wire 原始碼不再出現 repo tools/ 路徑 tuple 且引用 _bundled/"
+                     "E1-2 **headline**:把 assets/ 整份複製到 /tmp(repo 樹外)、subprocess python3 -I cwd 在外、sys.path 剝除所有 repo 路徑 → "
+                     "write_bigwin 產大獎 beat → validator_v1 0 error → validator_v2 overall PASS(stiffness 16.46 與 repo 一致=行為等價)/"
+                     "E1-3 同隔離環境 mesh/rig 的 wire 回傳模組 __file__ 落在 _bundled/(非 repo tools/)+ rig infer_limb_tree 對合成鏈 recover 鏈、星形 recover 星形/"
+                     "E1-4 _bundled/ 每檔與 repo 原檔**逐 byte 相同**(13/13,不產生第二份真值)/"
+                     "E1-5 **teeth**:(a)隔離副本移走 gen_animations.py → 一呼叫生成即丟『需要 self-contained bundle』ImportError、pipeline 無法 overall(證隔離有牙+bundle 集最小完整)"
+                     "(b)wired gen_animations.__file__ 落在 _bundled/(證 rewire 生效非仍偷用 repo))。"
+                     "**回歸:B1-D1 共 7 支既有閘(validate_v2_bridge/b2/b3/b4/c1/c2/d1)全經 rewired 的 bundled 路徑 PASS → 0 RED。**"
+                     "**關鍵發現:①生成碼 self-contained 的最強證明是**在 repo 樹外跑**(subprocess+剝 sys.path),而非 repo 內『恰好 import 到』;"
+                     "②byte-identical 守則避免 bundle 悄悄漂移成第二份真值(re-sync 見 _bundled/README.md);"
+                     "③circular import(gen_animations⇄beat_templates)靠扁平目錄 + bare import 自然解,無需改原檔。**"
+                     "honest:使用者端真正打包/安裝(.skill zip、sync 到帳號)屬 E3/E4(帳號層級 C 類拍板);本 chunk 只做『碼層 self-contained』。cap e1_bundle L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

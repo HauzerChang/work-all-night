@@ -12,10 +12,25 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)、C2 ✅(weighted mesh + rig 自動推斷 / 結構軸的 rig 分支,2026-10-17 run 007)、D1 ✅(統一品質閘 validator_v2,2026-10-17 run 008)。Phase B/C/D 完成;下一個 run 做 Phase E 的 E1**
-> (self-contained bundle:把生成碼 bundle 進 `skills/spine-ai-editor/assets/`,移除對 repo `tools/` 的硬相依——
-> 含 validator_v2 / gen_lib(make_beat/mesh/rig/sequence/pivot_axis)各自的 `_wire_repo_tools()` shim,滿足 G5;E1 純 CPU 可自主,
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)、C2 ✅(weighted mesh + rig 自動推斷 / 結構軸的 rig 分支,2026-10-17 run 007)、D1 ✅(統一品質閘 validator_v2,2026-10-17 run 008)、E1 ✅(self-contained bundle,2026-10-18 run 009)。Phase B/C/D + E1 完成;下一個 run 做 Phase E 的 E2**
+> (E2 = 改寫 `skills/spine-ai-editor/SKILL.md` → **2.0.0**:把 B/C/D/E1 的新軸寫進核心能力表 + 觸發詞 + Changelog,
+> 更新 `INSTALL.md`;純文件工作、純 CPU 可自主。隨後 E3=跑 check_readiness 更新 READINESS.md + 重 zip 成 `.skill`,
 > E4「是否 sync 打包」屬帳號層級 → 依 RULES C 類回報使用者拍板)。
+> **E1 做了什麼**:把 gen_lib(make_beat/pivot_axis/sequence/mesh/rig)與 validator_v2 原本**過渡期 import 的 13 個 repo `tools/` 模組**
+> (gen_animations/beat_templates/tier_variants/spine_anim/pivot_rotation / generate_mesh(_v2)/deform_eval/atlas_crop /
+> generate_weighted_mesh/weighted_deform_eval / infer_pivots/infer_tree)以 **verbatim copy** bundle 進
+> `skills/spine-ai-editor/assets/gen_lib/_bundled/`,4 個 `_wire_repo_tools()` 改指向 `_bundled/`(**函式名沿用 → gen_lib 內部零回歸**;
+> 扁平目錄 + bare import 自然解 `gen_animations⇄beat_templates` circular import,不改原檔)。`analyze_target`(+PIL/psd 鏈)只在
+> `gen_animations.main()` CLI lazy import、不在公開 API 路徑,**不 bundle**。補 `_bundled/README.md`(provenance 表 + re-sync SOP)。
+> 閘 `tools/analyzer/validate_e1_bundle.py` **5 AC 全 PASS**:E1-1 bundle 含全 13 + 4 wire 不再出現 repo tools/ 路徑/
+> **E1-2 headline**:把 `assets/` 整份複製到 **/tmp(repo 樹外)**、subprocess `python3 -I`、sys.path 剝除所有 repo 路徑 →
+> `write_bigwin` → `validator_v1` 0 error → `validator_v2` overall PASS(stiffness 16.46 與 repo 逐位一致=行為等價)/
+> E1-3 隔離環境 mesh/rig 的 wire 回傳模組 `__file__` 落在 `_bundled/` + rig `infer_limb_tree` recover 鏈/星形/
+> E1-4 `_bundled/` 每檔與 repo 原檔**逐 byte 相同**(13/13)/E1-5 **teeth**:移走 bundled `gen_animations.py` → 一呼叫生成即丟
+> 「需 self-contained bundle」ImportError、pipeline 無法 overall(證隔離有牙+bundle 集最小完整)+ wired `__file__` 落在 `_bundled/`。
+> **關鍵發現**:①self-contained 的最強證明是**在 repo 樹外跑**(subprocess+剝 sys.path),repo 內「恰好 import 到」會被殘留 sys.path 偷渡假性過關;
+> ②byte-identical 守則把「bundle 是副本」變可機讀不變量,避免漂移成第二份真值(re-sync 見 `_bundled/README.md`);③circular import 靠扁平目錄自然解,不改原檔;
+> ④只改 `_wire_repo_tools()` 內部路徑、不改其名/簽章 → 所有呼叫處(含 D1 維度 5/6)不動即遷移。**回歸:B1-D1 共 7 支既有閘全經 rewired 的 bundled 路徑 PASS → 0 RED**(新增 cap `e1_bundle` L2)。見 `knowledge/s2-v2-bundle-e1.md`。
 > **D1 做了什麼**:把 repo 閘紀律 + v1.3.0 `validator_v1` **合成單一** `assets/validator_v2.py :: validate_v2`——
 > 對一支 2.0 生成的大獎動畫,**一條指令輸出全維度 pass/fail + 量化指標**(六維度:runtime 可載入 / editor 可匯入 /
 > loop 閉合 / stiffness / deform si / C1)。validator_v2 是**編排層**(不新寫檢查邏輯):維度 1-4 直呼 `validator_v1.validate_v1()`

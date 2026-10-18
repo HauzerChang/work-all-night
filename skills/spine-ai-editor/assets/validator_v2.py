@@ -70,13 +70,14 @@ from validator_v1 import validate_v1                      # noqa: E402
 
 # --------------------------------------------------------------------- 過渡期 shim（維度 5/6）
 def _wire_repo_tools():
-    """把 repo 的 tools/mesh_gen、tools/analyzer 掛上 sys.path。
+    """掛上 **self-contained bundle**(`gen_lib/_bundled/`)供維度 5/6 使用。
     回傳 (ok, err)。取不到時 ok=False，維度 5/6 標 unavailable（standalone 1-4 仍可跑）。
-    E1 self-contained bundle 後本函式改指向 bundled 目錄。"""
-    repo = os.path.normpath(os.path.join(_HERE, "..", "..", ".."))   # assets → skill → skills → repo
-    for p in (os.path.join(repo, "tools", "mesh_gen"),
-              os.path.join(repo, "tools", "analyzer"),
-              os.path.join(_HERE, "gen_lib")):
+
+    E1(2026-10-18)已把生成碼 bundle 進 `gen_lib/_bundled/`,故維度 5(gen_lib.mesh.deform_si_gate)
+    與維度 6(gen_animations.is_c1_loopable)**不再相依 repo `tools/`**(滿足 MERGE_PLAN G5)。
+    函式名沿用以維持 validate_v2 的既有呼叫處零回歸。真值來源見 `gen_lib/_bundled/README.md`。"""
+    for p in (os.path.join(_HERE, "gen_lib", "_bundled"),            # gen_animations(維度 6)
+              os.path.join(_HERE, "gen_lib")):                       # gen_lib.mesh(維度 5)
         if p not in sys.path:
             sys.path.insert(0, p)
     try:
