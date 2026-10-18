@@ -70,13 +70,16 @@ from validator_v1 import validate_v1                      # noqa: E402
 
 # --------------------------------------------------------------------- 過渡期 shim（維度 5/6）
 def _wire_repo_tools():
-    """把 repo 的 tools/mesh_gen、tools/analyzer 掛上 sys.path。
-    回傳 (ok, err)。取不到時 ok=False，維度 5/6 標 unavailable（standalone 1-4 仍可跑）。
-    E1 self-contained bundle 後本函式改指向 bundled 目錄。"""
+    """把維度 5/6 的引擎掛上 sys.path。**E1 之後優先用自帶 bundle `assets/genpack/`**
+    (self-contained,G5);repo `tools/mesh_gen`+`tools/analyzer` 僅作開發環境 fallback。
+    回傳 (ok, err)。取不到時 ok=False,維度 5/6 標 unavailable(standalone 1-4 仍可跑)。"""
     repo = os.path.normpath(os.path.join(_HERE, "..", "..", ".."))   # assets → skill → skills → repo
+    genpack = os.path.join(_HERE, "genpack")                         # .../assets/genpack
+    # insert(0) → 最後一項最高優先:repo fallback 先,gen_lib/genpack 後。
     for p in (os.path.join(repo, "tools", "mesh_gen"),
               os.path.join(repo, "tools", "analyzer"),
-              os.path.join(_HERE, "gen_lib")):
+              os.path.join(_HERE, "gen_lib"),
+              genpack):
         if p not in sys.path:
             sys.path.insert(0, p)
     try:

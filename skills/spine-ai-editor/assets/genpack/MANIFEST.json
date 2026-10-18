@@ -1,0 +1,57 @@
+{
+  "note": "E1 self-contained bundle. Each file is a byte-identical trimmed copy of its repo source. tools/check via validate_e1_bundle.py :: bundle is in-sync with repo sources.",
+  "files": {
+    "atlas_crop.py": {
+      "repo_source": "tools/mesh_gen/atlas_crop.py",
+      "sha256": "2a85ae1ad35cd0469f56716c18b6933000c1a9d30240baf16399b3806405ea3a"
+    },
+    "beat_templates.py": {
+      "repo_source": "tools/analyzer/beat_templates.py",
+      "sha256": "e41503b018e15f2a6337c41c6b26262c3b36a8503ca6a61fc2a3008b73dcd71a"
+    },
+    "deform_eval.py": {
+      "repo_source": "tools/mesh_gen/deform_eval.py",
+      "sha256": "43d6ea8bdd0d5a3a707dacf8acb59c091b4f0fdfc53a5f63e9999dce9ce22b54"
+    },
+    "gen_animations.py": {
+      "repo_source": "tools/analyzer/gen_animations.py",
+      "sha256": "38168f2f6140db7f967dbdb263d7f4d4871db217f73978f4542b28d513da3af7"
+    },
+    "generate_mesh.py": {
+      "repo_source": "tools/mesh_gen/generate_mesh.py",
+      "sha256": "5963fdd0d6c0366e8058d57b0618f01b5d08db3699f1659d1cf12513e4caa054"
+    },
+    "generate_mesh_v2.py": {
+      "repo_source": "tools/mesh_gen/generate_mesh_v2.py",
+      "sha256": "34dae6d11277162e9ac7f08fc52cdd1cd1cec4442c2403959228bc9136c8cf3f"
+    },
+    "generate_weighted_mesh.py": {
+      "repo_source": "tools/mesh_gen/generate_weighted_mesh.py",
+      "sha256": "3db59fae6fb531143170d6847c81099de196103a0bf9cf2a43004d05ab4b64e8"
+    },
+    "infer_pivots.py": {
+      "repo_source": "tools/rig/infer_pivots.py",
+      "sha256": "68be322e8a96385520df240f58af4b26cad3cf04b72b81c87a46a92c2760eadf"
+    },
+    "infer_tree.py": {
+      "repo_source": "tools/rig/infer_tree.py",
+      "sha256": "48c4082ebdea997d47bc2e166901514605d9d95ca9fefb4c72b2a69a09c9daab"
+    },
+    "pivot_rotation.py": {
+      "repo_source": "tools/analyzer/pivot_rotation.py",
+      "sha256": "518899e0a2c1d0d04891110e6cfb6d366a8d9ca563accad6da952a2dcf62bc1d"
+    },
+    "spine_anim.py": {
+      "repo_source": "tools/analyzer/spine_anim.py",
+      "sha256": "44d83a4b0c2662f263ec6ec5a96bad3ed7e828311573930cc0884d57419b3f53"
+    },
+    "tier_variants.py": {
+      "repo_source": "tools/analyzer/tier_variants.py",
+      "sha256": "a87158c8451d913f7d9bcc8699d0ae74712533fd9aed2877e73088ad0765772f"
+    },
+    "weighted_deform_eval.py": {
+      "repo_source": "tools/mesh_gen/weighted_deform_eval.py",
+      "sha256": "7d3feee144ad87dc2dbe5351faba2c27999451f8522bf6261998f4c5034ed5f0"
+    }
+  }
+}

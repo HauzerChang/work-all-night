@@ -57,15 +57,18 @@ import sys
 
 # --------------------------------------------------------------------- 過渡期路徑 shim
 def _wire_repo_tools():
-    """把 repo 的 tools/mesh_gen 掛上 sys.path,回傳生成/評估模組。
-    E1 self-contained bundle 後本函式改為指向 bundled 目錄即可。
+    """把 mesh 生成/評估引擎掛上 sys.path。**E1 之後優先用自帶 bundle `assets/genpack/`**
+    (self-contained,G5);repo `tools/mesh_gen`+`tools/analyzer` 僅作開發環境 fallback。
 
     回傳 (generate_mesh_v2_module, deform_eval_module, atlas_crop_module)。"""
     here = os.path.dirname(os.path.abspath(__file__))              # .../assets/gen_lib
+    genpack = os.path.join(os.path.dirname(here), "genpack")       # .../assets/genpack
     # repo 根:assets/gen_lib → assets → spine-ai-editor → skills → repo
     repo = os.path.normpath(os.path.join(here, "..", "..", "..", ".."))
+    # insert(0) → 最後一項最高優先:repo fallback 先,genpack 後(bundle 勝 repo)。
     for p in (os.path.join(repo, "tools", "mesh_gen"),
-              os.path.join(repo, "tools", "analyzer")):
+              os.path.join(repo, "tools", "analyzer"),
+              genpack):
         if p not in sys.path:
             sys.path.insert(0, p)
     try:

@@ -859,6 +859,25 @@ BLOCKS = [
                      "③deform_si/C1 屬過渡期相依(repo tools/mesh_gen+analyzer),取不到標 unavailable 不讓整支 crash,standalone 維度 1-4 仍可跑。**"
                      "honest:Cocos/viewer 實機載入與 PMA 視覺=使用者端(排程 scope 邊界,用 spine-webgl 無頭等價仍留 E);stiffness 與未要求的 C1 為量化指標非硬閘(手感 A 類);"
                      "過渡期 import repo tools(E1 bundle);真值資產=生成 beat + main_draw 4 mesh。cap d1_validator_v2 L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("e1_bundle", "spine-ai-editor 2.0 E1 self-contained bundle:gen 碼 bundle 進 assets/genpack,移除對 repo tools/ 的硬相依(G5)", "L2",
+                "python3 tools/analyzer/validate_e1_bundle.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase E1(承 D 全部):把 `gen_lib`(make_beat/pivot_axis/sequence/mesh/rig)與 "
+                     "`validator_v2` 公開 API 會用到的 **13 個** repo tools/ 純 CPU 模組,**byte-identical trimmed copy** 進 "
+                     "`skills/spine-ai-editor/assets/genpack/`,並把各 `_wire_repo_tools()` 改為**優先用 bundle**、repo tools/ 僅作開發 fallback。"
+                     "交付 `.skill`(只帶 assets/)在使用者端無 repo tools/ 時也能完整生成+驗收(滿足 G5 self-contained)。"
+                     "validate_e1_bundle.py 5AC PASS:E1-1 bundle 13 模組齊且與 repo 來源逐位元一致(MANIFEST.json sha256 drift guard)/"
+                     "**E1-2 headline**:複製 assets/ 到**無 sibling tools/** 的暫存目錄 + python3 -I 子程序(= 交付 .skill 真實佈局)→ "
+                     "五條生成軸全 import+生成成功(cascade/idle、繞肩 pivot、compose+crossfade、合成遮罩 strip mesh 30 頂點、rig_from_parts root=torso),解析到的模組**位於隔離 genpack**/"
+                     "E1-3 隔離 validator_v2 overall PASS(runtime/editor/loop PASS、deform_si=na、c1=info)且維度 5/6 **非 unavailable**(= 由 bundle 成功 wire)/"
+                     "E1-4 隔離生成大獎 beat 過 validator_v1 editor-import 0 error(G2 雙真值,含末鍵 curve 地雷 #12 檢查)/"
+                     "E1-5 **負對照**:隔離移走 genpack → 同一公開 API import FAIL(ImportError 找不到 gen_animations)→ 證測試真靠 bundle 非洩漏 repo 路徑。"
+                     "**關鍵發現:①隔離要靠『沒有 sibling tools/ 的真實佈局』而非 monkeypatch——wire 無論如何會把算出的 repo/tools 塞 sys.path,"
+                     "唯有複製 assets/ 到上層無 tools/ 的目錄那些 fallback 路徑才真的不存在(同時逐字模擬交付 .skill);"
+                     "②bundle 用 copy 非 symlink(G5 明指 trimmed copy),drift guard 把兩份副本的維護成本轉成一條機讀閘;"
+                     "③E1 不改任何生成/產線值 → B2..D1 六閘回歸全綠即證零行為回歸(且 repo 閘現在實際驗的是 bundle 副本);"
+                     "④維度 5/6 的 na/info ≠ unavailable(前者有 wire 算過、後者 import 失敗)。**"
+                     "honest:analyze_target(PSD 前端)**不**在 bundle(可選輸入路徑,需 psd-tools);第三方 pip(numpy/cv2/triangle/scipy)不 bundle(self-contained 指不需 repo tools、非不需 pip);"
+                     "重 zip 成 .skill 交付檔 + SKILL.md 升 2.0.0 = E2/E3;sync 到帳號 = E4(C 類)。cap e1_bundle L2 併入 spine-anim-forge(仍 HOLD)"),
         ],
     },
 ]

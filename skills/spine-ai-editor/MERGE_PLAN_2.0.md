@@ -154,7 +154,19 @@
   Cocos 視覺確認留最後交付給使用者。**排程遇到需 Cocos/ffmpeg 的步驟 → 標記「待使用者端」跳過，不停等。**
 
 ### Phase E — 打包升版 & 交付（里程碑 / C 類拍板）
-- [ ] **E1**：生成碼 bundle 進 `assets/`（self-contained，滿足 G5）；移除對 repo `tools/` 的硬相依。
+- [x] **E1**（2026-10-18 run 009 ✅）：生成碼 bundle 進 `assets/genpack/`（self-contained，滿足 G5）；
+      移除對 repo `tools/` 的硬相依。把 `gen_lib`（make_beat/pivot_axis/sequence/mesh/rig）與 `validator_v2`
+      公開 API 的 **13 個** repo `tools/` 純 CPU 模組 **byte-identical trimmed copy** 進 `assets/genpack/`
+      （含 `MANIFEST.json` sha256 drift guard），各 `_wire_repo_tools()` 改為**優先用 bundle**、repo `tools/`
+      僅作開發 fallback。閘 `tools/analyzer/validate_e1_bundle.py` **5 AC 全 PASS**：E1-1 bundle 13 模組與 repo
+      來源逐位元一致/**E1-2 headline** 複製 `assets/` 到**無 sibling `tools/`** 的暫存目錄 + `python3 -I`
+      子程序（= 交付 `.skill` 真實佈局）→ 五生成軸全 import+生成成功、解析到隔離 genpack/E1-3 隔離
+      `validator_v2` overall PASS 且維度 5/6 非 unavailable/E1-4 隔離生成 beat 過 `validator_v1` 0 error（G2）/
+      E1-5 負對照：移走 genpack → import FAIL（證測試真靠 bundle）。回歸 B2..D1 六閘 + check_readiness **0 RED**
+      （新增 cap `e1_bundle` L2）。**關鍵發現**：隔離要靠「無 sibling tools/ 的真實佈局」而非 monkeypatch；
+      bundle 用 copy（G5 trimmed copy）+ drift guard；E1 不改生成/產線值 → 零行為回歸。honest：`analyze_target`
+      （PSD 前端）不在 bundle（可選輸入,需 psd-tools）;第三方 pip 不 bundle。見 `knowledge/s2-v2-bundle-e1.md`。
+      **下一個 run 進 E2（SKILL.md → 2.0.0 + INSTALL.md）。**
 - [ ] **E2**：改寫 `SKILL.md` → **2.0.0**（新增軸寫進核心能力表 + 觸發詞 + Changelog），更新 `INSTALL.md`。
 - [ ] **E3**：跑 `check_readiness.py` 更新 `READINESS.md`；重 zip 成 `.skill` 交付檔。
 - [ ] **E4**：依 RULES **C 類**回報使用者拍板是否 sync（打包/安裝屬帳號層級，需人決定）。

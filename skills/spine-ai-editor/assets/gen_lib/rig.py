@@ -56,15 +56,18 @@ import sys
 
 # --------------------------------------------------------------------- 過渡期路徑 shim
 def _wire_repo_tools():
-    """把 repo 的 tools/mesh_gen + tools/rig 掛上 sys.path,回傳生成/推斷模組。
-    E1 self-contained bundle 後本函式改為指向 bundled 目錄即可。
+    """把 weighted mesh / rig 推斷引擎掛上 sys.path。**E1 之後優先用自帶 bundle `assets/genpack/`**
+    (self-contained,G5);repo `tools/mesh_gen`+`tools/rig` 僅作開發環境 fallback。
 
     回傳 (generate_weighted_mesh_module G, weighted_deform_eval_module W,
           infer_pivots_module ip, infer_tree_module it)。"""
     here = os.path.dirname(os.path.abspath(__file__))              # .../assets/gen_lib
+    genpack = os.path.join(os.path.dirname(here), "genpack")       # .../assets/genpack
     repo = os.path.normpath(os.path.join(here, "..", "..", "..", ".."))
+    # insert(0) → 最後一項最高優先:repo fallback 先,genpack 後(bundle 勝 repo)。
     for p in (os.path.join(repo, "tools", "mesh_gen"),
-              os.path.join(repo, "tools", "rig")):
+              os.path.join(repo, "tools", "rig"),
+              genpack):
         if p not in sys.path:
             sys.path.insert(0, p)
     try:

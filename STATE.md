@@ -12,10 +12,21 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)、C2 ✅(weighted mesh + rig 自動推斷 / 結構軸的 rig 分支,2026-10-17 run 007)、D1 ✅(統一品質閘 validator_v2,2026-10-17 run 008)。Phase B/C/D 完成;下一個 run 做 Phase E 的 E1**
-> (self-contained bundle:把生成碼 bundle 進 `skills/spine-ai-editor/assets/`,移除對 repo `tools/` 的硬相依——
-> 含 validator_v2 / gen_lib(make_beat/mesh/rig/sequence/pivot_axis)各自的 `_wire_repo_tools()` shim,滿足 G5;E1 純 CPU 可自主,
-> E4「是否 sync 打包」屬帳號層級 → 依 RULES C 類回報使用者拍板)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)、C2 ✅(weighted mesh + rig 自動推斷 / 結構軸的 rig 分支,2026-10-17 run 007)、D1 ✅(統一品質閘 validator_v2,2026-10-17 run 008)、E1 ✅(self-contained bundle,2026-10-18 run 009)。Phase B/C/D 全完成、Phase E 的 E1 完成;下一個 run 做 Phase E 的 E2**
+> (E2:改寫 `SKILL.md` → 2.0.0,新增軸寫進核心能力表 + 觸發詞 + Changelog,更新 `INSTALL.md`;純 CPU 可自主。
+> 再 E3:跑 check_readiness 更新 READINESS.md + 重 zip 成 `.skill` 交付檔;E4「是否 sync 打包」屬帳號層級 → 依 RULES C 類回報使用者拍板)。
+> **E1 做了什麼**:把 `gen_lib`(make_beat/pivot_axis/sequence/mesh/rig)與 `validator_v2` 公開 API 會用到的 **13 個** repo `tools/`
+> 純 CPU 模組(tools/analyzer×5 / mesh_gen×6 / rig×2),**byte-identical trimmed copy** 進 `skills/spine-ai-editor/assets/genpack/`
+> (+ `MANIFEST.json` sha256 drift guard + `README.md`),各 `_wire_repo_tools()` 改為**優先用 bundle**(`sys.path.insert` 最後一項最高優先:
+> repo tools fallback→assets→genpack)、repo `tools/` 僅開發 fallback → 交付 `.skill`(只帶 assets/)在使用者端無 repo tools 時也能跑(滿足 **G5**)。
+> 相依閉包排除 `analyze_target`(PSD 前端,可選輸入);第三方 pip(numpy/cv2/triangle/scipy)不 bundle。閘 `tools/analyzer/validate_e1_bundle.py` **5 AC 全 PASS**:
+> E1-1 bundle 13 模組與 repo 來源逐位元一致(drift guard)/**E1-2 headline** 複製 assets/ 到**無 sibling tools/** 的暫存目錄 + `python3 -I` 子程序
+> (= 交付 .skill 真實佈局)→ 五生成軸全 import+生成成功(cascade/idle、繞肩 pivot、compose+crossfade、合成遮罩 strip mesh 30 頂點、rig_from_parts root=torso)、解析到隔離 genpack/
+> E1-3 隔離 validator_v2 overall PASS(runtime/editor/loop PASS、deform_si=na、c1=info)且維度 5/6 **非 unavailable**(= 由 bundle 成功 wire)/
+> E1-4 隔離生成 beat 過 validator_v1 editor-import 0 error(G2 雙真值)/E1-5 **負對照** 移走 genpack→同一公開 API import FAIL(ImportError)→ 證測試真靠 bundle 非洩漏 repo 路徑。
+> **關鍵發現**:①隔離要靠「無 sibling tools/ 的真實佈局」而非 monkeypatch(wire 總把算出的 repo/tools 塞 path,唯複製到上層無 tools/ 才真的斷,同時逐字模擬 .skill);
+> ②bundle 用 copy(G5 明指 trimmed copy)+ drift guard 把兩份副本維護轉成機讀閘;③E1 不改任何生成/產線值 → B2..D1 六閘回歸全綠即證零行為回歸(且 repo 閘現在實際驗 bundle 副本);
+> ④維度 5/6 的 na/info ≠ unavailable(前者有 wire 算過、後者 import 失敗)。回歸 **0 RED**(新增 cap `e1_bundle` L2,併入 spine-anim-forge 仍 HOLD)。見 `knowledge/s2-v2-bundle-e1.md`。
 > **D1 做了什麼**:把 repo 閘紀律 + v1.3.0 `validator_v1` **合成單一** `assets/validator_v2.py :: validate_v2`——
 > 對一支 2.0 生成的大獎動畫,**一條指令輸出全維度 pass/fail + 量化指標**(六維度:runtime 可載入 / editor 可匯入 /
 > loop 閉合 / stiffness / deform si / C1)。validator_v2 是**編排層**(不新寫檢查邏輯):維度 1-4 直呼 `validator_v1.validate_v1()`

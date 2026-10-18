@@ -46,19 +46,25 @@ import sys
 
 # --------------------------------------------------------------------- 過渡期路徑 shim
 def _wire_repo_tools():
-    """把 repo 的 tools/analyzer、tools/mesh_gen、以及本 assets/(validator_v1/curve_tools)
-    掛上 sys.path。E1 self-contained bundle 後本函式改為指向 bundled 目錄即可。
+    """把生成引擎掛上 sys.path。**E1 之後優先用自帶 bundle `assets/genpack/`**
+    (self-contained,滿足 MERGE_PLAN G5);repo 的 `tools/analyzer`+`tools/mesh_gen`+`tools/rig`
+    僅作**開發環境 fallback**(repo 閘仍可跑)。使用者端的 `.skill` 只帶 `assets/` → 載到的即 genpack。
 
-    回傳 (gen_animations_module, curve_tools_module)。找不到 repo tools 時給清楚錯誤。
+    回傳 (gen_animations_module, curve_tools_module)。全找不到時給清楚錯誤。
     """
     here = os.path.dirname(os.path.abspath(__file__))              # .../assets/gen_lib
     assets = os.path.dirname(here)                                 # .../assets
+    genpack = os.path.join(assets, "genpack")                      # E1 self-contained bundle
     # repo 根:assets/gen_lib → skills/spine-ai-editor/assets → skills/spine-ai-editor → skills → repo
     repo = os.path.normpath(os.path.join(here, "..", "..", "..", ".."))
+    # 註:下面迴圈用 insert(0),故 cand **最後一項 = sys.path 最前 = 最高優先**。
+    # 先放 repo fallback(低優先),再 assets(curve_tools/validator_v1),最後 genpack(最高優先)。
     cand = [
-        os.path.join(repo, "tools", "analyzer"),
+        os.path.join(repo, "tools", "analyzer"),                   # 開發環境 fallback
         os.path.join(repo, "tools", "mesh_gen"),
+        os.path.join(repo, "tools", "rig"),
         assets,                                                     # curve_tools / validator_v1
+        genpack,                                                    # ← 最高優先(bundle 勝 repo)
     ]
     for p in cand:
         if p not in sys.path:
@@ -68,8 +74,8 @@ def _wire_repo_tools():
         import curve_tools as ct
     except ImportError as e:
         raise ImportError(
-            "gen_lib 過渡期需要 repo 的 tools/analyzer(gen_animations)與 assets/curve_tools。"
-            "在 repo 環境下跑;E1 self-contained bundle 後此相依會移除。原始錯誤:{}".format(e))
+            "gen_lib 需要生成引擎 gen_animations(優先自帶 assets/genpack/,fallback repo tools/analyzer)"
+            "與 assets/curve_tools。原始錯誤:{}".format(e))
     return G, ct
 
 
