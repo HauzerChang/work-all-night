@@ -12,8 +12,9 @@
 > **產出 `spine-ai-editor 2.0`** —— 把本 repo 的確定性生成引擎 + 評估器紀律併進使用者既有的
 > `spine-ai-editor v1.3.0`(已 import 到 `skills/spine-ai-editor/`)。**路線圖與有界 chunk 清單見
 > `skills/spine-ai-editor/MERGE_PLAN_2.0.md`**。
-> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)、C2 ✅(weighted mesh + rig 自動推斷 / 結構軸的 rig 分支,2026-10-17 run 007)、D1 ✅(統一品質閘 validator_v2,2026-10-17 run 008)、E1 ✅(self-contained bundle,2026-10-19 run 009)、E2 ✅(SKILL.md→2.0.0 + INSTALL.md 文件升版,2026-10-19 run 010)。Phase B/C/D 完成 + E1/E2 完成;下一個 run 做 Phase E 的 E3**
-> (E3:跑 `python3 tools/check_readiness.py` 更新 `skills/READINESS.md` + 把 `skills/spine-ai-editor/` 重 zip 成 `.skill` 交付檔;E4「是否 sync 打包/安裝」屬帳號層級 → 依 RULES C 類回報使用者拍板)。
+> **進度:Phase A ✅(地基)、B1 ✅(橋接閘,run 002)、B2 ✅(生成庫入口,run 003)、B3 ✅(繞關節 pivot/結構軸,run 004)、B4 ✅(序列 compose/crossfade/loop,run 005)、C1 ✅(mesh 生成 + 變形自交閘 / 結構軸的 mesh 分支,2026-10-16 run 006)、C2 ✅(weighted mesh + rig 自動推斷 / 結構軸的 rig 分支,2026-10-17 run 007)、D1 ✅(統一品質閘 validator_v2,2026-10-17 run 008)、E1 ✅(self-contained bundle,2026-10-19 run 009)、E2 ✅(SKILL.md→2.0.0 + INSTALL.md 文件升版,2026-10-19 run 010)、E3 ✅(check_readiness 刷新 + 打包可交付 `.skill`,2026-10-19 run 011)。Phase B/C/D 全完成 + Phase E 排程可自決部分 E1/E2/E3 全完成 → `spine-ai-editor 2.0` 的 repo 端備料全部就緒。剩 E4(C 類拍板,屬帳號層級,需使用者決定是否 sync)——非排程可自決。**
+> **⚠️ 下一個 run 注意:E1–E3 已把 2.0 整條線(生成庫 self-contained + 文件 2.0.0 + 統一閘 + 可交付 `.skill` + 全閘綠)做完,MERGE_PLAN 排程可自決 chunk 清空。E4 是使用者拍板,排程不能代做。若使用者未在 PLAN/STATE 指示新主線,依 RULES 停止條件勿空轉燒額度——做輕量維護或標記等待使用者 E4 決策後再開新主線。**
+> (E3 做了什麼:①新增 deterministic packer `tools/pack_skill.py`(固定時戳/排序/排除快取 → 同內容同位元,可進版控)+ 打包 `skills/spine-ai-editor.skill`(35 檔/~218KB,解壓即 skill 根);②跑 `check_readiness.py` 刷新 `skills/READINESS.md`(79 cap:77 自動閘全綠 + 2 無自動閘 L0/L1,0 RED);交付自驗閘 `tools/analyzer/validate_e3_delivery.py` 5 AC 全 PASS——測**實際交付的 zip**:解壓到無 repo tools/、清 PYTHONPATH 的隔離根→generate_bigwin→validate_v2 六維度 PASS + 負對照刪 vendored 必炸 + 連打包位元相同。見 `knowledge/s2-v2-delivery-e3.md`。)
 > **E2 做了什麼**:E1 已把 `gen_lib`+`validator_v2` 做成 self-contained 且過閘,但 `SKILL.md`/`INSTALL.md` 仍只描述 v1.3.0 五軸 → 使用者載入 skill **看不到 2.0 新能力**。E2 純文件升版(**無任何程式碼/產線值改動**):
 > ①`SKILL.md`→version **2.0.0**:frontmatter `description` 加 **(7) 生成軸** + 新觸發詞(生成大獎動畫/big win/cascade 波/生成 mesh/自動綁骨/rig 推斷/序列組合/validator_v2);Changelog 置頂 **2.0.0** 條目(gen_lib make_beat/sequence、結構軸三分支 pivot_axis/mesh/rig、統一閘 validator_v2 六維度、self-contained _vendor 13 模組、G1–G5 併接護欄);「何時觸發」表 +5 列(生成 beat/序列/mesh+rig/pivot/validator_v2);核心能力標題改「v1.3.0 五軸+品質軸｜2.0 再加生成軸」,**新增第 6 節「確定性生成軸」**(生成庫 import 範例 + 6 列能力/驗收對照表 + validator_v2 六維度說明「為何拆 runtime/editor 兩維度=G2」+ G1–G5 護欄 + honest boundary 手感/Cocos 實機/多 rig 真值屬使用者端);**v1.3.0 五軸+品質軸全部保留不退化(G3)**。②`INSTALL.md`:結構樹加 `MERGE_PLAN_2.0.md`/`validator_v2.py`/`gen_lib/`(5 入口+`_vendor/`),prereq 表加 numpy/opencv/scipy(生成軸必須但**不需** research repo=self-contained),route C 加生成軸手動讀。
 > 閘 `validate_e2_docs.py`(scratchpad,AC-first machine-checked)**5 AC 全 PASS**:E2-1 版本=2.0.0+Changelog+第6節/**E2-2** SKILL/INSTALL 內**所有** backtick 引用的 skill 相對路徑(14 條 assets/references/gen_lib/+MERGE_PLAN)逐一真實存在 + **負對照**假路徑 `DOES_NOT_EXIST.py` 確被判不存在(閘非恆真)/**E2-3** SKILL 列的 17 個 gen_lib 公開 API 名稱(generate_bigwin/…/rig_from_parts)逐一真的在原始碼(文件不描述不存在的 API)/E2-4 v1.3.0 關鍵內容(spine-viewer/curve_tools/strip_last_frame_curves/Cocos MCP/phase_shift/stiffness/地雷 #12/add_animation/validator_v1)逐一仍在=零退化/E2-5 INSTALL prereq 列 numpy/opencv/scipy + 結構樹列 gen_lib/validator_v2 + MERGE_PLAN。
@@ -1459,11 +1460,13 @@
 ## 下一步動作 (next action)
 
 > 🟢 **現行主線(2026-10-12 起):spine-ai-editor 2.0**。
-> **下一個 run 做 `skills/spine-ai-editor/MERGE_PLAN_2.0.md` 的 Phase B3(繞關節 pivot 變換)** ——
-> 把 `tools/analyzer/pivot_rotation.py`(`Δ=(M−I)(O−P)`,rotate/scale/shear)併進結構軸,補 `references/structural_expansion.md`。
-> **AC**:limb 繞關節旋轉 pivot 殘差 < 門檻(repo 既有 7AC 可移植,見 `validate_pivot_rotation.py`/`validate_scale_pivot.py`/`validate_shear_pivot.py`);對照繞件中心的負對照。
-> **已完成**:B1 ✅(橋接閘 `validate_v2_bridge.py`,2026-10-12)、**B2 ✅**(生成庫入口 `assets/gen_lib/make_beat.py`
-> + Pattern 12 + `validate_b2_genlib.py` 5AC,2026-10-13)。B3 之後照 B4→C→D→E 順序(清單在 merge plan;每 run 一個 chunk,完成在該檔打勾)。
+> **✅ MERGE_PLAN 的排程可自決 chunk 全部完成(B1→B2→B3→B4→C1→C2→D1→E1→E2→E3,run 002..011)。**
+> **下一個 run:沒有排程可自決的新 chunk 了。** 剩下的 **E4** 是 RULES **C 類(使用者拍板)**——
+> 是否把 `skills/spine-ai-editor.skill` sync/安裝到使用者帳號,屬帳號層級動作,排程不能代做(見本檔下方「待使用者拍板 / 升級回報」)。
+> **交付物已備妥**:`skills/spine-ai-editor.skill`(路線 B,可拖進 Cowork)、`SKILL.md` version 2.0.0、`validator_v2` 統一閘、
+> `tools/pack_skill.py` deterministic packer、`skills/READINESS.md`(79 cap:77 自動閘全綠 + 2 無自動閘 L0/L1,0 RED)。
+> **給下一個 run 的指引**:除非使用者在 `PLAN.md`/本檔指示新主線,否則依 RULES 停止條件**勿空轉燒額度**——
+> 可做輕量維護(如清理 200+ 條舊 `claude/vibrant-*` 分支、補文件、跑回歸確認仍 0 RED),或標記等待使用者 E4 決策後再開新主線。
 >
 > 以下為舊的「S1/S3/S5 底層能力」進度(仍有效,現轉為**被 2.0 併入的素材庫**,非獨立推進目標):
 

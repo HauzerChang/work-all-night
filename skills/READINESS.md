@@ -1,8 +1,18 @@
 # skill 化完成度快照 (READINESS)
 
 > 由 `python3 tools/check_readiness.py` 產出。真相以指令即時輸出為準;本檔為人讀快照,里程碑時更新。
-> **最新:2026-10-17 run 008(2.0 Phase D1 統一品質閘 —— `validator_v2` 把全維度合成單一報告)。
-> 76 閘全綠(75 + D1 `d1_validator_v2`,0 RED,無 GREEN→RED)。** 把 repo 閘紀律 + v1.3.0 `validator_v1` **合成單一**
+> **最新:2026-10-19 run 011(2.0 Phase E3 —— `check_readiness` 刷新 + 打包可交付 `.skill`)。
+> 79 cap(77 自動閘全綠 + 2 無自動閘:`segment_flat` L1 / `video_input` L0),0 RED,無 GREEN→RED。**
+> E 階段收斂:**E1(run 009)** 把生成碼 verbatim bundle 進 `assets/gen_lib/_vendor/`(13 模組,self-contained,第 77 個自動閘 `e1_bundle`);
+> **E2(run 010)** 把 `SKILL.md` 升 version 2.0.0 + `INSTALL.md` 升版(純文件,無新 cap);
+> **E3(run 011,本次)** 產出可交付檔:新增 deterministic packer `tools/pack_skill.py`(固定時戳/排序/排除快取 → 同內容同位元,可進版控)、
+> 打包 `skills/spine-ai-editor.skill`(35 檔 / ~218KB,解壓即 skill 根)、交付自驗閘 `tools/analyzer/validate_e3_delivery.py` **5 AC 全 PASS**
+> (E3-1 合法 zip+整包樹+13 vendored byte-identical+無 pycache/**E3-2 headline** 解壓交付包到無 repo tools、清 PYTHONPATH 的隔離根→`generate_bigwin`(cascade)→`validate_v2` 六維度 runtime/editor/loop PASS+overall PASS,deform_si/c1 皆 wire/
+> E3-3 SKILL 2.0.0+INSTALL+MERGE_PLAN 隨交付出貨/E3-4 **負對照** 刪交付包 vendored `gen_animations.py`→generate 必 ImportError(閘非恆真)/E3-5 連打包兩次位元相同+等於已出貨=reproducible)。
+> **關鍵:交付真相測的是 zip 本身(非目錄)——E1 證目錄 self-contained,E3 解壓實際 `.skill` 跑生成+六維度,漏檔/排錯/壞 zip E1 不抓、E3 抓;`.skill` 需 deterministic 才能進版控。**
+> 2.0 repo 端備料全部就緒(生成庫 self-contained + 文件 2.0.0 + 統一閘 + 可交付 `.skill` + 全閘綠);**E4「是否 sync 到使用者帳號」屬 C 類,需使用者拍板**。見 `knowledge/s2-v2-delivery-e3.md`。
+> ──(前)2026-10-17 run 008(2.0 Phase D1 統一品質閘 —— `validator_v2` 把全維度合成單一報告)。
+> 76 閘全綠(75 + D1 `d1_validator_v2`,0 RED,無 GREEN→RED)。 把 repo 閘紀律 + v1.3.0 `validator_v1` **合成單一**
 > `skills/spine-ai-editor/assets/validator_v2.py :: validate_v2`——對一支 2.0 生成的大獎動畫,**一條指令輸出全維度
 > pass/fail + 量化指標**(六維度:runtime 可載入 / editor 可匯入 / loop 閉合 / stiffness / deform si / C1)。
 > validator_v2 是**編排層**(不新寫檢查邏輯):維度 1-4 直呼 `validator_v1.validate_v1()`(為此把 v1 抽出程式化入口,

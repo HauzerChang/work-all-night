@@ -179,8 +179,23 @@
       **E2-3** SKILL 列的 17 個 gen_lib 公開 API 名稱逐一真的在原始碼/E2-4 v1.3.0 關鍵內容逐一仍在（零退化=G3 文件版）/
       E2-5 INSTALL prereq+結構樹齊。回歸 **0 RED**（純文件不進任何 cap 被測 import 路徑）。見 `knowledge/s2-v2-skill-doc-e2.md`。
       **下一個 run 做 E3（check_readiness 更 READINESS.md + 重 zip 成 `.skill`）。**
-- [ ] **E3**：跑 `check_readiness.py` 更新 `READINESS.md`；重 zip 成 `.skill` 交付檔。
-- [ ] **E4**：依 RULES **C 類**回報使用者拍板是否 sync（打包/安裝屬帳號層級，需人決定）。
+- [x] **E3**（2026-10-19 run 011 ✅）：①新增 **deterministic packer** `tools/pack_skill.py`——INSTALL 路線 B 的
+      `zip -r` 嵌 mtime 使每 run 位元都變（binary churn 進版控），改用 Python `zipfile` + 固定 date_time（1980-01-01）
+      + 固定權限位 + 排序條目 + 排除 `__pycache__`/`*.pyc` → **同內容必得同位元組**，可安心 commit；產出
+      `skills/spine-ai-editor.skill`（35 檔 / ~218KB，解壓即 skill 根）。②跑 `check_readiness.py`（全跑含 heavy weighted）
+      刷新 `skills/READINESS.md`（79 cap：77 自動閘全綠 + 2 無自動閘 L0/L1，0 RED）。交付自驗閘
+      `tools/analyzer/validate_e3_delivery.py` **5 AC 全 PASS**（測的是**實際交付的 zip**）：E3-1 合法 zip（CRC 全過）
+      + 整包樹 + 無 pycache + 13 vendored byte-identical/**E3-2 headline** 把 `.skill` 解壓到**無 repo tools/、清 PYTHONPATH
+      的隔離根** → `generate_bigwin`(cascade)→`validate_v2` 六維度 runtime/editor/loop PASS + overall PASS，deform_si/c1 皆 wire/
+      E3-3 SKILL `version: 2.0.0` + INSTALL + MERGE_PLAN 隨交付出貨/E3-4 **負對照** 刪交付包 vendored `gen_animations.py`
+      → generate 必 ImportError（閘非恆真）/E3-5 **determinism** 連打包兩次位元相同 + 等於已出貨=reproducible。
+      **關鍵發現：①交付真相測的是 zip 本身非目錄——E1 證「目錄」self-contained，E3 解壓**實際 `.skill`** 跑生成+六維度，
+      漏檔/排錯 `_vendor`/壞 zip E1 不抓、E3 抓；②交付檔要 deterministic 才能進版控（固定時戳+排序+固定權限位）；
+      ③E1 的隔離手法（解壓 tmp 根+清 PYTHONPATH）可直接搬到交付閘。** 回歸 **0 RED**（E3 不改既有 cap 被測路徑，
+      新增 `.skill` 為交付產物）。見 `knowledge/s2-v2-delivery-e3.md`。
+      **Phase E 的排程可自決部分（E1–E3）全部完成；repo 端 2.0 備料就緒。下一個是 E4（C 類拍板，需使用者決定）。**
+- [ ] **E4**：依 RULES **C 類**回報使用者拍板是否 sync（打包/安裝屬帳號層級，需人決定）。**交付檔已備妥於
+      `skills/spine-ai-editor.skill`（路線 B，可拖進 Cowork）；安裝到帳號屬使用者端動作。**
 
 ---
 
