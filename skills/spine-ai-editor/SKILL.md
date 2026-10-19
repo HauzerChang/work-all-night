@@ -9,9 +9,12 @@ description: |
   (3) 給 AI 生成影片 / 參考影片 / 分鏡圖，要轉成 Spine 動作（含可行性評估、骨架對映、不可行項目回饋）；
   (4) 擴充 Spine 骨架結構（加 bone、重綁 slot、reparent + transform mode）解除「結構性無法做到」的視覺限制；
   (5) 把改好的 Spine 推進 Cocos Creator、refresh、設 sp.Skeleton 屬性、跑 preview 做來回迭代；
-  (6) 診斷並修復動畫品質問題：待機 loop 僵硬、動作卡卡不順、全身同步紙板感、末梢甩不開、要求「更平滑」。
+  (6) 診斷並修復動畫品質問題：待機 loop 僵硬、動作卡卡不順、全身同步紙板感、末梢甩不開、要求「更平滑」；
+  (7)【2.0 新增】**從零確定性生成**大獎/待機動畫（cascade 跨件波、pop/reveal/wobble/twist…）、繞關節 pivot 變換、
+  序列 compose/crossfade/loop、**mesh 生成**（strip/weighted BBW）與 **rig 自動推斷**（pivot/父子樹），
+  並用**統一品質閘 validator_v2**（六維度：runtime 可載入／editor 可匯入／loop 閉合／stiffness／deform si／C1）一次驗收。
 
-  觸發詞：「spine 動畫」「.spine」「spine 角色」「改 spine」「新增動作」「spine 骨架」「胸口怎麼動」「spine 結構擴充」「影片轉動畫」「分鏡圖轉 spine」「課題二」「課題三」「結構性 bug」「待機僵硬」「動作卡卡」「更平滑」「loop 優化」「律動感」。
+  觸發詞：「spine 動畫」「.spine」「spine 角色」「改 spine」「新增動作」「spine 骨架」「胸口怎麼動」「spine 結構擴充」「影片轉動畫」「分鏡圖轉 spine」「課題二」「課題三」「結構性 bug」「待機僵硬」「動作卡卡」「更平滑」「loop 優化」「律動感」「生成大獎動畫」「big win」「cascade 波」「生成 mesh」「自動綁骨」「rig 推斷」「序列組合」「validator_v2」「驗收閘」。
 
   Requires: Python 3（patch 腳本執行）。Optional: Cocos Creator MCP（DaxianLee/cocos-mcp-server 或同等，用於即時預覽迭代；無 MCP 時走人工預覽 fallback，見地雷 #11）、ffmpeg（影片流程用）。
 ---
@@ -20,9 +23,15 @@ description: |
 
 把 Spine 2D 角色變成一個可以隨意被 AI 改寫、即時驗證的可程式化資產。
 
-> **version: 1.3.0**（2026-08-27）
+> **version: 2.0.0**（2026-10-19）
 >
 > Changelog：
+> - **2.0.0** — **確定性生成軸併入**（把半年 research 的生成引擎 + 評估器紀律升進本 skill，見 `MERGE_PLAN_2.0.md`）。新增 `assets/gen_lib/` 生成庫與 `assets/validator_v2.py` 統一品質閘，v1.3.0 的五軸（parse/edit/video/structural/Cocos）+ 品質軸全部保留、零退化：
+>   - **生成庫 `gen_lib`**（從零生成，不只 patch）：`make_beat`（`generate_bigwin`/`generate_idle` — cascade 跨件波 + pop/reveal/wobble/twist 單件運動基元）、`sequence`（`compose`/`crossfade`/`loop` 序列組合，可證 C1 連續）。
+>   - **結構軸三分支**：`pivot_axis`（繞關節 pivot 變換 `Δ=(M−I)(O−P)`，不動骨架只疊補償 translate）、`mesh`（strip mesh 生成 + 真實 deform 位移場自交閘 si=0）、`rig`（weighted BBW/heat-diffusion mesh 生成 + pivot/父子樹自動推斷）。
+>   - **統一品質閘 `validator_v2`**：一條指令輸出六維度 pass/fail + 量化（runtime 可載入／editor 可匯入／loop 閉合／stiffness／deform si／C1），把 v1.3.0 `validator_v1` 的「runtime 載不進」與「editor 匯入 crash（末鍵 curve 地雷 #12）」拆成兩獨立維度 = G2 雙真值機讀落點。
+>   - **self-contained（G5）**：生成碼已 verbatim 複製進 `assets/gen_lib/_vendor/`（13 模組），使用者端無 research repo 亦可直接 import、生成、驗收（需 numpy/opencv/scipy）。
+>   - **併接護欄**：G1 末鍵 curve 必拔（過 `strip_last_frame_curves`）、G2 雙真值、G3 不覆蓋美術原檔、G4 Spine 3.8 + Cocos 雷點並存。細節見 `MERGE_PLAN_2.0.md`。
 > - **1.3.0** — spine-viewer 升級**多圖層版**（頁面標題 v9）。(a) 可同時載入多組骨架：一次拖多套、含子資料夾的整包、或分次拖皆可；每個骨架檔（.json/.skel）依「同資料夾優先」配對 .atlas、貼圖以相對路徑為主鍵（不同資料夾同名貼圖不互蓋），各成一個圖層原位重疊顯示；部分載入失敗會逐檔列錯，不整批中斷。(b) 圖層面板：👁 顯示開關、點名稱＝切「作用中圖層」（動作清單/Skin/Attachment/體檢面板永遠只對作用中圖層操作，debug 線框也只畫該層）、↑↓ 前後順序、⌖ 位置歸零、🗑 點兩下才移除、Tab 循環切換。(c) 動作清單每項新增 ➕：把該動作生成同骨架的獨立圖層同時播放 —— `Xxx` vs `Xxx_v2` 的 A/B 對位在單一視窗原位疊播完成。(d) 畫布直接拖曳角色＝暫移該圖層（⌖ 歸位）；Shift+拖曳或拖空白處＝平移視角。(e) 同路徑檔案重拖＝原地更新該圖層（保留拖曳定位/順序/顯示狀態）→ patch 迭代時改完重拖立即見新結果。(f) 修正：資料夾拖入補齊 Chrome readEntries 每批最多 100 筆的限制（舊版大資料夾會漏檔）、fitView 改為框住所有可見圖層、attachment 覆蓋改為每圖層獨立、mix 調整套用到全部圖層、skin 下拉會同步目前 skin。
 > - **1.2.1** — spine-viewer 新增 Attachment 切換面板：每 slot 下拉（動畫控制/隱藏/各 attachment）、slot 過濾、「手動優先」模式（每幀覆蓋動畫換圖 key，模擬程式 setAttachment 常駐切換；取消勾選即可重現「loop 重播蓋回手動切換」的生產坑）。
 > - **1.2.0** — 內建獨立網頁預覽器 `assets/spine-viewer.html`：拖入 .json/.skel + .atlas + .png 即可播放（3.8/4.1 runtime 切換、CDN 失敗可拖本機 spine-webgl.js）。含動作清單（前綴自動分組）、scrub/調速/混合、bone/mesh 線框、骨架體檢（對 dj_cat 基準）、mesh/權重分布面板（頂點/綁骨/影響數直方圖/承重骨）。這是地雷 #11 fallback 的標配工具，交付給使用者雙擊即用，勿再重寫。
@@ -42,11 +51,19 @@ description: |
 | 「胸口要能單獨動」「頭跟不上身體」「需要新配件」等結構性限制 | (4) Structural expansion |
 | 「推到 Cocos 看一下」「Cocos preview」 | (5) MCP push & preview |
 | 「待機好僵硬」「卡卡的」「不夠順」「想要更有律動感」 | (6) Stiffness fix（Pattern 8–11） |
+| 「生成一支大獎動畫」「big win」「cascade 跨件波」「做一支待機 loop」 | (7) **生成軸** `gen_lib.make_beat`（`generate_bigwin`/`generate_idle`） |
+| 「組一條序列」「把幾個 beat 接起來」「crossfade/loop 閉合」 | (7) **生成軸** `gen_lib.sequence` |
+| 「這件沒有 mesh」「要能彎折/飄動」「自動綁骨」「rig 推斷 pivot/父子樹」 | (7) **結構軸** `gen_lib.mesh`（strip）/ `gen_lib.rig`（weighted + rig） |
+| 「繞肩/頸轉」「關節 pivot 旋轉而不動骨架」 | (7) **結構軸** `gen_lib.pivot_axis` |
+| 「一次把生成結果六維度驗收」「validator_v2」「確認遊戲能播且 editor 能匯入」 | (7) **統一閘** `assets/validator_v2.py` |
 | 「開預覽器」「我要看目前的 spine」「A/B 這幾支動畫」「原版改版疊起來對位」「多支動作同時看」 | `assets/spine-viewer.html`（交付給使用者雙擊開啟；1.3 起多圖層，多骨架/多動作可原位重疊對位） |
 
 ---
 
-## 核心能力（5 條主軸 + 品質軸）
+## 核心能力（v1.3.0 五軸 + 品質軸｜2.0 再加「生成軸」）
+
+> v1.3.0 五軸（parse / edit / video / structural / Cocos）+ 品質軸（stiffness）如下 1–5 節，**2.0 全部保留不退化**；
+> 2.0 新增的**確定性生成軸**見第 6 節（`gen_lib` 生成庫 + 結構軸 pivot/mesh/rig + `validator_v2` 統一閘）。
 
 ### 1. 識別與解析 Spine 檔案
 
@@ -114,6 +131,61 @@ description: |
 `loop_closure_report()` 保證首尾閉合。詳見 `references/animation_patch_patterns.md` Pattern 8–11。
 
 **安全原則：永遠加新動畫（`Xxx_v2` / `Xxx_ai`）並存 A/B，不覆蓋美術原檔；改前備份。**
+
+---
+
+### 6. 確定性生成軸（2.0 新增）
+
+v1.3.0 只能**檢查 / patch** 既有資產；2.0 讓本 skill 能**從零確定性生成**動畫、mesh、rig，並用**單一品質閘**驗收。
+全部是**純 CPU 確定性演算法 + 評估器**（非 ML；美術手感決定留給使用者，見下方 honest boundary），
+入口都在 `assets/gen_lib/`（self-contained，已 bundle 進 `_vendor/`，使用者端無 research repo 亦可跑；需 numpy/opencv/scipy）。
+
+```python
+# 生成庫入口（from skills/spine-ai-editor/assets）
+from gen_lib.make_beat import generate_bigwin, generate_idle, write_bigwin, DEMO_PARTS, IDLE_DEMO_PARTS
+from gen_lib.sequence  import compose_bigwin_sequence, crossfade_bigwin_sequence, compose_idle_loop, write_sequence
+from gen_lib.pivot_axis import apply_joint_pivots, bone_origins_from_skel
+from gen_lib.mesh      import generate_part_mesh, deform_si_gate, generate_and_gate_part
+from gen_lib.rig       import generate_weighted_part_mesh, generate_and_gate_weighted, infer_joint_pivots, infer_limb_tree, rig_from_parts
+```
+
+| 分支 | 入口（`gen_lib/*`） | 能力 | 驗收 |
+|---|---|---|---|
+| **生成庫** | `make_beat.py` | `generate_bigwin`：cascade 跨件波（幾何導向方向）+ pop/reveal/wobble/twist 單件運動基元；`generate_idle`：待機 loop | 過 `validator_v1` 0 error + loop 閉合 + stiffness |
+| **生成庫** | `sequence.py` | `compose`/`crossfade`/`loop` 跨 beat 序列組合（可證 C1 連續、接點不 kink） | 序列層雙真值 G2 + loop 閉合 |
+| **結構軸·pivot** | `pivot_axis.py` | 繞關節 pivot 變換 `Δ=(M−I)(O−P)`——**不動骨架結構**，只疊補償 translate 使件繞肩/頸轉 | 真實 Award 左手繞肩殘差 ~0.01px + 負對照 |
+| **結構軸·mesh** | `mesh.py` | `generate_part_mesh`：strip mesh 生成（解「件沒有 mesh、只能剛體位移」） | **真實 deform 位移場自交閘 si=0**（真值校準：藝術家 mesh 亦 si=0） |
+| **結構軸·rig** | `rig.py` | weighted BBW/heat-diffusion mesh 生成 + `infer_joint_pivots`/`infer_limb_tree` 自動推 root/父子/關節 | 真實 skinning si=0 + pivot err<0.10 + 樹拓樸==真值 |
+| **統一閘** | `assets/validator_v2.py` | **六維度一次驗收** | 見下 |
+
+**統一品質閘 `validator_v2`（= 2.0 的驗收樞紐）**：對一支 2.0 生成的動畫，一條指令輸出**六維度 pass/fail + 量化**：
+
+```
+1. runtime 可載入   （spine-webgl 無頭載入，schema/cx 不超界）
+2. editor 可匯入     （末鍵 curve 地雷 #12 檢查，runtime OK ≠ editor OK）
+3. loop 閉合
+4. stiffness         （量化僵硬度）
+5. deform si         （mesh 變形自交，取不到標 na/unavailable）
+6. C1                 （序列/loop 接點連續，一次性 beat 預設 info）
+```
+
+> **為何拆六維度**：v1.3.0 `validator_v1` 把「runtime 載不進」與「editor 匯入 crash」混在一份 error；
+> `validator_v2` 依 error 前綴拆成**兩獨立維度** = MERGE_PLAN **G2 雙真值**「遊戲能播 **且** 編輯器能匯入」的機讀落點。
+> `validator_v2` 是**編排層**（不新寫檢查邏輯）：維度 1–4 直呼 `validator_v1`、維度 5 呼 `gen_lib.mesh`、維度 6 呼生成庫 C1 判準 → 各維度的負對照/真值校準紀律自動繼承。
+
+**併接護欄（違反會壞 v1.3.0 實戰保證，生成輸出一律遵守）**：
+- **G1 末鍵 curve 必拔**：任何要回 Spine editor 的輸出，`json.dump` 前過 `curve_tools.strip_last_frame_curves()`（地雷 #12）。生成庫的 `write_*` 預設已套。
+- **G2 雙真值**：驗收 = `validator_v2` runtime **且** editor 兩維度都過，不是只驗 runtime。
+- **G3 不覆蓋原檔**：生成一律加新動畫（`Xxx_v2`/`Xxx_ai`）並存 A/B。
+- **G4 雷點並存**：Spine 3.8 雷點（`spine.webgl.*`、PMA、deform gating）與 Cocos 雷點（refresh 重置 loop/PMA/useTint）兩套都在 references，不可擇一。
+- **G5 self-contained**：生成碼已 bundle 進 `gen_lib/_vendor/`（13 模組 verbatim），使用者端不 import research repo 的 `tools/`。
+
+**honest boundary（排程 scope 邊界）**：
+- 生成是**確定性幾何 + 評估器**；運動**手感**（緩動、重量感、A/B 哪個好看）仍是美術主觀決定，交付給使用者判。
+- 純 CPU 可自主驗收的部分（schema 合法 + editor 可匯入 + loop 閉合 + 真實 deform si=0 + rig 準度）已過閘；
+  **Cocos 實機 round-trip / spine_inspector 視覺確認 / 真實多 rig 真值**屬使用者端資源，排程不代判。
+
+完整路線圖、各 chunk 的 AC 與關鍵發現見 `MERGE_PLAN_2.0.md`。
 
 ---
 

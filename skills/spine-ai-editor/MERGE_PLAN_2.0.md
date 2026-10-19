@@ -170,7 +170,15 @@
       先命中 PYTHONPATH/快取的 repo 複本，使用者端命中 _vendor，同一份碼)；③honest trimming:gen_animations.main()
       的 analyze_target 是 CLI-only lazy import，gen_lib 不觸發→不需 bundle。** 回歸 0 RED（新增 cap
       `e1_bundle` L2）。見 `knowledge/s2-v2-bundle-e1.md`。**下一個 run 做 E2（SKILL.md→2.0.0）。**
-- [ ] **E2**：改寫 `SKILL.md` → **2.0.0**（新增軸寫進核心能力表 + 觸發詞 + Changelog），更新 `INSTALL.md`。
+- [x] **E2**（2026-10-19 run 010 ✅）：改寫 `SKILL.md` → **2.0.0**（frontmatter description 加 (7) 生成軸 +
+      新觸發詞；Changelog 置頂 2.0.0 條目；「何時觸發」表 +5 列；**新增第 6 節「確定性生成軸」**——生成庫 import
+      範例 + 6 列能力/驗收對照表 + `validator_v2` 六維度 + G1–G5 護欄 + honest boundary；**v1.3.0 五軸+品質軸全保留**），
+      更新 `INSTALL.md`（結構樹加 MERGE_PLAN/validator_v2/gen_lib、prereq 加 numpy/opencv/scipy、route C 加生成軸）。
+      純文件、無任何程式碼改動。AC-first machine-checked `validate_e2_docs.py` **5 AC 全 PASS**：E2-1 版本/Changelog/第6節/
+      **E2-2** SKILL+INSTALL 內**所有** backtick skill 相對路徑（14 條）逐一存在 + 負對照假路徑被判不存在（閘非恆真）/
+      **E2-3** SKILL 列的 17 個 gen_lib 公開 API 名稱逐一真的在原始碼/E2-4 v1.3.0 關鍵內容逐一仍在（零退化=G3 文件版）/
+      E2-5 INSTALL prereq+結構樹齊。回歸 **0 RED**（純文件不進任何 cap 被測 import 路徑）。見 `knowledge/s2-v2-skill-doc-e2.md`。
+      **下一個 run 做 E3（check_readiness 更 READINESS.md + 重 zip 成 `.skill`）。**
 - [ ] **E3**：跑 `check_readiness.py` 更新 `READINESS.md`；重 zip 成 `.skill` 交付檔。
 - [ ] **E4**：依 RULES **C 類**回報使用者拍板是否 sync（打包/安裝屬帳號層級，需人決定）。
 

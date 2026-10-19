@@ -37,6 +37,7 @@ zip -r ../spine-ai-editor.skill .
 - 結構擴充：Read `references/structural_expansion.md` + assets/patch_templates/add_bone_reparent.py
 - 影片轉動畫：Read `references/video_to_spine_pipeline.md` + assets/patch_templates/video_to_animation.py
 - Cocos MCP 推送：Read `references/cocos_mcp_push_sop.md`
+- 【2.0】確定性生成 + 統一閘：Read `MERGE_PLAN_2.0.md` + import `assets/gen_lib/`（make_beat/sequence/pivot_axis/mesh/rig）+ 跑 `assets/validator_v2.py`
 
 ---
 
@@ -44,12 +45,13 @@ zip -r ../spine-ai-editor.skill .
 
 ```
 spine_ai_editor_skill/
-├── SKILL.md                              ← 入口頁 + 觸發詞
+├── SKILL.md                              ← 入口頁 + 觸發詞（2.0.0）
 ├── INSTALL.md                            ← 本檔
+├── MERGE_PLAN_2.0.md                     ← 2.0 生成軸併入路線圖（各 chunk 的 AC/關鍵發現）
 ├── references/                           ← 5 份 SOP
 │   ├── spine_3_8_reference.md           Spine 3.8 JSON 結構快速參考
-│   ├── animation_patch_patterns.md      11 種動畫 pattern（含 loop 僵硬診斷修復）
-│   ├── structural_expansion.md          加 bone / reparent / 配件 SOP
+│   ├── animation_patch_patterns.md      動畫 pattern（含 loop 僵硬診斷修復 + Pattern 12 確定性大獎生成）
+│   ├── structural_expansion.md          加 bone / reparent / 配件 SOP（含 SOP E 繞關節 pivot）
 │   ├── video_to_spine_pipeline.md       影片/分鏡圖 → 動畫
 │   └── cocos_mcp_push_sop.md            Cocos MCP 9 步推送
 └── assets/
@@ -57,6 +59,14 @@ spine_ai_editor_skill/
     ├── curve_tools.py                    曲線工具（相位平移/穿透切線/振幅增益/stiffness 指標）
     ├── validator_v0.py                   Spine 3.8 schema + 引用完整性 validator
     ├── validator_v1.py                   v0 + loop 閉合檢查 + --metric 品質指標
+    ├── validator_v2.py                   【2.0】統一品質閘：一條指令驗六維度（runtime/editor/loop/stiffness/deform si/C1）
+    ├── gen_lib/                          【2.0】確定性生成庫（self-contained，需 numpy/opencv/scipy）
+    │   ├── make_beat.py                 generate_bigwin / generate_idle（cascade 波 + pop/reveal/wobble/twist）
+    │   ├── sequence.py                  compose / crossfade / loop 序列組合（可證 C1）
+    │   ├── pivot_axis.py                繞關節 pivot 變換 Δ=(M−I)(O−P)（不動骨架）
+    │   ├── mesh.py                      strip mesh 生成 + 真實 deform 自交閘（si=0）
+    │   ├── rig.py                       weighted BBW mesh 生成 + pivot/父子樹自動推斷
+    │   └── _vendor/                     生成碼 verbatim 複本（13 模組，G5 self-contained）
     └── patch_templates/
         ├── add_animation.py             加動畫範本（無結構變動）
         ├── add_bone_reparent.py         結構擴充範本（加 bone/slot/重綁/reparent）
@@ -70,11 +80,14 @@ spine_ai_editor_skill/
 | 需求 | 用途 | 必須？ |
 |---|---|---|
 | Python 3.8+ | 跑 patch 腳本與 validator | ✅ 必須 |
+| numpy / opencv-python / scipy | 【2.0】`gen_lib` 生成軸（mesh/rig/序列 的幾何運算） | 生成軸必須 |
 | ffmpeg | 影片 probe + 抽 frame | 影片流程必須 |
 | Cocos Creator MCP（DaxianLee 或同等） | 即時推到 Cocos preview | Cocos 流程必須 |
 | Cocos Creator 3.7.3+ | 預覽動畫 | Cocos 流程必須 |
 
-純 JSON 操作（不接 Cocos）只需要 Python，最低門檻。
+純 JSON 操作（parse/patch/validator_v0/v1，不接 Cocos）只需要 Python，最低門檻。
+**2.0 生成軸**（`gen_lib`：生成動畫/mesh/rig + `validator_v2`）額外需 numpy/opencv/scipy，但**不需** research repo
+（生成碼已 bundle 進 `assets/gen_lib/_vendor/`，self-contained）。
 
 ---
 
