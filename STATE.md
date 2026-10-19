@@ -4,7 +4,16 @@
 
 ## 專案狀態
 
-`ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
+`BLOCKED`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
+
+> 🔴 **BLOCKED 原因(2026-10-19 run 012)= 等待使用者 E4 決策(C 類)**。
+> spine-ai-editor 2.0 的**所有排程可自決 chunk(Phase A–E3)已全部完成**,`claude/spine-main` 為正準分支且與
+> `origin/claude/spine-main`、E3 commit(`f582e90`)完全一致(本 run 已 `git fetch` 核對,**無分支殘枝需整併**)。
+> 唯一剩餘項 **E4** 屬帳號層級動作(是否把 `skills/spine-ai-editor.skill` sync/安裝到使用者帳號),
+> **排程無法代做,需使用者拍板**。repo 端 2.0 備料全部就緒、全閘綠(79 cap / 0 RED)、交付 `.skill` 已打包。
+> **解除 BLOCKED 的方式(擇一)**:① 使用者完成 E4(sync/安裝 `.skill`)→ 排程可標 DONE;
+> ② 使用者在 `PLAN.md`/`STATE.md` 指示**新主線**(例如 S5 多 rig 真值、影片輸入 S1、或新研究方向)→ 改回 `ACTIVE` 續跑。
+> ⚠️ **未解除前,後續排程 run 依 RULES 停止條件勿空轉燒額度**:讀到本 `BLOCKED` 即停,不要重複驗證或造無意義 commit。
 
 ## 目前階段
 
