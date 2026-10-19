@@ -859,6 +859,31 @@ BLOCKS = [
                      "③deform_si/C1 屬過渡期相依(repo tools/mesh_gen+analyzer),取不到標 unavailable 不讓整支 crash,standalone 維度 1-4 仍可跑。**"
                      "honest:Cocos/viewer 實機載入與 PMA 視覺=使用者端(排程 scope 邊界,用 spine-webgl 無頭等價仍留 E);stiffness 與未要求的 C1 為量化指標非硬閘(手感 A 類);"
                      "過渡期 import repo tools(E1 bundle);真值資產=生成 beat + main_draw 4 mesh。cap d1_validator_v2 L2 併入 spine-anim-forge(仍 HOLD)"),
+            CAP("e1_bundle", "spine-ai-editor 2.0 E1 self-contained bundle(G5):生成碼 verbatim 複製進 assets/gen_lib/_vendor/,gen_lib/validator_v2 優先掛 _vendor → 使用者端無 repo tools/ 亦可生成+驗收", "L2",
+                "python3 tools/analyzer/validate_e1_bundle.py", "pipeline",
+                note="MERGE_PLAN_2.0 Phase E1(承 B/C/D 全部):把 gen_lib 過渡期硬相依的 13 個 repo 生成模組"
+                     "(tools/analyzer:gen_animations/spine_anim/beat_templates/tier_variants/pivot_rotation;"
+                     "tools/mesh_gen:generate_mesh_v2/generate_mesh/deform_eval/atlas_crop/generate_weighted_mesh/weighted_deform_eval;"
+                     "tools/rig:infer_pivots/infer_tree)**verbatim 複製**進 `skills/spine-ai-editor/assets/gen_lib/_vendor/`,"
+                     "並把 gen_lib(make_beat/mesh/rig,sequence+pivot_axis 經 make_beat 代理)與 validator_v2 的 `_wire_repo_tools()` "
+                     "改成**優先掛 `_vendor/`**(reversed+insert(0)),repo `tools/` 僅留次要 fallback → 滿足 G5『self-contained,"
+                     "不讓 skill 在使用者端 import 不存在的 tools/』。注意 gen_animations.main() 的 analyze_target(PIL/psd_slice/genre_priors)"
+                     "是 CLI-only 懶 import,gen_lib 從不觸發 → 不需 bundle(honest trimming)。validate_e1_bundle.py 5AC PASS:"
+                     "E1-1 _vendor 13 模組齊全 + 逐一與 repo 原檔 byte-identical(verbatim=零回歸保證)+ 隔離 sys.path(只有 _vendor)全 import OK/"
+                     "**E1-2 headline**:隔離環境(skill 複製到無 repo tools/ 的 tmp 根 + 清掉 PYTHONPATH)下 `generate_bigwin(DEMO_PARTS,cascade)`"
+                     "→ `validator_v2.validate_v2` 六維度單一報告 runtime/editor/loop PASS + overall_pass=True(純碼無外部資產)/"
+                     "E1-3 同隔離下 `generate_and_gate_part`(main_draw curtain_left 以絕對路徑傳入=使用者 data)→ strip mesh 30 頂點、"
+                     "真實 deform clean=True、overall_pass=True(證 numpy/cv2/scipy 走 _vendor 的生成/評估碼可 standalone)/"
+                     "E1-4 同隔離下 validator_v2 維度 5(deform_si=na)/維度 6(c1_continuity=info)皆成功 wire(非 unavailable)→ 六維度全可跑,"
+                     "不再因缺 repo tools 退化/E1-5 **負對照**:隔離 skill 複本刪掉 vendored gen_animations.py → generate_bigwin 如預期 ImportError"
+                     "(證 _vendor 複本確為隔離下真正被用的相依,非死碼/非偷偷走他處)。"
+                     "**關鍵發現:①隔離手法=把 skill 複製到 tmp 根(其上無 tools/)+ 清 PYTHONPATH,`_wire` 算的 repo 四層上不含 tools/ → "
+                     "唯一能 import 生成碼的來源就是 _vendor/;②verbatim 複製(非 trim)是零回歸的保證——repo 環境下 sys.modules 快取先命中"
+                     "PYTHONPATH 上的 repo 複本,行為與 E1 前逐位元一致,gate 零回歸;使用者端無 repo 則命中 _vendor,同一份碼;"
+                     "③負對照證隔離真的靠 _vendor(刪它必炸),非偷偷 fallback。**"
+                     "honest:_vendor 為 verbatim 複本非 trimmed(G5 self-contained 已達成,縮肥=後續 nice-to-have);"
+                     "E1-3 需 main_draw 使用者資產(data 非 code);E2(SKILL.md→2.0.0)/E3(重 zip)/E4(sync 拍板,C 類)為後續。"
+                     "cap e1_bundle L2 併入 spine-anim-forge(仍 HOLD:運動基元手感先驗、真實多 rig 真值屬使用者資源)"),
         ],
     },
 ]

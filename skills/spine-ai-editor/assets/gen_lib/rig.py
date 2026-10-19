@@ -56,17 +56,20 @@ import sys
 
 # --------------------------------------------------------------------- 過渡期路徑 shim
 def _wire_repo_tools():
-    """把 repo 的 tools/mesh_gen + tools/rig 掛上 sys.path,回傳生成/推斷模組。
-    E1 self-contained bundle 後本函式改為指向 bundled 目錄即可。
+    """把生成/推斷碼掛上 sys.path,回傳 (generate_weighted_mesh, weighted_deform_eval,
+    infer_pivots, infer_tree)。
 
-    回傳 (generate_weighted_mesh_module G, weighted_deform_eval_module W,
-          infer_pivots_module ip, infer_tree_module it)。"""
+    **E1(self-contained bundle,G5)之後**:生成碼已 verbatim 複製進 `assets/gen_lib/_vendor/`,
+    本函式**優先**掛 `_vendor/` → 使用者端(無 repo `tools/`)可直接 import。repo `tools/mesh_gen`、
+    `tools/rig` 仍保留為次要 fallback(repo 環境已載入時 sys.modules 快取命中同一份,行為一致)。"""
     here = os.path.dirname(os.path.abspath(__file__))              # .../assets/gen_lib
+    vendor = os.path.join(here, "_vendor")                         # E1 bundled 生成碼
     repo = os.path.normpath(os.path.join(here, "..", "..", "..", ".."))
-    for p in (os.path.join(repo, "tools", "mesh_gen"),
-              os.path.join(repo, "tools", "rig")):
+    for p in reversed((vendor,
+                       os.path.join(repo, "tools", "mesh_gen"),
+                       os.path.join(repo, "tools", "rig"))):
         if p not in sys.path:
-            sys.path.insert(0, p)
+            sys.path.insert(0, p)        # reversed → vendor 最終排最前
     try:
         import generate_weighted_mesh as G
         import weighted_deform_eval as W
@@ -74,9 +77,9 @@ def _wire_repo_tools():
         import infer_tree as it
     except ImportError as e:
         raise ImportError(
-            "gen_lib.rig 過渡期需要 repo 的 tools/mesh_gen(generate_weighted_mesh / "
-            "weighted_deform_eval)與 tools/rig(infer_pivots / infer_tree)。在 repo 環境下跑;"
-            "E1 self-contained bundle 後此相依會移除。原始錯誤:{}".format(e))
+            "gen_lib.rig 需要 bundled 生成碼(assets/gen_lib/_vendor/generate_weighted_mesh / "
+            "weighted_deform_eval / infer_pivots / infer_tree)。E1 後隨 skill 自帶;"
+            "若缺,檢查 _vendor/ 是否完整。原始錯誤:{}".format(e))
     return G, W, ip, it
 
 

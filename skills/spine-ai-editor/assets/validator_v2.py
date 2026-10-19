@@ -68,17 +68,22 @@ from validator_v0 import validate as validate_v0          # noqa: E402
 from validator_v1 import validate_v1                      # noqa: E402
 
 
-# --------------------------------------------------------------------- 過渡期 shim（維度 5/6）
+# --------------------------------------------------------------------- shim(維度 5/6；E1 後 self-contained）
 def _wire_repo_tools():
-    """把 repo 的 tools/mesh_gen、tools/analyzer 掛上 sys.path。
+    """把維度 5/6 需要的生成/評估碼掛上 sys.path。
     回傳 (ok, err)。取不到時 ok=False，維度 5/6 標 unavailable（standalone 1-4 仍可跑）。
-    E1 self-contained bundle 後本函式改指向 bundled 目錄。"""
+
+    **E1(self-contained bundle,G5)之後**:生成碼已 verbatim 複製進 `assets/gen_lib/_vendor/`,
+    本函式**優先**掛 `_vendor/`(維度 6 的 `gen_animations`)與 `gen_lib`(維度 5 的 `gen_lib.mesh`,
+    其內部 shim 再掛 `_vendor/`)→ 使用者端無 repo `tools/` 亦可跑六維度。repo `tools/` 保留為次要 fallback。"""
+    vendor = os.path.join(_HERE, "gen_lib", "_vendor")               # E1 bundled 生成碼
     repo = os.path.normpath(os.path.join(_HERE, "..", "..", ".."))   # assets → skill → skills → repo
-    for p in (os.path.join(repo, "tools", "mesh_gen"),
-              os.path.join(repo, "tools", "analyzer"),
-              os.path.join(_HERE, "gen_lib")):
+    for p in reversed((vendor,
+                       os.path.join(_HERE, "gen_lib"),
+                       os.path.join(repo, "tools", "mesh_gen"),
+                       os.path.join(repo, "tools", "analyzer"))):
         if p not in sys.path:
-            sys.path.insert(0, p)
+            sys.path.insert(0, p)        # reversed → vendor 最終排最前
     try:
         import gen_lib.mesh as _m           # noqa: F401
         import gen_animations as _g         # noqa: F401

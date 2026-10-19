@@ -44,23 +44,31 @@ import os
 import sys
 
 
-# --------------------------------------------------------------------- 過渡期路徑 shim
+# --------------------------------------------------------------------- 路徑 shim(E1 後:self-contained)
 def _wire_repo_tools():
-    """把 repo 的 tools/analyzer、tools/mesh_gen、以及本 assets/(validator_v1/curve_tools)
-    掛上 sys.path。E1 self-contained bundle 後本函式改為指向 bundled 目錄即可。
+    """把生成碼掛上 sys.path,回傳 (gen_animations_module, curve_tools_module)。
 
-    回傳 (gen_animations_module, curve_tools_module)。找不到 repo tools 時給清楚錯誤。
+    **E1(self-contained bundle,滿足 G5)之後**:生成碼已 verbatim 複製進
+    `assets/gen_lib/_vendor/`(gen_animations / spine_anim / beat_templates / tier_variants /
+    pivot_rotation / generate_mesh* / deform_eval / weighted_deform_eval / atlas_crop /
+    infer_pivots / infer_tree)。本函式**優先**把 `_vendor/` 掛上 sys.path → 使用者端(無 repo
+    `tools/`)即可直接 import,不再硬相依 repo。`curve_tools`/`validator_v1` 本就在 `assets/`。
+
+    repo 的 `tools/analyzer`、`tools/mesh_gen` 仍保留為**次要 fallback**(排程/repo 環境下若已被
+    PYTHONPATH 或先前 gate 載入,sys.modules 快取會命中同一份——verbatim 複製故行為一致、零回歸)。
     """
     here = os.path.dirname(os.path.abspath(__file__))              # .../assets/gen_lib
     assets = os.path.dirname(here)                                 # .../assets
+    vendor = os.path.join(here, "_vendor")                         # E1 bundled 生成碼
     # repo 根:assets/gen_lib → skills/spine-ai-editor/assets → skills/spine-ai-editor → skills → repo
     repo = os.path.normpath(os.path.join(here, "..", "..", "..", ".."))
     cand = [
-        os.path.join(repo, "tools", "analyzer"),
+        vendor,                                                    # E1:優先用 bundled self-contained 複本
+        assets,                                                    # curve_tools / validator_v1
+        os.path.join(repo, "tools", "analyzer"),                  # 次要 fallback(repo 環境)
         os.path.join(repo, "tools", "mesh_gen"),
-        assets,                                                     # curve_tools / validator_v1
     ]
-    for p in cand:
+    for p in reversed(cand):          # reversed + insert(0) → cand[0](vendor)最終排最前
         if p not in sys.path:
             sys.path.insert(0, p)
     try:
@@ -68,8 +76,9 @@ def _wire_repo_tools():
         import curve_tools as ct
     except ImportError as e:
         raise ImportError(
-            "gen_lib 過渡期需要 repo 的 tools/analyzer(gen_animations)與 assets/curve_tools。"
-            "在 repo 環境下跑;E1 self-contained bundle 後此相依會移除。原始錯誤:{}".format(e))
+            "gen_lib 需要 bundled 生成碼(assets/gen_lib/_vendor/gen_animations)與 "
+            "assets/curve_tools。E1 後兩者皆隨 skill 自帶;若缺,檢查 _vendor/ 是否完整。"
+            "原始錯誤:{}".format(e))
     return G, ct
 
 

@@ -154,7 +154,22 @@
   Cocos 視覺確認留最後交付給使用者。**排程遇到需 Cocos/ffmpeg 的步驟 → 標記「待使用者端」跳過，不停等。**
 
 ### Phase E — 打包升版 & 交付（里程碑 / C 類拍板）
-- [ ] **E1**：生成碼 bundle 進 `assets/`（self-contained，滿足 G5）；移除對 repo `tools/` 的硬相依。
+- [x] **E1**（2026-10-19 run 009 ✅）：13 個 repo 生成模組**verbatim 複製**進
+      `assets/gen_lib/_vendor/`（analyzer: gen_animations/spine_anim/beat_templates/tier_variants/
+      pivot_rotation；mesh_gen: generate_mesh_v2/generate_mesh/deform_eval/atlas_crop/
+      generate_weighted_mesh/weighted_deform_eval；rig: infer_pivots/infer_tree），4 處
+      `_wire_repo_tools()`（make_beat/mesh/rig/validator_v2；sequence+pivot_axis 經 make_beat 代理）
+      改成 `reversed()+insert(0)` **優先掛 `_vendor/`**、repo `tools/` 留次要 fallback → **G5
+      self-contained 達成**（skill 單獨搬走 + 清 PYTHONPATH 仍能生成+驗收）。閘
+      `tools/analyzer/validate_e1_bundle.py` **5 AC 全 PASS**：E1-1 13 模組齊全+byte-identical+隔離 import/
+      **E1-2 headline** 隔離環境 generate_bigwin→validate_v2 六維度 runtime/editor/loop PASS+overall PASS/
+      E1-3 隔離下 generate_and_gate_part(main_draw curtain_left=使用者 data)→真實 deform clean+overall PASS/
+      E1-4 隔離下 validator_v2 維度5 deform_si/維度6 c1 皆成功 wire(非 unavailable)/E1-5 **負對照** 刪
+      vendored gen_animations.py→generate_bigwin 如預期 ImportError。**關鍵發現：①隔離手法=skill 複製到無
+      tools/ 的 tmp 根+清 PYTHONPATH(唯一 import 來源=_vendor)；②verbatim(非 trim)=零回歸保證(repo 環境
+      先命中 PYTHONPATH/快取的 repo 複本，使用者端命中 _vendor，同一份碼)；③honest trimming:gen_animations.main()
+      的 analyze_target 是 CLI-only lazy import，gen_lib 不觸發→不需 bundle。** 回歸 0 RED（新增 cap
+      `e1_bundle` L2）。見 `knowledge/s2-v2-bundle-e1.md`。**下一個 run 做 E2（SKILL.md→2.0.0）。**
 - [ ] **E2**：改寫 `SKILL.md` → **2.0.0**（新增軸寫進核心能力表 + 觸發詞 + Changelog），更新 `INSTALL.md`。
 - [ ] **E3**：跑 `check_readiness.py` 更新 `READINESS.md`；重 zip 成 `.skill` 交付檔。
 - [ ] **E4**：依 RULES **C 類**回報使用者拍板是否 sync（打包/安裝屬帳號層級，需人決定）。
