@@ -7,6 +7,8 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 288(2026-11-02)**:使用者裁示 bodice/sleeve_right=放棄、hair_front=只切髮尾(額頭併 head);GPT 補圖改走本機 codex bridge,**待使用者補 codex_bridge.ps1 + 範例**。見 `log/s4-2026-11-02-288.md`。
+
 > **chunk 287(2026-11-02)**:排程觸發。檢查皆無變化,**無新工作塊**,不重複通知。見 `log/s4-2026-11-02-287.md`。
 
 > **chunk 286(2026-11-02)**:排程觸發。檢查皆無變化,**無新工作塊**,不重複通知。見 `log/s4-2026-11-02-286.md`。
