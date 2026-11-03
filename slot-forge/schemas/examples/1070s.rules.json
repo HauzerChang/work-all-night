@@ -1,0 +1,219 @@
+{
+  "schemaVersion": "0.1.0",
+  "game": {
+    "code": "1070s",
+    "name": {
+      "tw": "凡人修仙",
+      "en": "TBD"
+    },
+    "source": "fanren-xiuxian-slot.html",
+    "baseArchitecture": "1070s (OMGSlotKit)"
+  },
+  "board": {
+    "reels": 5,
+    "rowsPerReel": [
+      4,
+      5,
+      5,
+      5,
+      4
+    ],
+    "alignment": "center"
+  },
+  "evaluation": {
+    "type": "ways",
+    "direction": "leftToRight",
+    "minMatch": 3,
+    "waysCount": 2000
+  },
+  "symbols": [
+    {
+      "id": "WILD",
+      "kind": "wild",
+      "tbd": true
+    },
+    {
+      "id": "COLLECT",
+      "kind": "collect",
+      "tbd": true
+    },
+    {
+      "id": "H1",
+      "kind": "high",
+      "tbd": true
+    },
+    {
+      "id": "L1",
+      "kind": "low",
+      "tbd": true
+    }
+  ],
+  "features": [
+    {
+      "id": "cascade",
+      "type": "cascade",
+      "trigger": {
+        "kind": "onWin"
+      },
+      "params": {
+        "refill": "dropFromTop",
+        "removeWinning": true
+      },
+      "phase": [
+        "base",
+        "respin"
+      ]
+    },
+    {
+      "id": "baseMultiplier",
+      "type": "multiplierLadder",
+      "trigger": {
+        "kind": "onWin"
+      },
+      "params": {
+        "ladder": [
+          1,
+          2,
+          3,
+          5
+        ],
+        "advanceOn": "cascade",
+        "capAtLast": true,
+        "resetOn": "spinStart"
+      },
+      "phase": [
+        "base"
+      ]
+    },
+    {
+      "id": "collectMeter",
+      "type": "collect",
+      "trigger": {
+        "kind": "collectThreshold",
+        "symbol": "COLLECT",
+        "scope": "session"
+      },
+      "params": {
+        "onComplete": "feature:r3WildRespin"
+      },
+      "phase": [
+        "base"
+      ]
+    },
+    {
+      "id": "r3WildRespin",
+      "type": "respin",
+      "trigger": {
+        "kind": "collectThreshold",
+        "symbol": "COLLECT"
+      },
+      "params": {
+        "fullReelWild": [
+          2
+        ],
+        "respins": null
+      },
+      "phase": [
+        "respin"
+      ]
+    }
+  ],
+  "flow": {
+    "initial": "Idle",
+    "states": [
+      "Idle",
+      "Spin",
+      "Stop",
+      "Evaluate",
+      "Win",
+      "Cascade",
+      "RespinIntro",
+      "Respin",
+      "RespinOutro"
+    ],
+    "transitions": [
+      {
+        "from": "Idle",
+        "to": "Spin",
+        "on": "spinPressed"
+      },
+      {
+        "from": "Spin",
+        "to": "Stop",
+        "on": "resultReceived"
+      },
+      {
+        "from": "Stop",
+        "to": "Evaluate",
+        "on": "allReelsStopped"
+      },
+      {
+        "from": "Evaluate",
+        "to": "Win",
+        "on": "hasWin"
+      },
+      {
+        "from": "Evaluate",
+        "to": "Idle",
+        "on": "noWin",
+        "guard": "phase==base && !feature:r3WildRespin"
+      },
+      {
+        "from": "Evaluate",
+        "to": "RespinIntro",
+        "on": "noWin",
+        "guard": "phase==base && feature:r3WildRespin"
+      },
+      {
+        "from": "Evaluate",
+        "to": "Respin",
+        "on": "noWin",
+        "guard": "phase==respin && respinsLeft>0"
+      },
+      {
+        "from": "Evaluate",
+        "to": "RespinOutro",
+        "on": "noWin",
+        "guard": "phase==respin && respinsLeft==0"
+      },
+      {
+        "from": "Win",
+        "to": "Cascade",
+        "on": "winShown"
+      },
+      {
+        "from": "Cascade",
+        "to": "Evaluate",
+        "on": "refillDone"
+      },
+      {
+        "from": "RespinIntro",
+        "to": "Respin",
+        "on": "introDone"
+      },
+      {
+        "from": "Respin",
+        "to": "Stop",
+        "on": "resultReceived"
+      },
+      {
+        "from": "RespinOutro",
+        "to": "Idle",
+        "on": "outroDone"
+      }
+    ]
+  },
+  "locales": [
+    "en",
+    "tw"
+  ],
+  "openQuestions": [
+    "符號清單與 paytable:prompt 未給,需從 fanren-xiuxian-slot.html 取得(所有 symbol 目前 tbd)",
+    "倍數階梯 ×1·×2·×3·×5:是否每次 cascade 前進一階、到 ×5 封頂、每次 Spin 重置?(目前 params 為假設,需對照 demo)",
+    "蒐集門檻數量與蒐集範圍(單局 / 跨局累積)?",
+    "R3 整軸 WILD RESPIN:respin 次數?respin 期間是否仍 cascade、倍數是否沿用?",
+    "Respin 結束條件 → RespinOutro 的轉移事件名(目前狀態機缺 Respin→RespinOutro 的確切條件)",
+    "en 遊戲名稱",
+    "symbolSize / reelFrameSize 最終尺寸值(需從 1070s 專案取)"
+  ]
+}
