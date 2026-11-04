@@ -137,6 +137,13 @@
         <option value="low">low</option>
         <option value="user_confirmed">user_confirmed(使用者已手動確認)</option>
       </select>
+      <label class="field">框座標(像素,可直接改數字)</label>
+      <div class="row">
+        x0<input type="number" id="fx0" style="width:62px"> y0<input type="number" id="fy0" style="width:62px">
+        x1<input type="number" id="fx1" style="width:62px"> y1<input type="number" id="fy1" style="width:62px">
+      </div>
+      <label style="display:block;margin:6px 0;font-size:12px;"><input type="checkbox" id="focusMode" checked>
+        專注模式:只顯示/只操作選取的框(重疊時用);在選取框外拖曳 = 重畫這個框;按 Esc 取消選取才能畫新部件</label>
       <label class="field">notes</label>
       <textarea id="fNotes"></textarea>
       <label class="field">SAM 輔助點(選填,給 <code>--contour sam</code> 用)</label>
@@ -258,7 +265,18 @@ function norm(box) {
   return { x0: Math.min(box.x0, box.x1), y0: Math.min(box.y0, box.y1), x1: Math.max(box.x0, box.x1), y1: Math.max(box.y0, box.y1) };
 }
 const HANDLE_R = 6;
+function focusOn() { return selectedId && $("focusMode") && $("focusMode").checked; }
 function hitTest(x, y) {
+  if (focusOn()) {
+    const bb = boxes.find(q => q.id === selectedId);
+    if (!bb) return null;
+    const b = norm(bb);
+    const corners = { nw: [b.x0, b.y0], ne: [b.x1, b.y0], sw: [b.x0, b.y1], se: [b.x1, b.y1] };
+    for (const [name, [cx, cy]] of Object.entries(corners))
+      if (Math.abs(x - cx) <= HANDLE_R && Math.abs(y - cy) <= HANDLE_R) return { id: bb.id, mode: "resize-" + name };
+    if (x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1) return { id: bb.id, mode: "move" };
+    return null;
+  }
   // 由後到前(最上層優先),先測角落 handle,再測內部(移動)
   for (let i = boxes.length - 1; i >= 0; i--) {
     const b = norm(boxes[i]);
@@ -299,17 +317,17 @@ $("overlayCanvas").addEventListener("mousedown", (e) => {
     dragSnapshot = { ...norm(boxes.find(b => b.id === hit.id)) };
     selectPart(selectedId);
   } else {
-    dragMode = "draw";
+    dragMode = focusOn() ? "redraw" : "draw";
     dragStart = { x, y };
     drawingBox = { x0: x, y0: y, x1: x, y1: y };
-    selectedId = null;
+    if (dragMode === "draw") selectedId = null;
   }
   render();
 });
 $("overlayCanvas").addEventListener("mousemove", (e) => {
   if (!img || !dragMode) return;
   const { x, y } = canvasPos(e);
-  if (dragMode === "draw") {
+  if (dragMode === "draw" || dragMode === "redraw") {
     drawingBox.x1 = x; drawingBox.y1 = y;
   } else if (dragMode === "move") {
     const dx = x - dragStart.x, dy = y - dragStart.y;
@@ -322,9 +340,18 @@ $("overlayCanvas").addEventListener("mousemove", (e) => {
     if (corner.includes("n")) b.y0 = y; else b.y1 = y;
     if (corner.includes("w")) b.x0 = x; else b.x1 = x;
   }
+  syncCoordFields();
   render();
 });
 window.addEventListener("mouseup", () => {
+  if (!dragMode) return; // 沒在拖曳時不要重繪清單,否則清單列在 mousedown/mouseup 之間被換掉,click 永遠不會觸發
+  if (dragMode === "redraw" && drawingBox) {
+    const r = norm(drawingBox), tb = boxes.find(q => q.id === selectedId);
+    if (tb && r.x1 - r.x0 > 4 && r.y1 - r.y0 > 4) { tb.x0 = r.x0; tb.y0 = r.y0; tb.x1 = r.x1; tb.y1 = r.y1; }
+    drawingBox = null; dragMode = null;
+    syncCoordFields(); renderPartList(); render();
+    return;
+  }
   if (dragMode === "draw" && drawingBox) {
     const b = norm(drawingBox);
     if (b.x1 - b.x0 > 4 && b.y1 - b.y0 > 4) {
@@ -361,6 +388,7 @@ function render() {
   if (!img) return;
   overlayCtx.clearRect(0, 0, overlayCtx.canvas.width, overlayCtx.canvas.height);
   boxes.forEach(bb => {
+    if (focusOn() && bb.id !== selectedId) return;
     const b = norm(bb);
     const color = CONF_COLOR[bb.confidence] || "#8b95a5";
     overlayCtx.strokeStyle = color;
@@ -414,6 +442,20 @@ function renderPartList() {
 }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
+function syncCoordFields() {
+  const b = boxes.find(q => q.id === selectedId);
+  if (!b) return;
+  const n = norm(b);
+  $("fx0").value = Math.round(n.x0); $("fy0").value = Math.round(n.y0);
+  $("fx1").value = Math.round(n.x1); $("fy1").value = Math.round(n.y1);
+}
+["fx0","fy0","fx1","fy1"].forEach(fid => $(fid).addEventListener("input", () => {
+  const b = boxes.find(q => q.id === selectedId);
+  if (!b) return;
+  b.x0 = +$("fx0").value; b.y0 = +$("fy0").value; b.x1 = +$("fx1").value; b.y1 = +$("fy1").value;
+  render();
+}));
+$("focusMode").addEventListener("change", render);
 function selectPart(id) {
   const b = boxes.find(bb => bb.id === id);
   pointMode = null;
@@ -423,6 +465,7 @@ function selectPart(id) {
   $("editPanel").style.display = "block";
   $("fId").value = b.id;
   $("fLabel").value = b.label;
+  syncCoordFields();
   $("fConfidence").value = b.confidence;
   $("fNotes").value = b.notes;
   renderPointList();
