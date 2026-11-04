@@ -7,6 +7,8 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 288 完成(2026-11-04)**:前髮 A+B + SAM 細修 → `chunk60/jiuwei_yanlian_decompose_v3.psd`(19 層)。00_style.md 不適用。**下一步:補圖需求清單→bridge 任務單**。見 `log/s4-2026-11-02-288.md`。
+
 > **chunk 288 再追記(2026-11-04)**:hair_front 定案 A+B(左右垂髮束),`chunk60/decision_v2.json`(19 件);矩形裁切含臉/耳環,**下一步加 SAM 點→`--contour sam`→組 PSD**。見 `log/s4-2026-11-02-288.md`。
 
 > **chunk 288 追記(2026-11-04)**:bridge 走方案 C(手動搬運);產出 `chunk60/decision_v2_draft.json`(去 bodice/sleeve_right);**待使用者在 assist viewer 重畫 hair_front 髮尾框**,再重組 PSD。見 `log/s4-2026-11-02-288.md`。
