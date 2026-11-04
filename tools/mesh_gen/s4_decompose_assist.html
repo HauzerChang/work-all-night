@@ -222,16 +222,22 @@ $("suggestInput").addEventListener("change", (e) => {
     const parts = data.parts || [];
     let added = 0;
     parts.forEach(p => {
-      if (!p.bbox_pct || p.bbox_pct.some(v => v == null)) return; // 跳過座標不完整的(如範例裡的 wrist_wraps)
-      const [px0, py0, px1, py1] = p.bbox_pct;
+      let px0, py0, px1, py1, ax0, ay0, ax1, ay1;
+      if (p.bbox_px && !p.bbox_px.some(v => v == null)) {
+        // 也接受已匯出的決策檔(bbox_px 像素座標,附 SAM 點)
+        [ax0, ay0, ax1, ay1] = p.bbox_px;
+      } else if (p.bbox_pct && !p.bbox_pct.some(v => v == null)) {
+        [px0, py0, px1, py1] = p.bbox_pct;
+        ax0 = px0 / 100 * img.width; ay0 = py0 / 100 * img.height;
+        ax1 = px1 / 100 * img.width; ay1 = py1 / 100 * img.height;
+      } else return; // 跳過座標不完整的(如範例裡的 wrist_wraps)
       boxes.push({
         id: p.id || ("part_" + nextPartNum++),
         label: p.label || p.id || "未命名",
         confidence: p.confidence || "medium",
         notes: p.notes || "",
-        x0: px0 / 100 * img.width, y0: py0 / 100 * img.height,
-        x1: px1 / 100 * img.width, y1: py1 / 100 * img.height,
-        points: [],
+        x0: ax0, y0: ay0, x1: ax1, y1: ay1,
+        points: Array.isArray(p.points) ? p.points.map(q => ({x: q.x, y: q.y, label: q.label})) : [],
       });
       added++;
     });
