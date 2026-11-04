@@ -7,6 +7,8 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 297(2026-11-04)**:補圖需求清單 + bridge 任務單草稿完成(`knowledge/s4-inpaint-requirements-jiuwei-v3.md`、`chunk60/bridge_briefs/`)。發現 boot_left/boot_right 遮罩重疊 73% 需重切。**待使用者搬運任務單至 bridge**。見 `log/s4-2026-11-04-297.md`。
+
 > **chunk 288 完成(2026-11-04)**:前髮 A+B + SAM 細修 → `chunk60/jiuwei_yanlian_decompose_v3.psd`(19 層)。00_style.md 不適用。**下一步:補圖需求清單→bridge 任務單**。見 `log/s4-2026-11-02-288.md`。
 
 > **chunk 288 再追記(2026-11-04)**:hair_front 定案 A+B(左右垂髮束),`chunk60/decision_v2.json`(19 件);矩形裁切含臉/耳環,**下一步加 SAM 點→`--contour sam`→組 PSD**。見 `log/s4-2026-11-02-288.md`。
