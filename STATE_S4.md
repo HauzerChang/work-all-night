@@ -7,6 +7,8 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 288 追記(2026-11-04)**:bridge 走方案 C(手動搬運);產出 `chunk60/decision_v2_draft.json`(去 bodice/sleeve_right);**待使用者在 assist viewer 重畫 hair_front 髮尾框**,再重組 PSD。見 `log/s4-2026-11-02-288.md`。
+
 > **chunk 296(2026-11-04)**:排程觸發。檢查皆無變化(codex_bridge.ps1 仍未提供),**無新工作塊**,不重複通知。見 `log/s4-2026-11-04-296.md`。
 
 > **chunk 295(2026-11-04)**:排程觸發。檢查皆無變化(codex_bridge.ps1 仍未提供),**無新工作塊**,不重複通知。見 `log/s4-2026-11-04-295.md`。
