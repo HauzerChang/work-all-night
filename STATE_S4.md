@@ -7,6 +7,8 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 299(2026-11-05)**:排程觸發。檢查皆無變化(bridge 結果/boot_left 重切點仍待使用者),**無新工作塊**,不重複通知。見 `log/s4-2026-11-05-299.md`。
+
 > **chunk 298(2026-11-04)**:排程觸發。檢查皆無變化(bridge 結果/boot_left 重切點仍待使用者),**無新工作塊**,不重複通知。見 `log/s4-2026-11-04-298.md`。
 
 > **chunk 297(2026-11-04)**:補圖需求清單 + bridge 任務單草稿完成(`knowledge/s4-inpaint-requirements-jiuwei-v3.md`、`chunk60/bridge_briefs/`)。發現 boot_left/boot_right 遮罩重疊 73% 需重切。**待使用者搬運任務單至 bridge**。見 `log/s4-2026-11-04-297.md`。
