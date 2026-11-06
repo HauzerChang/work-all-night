@@ -1,0 +1,154 @@
+{
+ "head": {
+  "hole_px": 333,
+  "content_px": 5395,
+  "mode": "edge",
+  "edge_touch": 0.54,
+  "best": "nearest",
+  "why": "pass_1b",
+  "bbox": [
+   230,
+   103,
+   98,
+   113
+  ],
+  "scores": {
+   "nearest": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 1.171,
+    "tone_gap": 13.496,
+    "applicable": true,
+    "pass": true
+   },
+   "cv2_telea": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 1.148,
+    "tone_gap": 11.475,
+    "applicable": true,
+    "pass": true
+   },
+   "cv2_ns": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 1.153,
+    "tone_gap": 11.217,
+    "applicable": true,
+    "pass": true
+   }
+  }
+ },
+ "leg_left": {
+  "hole_px": 0,
+  "skipped": "無實質遮擋"
+ },
+ "leg_right": {
+  "hole_px": 286,
+  "content_px": 3251,
+  "mode": "interior",
+  "edge_touch": 0.12,
+  "best": "nearest",
+  "why": "pass_1b",
+  "bbox": [
+   248,
+   494,
+   81,
+   86
+  ],
+  "scores": {
+   "nearest": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 1.066,
+    "tone_gap": 18.236,
+    "applicable": true,
+    "pass": true
+   },
+   "cv2_telea": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 0.954,
+    "tone_gap": 14.667,
+    "applicable": true,
+    "pass": true
+   },
+   "cv2_ns": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 0.972,
+    "tone_gap": 12.841,
+    "applicable": true,
+    "pass": true
+   }
+  }
+ },
+ "sleeve_left": {
+  "hole_px": 779,
+  "content_px": 11042,
+  "mode": "edge",
+  "edge_touch": 0.35,
+  "best": "nearest",
+  "why": "pass_1b",
+  "bbox": [
+   64,
+   344,
+   120,
+   159
+  ],
+  "scores": {
+   "nearest": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 0.44,
+    "tone_gap": 2.691,
+    "applicable": true,
+    "pass": true
+   },
+   "cv2_telea": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 0.359,
+    "tone_gap": 1.15,
+    "applicable": true,
+    "pass": true
+   },
+   "cv2_ns": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 0.377,
+    "tone_gap": 1.986,
+    "applicable": true,
+    "pass": true
+   }
+  }
+ },
+ "hair_main": {
+  "hole_px": 77,
+  "content_px": 39519,
+  "mode": "edge",
+  "edge_touch": 0.49,
+  "best": "nearest",
+  "why": "1b_not_applicable_fallback_lowest_seam_ratio",
+  "bbox": [
+   0,
+   45,
+   253,
+   415
+  ],
+  "scores": {
+   "nearest": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 0.382,
+    "tone_gap": 5.786,
+    "applicable": false,
+    "pass": null
+   },
+   "cv2_telea": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 0.545,
+    "tone_gap": 10.881,
+    "applicable": false,
+    "pass": null
+   },
+   "cv2_ns": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 0.476,
+    "tone_gap": 6.833,
+    "applicable": false,
+    "pass": null
+   }
+  }
+ }
+}

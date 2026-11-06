@@ -609,3 +609,4 @@
 - `s4-manual-cut-tool.md` — 人工分割輔助工具(`s4_manual_cut.html` + `--contour manual`)。
 - `s4-gptfill-api-key-setup.md` — gpt-image-2 API key 設定指引(含 `s4_openai_check.py` 免費預檢)。
 - 補圖需求清單(九尾狐 v3):`knowledge/s4-inpaint-requirements-jiuwei-v3.md`
+- `s4-cpu-fill-jiuwei-v3.md` — 九尾狐 v3 低難度件 CPU 補圖批次:1b 閘在外推情境鑑別力不足、hair_main 需重切 (chunk 305)
