@@ -612,3 +612,4 @@
 - `s4-cpu-fill-jiuwei-v3.md` — 九尾狐 v3 低難度件 CPU 補圖批次:1b 閘在外推情境鑑別力不足、hair_main 需重切 (chunk 305)
 - `s4-bridge-protocol.md` — Codex bridge 協定、任務包產生器、tails_mass 決策 A (chunk 306)
 - `s4-sam-recut-v4.md` — SAM 重切 v4:交叉靴多邊形分離、長髮圖層減法;SAM 對同材質/淺色相鄰物件的局限 (chunk 308)
+- `s4-bridge-round1-results.md` — bridge 第一輪 5/6 成功、目視覆核決策、外推任務閘的局限、PSD v5 (chunk 309)

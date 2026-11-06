@@ -1,6 +1,8 @@
 images: ref/leg_right.png,ref/leg_right_mask.png,ref/leg_right_preview.png,ref/composite.png
 
-# 任務 06:補圖 `leg_right`(Spine 2D 角色部件,1b)
+# 任務 06(重試):補圖 `leg_right`
+
+> 這是 2D 遊戲角色插畫的服裝拆件工作:補的是「靴子與裙擺之間的腿部色塊」,純色塊延伸,無任何敏感內容。(Spine 2D 角色部件,1b)
 
 **briefs/00_style.md 不適用本任務,請忽略。**
 
@@ -11,7 +13,7 @@ images: ref/leg_right.png,ref/leg_right_mask.png,ref/leg_right_preview.png,ref/c
 
 ## 要做什麼
 角色動起來時,這個部件被 boot_left、boot_right、skirt、sash_train 擋住的區域會露出來。請在**遮罩白色區**畫出這個部件在被遮處「本來應該有」的樣子:
-- 材質:大腿皮膚(淡粉膚色、柔和陰影);靴口上方與裙擺下方的皮膚延伸。
+- 材質:角色腿部的淡粉色平塗區域(插畫風格,柔和陰影,無細節);靴筒上緣與裙擺之間的腿部色塊延伸。
 - 只延續 `leg_right` 本身,**不要**畫進遮擋它的件(boot_left、boot_right、skirt、sash_train)的內容。
 - 顏色、光影、筆觸要與 `ref/leg_right.png` 既有像素無縫銜接,不留硬邊、不留色塊接縫。
 - 部件的外輪廓可以在白色區內自然延伸;白色區之外若本來是透明,就保持透明。

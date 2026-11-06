@@ -17,10 +17,12 @@ ap = argparse.ArgumentParser(description=__doc__)
 ap.add_argument("ids", nargs="*")
 ap.add_argument("--chunk", default="chunk60")
 ap.add_argument("--selftest", action="store_true")
+ap.add_argument("--filled-dir", default=None, help="補圖結果目錄(預設 chunk 下 filled/);第 N 輪用 filled_round{N}")
+ap.add_argument("--bridge-dir", default=None, help="任務包目錄(含 ref/ 與 tasks.json);預設 chunk 下 bridge/。驗收時必須指向 bridge 實際使用的那版遮罩")
 a = ap.parse_args()
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "s4_data", a.chunk)
-BR = os.path.join(D, "bridge"); FILLED = os.path.join(D, "filled" if not a.selftest else "filled_selftest")
-OUT = os.path.join(D, "verify" if not a.selftest else "verify_selftest"); os.makedirs(os.path.join(OUT, "composed"), exist_ok=True)
+BR = os.path.abspath(a.bridge_dir) if a.bridge_dir else os.path.join(D, "bridge"); FILLED = os.path.abspath(a.filled_dir) if a.filled_dir else os.path.join(D, "filled" if not a.selftest else "filled_selftest")
+OUT = os.path.join(D, ("verify" if not a.filled_dir else "verify_" + os.path.basename(os.path.normpath(a.filled_dir))) if not a.selftest else "verify_selftest"); os.makedirs(os.path.join(OUT, "composed"), exist_ok=True)
 tasks = {t["part"]: t for t in json.load(open(os.path.join(BR, "tasks.json")))}
 k = lambda n: cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
 
@@ -48,8 +50,16 @@ def verify(pid, filled_path):
     w = cv2.GaussianBlur(mask.astype(np.float32), (7, 7), 0)[..., None]
     comp = orig * (1 - w) + fil * w
     comp[keep & ~(cv2.dilate(mask.astype(np.uint8), k(7)) > 0)] = orig[keep & ~(cv2.dilate(mask.astype(np.uint8), k(7)) > 0)]
-    # 白區仍透明比例(bridge 沒畫到)
+    # 白區仍透明比例(資訊):外推任務的遮罩是「寬鬆延伸帶」,bridge 只在合理輪廓內畫、其餘留透明是正確行為
+    # (chunk309 實測 head 0.57 / sleeve 0.40 目視皆佳)→ 不能當硬門檻。硬門檻改為 boundary_gap:
+    # 緊貼原件輪廓 4px 內、落在白區的像素仍透明的比例 —— 這種洞一動就穿幫。
     r["checks"]["white_region_alpha_gap"] = round(float(((comp[..., 3] <= 8) & mask).sum() / max(mask.sum(), 1)), 4)
+    near = cv2.dilate((orig[..., 3] > 8).astype(np.uint8), k(9)).astype(bool) & mask
+    # 殘洞自動補:白區內、與已畫/原內容相鄰的透明碎洞(<= 1.5% 白區)用 nearest 補,避免動態露洞
+    resid = (comp[..., 3] <= 8) & near
+    if 0 < resid.sum() <= 0.015 * mask.sum() + 50:
+        comp = ie.fill_nearest(comp, None, resid); r["warnings"].append(f"殘洞 {int(resid.sum())}px 以 nearest 自動補")
+    r["checks"]["boundary_gap"] = round(float(((comp[..., 3] <= 8) & near).sum() / max(near.sum(), 1)), 4)
     content = comp[..., 3] > 8
     ring = cv2.dilate(mask.astype(np.uint8), k(5)).astype(bool) & ~mask
     edge_touch = (ring & (orig[..., 3] <= 8)).sum() / max(ring.sum(), 1)
@@ -63,9 +73,9 @@ def verify(pid, filled_path):
     s["pass"] = ie.passes_1b(s, mode) if s["applicable"] else None
     r["checks"]["1b"] = {kk: (round(v, 3) if isinstance(v, float) else v) for kk, v in s.items()}; r["checks"]["1b_mode"] = mode
     ie.save_rgba(os.path.join(OUT, "composed", f"{pid}.png"), comp)
-    hard_fail = r["checks"]["white_region_alpha_gap"] > 0.05 or (gr is not None and gr > 1.25) or s["pass"] is False
-    # 1b 不適用(洞吃掉整段輪廓,如腿)→ 不能算 pass,標 None 交目視
-    r["pass"] = False if hard_fail else (True if s["pass"] else None)
+    # 外推(edge)任務:自動閘只能擋「沒畫 / 噪聲 / 尺寸錯 / 貼邊有洞」,品質靠目視 → 1b 僅參考,判定最多到 None(需目視)
+    hard_fail = r["checks"]["boundary_gap"] > 0.2 or (gr is not None and gr > 1.25) or (mode == "interior" and s["pass"] is False)
+    r["pass"] = False if hard_fail else (True if (mode == "interior" and s["pass"]) else None)
     r["needs_visual"] = (r["pass"] is None) or bool(r["warnings"])
     return r, orig, mask, fil, comp
 

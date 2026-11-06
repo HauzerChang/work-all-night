@@ -8,6 +8,7 @@ ap = argparse.ArgumentParser(description=__doc__)
 ap.add_argument("action", choices=["push", "pull", "status"])
 ap.add_argument("bridge", help=r"bridge 根目錄,如 C:\Users\user\Desktop\切圖補圖研究\bridge")
 ap.add_argument("--chunk", default="chunk60")
+ap.add_argument("--round", type=int, default=None, help="pull 用:第 N 輪結果存到 filled_round{N}/(第 1 輪存 filled/);只取 push 之後產生的檔")
 a = ap.parse_args()
 HERE = os.path.dirname(os.path.abspath(__file__))
 PK = os.path.join(HERE, "s4_data", a.chunk, "bridge")
@@ -24,10 +25,13 @@ if a.action == "push":
         cp(f, os.path.join(BR, "briefs", "todo", os.path.basename(f))); n += 1
     for f in sorted(glob.glob(os.path.join(PK, "ref", "*"))):
         cp(f, os.path.join(BR, "ref", os.path.basename(f)))
-    print(f"已放入 {n} 張任務單。請確認 codex_bridge.cmd 視窗開著;完成後執行 pull。")
+    import time; open(os.path.join(PK, ".last_push"), "w").write(str(time.time()))
+    print(f"已放入 {n} 張任務單。請確認 codex_bridge.cmd 視窗開著;完成後執行 pull --round N。")
 elif a.action == "pull":
-    out = os.path.join(HERE, "s4_data", a.chunk, "filled"); n = 0
+    out = os.path.join(HERE, "s4_data", a.chunk, "filled" if not a.round or a.round == 1 else f"filled_round{a.round}"); n = 0
+    since = float(open(os.path.join(PK, ".last_push")).read()) if os.path.exists(os.path.join(PK, ".last_push")) else 0
     for f in sorted(glob.glob(os.path.join(BR, "out", "*_filled.png"))):
+        if os.path.getmtime(f) < since: continue   # 上一輪的舊檔不重複搬
         cp(f, os.path.join(out, os.path.basename(f))); n += 1
     for f in glob.glob(os.path.join(BR, "logs", "*.run.txt")) + glob.glob(os.path.join(BR, "logs", "*.exit.txt")):
         cp(f, os.path.join(out, "logs", os.path.basename(f)))

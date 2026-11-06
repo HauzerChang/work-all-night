@@ -9,3 +9,11 @@
 push:複製 `briefs/todo/*.md` → bridge\briefs\todo\,`ref/*` → bridge\ref\。
 pull:複製 bridge\out\*_filled.png → repo `chunk60/filled/`,並帶回 logs 的 run/exit 檔供除錯。
 驗收由下次排程執行(`s4_bridge_verify.py`:黑區逐像素不變 + 1b 閘 + 目視蒙太奇)。
+
+## 第二輪(chunk 309)
+todo 只剩 3 張:01_tails_mass(長髮遮擋增量,以第一輪合成為基底)、06_leg_right(換措辭重試)、07_hair_main(新)。第一輪任務單歸檔於 briefs/round1_done/。
+
+    python tools/mesh_gen/s4_bridge_sync.py push "C:\Users\user\Desktop\切圖補圖研究\bridge"
+    # bridge 跑完後:
+    python tools/mesh_gen/s4_bridge_sync.py pull "C:\Users\user\Desktop\切圖補圖研究\bridge" --round 2
+    git add tools/mesh_gen/s4_data/chunk60/filled_round2 && git commit -m "S4: bridge round 2" && git push

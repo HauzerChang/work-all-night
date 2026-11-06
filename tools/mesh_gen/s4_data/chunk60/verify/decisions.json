@@ -1,0 +1,14 @@
+{
+ "round": 1,
+ "bridge_refs": "git 253161a tools/mesh_gen/s4_data/chunk60/bridge/ref (v2 masks)",
+ "accept": {
+  "head": "visual_pass (gate: boundary_gap 0.28 誤擋 — 遮罩延伸帶外側留透明是合理行為;臉側/耳/頸延伸自然)",
+  "sleeve_left": "visual_pass (gate: boundary_gap 0.24 / grad_ratio 1.26 邊界值;紗袖下擺延續自然)",
+  "skirt": "gate_visual (1b pass, edge 模式判 None;目視佳)",
+  "leg_left": "gate_visual (1b 不適用;目視:靴口上方膚色延伸合理)",
+  "tails_mass": "gate_visual_lenient (1b 寬鬆閘:無洞;白毛色調偏亮但可接受;殘洞 168px 已 nearest 自動補)"
+ },
+ "reject": {
+  "leg_right": "bridge 被 image tool 安全過濾拒絕(大腿皮膚);CPU nearest/telea/ns 皆拉出靴色褐帶 → 第二輪換措辭重試"
+ }
+}

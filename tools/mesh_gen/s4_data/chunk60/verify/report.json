@@ -1,0 +1,124 @@
+[
+ {
+  "part": "head",
+  "file": "filled/head_filled.png",
+  "checks": {
+   "has_alpha": true,
+   "size": "ok",
+   "black_region_premult_mae": 0.0,
+   "black_region_alpha_mae": 0.0,
+   "white_region_alpha_gap": 0.5715,
+   "boundary_gap": 0.281,
+   "white_region_grad_ratio": 0.478,
+   "1b": {
+    "alpha_gap": 0.572,
+    "seam_ratio": 1.299,
+    "tone_gap": 31.254,
+    "applicable": true,
+    "pass": false
+   },
+   "1b_mode": "edge"
+  },
+  "warnings": [],
+  "pass": false,
+  "needs_visual": false
+ },
+ {
+  "part": "leg_left",
+  "file": "filled/leg_left_filled.png",
+  "checks": {
+   "has_alpha": true,
+   "size": "ok",
+   "black_region_premult_mae": 0.0,
+   "black_region_alpha_mae": 0.0,
+   "white_region_alpha_gap": 0.0,
+   "boundary_gap": 0.0,
+   "white_region_grad_ratio": 0.483,
+   "1b": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 0.0,
+    "tone_gap": 0.0,
+    "applicable": false,
+    "pass": null
+   },
+   "1b_mode": "edge"
+  },
+  "warnings": [],
+  "pass": null,
+  "needs_visual": true
+ },
+ {
+  "part": "skirt",
+  "file": "filled/skirt_filled.png",
+  "checks": {
+   "has_alpha": true,
+   "size": "ok",
+   "black_region_premult_mae": 0.0,
+   "black_region_alpha_mae": 0.0,
+   "white_region_alpha_gap": 0.0,
+   "boundary_gap": 0.0,
+   "white_region_grad_ratio": 0.707,
+   "1b": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 0.802,
+    "tone_gap": 4.738,
+    "applicable": true,
+    "pass": true
+   },
+   "1b_mode": "edge"
+  },
+  "warnings": [],
+  "pass": null,
+  "needs_visual": true
+ },
+ {
+  "part": "sleeve_left",
+  "file": "filled/sleeve_left_filled.png",
+  "checks": {
+   "has_alpha": true,
+   "size": "ok",
+   "black_region_premult_mae": 0.0,
+   "black_region_alpha_mae": 0.0,
+   "white_region_alpha_gap": 0.3968,
+   "boundary_gap": 0.2449,
+   "white_region_grad_ratio": 1.26,
+   "1b": {
+    "alpha_gap": 0.397,
+    "seam_ratio": 1.653,
+    "tone_gap": 1.941,
+    "applicable": true,
+    "pass": false
+   },
+   "1b_mode": "edge"
+  },
+  "warnings": [],
+  "pass": false,
+  "needs_visual": false
+ },
+ {
+  "part": "tails_mass",
+  "file": "filled/tails_mass_filled.png",
+  "checks": {
+   "has_alpha": true,
+   "size": "ok",
+   "black_region_premult_mae": 0.0,
+   "black_region_alpha_mae": 0.0,
+   "white_region_alpha_gap": 0.0064,
+   "boundary_gap": 0.0,
+   "white_region_grad_ratio": 0.582,
+   "1b": {
+    "alpha_gap": 0.002,
+    "seam_ratio": 2.017,
+    "tone_gap": 50.317,
+    "applicable": true,
+    "pass": false
+   },
+   "1b_mode": "edge"
+  },
+  "warnings": [
+   "殘洞 168px 以 nearest 自動補"
+  ],
+  "pass": null,
+  "needs_visual": true
+ }
+]

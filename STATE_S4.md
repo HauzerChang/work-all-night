@@ -7,6 +7,8 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 309(2026-11-06)**:bridge 第一輪 5/6 accept → PSD v5(`jiuwei_yanlian_decompose_v5_filled.psd`)。第二輪任務包 3 張待使用者 push/pull(`--round 2`)。**排程:偵測 `chunk60/filled_round2/` → `s4_bridge_verify.py --filled-dir ... --bridge-dir tools/mesh_gen/s4_data/chunk60/bridge`(本 commit 版 ref)→ 目視 → decisions → apply → PSD v6;否則 no-change。** 見 `knowledge/s4-bridge-round1-results.md`。
+
 > **chunk 308(2026-11-06)**:SAM 重切 v4 完成(靴重疊 0 px、hair_main 乾淨),PSD v4 + bridge 任務包 7 張重產。**只剩等使用者本機跑 bridge → push `chunk60/filled/`;排程偵測到即以 `s4_bridge_verify.py` 驗收,否則 no-change。** 見 `knowledge/s4-sam-recut-v4.md`、`log/s4-2026-11-06-308.md`。
 
 > **chunk 307(2026-11-06)**:`s4_bridge_verify.py` 完成並校準(24 案例,三態判定)。**等使用者本機:(a) `s4_bridge_sync.py push` → bridge → `pull` → push `chunk60/filled/`;(b) SAM 重切 → push `chunk60/cut_sam_v3/`。排程偵測到任一即推進;兩者皆無則 no-change。** 見 `log/s4-2026-11-06-307.md`。
