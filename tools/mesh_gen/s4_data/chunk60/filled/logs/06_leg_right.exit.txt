@@ -1,0 +1,1 @@
+﻿exit=0 result=failed expected=C:\Users\user\Desktop\切圖補圖研究\bridge\out\leg_right_filled.png finished=2026-11-06T08:50:30 model=gpt-6.1-sol
