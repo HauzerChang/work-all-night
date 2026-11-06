@@ -7,6 +7,8 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 307(2026-11-06)**:`s4_bridge_verify.py` 完成並校準(24 案例,三態判定)。**等使用者本機:(a) `s4_bridge_sync.py push` → bridge → `pull` → push `chunk60/filled/`;(b) SAM 重切 → push `chunk60/cut_sam_v3/`。排程偵測到任一即推進;兩者皆無則 no-change。** 見 `log/s4-2026-11-06-307.md`。
+
 > **chunk 306(2026-11-06)**:bridge 任務包(6 件+遮罩)`chunk60/bridge/` + `s4_bridge_sync.py`;tails_mass 決策 A;boot/hair_main 新 SAM 點 `decision_v3_pts.json`(SAM 執行待授權)。**下一步:使用者本機 `s4_bridge_sync.py push` → 跑 bridge → `pull` → commit;排程偵測 `chunk60/filled/` 後驗收(需先寫 `s4_bridge_verify.py`)。** 見 `knowledge/s4-bridge-protocol.md`、`log/s4-2026-11-06-306.md`。
 
 > **chunk 305(2026-11-06)**:CPU 補圖批次完成,結論:低難度件的真缺口是輪廓外外推,1b 閘會誤 pass;hair_main 切件錯誤需與 boot_left 一併重切。見 `knowledge/s4-cpu-fill-jiuwei-v3.md`、`log/s4-2026-11-06-305.md`。排程頻率待使用者改每日一次。

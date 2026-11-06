@@ -11,3 +11,10 @@ hair_main 不在包內(切件錯誤,待 SAM 重切後再加)。
 - tails_mass:**保留整塊(方案 A)**,補圖只需 1b 寬鬆閘(動態下不露洞)。拆束留待有動畫需求時再議。
 ## 驗收(下次排程,`s4_bridge_verify.py` 待寫)
 1. 尺寸 460x898、RGBA;2. 遮罩黑區與原件逐像素相同(alpha 含);3. 白區 alpha_gap/seam_ratio/tone_gap 1b 閘;4. 蒙太奇目視。
+
+## 驗收器 `s4_bridge_verify.py`(chunk 307 校準)
+- 流程:尺寸(等比可縮放、否則 FAIL)→ 黑區漂移只記錄(合成一律以原件覆蓋黑區,bridge 重編碼不影響)→ 合成 `verify/composed/<id>.png` → 白區三指標 → 蒙太奇。
+- 指標/門檻:`white_region_alpha_gap` ≤0.05(沒畫=必擋);`white_region_grad_ratio`(白區內部梯度 / 周圍 21px 環帶)≤1.25 — 校準:噪聲 1.34–2.78、nearest/telea 0.18–0.60、真實紋理件 ≤0.95;1b 閘(score_1b,mode 自動)。
+- 判定三態:**pass**(三項皆過)/ **None=需目視**(1b 不適用,如腿:洞吃掉整段輪廓)/ **fail**。
+- 自測 `--selftest`:6 件 × {nearest 正對照, empty, noise, wrongsize} = 24 案例 → 正 4 pass + 2 目視、負 18 全擋。
+- 已知盲點:head 的 noise 只靠 grad_ratio 擋(1b 誤 pass)→ 1b 單獨不可信,三指標須同時看。
