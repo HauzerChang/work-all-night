@@ -7,6 +7,8 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 308(2026-11-06)**:SAM 重切 v4 完成(靴重疊 0 px、hair_main 乾淨),PSD v4 + bridge 任務包 7 張重產。**只剩等使用者本機跑 bridge → push `chunk60/filled/`;排程偵測到即以 `s4_bridge_verify.py` 驗收,否則 no-change。** 見 `knowledge/s4-sam-recut-v4.md`、`log/s4-2026-11-06-308.md`。
+
 > **chunk 307(2026-11-06)**:`s4_bridge_verify.py` 完成並校準(24 案例,三態判定)。**等使用者本機:(a) `s4_bridge_sync.py push` → bridge → `pull` → push `chunk60/filled/`;(b) SAM 重切 → push `chunk60/cut_sam_v3/`。排程偵測到任一即推進;兩者皆無則 no-change。** 見 `log/s4-2026-11-06-307.md`。
 
 > **chunk 306(2026-11-06)**:bridge 任務包(6 件+遮罩)`chunk60/bridge/` + `s4_bridge_sync.py`;tails_mass 決策 A;boot/hair_main 新 SAM 點 `decision_v3_pts.json`(SAM 執行待授權)。**下一步:使用者本機 `s4_bridge_sync.py push` → 跑 bridge → `pull` → commit;排程偵測 `chunk60/filled/` 後驗收(需先寫 `s4_bridge_verify.py`)。** 見 `knowledge/s4-bridge-protocol.md`、`log/s4-2026-11-06-306.md`。

@@ -1,0 +1,641 @@
+{
+  "source": "jiuwei_yanlian_char_crop.png",
+  "size": [
+    460,
+    898
+  ],
+  "parts": [
+    {
+      "name": "頭部(含五官)",
+      "z": 0,
+      "opacity": 255,
+      "offset": [
+        184,
+        90
+      ],
+      "size": [
+        175,
+        126
+      ],
+      "file": "00_head.png",
+      "id": "head",
+      "confidence": "medium",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.9078,
+          0.7405,
+          0.7964
+        ],
+        "chosen_candidate": 0,
+        "fg_ratio_in_box": 0.2447,
+        "n_components": 3,
+        "largest_component_frac": 0.8169,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 6,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "狐耳(雙耳)",
+      "z": 1,
+      "opacity": 255,
+      "offset": [
+        175,
+        9
+      ],
+      "size": [
+        184,
+        162
+      ],
+      "file": "01_fox_ears.png",
+      "id": "fox_ears",
+      "confidence": "medium",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.7827,
+          0.9012,
+          0.8574
+        ],
+        "chosen_candidate": 1,
+        "fg_ratio_in_box": 0.1033,
+        "n_components": 4,
+        "largest_component_frac": 0.6736,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 0,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "前髮-左側垂髮束(髮尾)",
+      "z": 2,
+      "opacity": 255,
+      "offset": [
+        232,
+        90
+      ],
+      "size": [
+        36,
+        110
+      ],
+      "file": "02_hair_front_left.png",
+      "id": "hair_front_left",
+      "confidence": "medium",
+      "notes": "USER DECISION 2026-11-04 (A+B): 前髮只切兩側垂髮束;額前瀏海併入 head。框為目測估計,SAM 細修輪廓。",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.7,
+          0.7806,
+          0.7965
+        ],
+        "chosen_candidate": 2,
+        "fg_ratio_in_box": 0.6308,
+        "n_components": 1,
+        "largest_component_frac": 1.0,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 5,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "前髮-右側垂髮束(髮尾)",
+      "z": 3,
+      "opacity": 255,
+      "offset": [
+        312,
+        95
+      ],
+      "size": [
+        40,
+        110
+      ],
+      "file": "03_hair_front_right.png",
+      "id": "hair_front_right",
+      "confidence": "medium",
+      "notes": "USER DECISION 2026-11-04 (A+B): 前髮只切兩側垂髮束;額前瀏海併入 head。框為目測估計,SAM 細修輪廓。",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.7609,
+          0.848,
+          0.8694
+        ],
+        "chosen_candidate": 2,
+        "fg_ratio_in_box": 0.702,
+        "n_components": 1,
+        "largest_component_frac": 1.0,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 5,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "長髮主體(後方+兩側)",
+      "z": 4,
+      "opacity": 255,
+      "offset": [
+        0,
+        70
+      ],
+      "size": [
+        262,
+        424
+      ],
+      "file": "04_hair_main.png",
+      "id": "hair_main",
+      "confidence": "medium",
+      "notes": "chunk306 重切:原 SAM 結果切到標題字/背景暗區。正點落銀紫長髮,負點落臉/標題/狐尾/袖。 v4:袖身/尾尖加負點,移除 (120,400) 正點。 [s4_layer_subtract: −sleeve_left −hand_left −(tails_mass∩(0, 330, 125, 445))]",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.7735,
+          0.8447,
+          0.923
+        ],
+        "chosen_candidate": 2,
+        "fg_ratio_in_box": 0.4957,
+        "n_components": 22,
+        "largest_component_frac": 0.9935,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 17,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "耳環(雙耳)",
+      "z": 5,
+      "opacity": 255,
+      "offset": [
+        313,
+        144
+      ],
+      "size": [
+        23,
+        45
+      ],
+      "file": "05_earrings.png",
+      "id": "earrings",
+      "confidence": "medium",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.7025,
+          0.7666,
+          0.7668
+        ],
+        "chosen_candidate": 2,
+        "fg_ratio_in_box": 0.4222,
+        "n_components": 1,
+        "largest_component_frac": 1.0,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 0,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "頸飾(紅色蝴蝶結+墜飾)",
+      "z": 6,
+      "opacity": 255,
+      "offset": [
+        221,
+        171
+      ],
+      "size": [
+        110,
+        62
+      ],
+      "file": "06_choker.png",
+      "id": "choker",
+      "confidence": "medium",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.5602,
+          0.7645,
+          0.7692
+        ],
+        "chosen_candidate": 2,
+        "fg_ratio_in_box": 0.2589,
+        "n_components": 3,
+        "largest_component_frac": 0.9943,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 0,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "左側白紗寬袖",
+      "z": 7,
+      "opacity": 255,
+      "offset": [
+        60,
+        242
+      ],
+      "size": [
+        124,
+        261
+      ],
+      "file": "07_sleeve_left.png",
+      "id": "sleeve_left",
+      "confidence": "medium",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.6063,
+          0.6571,
+          0.6474
+        ],
+        "chosen_candidate": 1,
+        "fg_ratio_in_box": 0.3412,
+        "n_components": 2,
+        "largest_component_frac": 0.9997,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 0,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "左手",
+      "z": 8,
+      "opacity": 255,
+      "offset": [
+        133,
+        422
+      ],
+      "size": [
+        83,
+        135
+      ],
+      "file": "08_hand_left.png",
+      "id": "hand_left",
+      "confidence": "medium",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.9178,
+          0.936,
+          0.9395
+        ],
+        "chosen_candidate": 2,
+        "fg_ratio_in_box": 0.2485,
+        "n_components": 1,
+        "largest_component_frac": 1.0,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 0,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "右手",
+      "z": 9,
+      "opacity": 255,
+      "offset": [
+        377,
+        440
+      ],
+      "size": [
+        74,
+        144
+      ],
+      "file": "09_hand_right.png",
+      "id": "hand_right",
+      "confidence": "medium",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.8215,
+          0.7912,
+          0.7743
+        ],
+        "chosen_candidate": 0,
+        "fg_ratio_in_box": 0.2141,
+        "n_components": 1,
+        "largest_component_frac": 1.0,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 0,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "黑色腰帶+金色扣環",
+      "z": 10,
+      "opacity": 255,
+      "offset": [
+        175,
+        332
+      ],
+      "size": [
+        152,
+        72
+      ],
+      "file": "10_belt.png",
+      "id": "belt",
+      "confidence": "high",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.2027,
+          0.6546,
+          0.4934
+        ],
+        "chosen_candidate": 1,
+        "fg_ratio_in_box": 0.1472,
+        "n_components": 1,
+        "largest_component_frac": 1.0,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 0,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "裙擺(紅色短裙主體)",
+      "z": 11,
+      "opacity": 255,
+      "offset": [
+        156,
+        359
+      ],
+      "size": [
+        171,
+        189
+      ],
+      "file": "11_skirt.png",
+      "id": "skirt",
+      "confidence": "high",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.5689,
+          0.8562,
+          0.855
+        ],
+        "chosen_candidate": 1,
+        "fg_ratio_in_box": 0.4478,
+        "n_components": 1,
+        "largest_component_frac": 1.0,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 1,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "垂墜符紙標籤",
+      "z": 12,
+      "opacity": 255,
+      "offset": [
+        336,
+        413
+      ],
+      "size": [
+        41,
+        117
+      ],
+      "file": "12_tag_pendant.png",
+      "id": "tag_pendant",
+      "confidence": "medium",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.9739,
+          0.9731,
+          0.9619
+        ],
+        "chosen_candidate": 0,
+        "fg_ratio_in_box": 0.4132,
+        "n_components": 1,
+        "largest_component_frac": 1.0,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 0,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "流蘇/披帛長下擺(拖尾)",
+      "z": 13,
+      "opacity": 255,
+      "offset": [
+        129,
+        494
+      ],
+      "size": [
+        221,
+        368
+      ],
+      "file": "13_sash_train.png",
+      "id": "sash_train",
+      "confidence": "low",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.7882,
+          0.8745,
+          0.9091
+        ],
+        "chosen_candidate": 2,
+        "fg_ratio_in_box": 0.3013,
+        "n_components": 8,
+        "largest_component_frac": 0.998,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 5,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "左腿(大腿露出部分)",
+      "z": 14,
+      "opacity": 255,
+      "offset": [
+        189,
+        458
+      ],
+      "size": [
+        64,
+        90
+      ],
+      "file": "14_leg_left.png",
+      "id": "leg_left",
+      "confidence": "medium",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.8396,
+          0.9017,
+          0.8801
+        ],
+        "chosen_candidate": 1,
+        "fg_ratio_in_box": 0.5253,
+        "n_components": 1,
+        "largest_component_frac": 1.0,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 0,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "右腿",
+      "z": 15,
+      "opacity": 255,
+      "offset": [
+        248,
+        485
+      ],
+      "size": [
+        88,
+        153
+      ],
+      "file": "15_leg_right.png",
+      "id": "leg_right",
+      "confidence": "high",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.9333,
+          0.8974,
+          0.7924
+        ],
+        "chosen_candidate": 0,
+        "fg_ratio_in_box": 0.2415,
+        "n_components": 1,
+        "largest_component_frac": 1.0,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 0,
+        "auto_reselected": false
+      }
+    },
+    {
+      "name": "左靴(過膝黑靴)",
+      "z": 16,
+      "opacity": 255,
+      "offset": [
+        212,
+        545
+      ],
+      "size": [
+        124,
+        353
+      ],
+      "file": "16_boot_left.png",
+      "id": "boot_left",
+      "confidence": "medium",
+      "notes": "chunk306 重切:前方靴(左上→右下交叉)。正點沿靴筒中線,負點落後方靴。 [s4_boot_split: SAM 聯集 ∩/− 前靴多邊形]",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.9053,
+          0.9569,
+          0.9749
+        ],
+        "chosen_candidate": 2,
+        "fg_ratio_in_box": 0.5075,
+        "n_components": 11,
+        "largest_component_frac": 0.9892,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 10,
+        "auto_reselected": false
+      },
+      "split_method": "front_boot_polygon"
+    },
+    {
+      "name": "右靴",
+      "z": 17,
+      "opacity": 255,
+      "offset": [
+        198,
+        575
+      ],
+      "size": [
+        142,
+        323
+      ],
+      "file": "17_boot_right.png",
+      "id": "boot_right",
+      "confidence": "medium",
+      "notes": "chunk306 重切:後方靴(右上→左下交叉)。負點落前方靴。 [s4_boot_split: SAM 聯集 ∩/− 前靴多邊形]",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.7089,
+          0.873,
+          0.9421
+        ],
+        "chosen_candidate": 2,
+        "fg_ratio_in_box": 0.4687,
+        "n_components": 1,
+        "largest_component_frac": 1.0,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 10,
+        "auto_reselected": false
+      },
+      "split_method": "front_boot_polygon"
+    },
+    {
+      "name": "九尾狐尾(整體,無法個別拆分)",
+      "z": 18,
+      "opacity": 255,
+      "offset": [
+        0,
+        269
+      ],
+      "size": [
+        267,
+        629
+      ],
+      "file": "18_tails_mass.png",
+      "id": "tails_mass",
+      "confidence": "low",
+      "notes": "",
+      "sam_info": {
+        "method": "mobile_sam",
+        "scores": [
+          0.7924,
+          0.9133,
+          0.9388
+        ],
+        "chosen_candidate": 2,
+        "fg_ratio_in_box": 0.596,
+        "n_components": 3,
+        "largest_component_frac": 0.9992,
+        "low_confidence": false,
+        "low_confidence_reason": "",
+        "n_points_used": 0,
+        "auto_reselected": false
+      }
+    }
+  ],
+  "contour_method": "sam",
+  "composite": "composite.png",
+  "cut_from_decision": "decision_v4_pts.json"
+}

@@ -6,7 +6,7 @@ images: ref/leg_right.png,ref/leg_right_mask.png,ref/leg_right_preview.png,ref/c
 
 ## 輸入
 - `ref/leg_right.png`:要補的部件,RGBA PNG,460x898,透明背景。這是從整張角色圖 `ref/composite.png` 切出的「leg_right」。
-- `ref/leg_right_mask.png`:需補區遮罩(白=需要重繪,黑=必須原樣保留),1096 px,範圍約 x238–323 / y482–555。
+- `ref/leg_right_mask.png`:需補區遮罩(白=需要重繪,黑=必須原樣保留),2139 px,範圍約 x238–329 / y482–591。
 - `ref/leg_right_preview.png`:整張圖上用紅色標出需補區,幫你理解該區在角色上的位置。
 
 ## 要做什麼

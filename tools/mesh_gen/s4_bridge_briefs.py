@@ -4,19 +4,20 @@
 bridge 會固定叫 Codex 讀 briefs/00_style.md → 任務單明寫不適用。
 需補區 = 件被遮擋件覆蓋處(已含遮擋件顏色污染)∪ 件輪廓外 R px 內、落在遮擋件下的延伸帶(外推)。
 輸出 s4_data/chunk60/bridge/{briefs/todo,ref}/;使用者用 s4_bridge_sync.py 搬到本機 bridge。"""
-import json, os, sys
+import argparse, json, os, sys
 import numpy as np, cv2
+_ap = argparse.ArgumentParser(); _ap.add_argument("--cut", default="cut_sam", help="切件目錄名(chunk60 下),如 cut_sam_v4"); _args = _ap.parse_args()
 sys.path.insert(0, os.path.dirname(__file__))
 import inpaint_eval as ie
 
 D = os.path.join(os.path.dirname(__file__), "s4_data/chunk60")
-CUT = os.path.join(D, "cut_sam"); B = os.path.join(D, "bridge")
+CUT = os.path.join(D, _args.cut); B = os.path.join(D, "bridge")
 TODO = os.path.join(B, "briefs/todo"); REF = os.path.join(B, "ref")
 for p in (TODO, REF): os.makedirs(p, exist_ok=True)
 
 # (part, 遮擋件, 外推帶 px, 材質描述, 類別)
 TASKS = [
- ("tails_mass", ["sleeve_left", "sash_train", "hand_left"], 6,
+ ("tails_mass", ["sleeve_left", "sash_train", "hand_left", "hair_main"], 6,
   "蓬鬆的白色狐尾毛,尾端漸層粉紅;毛流方向沿尾巴走向,邊緣是柔軟的毛絮(alpha 漸弱)", "1b 寬鬆閘:動態下不露洞即可"),
  ("skirt", ["belt", "sash_train", "hand_left", "hand_right", "tag_pendant"], 14,
   "深紅色絲質短裙,帶金色暗紋與金邊;布料順著垂墜方向", "1b"),
@@ -28,6 +29,8 @@ TASKS = [
   "大腿皮膚(淡粉膚色、柔和陰影);靴口上方與裙擺下方的皮膚延伸", "1b"),
  ("leg_right", ["boot_left", "boot_right", "skirt", "sash_train"], 12,
   "大腿皮膚(淡粉膚色、柔和陰影);靴口上方與裙擺下方的皮膚延伸", "1b"),
+ ("hair_main", ["head", "fox_ears", "hair_front_left", "hair_front_right", "choker", "sleeve_left", "hand_left"], 10,
+  "銀紫色長髮,髮絲細長順著飄動方向,半透明髮尾;頭後/頸後/肩後被頭、前髮、紗袖、手遮住的髮應延續髮流", "1b"),
 ]
 man = json.load(open(os.path.join(CUT, "manifest.json")))
 W, H = man["size"]; L = {}
@@ -82,7 +85,7 @@ Save the result as `out/{pid}_filled.png`
 """
     open(os.path.join(TODO, f"{i:02d}_{pid}.md"), "w").write(brief)
     summary.append((pid, n, bbox))
-open(os.path.join(B, "README.md"), "w").write("""# Codex bridge 任務包(chunk 306)
+open(os.path.join(B, "README.md"), "w").write(f"""# Codex bridge 任務包(切件來源:{_args.cut})
 由 `s4_bridge_briefs.py` 產生。搬運方式(在你的 Windows 機器上,repo 根目錄):
 
     python tools/mesh_gen/s4_bridge_sync.py push "C:\\Users\\user\\Desktop\\切圖補圖研究\\bridge"

@@ -1,4 +1,4 @@
-# Codex bridge 任務包(chunk 306)
+# Codex bridge 任務包(切件來源:cut_sam_v4)
 由 `s4_bridge_briefs.py` 產生。搬運方式(在你的 Windows 機器上,repo 根目錄):
 
     python tools/mesh_gen/s4_bridge_sync.py push "C:\Users\user\Desktop\切圖補圖研究\bridge"
