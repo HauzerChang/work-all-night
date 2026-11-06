@@ -1,0 +1,1 @@
+﻿exit=0 result=done expected=C:\Users\user\Desktop\切圖補圖研究\bridge\out\leg_right_filled.png finished=2026-11-06T09:43:36 model=gpt-6.1-sol note=bridge-marked-failed-at-09:43:03-by-Start-Job-state-race;output-exists-and-log-says-Saved
