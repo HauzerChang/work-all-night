@@ -1,0 +1,11 @@
+{
+ "round": 2,
+ "bridge_refs": "git 12e948b tools/mesh_gen/s4_data/chunk60/bridge/ref (round-2 masks)",
+ "accept": {
+  "tails_mass": "visual_pass (round2:髮遮擋增量補毛自然;1b 閘 edge 模式 fail 為誤擋——外推帶;殘洞少量)"
+ },
+ "reject": {
+  "leg_right": "換措辭後出圖,但兩條遮罩帶被畫成脫離腿部的粉色浮空長條,不是輪廓延伸 → 不可用;需人工/改遮罩",
+  "hair_main": "區塊補圖留明顯矩形接縫(右上亮塊)+ 左下浮空雜點,劣於原件 → reject"
+ }
+}

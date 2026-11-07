@@ -1,0 +1,76 @@
+[
+ {
+  "part": "hair_main",
+  "file": "filled_round2/hair_main_filled.png",
+  "checks": {
+   "has_alpha": true,
+   "size": "ok",
+   "black_region_premult_mae": 0.0,
+   "black_region_alpha_mae": 0.0,
+   "white_region_alpha_gap": 0.0518,
+   "boundary_gap": 0.0,
+   "white_region_grad_ratio": 0.781,
+   "1b": {
+    "alpha_gap": 0.052,
+    "seam_ratio": 1.207,
+    "tone_gap": 8.815,
+    "applicable": true,
+    "pass": false
+   },
+   "1b_mode": "edge"
+  },
+  "warnings": [
+   "殘洞 1px 以 nearest 自動補"
+  ],
+  "pass": null,
+  "needs_visual": true
+ },
+ {
+  "part": "leg_right",
+  "file": "filled_round2/leg_right_filled.png",
+  "checks": {
+   "has_alpha": true,
+   "size": "ok",
+   "black_region_premult_mae": 0.0,
+   "black_region_alpha_mae": 0.0,
+   "white_region_alpha_gap": 0.0,
+   "boundary_gap": 0.0,
+   "white_region_grad_ratio": 1.236,
+   "1b": {
+    "alpha_gap": 0.0,
+    "seam_ratio": 2.192,
+    "tone_gap": 15.354,
+    "applicable": false,
+    "pass": null
+   },
+   "1b_mode": "edge"
+  },
+  "warnings": [],
+  "pass": null,
+  "needs_visual": true
+ },
+ {
+  "part": "tails_mass",
+  "file": "filled_round2/tails_mass_filled.png",
+  "checks": {
+   "has_alpha": true,
+   "size": "ok",
+   "black_region_premult_mae": 0.0,
+   "black_region_alpha_mae": 0.0,
+   "white_region_alpha_gap": 0.2136,
+   "boundary_gap": 0.1698,
+   "white_region_grad_ratio": 0.767,
+   "1b": {
+    "alpha_gap": 0.214,
+    "seam_ratio": 1.696,
+    "tone_gap": 11.328,
+    "applicable": true,
+    "pass": false
+   },
+   "1b_mode": "edge"
+  },
+  "warnings": [],
+  "pass": null,
+  "needs_visual": true
+ }
+]
