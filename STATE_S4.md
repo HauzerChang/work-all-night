@@ -7,6 +7,8 @@
 
 `ACTIVE`  <!-- SETUP / ACTIVE / BLOCKED / DONE -->
 
+> **chunk 311(2026-11-08)**:排程觸發。檢查皆無變化(仍待 leg_right/hair_main 決策),**無新工作塊**,不重複通知。見 `log/s4-2026-11-08-311.md`。
+
 > **chunk 310(2026-11-07)**:bridge 第二輪驗收:tails_mass accept、leg_right/hair_main reject(遮罩形狀不當)→ PSD v6(`jiuwei_yanlian_decompose_v6_filled.psd`)。**待使用者決策:leg_right 重畫遮罩/改人工、hair_main 縮小遮罩;之後可出第三輪任務包。** 無其他更新則排程 no-change。見 `knowledge/s4-bridge-round2-results.md`、`log/s4-2026-11-07-310.md`。
 
 > **chunk 309(2026-11-06)**:bridge 第一輪 5/6 accept → PSD v5(`jiuwei_yanlian_decompose_v5_filled.psd`)。第二輪任務包 3 張待使用者 push/pull(`--round 2`)。**排程:偵測 `chunk60/filled_round2/` → `s4_bridge_verify.py --filled-dir ... --bridge-dir tools/mesh_gen/s4_data/chunk60/bridge`(本 commit 版 ref)→ 目視 → decisions → apply → PSD v6;否則 no-change。** 見 `knowledge/s4-bridge-round1-results.md`。
